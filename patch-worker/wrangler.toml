@@ -1,0 +1,38 @@
+name = "wh-patch"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── KV Namespaces ──────────────────────────────────────────────
+[[kv_namespaces]]
+binding = "SITES"
+id = "b63e5b885ead4c02a9e184dd6477e711"
+
+# ── R2 Buckets ─────────────────────────────────────────────────
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "wh-assets"
+
+# ── Queues (Producer only — patch sends to build queue) ────────
+[[queues.producers]]
+binding = "BUILD_QUEUE"
+queue = "wh-build-queue"
+
+# ── Email routing (incoming email to updates@websitehub.co.za) ─
+# Enable this in Cloudflare Email Routing dashboard and point to this worker
+[vars]
+TEST_MODE                  = "true"
+WORKER_URL_BUILD           = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_LAUNCH          = "https://wh-launch.pierreduplessis6912.workers.dev"
+
+# ── Secrets ────────────────────────────────────────────────────
+#   wrangler secret put ANTHROPIC_KEY        --name wh-patch
+#   wrangler secret put AIRTABLE_TOKEN       --name wh-patch
+#   wrangler secret put AIRTABLE_BASE_ID     --name wh-patch
+#   wrangler secret put AIRTABLE_TABLE_ID    --name wh-patch
+#   wrangler secret put META_WA_TOKEN        --name wh-patch
+#   wrangler secret put META_PHONE_NUMBER_ID --name wh-patch
+#   wrangler secret put WH_PHONE             --name wh-patch
+#   wrangler secret put ADMIN_KEY            --name wh-patch
+#   wrangler secret put PAYFAST_MERCHANT_ID  --name wh-patch
+#   wrangler secret put PAYFAST_SANDBOX_MERCHANT_ID --name wh-patch

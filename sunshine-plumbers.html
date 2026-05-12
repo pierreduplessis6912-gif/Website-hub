@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sunshine Plumbers | Plumbing Services | Pretoria East</title>
+  <meta property="og:title" content="Sunshine Plumbers | Pretoria East's Trusted Father & Son Team" />
+  <meta property="og:description" content="Family-owned plumbers serving Pretoria East for 15+ years — on time, priced right, and fixed properly the first time." />
+  <meta property="og:image" content="https://images.unsplash.com/photo-1538474705339-e87de81450e8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDI0OTV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3Nzg0NTM5MDZ8&ixlib=rb-4.1.0&q=80&w=1080" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://sunshine-plumbers.co.za/" />
+  <meta name="description" content="Family-owned plumbers serving Pretoria East for 15+ years — on time, priced right, and fixed properly the first time." />
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Source+Sans+3:wght@400;500;600&display=swap');
+
+/* ─── Custom Properties ─────────────────────────────────────────────────── */
+:root {
+  --bg:         #F5F0EB;
+  --surface:    #FFFFFF;
+  --acc:        #E8610A;
+  --text:       #1C1C1C;
+  --muted:      #6B6560;
+  --radius:     12px;
+  --transition: 0.2s;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Source Sans 3', system-ui, sans-serif;
+
+  --space-xs:  8px;
+  --space-sm:  16px;
+  --space-md:  24px;
+  --space-lg:  40px;
+  --space-xl:  80px;
+
+  --shadow-subtle: 0 2px 12px rgba(28, 28, 28, 0.08), 0 1px 3px rgba(28, 28, 28, 0.05);
+  --shadow-card:   0 4px 24px rgba(28, 28, 28, 0.10);
+
+  --nav-h: 64px;
+}
+
+/* ─── Smooth Scroll ─────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ─── Reset ─────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+img,
+video,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+button {
+  cursor: pointer;
+  font: inherit;
+}
+
+/* ─── Body ──────────────────────────────────────────────────────────────── */
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Typography ────────────────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+h1 {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 800;
+}
+
+h2 {
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-weight: 800;
+}
+
+h3 {
+  font-size: clamp(1.25rem, 3vw, 1.8rem);
+}
+
+h4 {
+  font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+}
+
+p {
+  font-family: var(--font-body);
+  color: var(--text);
+  max-width: 68ch;
+}
+
+/* ─── Navigation ────────────────────────────────────────────────────────── */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: var(--nav-h);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md);
+  background-color: var(--surface);
+  box-shadow: 0 1px 8px rgba(28, 28, 28, 0.08);
+  transition: background-color var(--transition) ease, box-shadow var(--transition) ease;
+}
+
+.nav-brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.nav-brand span {
+  color: var(--acc);
+}
+
+/* ─── Nav Links (Desktop) ───────────────────────────────────────────────── */
+.nav-links {
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.nav-links a {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  position: relative;
+  transition: color var(--transition) ease;
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--acc);
+  transition: width var(--transition) ease;
+}
+
+.nav-links a:hover {
+  color: var(--acc);
+}
+
+.nav-links a:hover::after {
+  width: 100%;
+}
+
+/* ─── Hamburger (Mobile) ────────────────────────────────────────────────── */
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  padding: 4px;
+  transition: background-color var(--transition) ease;
+  z-index: 101;
+}
+
+.hamburger:hover {
+  background-color: var(--bg);
+}
+
+.hamburger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background-color: var(--text);
+  border-radius: 2px;
+  transition: transform var(--transition) ease, opacity var(--transition) ease;
+}
+
+.hamburger.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.hamburger.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ─── Mobile Nav Overlay ────────────────────────────────────────────────── */
+.mobile-nav {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background-color: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition:
+    opacity var(--transition) ease,
+    transform var(--transition) ease;
+}
+
+.mobile-nav.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.mobile-nav a {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  color: var(--text);
+  transition: color var(--transition) ease;
+}
+
+.mobile-nav a:hover {
+  color: var(--acc);
+}
+
+/* ─── Buttons ───────────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  background-color: var(--acc);
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 12px 28px;
+  border: 2px solid var(--acc);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition:
+    background-color var(--transition) ease,
+    transform var(--transition) ease,
+    box-shadow var(--transition) ease;
+  white-space: nowrap;
+}
+
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  background-color: #c7510a;
+  border-color: #c7510a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(232, 97, 10, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  background-color: transparent;
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 12px 28px;
+  border: 2px solid #ffffff;
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition:
+    background-color var(--transition) ease,
+    color var(--transition) ease,
+    transform var(--transition) ease;
+  white-space: nowrap;
+}
+
+.btn-outline:hover,
+.btn-outline:focus-visible {
+  background-color: #ffffff;
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.btn-outline:active {
+  transform: translateY(0);
+}
+
+/* ─── FAB

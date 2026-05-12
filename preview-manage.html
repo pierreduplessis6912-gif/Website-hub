@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Website Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── RESET ─────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0d0d0d;--surface:#161616;--surface2:#1e1e1e;--border:#2a2a2a;
+  --white:#f0ede8;--muted:#666;--muted2:#444;
+  --orange:#ff5500;--orange2:#ff7733;
+  --green:#00c97a;--red:#ff3b30;--yellow:#ffcc00;--blue:#4a9eff;
+  --gold:#ffd700;
+  --font-display:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'DM Mono',monospace;
+  --drawer-w:320px;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--white);font-family:var(--font-body);}
+img{display:block;max-width:100%;}
+button{font-family:var(--font-body);cursor:pointer;border:none;outline:none;}
+input,textarea{font-family:var(--font-body);outline:none;}
+a{color:inherit;text-decoration:none;}
+
+/* ── STATES — all hidden by default, shown when .active ── */
+.state{display:none !important;}
+.state.active{display:block !important;}
+#state-building.active{display:flex !important;align-items:center;justify-content:center;}
+
+/* ── SHARED TOPBAR ─────────────────────────────────────── */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:52px;background:rgba(13,13,13,0.95);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+}
+.topbar-brand{font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-0.5px;color:var(--white);}
+.topbar-brand span{color:var(--orange);}
+.topbar-tag{font-size:11px;font-family:var(--font-mono);color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:4px;}
+
+/* ─────────────────────────────────────────────────────────
+   STATE 2 — BUILDING
+   ─────────────────────────────────────────────────────── */
+#state-building{padding:20px;min-height:100vh;text-align:center;}
+.building-wrap{max-width:380px;width:100%;}
+.building-logo{font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:40px;}
+.building-logo span{color:var(--orange);}
+
+.building-ring-wrap{position:relative;width:96px;height:96px;margin:0 auto 32px;}
+.building-ring{
+  width:96px;height:96px;border:3px solid var(--border);border-top-color:var(--orange);
+  border-radius:50%;animation:spin 0.9s linear infinite;
+}
+.building-ring-inner{
+  position:absolute;inset:12px;border:2px solid var(--border);border-bottom-color:var(--orange2);
+  border-radius:50%;animation:spin 1.4s linear infinite reverse;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.building-status{
+  font-family:var(--font-mono);font-size:13px;color:var(--orange);
+  min-height:22px;margin-bottom:12px;animation:fadeUp 0.4s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.building-title{font-family:var(--font-display);font-size:28px;font-weight:800;margin-bottom:8px;}
+.building-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:36px;}
+
+.building-steps{display:flex;flex-direction:column;gap:8px;text-align:left;}
+.building-step{
+  display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);
+  padding:10px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;transition:all 0.4s;
+}
+.building-step.done{color:var(--white);border-color:rgba(0,201,122,0.3);background:rgba(0,201,122,0.04);}
+.building-step.active{color:var(--orange);border-color:rgba(255,85,0,0.3);background:rgba(255,85,0,0.04);}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--muted2);flex-shrink:0;transition:background 0.4s;}
+.building-step.done .step-dot{background:var(--green);}
+.building-step.active .step-dot{background:var(--orange);animation:pulse 1s ease infinite;}
+.step-check{display:none;font-size:12px;margin-left:auto;color:var(--green);}
+.building-step.done .step-check{display:block;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* ─────────────────────────────────────────────────────────
+   STATE 3 — PREVIEW (iframe + page tabs + bottom bar + drawer)
+   ─────────────────────────────────────────────────────── */
+#state-preview{position:fixed;inset:0;}
+.preview-iframe-wrap{position:absolute;top:40px;left:0;right:0;bottom:56px;}
+.preview-iframe{width:100%;height:100%;border:none;display:block;}
+
+/* Page switcher tabs */
+.page-tabs{position:absolute;top:0;left:0;right:0;z-index:105;display:flex;overflow-x:auto;scrollbar-width:none;background:rgba(13,13,13,0.94);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.07);}
+.page-tabs::-webkit-scrollbar{display:none;}
+.page-tab{flex:1;min-width:68px;padding:11px 10px;font-size:11px;font-weight:700;letter-spacing:0.5px;background:transparent;color:var(--muted);border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all 0.15s;font-family:var(--font-body);}
+.page-tab.active{color:var(--orange);border-bottom-color:var(--orange);}
+.page-tab:hover:not(.active){color:var(--white);}
+.page-tab.premium-tab::after{content:'★';font-size:8px;color:var(--gold);margin-left:3px;vertical-align:super;}
+
+/* Bottom action bar */
+.preview-bottom-bar{
+  position:absolute;bottom:0;left:0;right:0;z-index:110;
+  height:56px;background:rgba(13,13,13,0.96);backdrop-filter:blur(14px);
+  border-top:1px solid rgba(255,255,255,0.08);
+  display:flex;align-items:center;gap:10px;padding:0 16px;
+}
+.bottom-tweak-btn{
+  display:flex;align-items:center;gap:6px;padding:10px 16px;border-radius:8px;
+  background:var(--surface2);border:1px solid var(--border);color:var(--white);
+  font-size:13px;font-weight:600;transition:all 0.15s;white-space:nowrap;flex-shrink:0;
+}
+.bottom-tweak-btn:hover{border-color:var(--orange);color:var(--orange);}
+.bottom-dashboard-btn{display:flex;align-items:center;gap:5px;padding:10px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--white);font-size:12px;font-weight:600;transition:all 0.15s;white-space:nowrap;flex-shrink:0;font-family:var(--font-body);cursor:pointer;}
+.bottom-dashboard-btn:hover{border-color:var(--blue);color:var(--blue);}
+.bottom-live-btn{
+  flex:1;padding:10px 16px;border-radius:8px;background:var(--orange);color:#fff;
+  font-size:14px;font-weight:700;text-align:center;transition:all 0.15s;
+}
+.bottom-live-btn:hover{background:var(--orange2);}
+.bottom-live-btn:active{transform:scale(0.98);}
+
+/* Drawer */
+.tweak-drawer{
+  position:absolute;bottom:calc(-1 * (75vh - 56px));left:0;right:0;
+  height:calc(75vh - 56px);z-index:120;
+  background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;
+  display:flex;flex-direction:column;
+  transition:bottom 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow:0 -8px 32px rgba(0,0,0,0.5);
+}
+.tweak-drawer.open{bottom:56px;}
+.drawer-handle-bar{display:flex;justify-content:center;padding:12px 0 4px;cursor:pointer;flex-shrink:0;}
+.drawer-handle{width:40px;height:4px;border-radius:2px;background:var(--muted2);}
+.drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.drawer-title{font-family:var(--font-display);font-size:16px;font-weight:800;}
+.drawer-close{background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:32px;height:32px;border-radius:8px;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.drawer-close:hover{color:var(--white);border-color:var(--muted);}
+.drawer-body{flex:1;overflow-y:auto;padding:16px 18px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.drawer-body::-webkit-scrollbar{width:4px;}
+.drawer-body::-webkit-scrollbar-track{background:transparent;}
+.drawer-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.drawer-section{margin-bottom:22px;}
+.drawer-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+
+/* Palette swatches */
+.swatch-row{display:flex;gap:8px;}
+.swatch{flex:1;height:44px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all 0.15s;position:relative;overflow:hidden;}
+.swatch.active{border-color:var(--white);transform:scale(1.04);}
+.swatch:not(.active):hover{border-color:rgba(255,255,255,0.3);}
+.swatch-name{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:9px;font-weight:700;letter-spacing:0.5px;color:rgba(255,255,255,0.9);text-shadow:0 1px 3px rgba(0,0,0,0.6);}
+
+/* Font options */
+.font-row{display:flex;gap:8px;}
+.font-opt{flex:1;padding:10px 6px;border-radius:8px;text-align:center;background:var(--surface2);border:2px solid var(--border);cursor:pointer;transition:all 0.15s;}
+.font-opt.active{border-color:var(--orange);background:rgba(255,85,0,0.07);}
+.font-opt:not(.active):hover{border-color:var(--muted);}
+.font-opt-name{font-size:14px;font-weight:700;margin-bottom:2px;}
+.font-opt-style{font-size:9px;color:var(--muted);}
+
+/* Photo strip */
+.photo-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
+.photo-strip::-webkit-scrollbar{display:none;}
+.photo-thumb{width:68px;height:48px;border-radius:6px;object-fit:cover;flex-shrink:0;border:2px solid transparent;cursor:pointer;transition:all 0.15s;}
+.photo-thumb.active{border-color:var(--orange);transform:scale(1.06);}
+.photo-thumb:not(.active):hover{border-color:rgba(255,85,0,0.5);}
+
+/* Taglines */
+.tagline-opts{display:flex;flex-direction:column;gap:6px;}
+.tagline-opt{padding:9px 12px;border-radius:8px;font-size:12px;line-height:1.4;background:var(--surface2);border:2px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--muted);}
+.tagline-opt.active{border-color:var(--orange);background:rgba(255,85,0,0.07);color:var(--white);}
+.tagline-opt:not(.active):hover{border-color:var(--muted);color:var(--white);}
+
+/* Photo upload */
+.photo-upload-row{margin-top:8px;}
+.photo-upload-btn{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border:2px dashed var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);transition:all 0.15s;width:100%;}
+.photo-upload-btn:hover{border-color:var(--orange);color:var(--white);}
+
+/* Gallery upload grid (drawer) */
+.gallery-upload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px;}
+.gallery-slot{aspect-ratio:4/3;border-radius:7px;background:var(--surface2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:18px;color:var(--muted);transition:border-color 0.15s;}
+.gallery-slot:hover{border-color:var(--orange);}
+.gallery-slot img{width:100%;height:100%;object-fit:cover;}
+.gallery-slot.uploaded{border-style:solid;border-color:var(--green);}
+
+/* Revert button */
+.revert-btn{width:100%;padding:10px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;transition:all 0.15s;font-family:var(--font-body);cursor:pointer;}
+.revert-btn:hover{color:var(--white);border-color:var(--muted);}
+
+/* Logo upload */
+.logo-upload-btn{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:2px dashed var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all 0.15s;width:100%;}
+.logo-upload-btn:hover{border-color:var(--orange);color:var(--white);}
+.logo-preview-img{width:32px;height:32px;object-fit:contain;border-radius:4px;}
+
+/* Patching overlay */
+.patch-overlay{position:absolute;inset:0;background:rgba(13,13,13,0.5);display:flex;align-items:center;justify-content:center;z-index:99;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.patch-overlay.show{opacity:1;pointer-events:all;}
+.patch-ring{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin 0.9s linear infinite;}
+
+/* Drawer footer */
+.drawer-footer{padding:14px 18px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:8px;background:var(--surface);}
+.go-live-btn{width:100%;padding:14px;border-radius:10px;background:var(--orange);color:#fff;font-size:15px;font-weight:700;text-align:center;transition:all 0.15s;}
+.go-live-btn:hover{background:var(--orange2);}
+.go-live-btn:active{transform:scale(0.98);}
+.go-live-price{font-size:11px;opacity:0.8;display:block;margin-top:2px;font-weight:400;}
+.not-interested-btn{width:100%;padding:10px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:13px;transition:all 0.15s;}
+.not-interested-btn:hover{color:var(--red);border-color:rgba(255,59,48,0.3);}
+
+@media(max-width:640px){
+  .preview-bottom-bar{padding:0 12px;}
+  .bottom-tweak-btn{padding:10px 12px;font-size:12px;}
+}
+
+/* ─────────────────────────────────────────────────────────
+   STATE 4 — MANAGE
+   ─────────────────────────────────────────────────────── */
+#state-manage.active{padding:52px 0 48px;}
+.manage-wrap{max-width:540px;margin:0 auto;padding:24px 20px;}
+
+.manage-hero{background:linear-gradient(135deg,rgba(255,85,0,0.08),rgba(255,85,0,0.02));border:1px solid rgba(255,85,0,0.2);border-radius:14px;padding:20px;margin-bottom:20px;}
+.manage-domain{font-family:var(--font-mono);font-size:12px;color:var(--orange);margin-bottom:6px;}
+.manage-biz{font-family:var(--font-display);font-size:26px;font-weight:800;line-height:1.1;margin-bottom:6px;}
+.manage-package-badge{display:inline-block;font-family:var(--font-mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:5px;margin-bottom:12px;}
+.manage-package-badge.express{background:rgba(74,158,255,0.15);color:var(--blue);border:1px solid rgba(74,158,255,0.3);}
+.manage-package-badge.standard{background:rgba(255,85,0,0.15);color:var(--orange);border:1px solid rgba(255,85,0,0.3);}
+.manage-package-badge.premium{background:rgba(255,215,0,0.15);color:var(--gold);border:1px solid rgba(255,215,0,0.3);}
+.manage-stats{display:flex;gap:8px;flex-wrap:wrap;}
+.m-stat{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;flex:1;min-width:80px;text-align:center;}
+.m-stat-val{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--orange);}
+.m-stat-lbl{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase;}
+
+.manage-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+.manage-section-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;user-select:none;}
+.manage-section-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;}
+.manage-section-ico{font-size:18px;}
+.manage-section-chevron{font-size:12px;color:var(--muted);transition:transform 0.2s;}
+.manage-section.open .manage-section-chevron{transform:rotate(180deg);}
+.manage-section-body{display:none;padding:0 18px 18px;}
+.manage-section.open .manage-section-body{display:block;}
+
+.manage-cta-row{display:flex;gap:10px;margin-top:12px;}
+.btn-manage{padding:12px 16px;border-radius:9px;font-size:13px;font-weight:600;transition:all 0.15s;text-align:center;cursor:pointer;font-family:var(--font-body);border:none;}
+.btn-manage.primary{background:var(--orange);color:#fff;flex:1;}
+.btn-manage.primary:hover{background:var(--orange2);}
+.btn-manage.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--white);flex:1;}
+.btn-manage.secondary:hover{border-color:var(--muted);}
+
+.rev-counter{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;}
+.rev-bar{flex:1;height:4px;background:var(--border);border-radius:2px;margin:0 12px;overflow:hidden;}
+.rev-fill{height:100%;background:var(--orange);border-radius:2px;transition:width 0.3s;}
+.rev-label{font-size:12px;font-family:var(--font-mono);}
+
+.photo-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.photo-slot{aspect-ratio:4/3;border-radius:8px;background:var(--surface2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color 0.15s;}
+.photo-slot:hover{border-color:var(--orange);}
+.photo-slot img{width:100%;height:100%;object-fit:cover;}
+.photo-slot-add{font-size:20px;color:var(--muted);}
+
+.referral-card{background:linear-gradient(135deg,rgba(0,201,122,0.08),rgba(0,201,122,0.02));border:1px solid rgba(0,201,122,0.2);border-radius:10px;padding:14px;margin-bottom:12px;}
+.referral-link{font-family:var(--font-mono);font-size:12px;color:var(--green);word-break:break-all;margin-bottom:8px;}
+.referral-stats{display:flex;gap:12px;font-size:12px;color:var(--muted);}
+.referral-stats strong{color:var(--white);}
+
+.upgrade-card{background:linear-gradient(135deg,rgba(74,158,255,0.08),rgba(74,158,255,0.02));border:1px solid rgba(74,158,255,0.2);border-radius:10px;padding:14px;margin-bottom:10px;}
+.upgrade-card .upgrade-delta{font-family:var(--font-display);font-size:30px;font-weight:800;color:var(--blue);}
+.upgrade-card .upgrade-to{font-size:12px;color:var(--muted);margin:4px 0 12px;}
+.upgrade-card .upgrade-to strong{color:var(--white);font-weight:600;}
+.upgrade-card.premium-card{background:linear-gradient(135deg,rgba(255,215,0,0.08),rgba(255,215,0,0.02));border-color:rgba(255,215,0,0.25);}
+.upgrade-card.premium-card .upgrade-delta{color:var(--gold);}
+
+.email-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.email-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.email-row{font-family:var(--font-mono);font-size:13px;color:var(--white);padding:6px 10px;background:var(--bg);border-radius:6px;}
+.email-row-muted{color:var(--muted);font-style:italic;}
+
+/* Revision overlay */
+.rev-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);display:none;align-items:flex-end;}
+.rev-overlay.open{display:flex;}
+.rev-sheet{width:100%;background:var(--surface);border-radius:18px 18px 0 0;border-top:1px solid var(--border);padding:24px 20px 40px;max-height:90vh;overflow-y:auto;}
+.rev-sheet-title{font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:8px;}
+.rev-sheet-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.form-field{margin-bottom:14px;}
+.form-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;font-weight:500;}
+.form-textarea{width:100%;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--white);font-size:14px;resize:none;transition:border-color 0.15s;font-family:var(--font-body);}
+.form-textarea:focus{border-color:var(--orange);}
+
+.chip-row{display:flex;flex-wrap:wrap;gap:7px;}
+.chip{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:all 0.15s;}
+.chip.active{background:rgba(255,85,0,0.1);border-color:var(--orange);color:var(--orange);}
+
+/* Paid revision confirmation modal */
+.paid-rev-overlay{position:fixed;inset:0;z-index:350;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;padding:20px;}
+.paid-rev-overlay.open{display:flex;}
+.paid-rev-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 24px;max-width:380px;width:100%;text-align:center;}
+.paid-rev-icon{font-size:40px;margin-bottom:14px;}
+.paid-rev-title{font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:8px;}
+.paid-rev-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px;}
+.paid-rev-price{font-family:var(--font-display);font-size:36px;font-weight:800;color:var(--orange);margin-bottom:6px;}
+.paid-rev-price-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:22px;}
+.paid-rev-actions{display:flex;flex-direction:column;gap:8px;}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:14px;font-weight:500;z-index:500;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.success{border-color:rgba(0,201,122,0.4);color:var(--green);}
+.toast.error{border-color:rgba(255,59,48,0.4);color:var(--red);}
+
+/* Loading screen */
+.loading-screen{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+.loading-ring{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin 0.9s linear infinite;}
+.loading-label{font-size:13px;color:var(--muted);font-family:var(--font-mono);}
+
+/* Pre-live overlay */
+.prelive-overlay{position:fixed;inset:0;z-index:250;background:rgba(13,13,13,0.92);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:24px;}
+.prelive-card{text-align:center;max-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 28px;}
+
+/* Analytics */
+.analytics-row{display:flex;gap:8px;margin-bottom:12px;}
+.analytics-card{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.analytics-val{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--orange);}
+.analytics-lbl{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;}
+
+/* Locked section */
+.locked-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;color:var(--muted);font-size:13px;}
+.lock-icon{font-size:24px;margin-bottom:8px;}
+.lock-lbl{font-weight:600;color:var(--white);margin-bottom:6px;font-size:14px;}
+
+/* Leaderboard */
+.lb-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.lb-pos{font-family:var(--font-mono);font-weight:700;color:var(--orange);width:24px;text-align:center;flex-shrink:0;}
+.lb-name{flex:1;color:var(--white);}
+.lb-count{font-family:var(--font-mono);font-size:12px;color:var(--muted);}
+.lb-you{color:var(--green)!important;font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="topbar" id="mainTopbar">
+  <div class="topbar-brand">website<span>hub</span></div>
+  <div class="topbar-tag" id="topbar-tag">preview</div>
+</div>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-ring"></div>
+  <div class="loading-label">Loading...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════
+     STATE 2 — BUILDING
+     ══════════════════════════════════════════════════════ -->
+<div class="state" id="state-building">
+  <div class="building-wrap">
+    <div class="building-logo">website<span>hub</span></div>
+    <div class="building-ring-wrap">
+      <div class="building-ring"></div>
+      <div class="building-ring-inner"></div>
+    </div>
+    <div class="building-status" id="buildStatus">Analysing your business...</div>
+    <div class="building-title">Building your site</div>
+    <div class="building-sub">We're putting it together now.<br>This takes about 2 minutes — don't close this tab.</div>
+    <div class="building-steps">
+      <div class="building-step active" id="bs1"><div class="step-dot"></div>Analysing your business<span class="step-check">✓</span></div>
+      <div class="building-step" id="bs2"><div class="step-dot"></div>Choosing your design<span class="step-check">✓</span></div>
+      <div class="building-step" id="bs3"><div class="step-dot"></div>Writing your content<span class="step-check">✓</span></div>
+      <div class="building-step" id="bs4"><div class="step-dot"></div>Adding your photos<span class="step-check">✓</span></div>
+      <div class="building-step" id="bs5"><div class="step-dot"></div>Final touches<span class="step-check">✓</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STATE 3 — PREVIEW
+     ══════════════════════════════════════════════════════ -->
+<div class="state" id="state-preview">
+  <div class="page-tabs" id="pageTabs">
+    <button class="page-tab active" data-page="index">Home</button>
+    <button class="page-tab" data-page="services" id="servicesTab">Services</button>
+    <button class="page-tab" data-page="about" id="aboutTab">About</button>
+    <button class="page-tab" data-page="contact" id="contactTab">Contact</button>
+    <button class="page-tab premium-tab" data-page="gallery" id="galleryTab" style="display:none">Gallery</button>
+  </div>
+
+  <div class="preview-iframe-wrap">
+    <iframe class="preview-iframe" id="previewFrame" src="about:blank" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+  </div>
+
+  <div class="patch-overlay" id="patchOverlay">
+    <div class="patch-ring"></div>
+  </div>
+
+  <div class="preview-bottom-bar">
+    <button class="bottom-tweak-btn" onclick="toggleDrawer()">✏️ Tweak it</button>
+    <button class="bottom-dashboard-btn" onclick="openDashboard()">📊 Dashboard</button>
+    <button class="bottom-live-btn" onclick="handleGoLive()">🚀 Go Live — <span id="ctaPrice">R—/mo</span></button>
+  </div>
+
+  <div class="tweak-drawer" id="tweakDrawer">
+    <div class="drawer-handle-bar" onclick="toggleDrawer()">
+      <div class="drawer-handle"></div>
+    </div>
+    <div class="drawer-header">
+      <div class="drawer-title">Customise your site</div>
+      <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      <div class="drawer-section">
+        <div class="drawer-label">Palette</div>
+        <div class="swatch-row" id="paletteRow"></div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-label">Font</div>
+        <div class="font-row" id="fontRow"></div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-label">Hero photo</div>
+        <div class="photo-strip" id="photoStrip"></div>
+        <div class="photo-upload-row">
+          <label class="photo-upload-btn">
+            📷 Upload your own photo
+            <input type="file" accept="image/*" style="display:none;" onchange="uploadHeroPhoto(this)">
+          </label>
+        </div>
+      </div>
+
+      <div class="drawer-section" id="drawerGallerySection">
+        <div class="drawer-label">Gallery photos <span style="font-size:9px;color:var(--muted);font-weight:400;letter-spacing:0;">(Premium feature)</span></div>
+        <div class="gallery-upload-grid" id="galleryUploadGrid">
+          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 0)"></label>
+          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 1)"></label>
+          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 2)"></label>
+          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 3)"></label>
+          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 4)"></label>
+          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 5)"></label>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-label">Tagline</div>
+        <div class="tagline-opts" id="taglineOpts"></div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-label">Logo</div>
+        <label class="logo-upload-btn" id="logoBtn">
+          <span id="logoIcon">📁</span>
+          <span id="logoLabel">Upload your logo (PNG or JPG)</span>
+          <input type="file" id="logoInput" accept="image/*" style="display:none;" onchange="handleLogo(this)">
+        </label>
+      </div>
+
+      <div class="drawer-section">
+        <button class="revert-btn" onclick="handleRevert()">↩ Revert to original build</button>
+      </div>
+      <div style="height:8px;"></div>
+    </div>
+
+    <div class="drawer-footer">
+      <button class="go-live-btn" onclick="handleGoLive()">
+        🚀 Go Live
+        <span class="go-live-price" id="drawerGoLivePrice">R—/month — no setup fee</span>
+      </button>
+      <button class="not-interested-btn" onclick="handleNotInterested()">Not interested</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pre-live overlay -->
+<div class="prelive-overlay" id="preLiveOverlay">
+  <div class="prelive-card">
+    <div style="font-size:48px;margin-bottom:16px;">🚀</div>
+    <div style="font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:12px;">Your dashboard is ready</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px;">Your full management panel unlocks the moment you go live. Tap below when you're ready.</div>
+    <button class="btn-manage primary" onclick="handleGoLive();document.getElementById('preLiveOverlay').style.display='none';" style="width:100%;">Go live now</button>
+    <button class="btn-manage secondary" onclick="document.getElementById('preLiveOverlay').style.display='none';" style="width:100%;margin-top:8px;">Maybe later</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STATE 4 — MANAGE PANEL
+     ══════════════════════════════════════════════════════ -->
+<div class="state" id="state-manage">
+  <div class="manage-wrap">
+
+    <div class="manage-hero">
+      <div class="manage-domain" id="manageDomain">—</div>
+      <div class="manage-biz" id="manageBiz">—</div>
+      <div class="manage-package-badge" id="managePackageBadge">—</div>
+      <div class="manage-stats">
+        <div class="m-stat"><div class="m-stat-val" id="mDays">—</div><div class="m-stat-lbl">Days to invoice</div></div>
+        <div class="m-stat"><div class="m-stat-val" id="mRevisions">—</div><div class="m-stat-lbl">Revisions left</div></div>
+        <div class="m-stat"><div class="m-stat-val" id="mRetainer">—</div><div class="m-stat-lbl">Per month</div></div>
+      </div>
+    </div>
+
+    <!-- Site status -->
+    <div class="manage-section open" id="sec-status">
+      <div class="manage-section-head" onclick="toggleSection('sec-status')">
+        <div class="manage-section-title"><span class="manage-section-ico">🌐</span>Site status</div>
+        <div class="manage-section-chevron">▼</div>
+      </div>
+      <div class="manage-section-body">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Your site is live at:</div>
+        <a id="manageLiveUrl" href="#" target="_blank" style="font-family:var(--font-mono);font-size:14px;color:var(--green);word-break:break-all;">—</a>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted);">Next invoice: <strong id="manageNextInvoice" style="color:var(--white);">—</strong></div>
+      </div>
+    </div>
+
+    <!-- Revisions -->
+    <div class="manage-section" id="sec-revision">
+      <div class="manage-section-head" onclick="toggleSection('sec-revision')">
+        <div class="manage-section-title"><span class="manage-section-ico">✏️</span>Request a revision</div>
+        <div class="manage-section-chevron">▼</div>
+      </div>
+      <div class="manage-section-body">
+        <div class="rev-counter">
+          <div class="rev-label" id="revCounterLabel">—</div>
+          <div class="rev-bar"><div class="rev-fill" id="revFill" style="width:0%"></div></div>
+          <div class="rev-label" id="revCounterRight">—</div>
+        </div>
+        <div id="revPaidNotice" style="display:none;font-size:12px;color:var(--muted);margin-bottom:12px;">Extra revisions cost <strong id="revPaidCost" style="color:var(--white);">R500</strong> each.</div>
+        <button class="btn-manage primary" onclick="openRevisionSheet()" style="width:100%;">Open revision panel →</button>
+      </div>
+    </div>
+
+    <!-- Photos / Gallery (tier-gated) -->
+    <div class="manage-section" id="sec-photos">
+      <div class="manage-section-head" onclick="toggleSection('sec-photos')">
+        <div class="manage-section-title"><span class="manage-section-ico">📸</span>Photos</div>
+        <div class="manage-section-chevron">▼</div>
+      </div>
+      <div class="manage-section-body">
+        <div id="galleryUnlocked" style="display:none;">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Upload photos to your gallery. They'll appear on your site within minutes.</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;"><strong id="galleryPhotoCount" style="color:var(--white);">0</strong> of <strong id="galleryMaxPhotos" style="color:var(--white);">—</strong> photos used</div>
+          <div class="photo-slots" id="photoSlots">
+            <label class="photo-slot"><span class="photo-slot-add">+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadManagePhoto(this)"></label>
+            <label class="photo-slot"><span class="photo-slot-add">+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadManagePhoto(this)"></label>
+            <label class="photo-slot"><span class="photo-slot-add">+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadManagePhoto(this)"></label>
+          </div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:10px;">You can also email photos to <strong style="color:var(--muted);">updates@websitehub.co.za</strong> with subject <strong style="color:var(--muted);">wh-yourslug</strong></div>
+        </div>
+        <div id="galleryLocked" class="locked-section" style="display:none;">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-lbl">Premium feature</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;" id="galleryLockedBody">Showcase your work with a photo gallery — updated by WhatsApp or email anytime.</div>
+          <button class="btn-manage primary" onclick="handleUpgradeTo('Premium')" style="width:100%;">Upgrade to Premium →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Email (tier-aware) -->
+    <div class="manage-section" id="sec-email">
+      <div class="manage-section-head" onclick="toggleSection('sec-email')">
+        <div class="manage-section-title"><span class="manage-section-ico">📧</span>Email accounts</div>
+        <div class="manage-section-chevron">▼</div>
+      </div>
+      <div class="manage-section-body">
+        <div id="emailUnlocked" style="display:none;">
+          <div class="email-card">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Your business email address<span id="emailMultiple" style="display:none;">es</span>:</div>
+            <div class="email-list" id="emailList"></div>
+            <div id="emailAddonOffer" style="display:none;font-size:12px;color:var(--muted);">Want a second mailbox? <a href="#" onclick="event.preventDefault();handleEmailAddon();" style="color:var(--orange);text-decoration:underline;">Add extra email for R<span id="emailAddonCost">200</span>/mo</a></div>
+          </div>
+        </div>
+        <div id="emailLocked" class="locked-section" style="display:none;">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-lbl">Not included on Express</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Get a professional email address (info@yourdomain.co.za) when you upgrade.</div>
+          <button class="btn-manage primary" onclick="handleUpgradeTo('Standard')" style="width:100%;">Upgrade to Standard →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Referral (tier-gated) -->
+    <div class="manage-section" id="sec-referral">
+      <div class="manage-section-head" onclick="toggleSection('sec-referral')">
+        <div class="manage-section-title"><span class="manage-section-ico">👥</span>Referral Programme</div>
+        <div class="manage-section-chevron">▼</div>
+      </div>
+      <div class="manage-section-body">
+        <div id="referralUnlocked" style="display:none;">
+          <div class="referral-card">
+            <div class="referral-link" id="referralLinkText">—</div>
+            <div class="referral-stats">
+              <span>Sent this month: <strong id="refSent">—</strong></span>
+              <span>Conversions: <strong id="refConversions">—</strong></span>
+            </div>
+            <div class="referral-stats" style="margin-top:4px;">
+              <span>Leaderboard: <strong id="refPosition">—</strong></span>
+              <span>Free months: <strong id="refReward">—</strong></span>
+            </div>
+          </div>
+          <div class="manage-cta-row">
+            <button class="btn-manage primary" id="copyRefBtn">Copy link</button>
+            <button class="btn-manage secondary" id="shareRefBtn">Share on WhatsApp</button>
+          </div>
+        </div>
+        <div id="referralLocked" class="locked-section" style="display:none;">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-lbl">Standard / Premium feature</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Earn a free month for every client you refer.</div>
+          <button class="btn-manage primary" onclick="handleUpgradeTo('Standard')" style="width:100%;">Upgrade →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics (tier-gated) -->
+    <div class="manage-section" id="sec-analytics">
+      <div class="manage-section-head" onclick="toggleSection('sec-analytics')">
+        <div class="manage-section-title"><span class="manage-section-ico">📊</span>Analytics</div>
+        <div class="manage-section-chevron">▼</div>
+      </div>
+      <div class="manage-section-body">
+        <div id="analyticsUnlocked" style="display:none;">
+          <div class="analytics-row">
+            <div class="analytics-card"><div class="analytics-val" id="aViews">—</div><div class="analytics-lbl">Views this month</div></div>
+            <div class="analytics-card"><div class="analytics-val" id="aLast">—</div><div class="analytics-lbl">Last month</div></div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);">Most visited page: <strong id="aTopPage" style="color:var(--white);">—</strong></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;">WhatsApp taps this month: <strong id="aWaTaps" style="color:var(--white);">—</strong></div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:8px;">Views sourced from site server logs. Updated daily.</div>
+        </div>
+        <div id="analyticsLocked" class="locked-section" style="display:none;">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-lbl">Standard / Premium feature</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">See how many people visit your site and which pages they look at.</div>
+          <button class="btn-manage primary" onclick="handleUpgradeTo('Standard')" style="width:100%;">Upgrade →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="manage-section" id="sec-leaderboard">
+      <div class="manage-section-head" onclick="toggleSection('sec-leaderboard')">
+        <div class="manage-section-title"><span class="manage-section-ico">🏆</span>Leaderboard</div>
+        <div class="manage-section-chevron">▼</div>
+      </div>
+      <div class="manage-section-body">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Top referrers this month — top spot wins 3 free months.</div>
+        <div id="leaderboardList"></div>
+        <div id="leaderboardLocked" class="locked-section" style="display:none;">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-lbl">Standard / Premium feature</div>
+          <div style="font-size:12px;color:var(--muted);">Upgrade to join the referral leaderboard.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upgrade offers (one card per available upgrade) -->
+    <div class="manage-section" id="sec-upgrades" style="display:none;">
+      <div class="manage-section-head" onclick="toggleSection('sec-upgrades')">
+        <div class="manage-section-title"><span class="manage-section-ico">⭐</span>Upgrade your plan</div>
+        <div class="manage-section-chevron">▼</div>
+      </div>
+      <div class="manage-section-body" id="upgradeOffersBody">
+        <!-- upgrade cards injected here -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Revision sheet -->
+<div class="rev-overlay" id="revOverlay">
+  <div class="rev-sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div class="rev-sheet-title">Revision request</div>
+      <button onclick="closeRevisionSheet()" style="background:none;font-size:20px;color:var(--muted);">✕</button>
+    </div>
+    <div class="rev-sheet-sub" id="revSheetSub">Tell us what to change.</div>
+    <div class="form-field">
+      <label class="form-label">Colour palette (optional)</label>
+      <div class="chip-row" id="revPaletteChips"></div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Font (optional)</label>
+      <div class="chip-row" id="revFontChips"></div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Tagline (optional)</label>
+      <div class="chip-row" id="revTaglineChips"></div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Special instructions (2–3 sentences max)</label>
+      <textarea class="form-textarea" id="revSpecials" rows="3" maxlength="400" placeholder="e.g. Please update our services list to include pool cleaning."></textarea>
+    </div>
+    <button class="btn btn-primary" id="revSubmitBtn" style="margin-top:8px;width:100%;padding:14px;border-radius:10px;font-size:15px;font-weight:600;background:var(--orange);color:#fff;border:none;" onclick="submitRevision()">Submit revision</button>
+  </div>
+</div>
+
+<!-- Paid revision confirmation overlay -->
+<div class="paid-rev-overlay" id="paidRevOverlay">
+  <div class="paid-rev-card">
+    <div class="paid-rev-icon">💳</div>
+    <div class="paid-rev-title">Extra revision</div>
+    <div class="paid-rev-sub" id="paidRevSub">You've used your free revisions for this month. This revision is R<span id="paidRevPriceInline">500</span>.</div>
+    <div class="paid-rev-price" id="paidRevPrice">R500</div>
+    <div class="paid-rev-price-lbl">One-time payment</div>
+    <div class="paid-rev-actions">
+      <button class="btn-manage primary" id="paidRevPayBtn">Pay & submit revision</button>
+      <button class="btn-manage secondary" onclick="closePaidRevOverlay()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ────────────────────────────────────────────────────────────
+// CONFIG — worker URLs by responsibility
+// ────────────────────────────────────────────────────────────
+const WORKER_BUILD      = 'https://dropbox-proxy.pierreduplessis6912.workers.dev';
+const WORKER_PATCH      = 'https://wh-enrichment-worker.pierreduplessis6912.workers.dev';
+const WORKER_LAUNCH     = 'https://launch-worker.pierreduplessis6912.workers.dev';
+const WORKER_REACTIVATE = 'https://reactivate-worker.pierreduplessis6912.workers.dev';
+
+// Backward-compat aliases — old code referenced WORKER (build) and WORKER2 (patch)
+const WORKER  = WORKER_BUILD;
+const WORKER2 = WORKER_PATCH;
+
+const PREVIEW_DOMAIN = 'preview.websitehub.co.za';
+
+// ── PALETTES + FONTS + TAGLINES ──────────────────────────
+const PALETTES = [
+  { id:'bold-modern',        name:'Bold',  colors:['#1a1a2e','#ff5500','#f0ede8'] },
+  { id:'warm-welcoming',     name:'Warm',  colors:['#C8724F','#8B4513','#F5EBE0'] },
+  { id:'clean-professional', name:'Clean', colors:['#1A3A5C','#2E86AB','#F8F9FA'] },
+];
+
+const FONT_IMPORTS = {
+  syne:     'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap',
+  playfair: 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&display=swap',
+  mono:     'https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap',
+};
+const FONT_STACKS = {
+  syne:     "'Syne', sans-serif",
+  playfair: "'Playfair Display', serif",
+  mono:     "'DM Mono', monospace",
+};
+const FONTS = [
+  { id:'syne',     name:'Syne',     style:'Display / Sans' },
+  { id:'playfair', name:'Playfair', style:'Serif / Elegant' },
+  { id:'mono',     name:'Mono',     style:'Tech / Modern' },
+];
+
+const TAGLINES_BY_INDUSTRY = {
+  restaurant:   ['Real food. Real people.','Made fresh, every day.','Your table is waiting.'],
+  plumbing:     ['We arrive on time.','Fixed right, first time.','No call-out drama.'],
+  cleaning:     ['Spotless every time.','Clean spaces, clear minds.','We take the mess off your hands.'],
+  construction: ['Built to last.','Quality work, on time.','From foundation to finish.'],
+  bakery:       ['Fresh from our oven.','Baked with love, every day.','Real bread. Real flavour.'],
+  default:      ['Built for your community.','Serving you with pride.','Quality you can trust.'],
+};
+
+// ── APP STATE ────────────────────────────────────────────
+const appState = {
+  mode:           null,
+  sessionToken:   null,
+  slug:           null,
+  airtableId:     null,
+  manageToken:    null,
+  industry:       'default',
+  heroPhotos:     [],
+  taglines:       null,
+  retainer:       0,
+  package:        'Standard',
+  pkgKey:         'standard',
+  pages:          ['index','services','about','contact'],
+  choices:        { palette:null, font:null, photo:null, tagline:null, logo_url:null },
+  drawerOpen:     false,
+  buildPollTimer: null,
+  previewBaseUrl: null,
+  businessName:   null,
+  manageData:     null,
+  pendingPaidRevision: null, // { paymentLink, payload }
+};
+
+// ────────────────────────────────────────────────────────────
+// ENTRY POINT
+// ────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  const path = location.pathname.replace(/^\//, '');
+
+  if (path.startsWith('build/')) {
+    // Direct build link — straight to building screen, polls /build-status
+    appState.mode         = 'inbound';
+    appState.sessionToken = path.replace('build/', '');
+    hide('loadingScreen');
+    startBuildPolling();
+
+  } else if (path.startsWith('manage/')) {
+    appState.mode        = 'manage';
+    appState.manageToken = path.replace('manage/', '');
+    document.getElementById('topbar-tag').textContent = 'manage';
+    loadManagePanel();
+
+  } else if (path) {
+    // Outbound preview link — /{slug}
+    appState.mode = 'outbound';
+    appState.slug = path.split('/')[0];
+    document.getElementById('topbar-tag').textContent = 'preview';
+    await fetchPreviewMeta(appState.slug);
+    loadPreview(appState.slug);
+
+  } else {
+    hide('loadingScreen');
+    document.body.innerHTML = `<div style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0d0d0d;color:#f0ede8;text-align:center;"><div><div style="font-size:24px;font-weight:800;margin-bottom:8px;">Website Hub</div><div style="color:#666;font-size:14px;">Client preview portal</div></div></div>`;
+  }
+});
+
+// ────────────────────────────────────────────────────────────
+// HELPERS
+// ────────────────────────────────────────────────────────────
+function showState(name) {
+  document.querySelectorAll('.state').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(`state-${name}`);
+  if (el) el.classList.add('active');
+  hide('loadingScreen');
+  const topbar = document.getElementById('mainTopbar');
+  if (topbar) topbar.style.display = name === 'preview' ? 'none' : '';
+
+  // Double-watermark fix — if iframe already has wh-preview-bar (outbound watermark),
+  // hide the SPA's bottom bar to avoid two CTAs stacked
+  if (name === 'preview') {
+    setTimeout(() => {
+      try {
+        const iframe = document.getElementById('previewFrame');
+        const iDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+        if (iDoc && iDoc.getElementById('wh-preview-bar')) {
+          const bar = document.querySelector('.preview-bottom-bar');
+          if (bar) bar.style.display = 'none';
+        }
+      } catch(e) { /* cross-origin guard — ignore */ }
+    }, 1500);
+  }
+}
+
+function show(id){ const el=document.getElementById(id); if(el) el.style.display=''; }
+function hide(id){ const el=document.getElementById(id); if(el) el.style.display='none'; }
+
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function pkgKeyOf(pkg) {
+  const k = String(pkg || '').toLowerCase().trim();
+  if (k === 'express')  return 'express';
+  if (k === 'premium')  return 'premium';
+  return 'standard';
+}
+
+function priceLabelOf(retainer) {
+  return `R${retainer}/mo`;
+}
+
+// ────────────────────────────────────────────────────────────
+// BUILD POLLING (state-building)
+// ────────────────────────────────────────────────────────────
+const STEP_IDS = ['bs1','bs2','bs3','bs4','bs5'];
+const BUILD_MESSAGES = [
+  'Analysing your business...',
+  'Choosing your design...',
+  'Writing your content...',
+  'Adding your photos...',
+  'Putting on the finishing touches...',
+];
+
+function startBuildPolling() {
+  showState('building');
+  let msgIndex = 0;
+
+  const stepInterval = setInterval(() => {
+    if (msgIndex < STEP_IDS.length - 1) {
+      const prev = document.getElementById(STEP_IDS[msgIndex]);
+      if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
+      msgIndex++;
+      const curr = document.getElementById(STEP_IDS[msgIndex]);
+      if (curr) curr.classList.add('active');
+      const statusEl = document.getElementById('buildStatus');
+      if (statusEl) {
+        statusEl.style.animation = 'none';
+        void statusEl.offsetHeight;
+        statusEl.style.animation = '';
+        statusEl.textContent = BUILD_MESSAGES[msgIndex];
+      }
+    }
+  }, 22000);
+
+  const pollInterval = setInterval(async () => {
+    try {
+      const res  = await fetch(`${WORKER_BUILD}/build-status?token=${appState.sessionToken}`);
+      const data = await res.json();
+
+      if (data.status === 'ready') {
+        clearInterval(pollInterval);
+        clearInterval(stepInterval);
+        appState.slug = data.slug;
+        STEP_IDS.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.classList.remove('active'); el.classList.add('done'); }
+        });
+        const statusEl = document.getElementById('buildStatus');
+        if (statusEl) statusEl.textContent = 'Your site is ready! 🎉';
+        setTimeout(async () => {
+          await fetchPreviewMeta(data.slug);
+          loadPreview(data.slug);
+        }, 900);
+
+      } else if (data.status === 'error') {
+        clearInterval(pollInterval);
+        clearInterval(stepInterval);
+        toast('Build failed — our team has been alerted', 'error');
+        const statusEl2 = document.getElementById('buildStatus');
+        if (statusEl2) statusEl2.textContent = 'Something went wrong — our team has been alerted.';
+      }
+    } catch(e) { /* ignore transient errors */ }
+  }, 3000);
+
+  setTimeout(() => {
+    const statusEl3 = document.getElementById('buildStatus');
+    if (statusEl3 && !appState.slug) {
+      statusEl3.textContent = 'Still building — complex sites take a little longer. Hang tight...';
+    }
+  }, 150000);
+}
+
+// ────────────────────────────────────────────────────────────
+// PREVIEW META — fetches tier info + hero photos + taglines
+// ────────────────────────────────────────────────────────────
+async function fetchPreviewMeta(slug) {
+  try {
+    const res  = await fetch(`${WORKER_BUILD}/preview-meta?slug=${encodeURIComponent(slug)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    appState.airtableId   = data.airtableId;
+    appState.industry     = (data.industry || 'default').toLowerCase();
+    appState.retainer     = data.retainer != null ? data.retainer : 999;
+    appState.package      = data.package || 'Standard';
+    appState.pkgKey       = pkgKeyOf(appState.package);
+    appState.heroPhotos   = data.heroPhotos || [];
+    appState.taglines     = data.taglines  || null;
+    appState.businessName = data.businessName || '';
+
+    // Tier-aware pages array
+    if (appState.pkgKey === 'express') {
+      appState.pages = ['index'];
+    } else if (appState.pkgKey === 'standard') {
+      appState.pages = ['index','services','about','contact'];
+    } else {
+      appState.pages = ['index','services','about','contact','gallery'];
+    }
+
+    // Update price displays
+    const lbl = priceLabelOf(appState.retainer);
+    document.querySelectorAll('#ctaPrice').forEach(el => el.textContent = lbl);
+    document.querySelectorAll('#drawerGoLivePrice').forEach(el => el.textContent = `${lbl} — no setup fee`);
+
+  } catch(e) { console.warn('fetchPreviewMeta failed:', e); }
+}
+
+// ────────────────────────────────────────────────────────────
+// PREVIEW LOAD (state-preview)
+// ────────────────────────────────────────────────────────────
+function loadPreview(slug) {
+  showState('preview');
+
+  const baseUrl = `https://${PREVIEW_DOMAIN}/${slug}`;
+  appState.previewBaseUrl = baseUrl;
+
+  const iframe = document.getElementById('previewFrame');
+  iframe.src   = baseUrl + '/';
+
+  // Show/hide tabs based on tier
+  const pkgKey = appState.pkgKey;
+  const showTab = (id, visible) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = visible ? '' : 'none';
+  };
+  showTab('servicesTab', pkgKey !== 'express');
+  showTab('aboutTab',    pkgKey !== 'express');
+  showTab('contactTab',  pkgKey !== 'express');
+  showTab('galleryTab',  pkgKey === 'premium');
+
+  // Hide drawer gallery section for non-Premium
+  const drawerGallery = document.getElementById('drawerGallerySection');
+  if (drawerGallery) drawerGallery.style.display = pkgKey === 'premium' ? '' : 'none';
+
+  // Wire page tabs
+  document.querySelectorAll('.page-tab').forEach(btn => {
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', function() {
+      document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      const page = this.dataset.page;
+      const base = appState.previewBaseUrl || baseUrl;
+      document.getElementById('previewFrame').src = page === 'index' ? base + '/' : base + '/' + page;
+    });
+  });
+
+  buildDrawerPanel();
+  iframe.addEventListener('load', () => {}, { once: true });
+}
+
+// ────────────────────────────────────────────────────────────
+// DRAWER (tweak)
+// ────────────────────────────────────────────────────────────
+function toggleDrawer() {
+  appState.drawerOpen = !appState.drawerOpen;
+  document.getElementById('tweakDrawer').classList.toggle('open', appState.drawerOpen);
+}
+
+function buildDrawerPanel() {
+  // Palette swatches
+  const paletteRow = document.getElementById('paletteRow');
+  if (paletteRow) {
+    paletteRow.innerHTML = '';
+    PALETTES.forEach(p => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (appState.choices.palette === p.id ? ' active' : '');
+      sw.style.background = `linear-gradient(135deg, ${p.colors[0]} 0%, ${p.colors[1]} 100%)`;
+      const lbl = document.createElement('div');
+      lbl.className = 'swatch-name';
+      lbl.textContent = p.name;
+      sw.appendChild(lbl);
+      sw.onclick = () => choosePalette(p.id, sw);
+      paletteRow.appendChild(sw);
+    });
+  }
+
+  // Font options
+  const fontRow = document.getElementById('fontRow');
+  if (fontRow) {
+    fontRow.innerHTML = '';
+    FONTS.forEach(f => {
+      const el = document.createElement('div');
+      el.className = 'font-opt' + (appState.choices.font === f.id ? ' active' : '');
+      el.innerHTML = `<div class="font-opt-name" style="font-family:${FONT_STACKS[f.id]};">${f.name}</div><div class="font-opt-style">${f.style}</div>`;
+      el.onclick = () => chooseFont(f.id, el);
+      fontRow.appendChild(el);
+    });
+  }
+
+  // Hero photos
+  const strip = document.getElementById('photoStrip');
+  if (strip) {
+    strip.innerHTML = '';
+    const photos = (appState.heroPhotos && appState.heroPhotos.length > 0)
+      ? appState.heroPhotos
+      : [
+          'https://images.unsplash.com/photo-1497366216548-37526070297c?w=140&q=70',
+          'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=140&q=70',
+          'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=140&q=70',
+          'https://images.unsplash.com/photo-1556742031-c6961e8560b0?w=140&q=70',
+          'https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?w=140&q=70',
+        ];
+    photos.forEach((url, i) => {
+      const img = document.createElement('img');
+      img.className = 'photo-thumb' + (appState.choices.photo === url ? ' active' : '');
+      img.src = url;
+      img.alt = `Photo ${i+1}`;
+      img.onclick = () => choosePhoto(url, img);
+      strip.appendChild(img);
+    });
+  }
+
+  // Taglines
+  const taglineEl = document.getElementById('taglineOpts');
+  if (taglineEl) {
+    taglineEl.innerHTML = '';
+    const ind = (appState.industry || 'default').toLowerCase();
+    const taglines = appState.taglines || TAGLINES_BY_INDUSTRY[ind] || TAGLINES_BY_INDUSTRY.default;
+    taglines.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 'tagline-opt' + (appState.choices.tagline === t ? ' active' : '');
+      el.textContent = `"${t}"`;
+      el.onclick = () => chooseTagline(t, el);
+      taglineEl.appendChild(el);
+    });
+  }
+
+  buildRevisionChips();
+}
+
+// ────────────────────────────────────────────────────────────
+// LIVE IFRAME DOM MANIPULATION
+// ────────────────────────────────────────────────────────────
+function getIframeDoc() {
+  try {
+    const frame = document.getElementById('previewFrame');
+    const doc = frame.contentDocument || frame.contentWindow?.document;
+    return doc && doc.body ? doc : null;
+  } catch(e) { return null; }
+}
+
+function injectStyle(doc, id, css) {
+  let el = doc.getElementById(id);
+  if (!el) {
+    el = doc.createElement('style');
+    el.id = id;
+    (doc.head || doc.body).appendChild(el);
+  }
+  el.textContent = css;
+}
+
+function applyPaletteToFrame(palette) {
+  const doc = getIframeDoc();
+  if (!doc) return false;
+
+  const p = PALETTES.find(x => x.id === palette);
+  if (!p) return false;
+
+  injectStyle(doc, 'wh-palette-override', `
+    :root { --primary: ${p.colors[1]} !important; --accent: ${p.colors[1]} !important; --acc: ${p.colors[1]} !important; --hero-bg: ${p.colors[0]} !important; --bg: ${p.colors[0]} !important; }
+    a { color: ${p.colors[1]} !important; }
+    button, .btn, [class*="btn"] { background-color: ${p.colors[1]} !important; color: #fff !important; }
+    header, nav, .hero, [class*="hero"], [class*="header"] { background-color: ${p.colors[0]} !important; }
+  `);
+  return true;
+}
+
+function applyFontToFrame(fontId) {
+  const doc = getIframeDoc();
+  if (!doc) return false;
+  const stack = FONT_STACKS[fontId];
+  const importUrl = FONT_IMPORTS[fontId];
+  if (!stack) return false;
+
+  const linkId = `wh-font-link-${fontId}`;
+  if (!doc.getElementById(linkId)) {
+    const link = doc.createElement('link');
+    link.id = linkId; link.rel = 'stylesheet'; link.href = importUrl;
+    (doc.head || doc.body).appendChild(link);
+  }
+  injectStyle(doc, 'wh-font-override',
+    `body, h1, h2, h3, h4, p, span, div, button, a, li { font-family: ${stack} !important; }`);
+  return true;
+}
+
+function applyPhotoToFrame(url) {
+  const doc = getIframeDoc();
+  if (!doc) return false;
+
+  const imgs = Array.from(doc.querySelectorAll('img, [style*="background-image"]'));
+  let heroImg = null, heroEl = null;
+  for (const img of imgs) {
+    if (img.tagName === 'IMG') {
+      if (img.className?.toLowerCase().includes('hero') || img.id?.toLowerCase().includes('hero')) {
+        heroImg = img; break;
+      }
+      if (!heroImg && img.getBoundingClientRect().width > 200) heroImg = img;
+    } else {
+      if (img.className?.toLowerCase().includes('hero') || img.id?.toLowerCase().includes('hero')) {
+        heroEl = img; break;
+      }
+    }
+  }
+  if (heroImg) { heroImg.src = url.replace('w=140','w=1200').replace('q=70','q=85'); return true; }
+  if (heroEl)  { heroEl.style.backgroundImage = `url('${url.replace('w=140','w=1200')}')`; return true; }
+  return false;
+}
+
+function applyTaglineToFrame(text) {
+  const doc = getIframeDoc();
+  if (!doc) return false;
+  const headings = Array.from(doc.querySelectorAll('h1, h2'));
+  for (const h of headings) {
+    if (h.getBoundingClientRect().top < window.innerHeight * 0.6) {
+      if (!h.dataset.whOriginal) h.dataset.whOriginal = h.textContent;
+      h.textContent = text;
+      return true;
+    }
+  }
+  return false;
+}
+
+// ────────────────────────────────────────────────────────────
+// CHOICE HANDLERS
+// ────────────────────────────────────────────────────────────
+function choosePalette(id, el) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  appState.choices.palette = id;
+  const applied = applyPaletteToFrame(id);
+  if (!applied) patchAndReload({ palette: id });
+  saveChoices();
+}
+
+function chooseFont(id, el) {
+  document.querySelectorAll('.font-opt').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+  appState.choices.font = id;
+  const applied = applyFontToFrame(id);
+  if (!applied) patchAndReload({ font: id });
+  saveChoices();
+}
+
+function choosePhoto(url, el) {
+  document.querySelectorAll('.photo-thumb').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  appState.choices.photo = url;
+  applyPhotoToFrame(url);
+  saveChoices();
+}
+
+function chooseTagline(text, el) {
+  document.querySelectorAll('.tagline-opt').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  appState.choices.tagline = text;
+  applyTaglineToFrame(text);
+  saveChoices();
+}
+
+// ────────────────────────────────────────────────────────────
+// PATCH + RELOAD — routed to PATCH-WORKER per battle plan §11
+// ────────────────────────────────────────────────────────────
+async function patchAndReload(patch) {
+  if (!appState.slug || !appState.airtableId) return;
+  const overlay = document.getElementById('patchOverlay');
+  if (overlay) overlay.classList.add('show');
+
+  try {
+    await fetch(`${WORKER_PATCH}/patch-preview`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ airtableId: appState.airtableId, slug: appState.slug, patch }),
+    });
+    const iframe = document.getElementById('previewFrame');
+    iframe.addEventListener('load', () => {
+      if (overlay) overlay.classList.remove('show');
+      // Re-apply other in-memory choices after reload
+      if (appState.choices.font)    applyFontToFrame(appState.choices.font);
+      if (appState.choices.photo)   applyPhotoToFrame(appState.choices.photo);
+      if (appState.choices.tagline) applyTaglineToFrame(appState.choices.tagline);
+    }, { once: true });
+    iframe.src = `https://${PREVIEW_DOMAIN}/${appState.slug}?_=${Date.now()}`;
+  } catch(e) {
+    if (overlay) overlay.classList.remove('show');
+    toast('Could not apply change — try again', 'error');
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// PHOTO UPLOADS (drawer + manage panel)
+// ────────────────────────────────────────────────────────────
+async function uploadHeroPhoto(input) {
+  if (!input.files[0]) return;
+  toast('Uploading hero photo...');
+  try {
+    const formData = new FormData();
+    formData.append('airtableId', appState.airtableId || appState.slug);
+    formData.append('slug',       appState.slug);
+    formData.append('file_0',     input.files[0]);
+    const res  = await fetch(`${WORKER_PATCH}/upload-assets`, { method:'POST', body:formData });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'Upload failed', 'error'); return; }
+    const url = data.url || URL.createObjectURL(input.files[0]);
+    applyPhotoToFrame(url);
+    toast('Hero photo updated ✅', 'success');
+  } catch(e) { toast('Upload failed — try again', 'error'); }
+}
+
+async function uploadGalleryPhoto(input, index) {
+  if (!input.files[0]) return;
+  const slot = input.closest('.gallery-slot');
+  toast('Uploading gallery photo...');
+  try {
+    const formData = new FormData();
+    formData.append('airtableId', appState.airtableId || appState.slug);
+    formData.append('slug',       appState.slug);
+    formData.append('file_0',     input.files[0]);
+    const res  = await fetch(`${WORKER_PATCH}/upload-assets`, { method:'POST', body:formData });
+    const data = await res.json();
+    if (!res.ok) {
+      // Upgrade nudge if available
+      if (data.upgradeAvailable && data.upgradeDelta) {
+        toast(`${data.error} — upgrade for R${data.upgradeDelta}/mo more`, 'error');
+      } else {
+        toast(data.error || 'Upload failed', 'error');
+      }
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (slot) {
+        slot.innerHTML = `<img src="${e.target.result}" alt="Gallery photo ${index+1}">`;
+        slot.classList.add('uploaded');
+      }
+    };
+    reader.readAsDataURL(input.files[0]);
+    toast(`Gallery photo ${index+1} uploaded ✅`, 'success');
+  } catch(e) { toast('Upload failed — try again', 'error'); }
+}
+
+async function uploadManagePhoto(input) {
+  if (!input.files[0]) return;
+  if (!appState.airtableId || !appState.slug) { toast('Cannot upload — manage token not loaded', 'error'); return; }
+  toast('Uploading photo...');
+  try {
+    const formData = new FormData();
+    formData.append('airtableId', appState.airtableId);
+    formData.append('slug',       appState.slug);
+    formData.append('file_0',     input.files[0]);
+    const res  = await fetch(`${WORKER_PATCH}/upload-assets`, { method:'POST', body:formData });
+    const data = await res.json();
+    if (!res.ok) {
+      if (data.upgradeAvailable && data.upgradeDelta) {
+        toast(`${data.error} — upgrade R${data.upgradeDelta}/mo`, 'error');
+      } else {
+        toast(data.error || 'Upload failed', 'error');
+      }
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const slot = input.closest('.photo-slot');
+      if (slot) slot.innerHTML = `<img src="${e.target.result}" alt="Uploaded photo">`;
+    };
+    reader.readAsDataURL(input.files[0]);
+    toast('Photo uploaded ✅', 'success');
+  } catch(e) { toast('Upload failed — try again', 'error'); }
+}
+
+// ────────────────────────────────────────────────────────────
+// REVERT, LOGO, CHOICES SAVE
+// ────────────────────────────────────────────────────────────
+async function handleRevert() {
+  if (!appState.slug) return;
+  if (!confirm('Revert all changes and restore your original site? This cannot be undone.')) return;
+  toast('Reverting...');
+  try {
+    const res = await fetch(`${WORKER_BUILD}/preview-revert`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ slug: appState.slug }),
+    });
+    if (!res.ok) { toast('Could not revert — try again', 'error'); return; }
+    const iframe = document.getElementById('previewFrame');
+    iframe.src = `https://${PREVIEW_DOMAIN}/${appState.slug}?_=${Date.now()}`;
+    toast('Reverted to original ✅', 'success');
+  } catch(e) { toast('Could not revert — try again', 'error'); }
+}
+
+async function handleLogo(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const dataUrl = e.target.result;
+    appState.choices.logo_url = dataUrl;
+    const btn = document.getElementById('logoBtn');
+    if (btn) btn.innerHTML = `<img class="logo-preview-img" src="${dataUrl}" alt="Logo"> <span>Logo uploaded ✓</span>`;
+    await saveChoices();
+    toast('Logo saved ✅', 'success');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+async function saveChoices() {
+  if (!appState.slug) return;
+  try {
+    await fetch(`${WORKER_BUILD}/preview-choices`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ slug: appState.slug, ...appState.choices }),
+    });
+  } catch(e) { /* non-fatal */ }
+}
+
+// ────────────────────────────────────────────────────────────
+// GO LIVE — routes through PayFast via shared link builder
+// PayFast URL is constructed server-side via buildPayFastLink for
+// proper sandbox/production routing. Here we hit a thin endpoint
+// that returns the URL, or build it client-side using known retainer.
+// ────────────────────────────────────────────────────────────
+function handleGoLive() {
+  const id = appState.airtableId;
+  if (!id) { toast('Loading...'); return; }
+  const amount = appState.retainer || 999;
+  // Live PayFast checkout — first-month subscription. notify_url is set
+  // server-side in buildPayFastLink when invoiced; here we construct directly.
+  const itemName = encodeURIComponent('Website Hub Monthly Subscription');
+  const returnUrl = encodeURIComponent(`https://${PREVIEW_DOMAIN}/${appState.slug}`);
+  const notifyUrl = encodeURIComponent(`${WORKER_LAUNCH}/payfast-webhook`);
+  const url = `https://www.payfast.co.za/eng/process?merchant_id=13581217&amount=${amount}&item_name=${itemName}&custom_str1=${id}&return_url=${returnUrl}&notify_url=${notifyUrl}`;
+  window.location.href = url;
+}
+
+function handleNotInterested() {
+  if (!appState.slug) return;
+  const phone = appState.businessName ? '' : ''; // phone resolved server-side
+  window.location.href = `${WORKER_REACTIVATE}/not-interested?slug=${encodeURIComponent(appState.slug)}`;
+}
+
+function openDashboard() {
+  if (appState.manageToken) {
+    window.location.href = `https://${PREVIEW_DOMAIN}/manage/${appState.manageToken}`;
+  } else {
+    const overlay = document.getElementById('preLiveOverlay');
+    if (overlay) overlay.style.display = 'flex';
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// MANAGE PANEL — tier-gated rendering
+// ────────────────────────────────────────────────────────────
+async function loadManagePanel() {
+  show('loadingScreen');
+  try {
+    const res  = await fetch(`${WORKER_PATCH}/manage-panel?token=${appState.manageToken}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      hide('loadingScreen');
+      document.getElementById('manageBiz').textContent = 'Access denied';
+      showState('manage');
+      return;
+    }
+
+    appState.manageData = data;
+    appState.airtableId = data.airtableId;
+    appState.slug       = data.slug;
+    appState.package    = data.package || 'Standard';
+    appState.pkgKey     = pkgKeyOf(data.package);
+    appState.retainer   = data.retainer || 999;
+    appState.businessName = data.businessName;
+
+    // ── Header
+    document.getElementById('manageDomain').textContent = data.domain || '—';
+    document.getElementById('manageBiz').textContent    = data.businessName || '—';
+
+    const badge = document.getElementById('managePackageBadge');
+    badge.textContent = data.package || 'Standard';
+    badge.className = 'manage-package-badge ' + appState.pkgKey;
+
+    document.getElementById('mDays').textContent     = data.daysUntilInvoice ?? '—';
+    document.getElementById('mRetainer').textContent = `R${data.retainer || 0}`;
+
+    // Revisions stat — show ∞ for premium, free remaining otherwise
+    const revUsed  = data.revisions?.used  ?? 0;
+    const revLimit = data.revisions?.limit;  // null for premium
+    const isPrem   = appState.pkgKey === 'premium';
+
+    document.getElementById('mRevisions').textContent = isPrem ? '∞' : String(Math.max(0, (revLimit ?? 0) - revUsed));
+
+    // ── Status section
+    document.getElementById('manageLiveUrl').textContent     = data.liveUrl || '—';
+    document.getElementById('manageLiveUrl').href            = data.liveUrl || '#';
+    document.getElementById('manageNextInvoice').textContent = data.nextInvoiceDate || '—';
+
+    // ── Revisions section
+    if (isPrem) {
+      document.getElementById('revCounterLabel').textContent = 'Unlimited';
+      document.getElementById('revCounterRight').textContent = 'Premium';
+      document.getElementById('revFill').style.width = '0%';
+      document.getElementById('revPaidNotice').style.display = 'none';
+    } else {
+      const limit = revLimit || (appState.pkgKey === 'express' ? 1 : 2);
+      document.getElementById('revCounterLabel').textContent = `${revUsed}/${limit} used`;
+      document.getElementById('revCounterRight').textContent = `${Math.max(0, limit - revUsed)} remaining`;
+      document.getElementById('revFill').style.width = `${Math.min(100, (revUsed/limit)*100)}%`;
+      // Show paid-revision notice when at or over limit
+      const noticeEl = document.getElementById('revPaidNotice');
+      if (revUsed >= limit) {
+        noticeEl.style.display = 'block';
+        document.getElementById('revPaidCost').textContent = `R${data.revisions?.paidCost ?? 500}`;
+      } else {
+        noticeEl.style.display = 'none';
+      }
+    }
+
+    // ── Gallery section
+    const gallery = data.gallery;
+    if (gallery && gallery.enabled) {
+      document.getElementById('galleryUnlocked').style.display = '';
+      document.getElementById('galleryLocked').style.display   = 'none';
+      document.getElementById('galleryPhotoCount').textContent = String(gallery.photoCount || 0);
+      document.getElementById('galleryMaxPhotos').textContent  = String(gallery.maxPhotos  || 0);
+    } else {
+      document.getElementById('galleryUnlocked').style.display = 'none';
+      document.getElementById('galleryLocked').style.display   = '';
+      // Customise the locked body per current tier
+      const lockedBody = document.getElementById('galleryLockedBody');
+      if (appState.pkgKey === 'express') {
+        lockedBody.textContent = 'Photo gallery is included with Standard and Premium. Upgrade to add photos.';
+      }
+    }
+
+    // ── Email section
+    const email = data.email || { included: 0, addonAvailable: false, addonCost: 0 };
+    if (email.included > 0) {
+      document.getElementById('emailUnlocked').style.display = '';
+      document.getElementById('emailLocked').style.display   = 'none';
+      const domain  = (data.domain || '').replace(/\.co\.za$/, '.co.za');
+      const accounts = ['info'];
+      if (email.included >= 2) accounts.push('hello');
+      const listEl = document.getElementById('emailList');
+      listEl.innerHTML = accounts.map(local =>
+        `<div class="email-row">${local}@${domain}</div>`
+      ).join('');
+      if (email.included > 1) document.getElementById('emailMultiple').style.display = '';
+      if (email.addonAvailable) {
+        document.getElementById('emailAddonOffer').style.display = '';
+        document.getElementById('emailAddonCost').textContent = String(email.addonCost);
+      }
+    } else {
+      document.getElementById('emailUnlocked').style.display = 'none';
+      document.getElementById('emailLocked').style.display   = '';
+    }
+
+    // ── Referral section
+    const referral = data.referral;
+    if (referral && referral.enabled) {
+      document.getElementById('referralUnlocked').style.display = '';
+      document.getElementById('referralLocked').style.display   = 'none';
+      const link = referral.link || `https://websitehub.co.za?ref=${data.slug}`;
+      document.getElementById('referralLinkText').textContent = link;
+      document.getElementById('refSent').textContent        = String(referral.sent || 0);
+      document.getElementById('refConversions').textContent = String(referral.conversions || 0);
+      document.getElementById('refReward').textContent      = String(referral.rewardMonths || 0);
+      // Position fetched from /referral-stats endpoint
+      fetchReferralPosition(data.slug);
+
+      document.getElementById('copyRefBtn').onclick  = () => navigator.clipboard?.writeText(link).then(() => toast('Link copied! 📋'));
+      document.getElementById('shareRefBtn').onclick = () => window.open(`https://wa.me/?text=${encodeURIComponent('Check out Website Hub — they built my business website: ' + link)}`);
+    } else {
+      document.getElementById('referralUnlocked').style.display = 'none';
+      document.getElementById('referralLocked').style.display   = '';
+    }
+
+    // ── Analytics section
+    const analytics = data.analytics;
+    if (analytics && analytics.enabled) {
+      document.getElementById('analyticsUnlocked').style.display = '';
+      document.getElementById('analyticsLocked').style.display   = 'none';
+      fetchAnalytics(analytics.slug || data.slug);
+    } else {
+      document.getElementById('analyticsUnlocked').style.display = 'none';
+      document.getElementById('analyticsLocked').style.display   = '';
+    }
+
+    // ── Leaderboard (Standard + Premium)
+    if (appState.pkgKey === 'express') {
+      document.getElementById('leaderboardLocked').style.display = '';
+      document.getElementById('leaderboardList').style.display   = 'none';
+    } else {
+      document.getElementById('leaderboardLocked').style.display = 'none';
+      document.getElementById('leaderboardList').style.display   = '';
+      fetchLeaderboard(data.slug);
+    }
+
+    // ── Upgrade offers (one card per available)
+    const upgradeOffers = data.upgradeOffers || [];
+    if (upgradeOffers.length > 0) {
+      document.getElementById('sec-upgrades').style.display = '';
+      renderUpgradeOffers(upgradeOffers);
+    } else {
+      document.getElementById('sec-upgrades').style.display = 'none';
+    }
+
+    buildRevisionChips();
+    showState('manage');
+
+  } catch(e) {
+    hide('loadingScreen');
+    showState('manage');
+    toast('Could not load manage panel', 'error');
+    console.warn('loadManagePanel error:', e);
+  }
+}
+
+function renderUpgradeOffers(offers) {
+  const body = document.getElementById('upgradeOffersBody');
+  body.innerHTML = '';
+  offers.forEach(offer => {
+    const isPrem = offer.to === 'Premium';
+    const features = isPrem
+      ? '• Photo gallery (WhatsApp updates)<br>• 2 email accounts<br>• Unlimited revisions<br>• Site analytics<br>• Referral programme'
+      : '• Services/About/Contact pages<br>• Email account at your domain<br>• 2 free revisions/month<br>• Site analytics<br>• Referral programme';
+
+    const card = document.createElement('div');
+    card.className = 'upgrade-card' + (isPrem ? ' premium-card' : '');
+    card.innerHTML = `
+      <div class="upgrade-delta">+R${offer.delta}</div>
+      <div class="upgrade-to">per month — upgrade to <strong>${offer.to}</strong></div>
+      <div style="font-size:12px;color:var(--white);line-height:1.7;margin-bottom:14px;">${features}</div>
+      <button class="btn-manage primary" style="width:100%;">Upgrade to ${offer.to} →</button>
+    `;
+    card.querySelector('button').onclick = () => handleUpgradeTo(offer.to);
+    body.appendChild(card);
+  });
+}
+
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// ────────────────────────────────────────────────────────────
+// REVISION SHEET + PAID REVISION FLOW
+// ────────────────────────────────────────────────────────────
+function buildRevisionChips() {
+  const pc = document.getElementById('revPaletteChips');
+  if (pc) {
+    pc.innerHTML = '';
+    PALETTES.forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'chip';
+      el.textContent = p.name;
+      el.onclick = () => { pc.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); el.dataset.val = p.id; };
+      pc.appendChild(el);
+    });
+  }
+  const fc = document.getElementById('revFontChips');
+  if (fc) {
+    fc.innerHTML = '';
+    FONTS.forEach(f => {
+      const el = document.createElement('div');
+      el.className = 'chip';
+      el.textContent = f.name;
+      el.onclick = () => { fc.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); el.dataset.val = f.id; };
+      fc.appendChild(el);
+    });
+  }
+  const tc = document.getElementById('revTaglineChips');
+  if (tc) {
+    tc.innerHTML = '';
+    const ind = (appState.industry || 'default').toLowerCase();
+    const taglines = appState.taglines || TAGLINES_BY_INDUSTRY[ind] || TAGLINES_BY_INDUSTRY.default;
+    taglines.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 'chip';
+      el.textContent = `"${t}"`;
+      el.onclick = () => { tc.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); el.dataset.val = t; };
+      tc.appendChild(el);
+    });
+  }
+}
+
+function openRevisionSheet() {
+  // Update subtitle based on remaining free revisions
+  const data = appState.manageData;
+  const subEl = document.getElementById('revSheetSub');
+  if (data?.revisions) {
+    const used = data.revisions.used || 0;
+    const limit = data.revisions.limit;
+    if (limit === null) {
+      subEl.textContent = 'Tell us what to change — unlimited revisions on Premium.';
+    } else if (used >= limit) {
+      subEl.textContent = `Free revisions used (${used}/${limit}). This one is R${data.revisions.paidCost || 500}.`;
+    } else {
+      subEl.textContent = `${limit - used} of ${limit} free revisions remaining this month.`;
+    }
+  }
+  document.getElementById('revOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRevisionSheet() {
+  document.getElementById('revOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function submitRevision() {
+  const palette  = document.querySelector('#revPaletteChips .chip.active')?.dataset.val || null;
+  const font     = document.querySelector('#revFontChips .chip.active')?.dataset.val    || null;
+  const tagline  = document.querySelector('#revTaglineChips .chip.active')?.dataset.val || null;
+  const specials = document.getElementById('revSpecials')?.value?.trim() || '';
+
+  if (!palette && !font && !tagline && !specials) { toast('Make at least one selection', 'error'); return; }
+
+  const btn = document.getElementById('revSubmitBtn');
+  if (btn) { btn.textContent = 'Submitting...'; btn.disabled = true; }
+
+  const payload = { token: appState.manageToken, palette, font, tagline, specials };
+
+  try {
+    const res  = await fetch(`${WORKER_PATCH}/submit-revision`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (res.status === 402 && data.error === 'revision_payment_required') {
+      // Paid revision flow — close sheet, show payment confirmation
+      closeRevisionSheet();
+      appState.pendingPaidRevision = {
+        paymentLink:   data.paymentLink,
+        revisionToken: data.revisionToken,
+        paidCost:      data.paidCost,
+      };
+      showPaidRevOverlay(data.paidCost, data.paymentLink);
+      return;
+    }
+
+    if (!res.ok) {
+      toast(data.error || 'Something went wrong', 'error');
+    } else {
+      closeRevisionSheet();
+      toast('Revision submitted — live in ~10 minutes ✅', 'success');
+      // Update local counter + UI
+      if (typeof data.used === 'number') {
+        const limit = data.limit;
+        appState.manageData.revisions.used = data.used;
+        if (limit === null) {
+          document.getElementById('revCounterLabel').textContent = 'Unlimited';
+          document.getElementById('revCounterRight').textContent = 'Premium';
+        } else {
+          document.getElementById('revCounterLabel').textContent = `${data.used}/${limit} used`;
+          document.getElementById('revCounterRight').textContent = `${Math.max(0, limit - data.used)} remaining`;
+          document.getElementById('revFill').style.width = `${Math.min(100, (data.used/limit)*100)}%`;
+          document.getElementById('mRevisions').textContent = String(Math.max(0, limit - data.used));
+          // Show paid notice if just hit limit
+          if (data.used >= limit) {
+            const noticeEl = document.getElementById('revPaidNotice');
+            noticeEl.style.display = 'block';
+          }
+        }
+      }
+    }
+  } catch(e) {
+    toast('Could not submit — try again', 'error');
+  } finally {
+    if (btn) { btn.textContent = 'Submit revision'; btn.disabled = false; }
+  }
+}
+
+function showPaidRevOverlay(cost, paymentLink) {
+  document.getElementById('paidRevPrice').textContent = `R${cost}`;
+  document.getElementById('paidRevPriceInline').textContent = String(cost);
+  document.getElementById('paidRevPayBtn').onclick = () => {
+    window.location.href = paymentLink;
+  };
+  document.getElementById('paidRevOverlay').classList.add('open');
+}
+
+function closePaidRevOverlay() {
+  document.getElementById('paidRevOverlay').classList.remove('open');
+  appState.pendingPaidRevision = null;
+}
+
+// ────────────────────────────────────────────────────────────
+// ANALYTICS + REFERRAL + LEADERBOARD FETCHES
+// ────────────────────────────────────────────────────────────
+async function fetchAnalytics(slug) {
+  if (!slug) return;
+  try {
+    const res  = await fetch(`${WORKER_BUILD}/analytics?slug=${encodeURIComponent(slug)}`);
+    const data = await res.json();
+    document.getElementById('aViews').textContent   = data.views_this_month ?? '—';
+    document.getElementById('aLast').textContent    = data.views_last_month  ?? '—';
+    document.getElementById('aTopPage').textContent = data.top_page          || 'Home';
+    document.getElementById('aWaTaps').textContent  = data.whatsapp_taps ?? '—';
+  } catch(e) { /* non-fatal */ }
+}
+
+async function fetchReferralPosition(slug) {
+  if (!slug) return;
+  try {
+    const res  = await fetch(`${WORKER_BUILD}/referral-stats?slug=${encodeURIComponent(slug)}`);
+    const data = await res.json();
+    document.getElementById('refPosition').textContent = data.position ? `#${data.position}` : '—';
+  } catch(e) { /* non-fatal */ }
+}
+
+async function fetchLeaderboard(mySlug) {
+  const list = document.getElementById('leaderboardList');
+  if (!list) return;
+  try {
+    const res  = await fetch(`${WORKER_BUILD}/leaderboard`);
+    const data = await res.json();
+    if (!data.length) {
+      list.innerHTML = '<div style="font-size:13px;color:var(--muted);">No referrals yet this month — be the first!</div>';
+      return;
+    }
+    list.innerHTML = data.map(row => {
+      const isMe = mySlug && row.slug.startsWith(mySlug.slice(0, 3));
+      const medal = row.position === 1 ? '🥇' : row.position === 2 ? '🥈' : row.position === 3 ? '🥉' : row.position;
+      return `<div class="lb-row">
+        <div class="lb-pos">${medal}</div>
+        <div class="lb-name ${isMe ? 'lb-you' : ''}">${isMe ? 'You' : row.slug}</div>
+        <div class="lb-count">${row.referrals} referral${row.referrals !== 1 ? 's' : ''}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--muted);">Could not load leaderboard.</div>';
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// UPGRADE — routes through launch-worker /upgrade endpoint
+// Launch-worker calculates the correct delta and returns a PayFast link
+// with custom_str2 = 'upgrade:{key}' for proper webhook routing.
+// ────────────────────────────────────────────────────────────
+async function handleUpgradeTo(target) {
+  if (!appState.airtableId) { toast('Loading...'); return; }
+  if (!target) target = 'Premium';
+
+  toast('Preparing upgrade...');
+  try {
+    const res  = await fetch(`${WORKER_LAUNCH}/upgrade`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ airtableId: appState.airtableId, target }),
+    });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'Could not start upgrade', 'error'); return; }
+    if (data.paymentLink) {
+      window.location.href = data.paymentLink;
+    }
+  } catch(e) {
+    toast('Could not start upgrade — try again', 'error');
+  }
+}
+
+function handleEmailAddon() {
+  // Extra email account — Premium only, R200/mo recurring addon.
+  // For now, route through upgrade endpoint with target='email-addon';
+  // launch-worker can recognise this string and build the right PayFast link.
+  // Until launch-worker supports it explicitly, show a WhatsApp prompt.
+  toast('We\'ll WhatsApp you to set up the extra email.');
+  // Could optionally call a worker endpoint here; for MVP a manual touch is fine.
+}
+</script>
+</body>
+</html>

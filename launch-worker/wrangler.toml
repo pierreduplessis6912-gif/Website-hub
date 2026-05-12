@@ -1,0 +1,45 @@
+name = "wh-launch"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── KV Namespaces ──────────────────────────────────────────────
+[[kv_namespaces]]
+binding = "SITES"
+id = "b63e5b885ead4c02a9e184dd6477e711"
+
+# ── Queues (Producer — upgrade triggers rebuild) ───────────────
+[[queues.producers]]
+binding = "BUILD_QUEUE"
+queue = "wh-build-queue"
+
+[vars]
+TEST_MODE                  = "true"
+WORKER_URL_BUILD           = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_PATCH           = "https://wh-patch.pierreduplessis6912.workers.dev"
+
+# ── Secrets ────────────────────────────────────────────────────
+#   wrangler secret put PAYFAST_MERCHANT_ID         --name wh-launch
+#   wrangler secret put PAYFAST_MERCHANT_KEY        --name wh-launch
+#   wrangler secret put PAYFAST_SANDBOX_MERCHANT_ID --name wh-launch
+#   wrangler secret put PAYFAST_SANDBOX_MERCHANT_KEY --name wh-launch
+#   wrangler secret put CF_ACCOUNT_ID               --name wh-launch
+#   wrangler secret put CF_API_TOKEN                --name wh-launch
+#   wrangler secret put CF_ZONE_ID                  --name wh-launch
+#   wrangler secret put AIRTABLE_TOKEN              --name wh-launch
+#   wrangler secret put AIRTABLE_BASE_ID            --name wh-launch
+#   wrangler secret put AIRTABLE_TABLE_ID           --name wh-launch
+#   wrangler secret put META_WA_TOKEN               --name wh-launch
+#   wrangler secret put META_PHONE_NUMBER_ID        --name wh-launch
+#   wrangler secret put WH_PHONE                    --name wh-launch
+#   wrangler secret put ADMIN_KEY                   --name wh-launch
+#   wrangler secret put ANTHROPIC_KEY               --name wh-launch
+#   wrangler secret put ZOHO_CLIENT_ID              --name wh-launch
+#   wrangler secret put ZOHO_CLIENT_SECRET          --name wh-launch
+#   wrangler secret put ZOHO_REFRESH_TOKEN          --name wh-launch
+#   wrangler secret put ZOHO_ORG_ID                 --name wh-launch
+#   wrangler secret put ZOHO_MAIL_TOKEN             --name wh-launch
+#   wrangler secret put ZOHO_MAIL_ORG_ID            --name wh-launch
+#   wrangler secret put GOOGLE_CLIENT_ID            --name wh-launch
+#   wrangler secret put GOOGLE_CLIENT_SECRET        --name wh-launch
+#   wrangler secret put REGISTERDOMAIN_API_KEY      --name wh-launch
