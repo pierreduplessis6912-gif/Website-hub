@@ -1,0 +1,60 @@
+name = "wh-build"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── KV Namespaces ──────────────────────────────────────────────
+# Replace <KV_NAMESPACE_ID> with your actual KV namespace ID from the dashboard
+[[kv_namespaces]]
+binding = "SITES"
+id = "<KV_NAMESPACE_ID>"
+
+# ── R2 Buckets ─────────────────────────────────────────────────
+# Replace <R2_BUCKET_NAME> with your actual bucket name (e.g. wh-assets)
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "<R2_BUCKET_NAME>"
+
+# ── Queues (Producer + Consumer) ───────────────────────────────
+# Replace <QUEUE_ID> with your actual queue ID from the dashboard
+[[queues.producers]]
+binding = "BUILD_QUEUE"
+queue = "wh-build-queue"
+
+[[queues.consumers]]
+queue = "wh-build-queue"
+max_batch_size = 1
+max_retries = 2
+
+# ── Cron Trigger ───────────────────────────────────────────────
+# Runs outbound prospecting at 9pm UTC (11pm SAST)
+[triggers]
+crons = ["0 21 * * *"]
+
+# ── Environment Variables ──────────────────────────────────────
+# Non-secret config — set here. Secrets go in dashboard or via:
+#   wrangler secret put SECRET_NAME
+[vars]
+TEST_MODE                  = "true"
+OUTBOUND_ENABLED           = "false"
+REFERRAL_ENABLED           = "true"
+VISION_VALIDATION_ENABLED  = "false"
+WORKER_URL_BUILD           = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_PATCH           = "https://wh-patch.pierreduplessis6912.workers.dev"
+WORKER_URL_LAUNCH          = "https://wh-launch.pierreduplessis6912.workers.dev"
+
+# ── Secrets (set via CLI — do NOT put values here) ─────────────
+# Run these once per secret:
+#   wrangler secret put ANTHROPIC_KEY        --name wh-build
+#   wrangler secret put AIRTABLE_TOKEN       --name wh-build
+#   wrangler secret put AIRTABLE_BASE_ID     --name wh-build
+#   wrangler secret put AIRTABLE_TABLE_ID    --name wh-build
+#   wrangler secret put META_WA_TOKEN        --name wh-build
+#   wrangler secret put META_PHONE_NUMBER_ID --name wh-build
+#   wrangler secret put WH_PHONE             --name wh-build
+#   wrangler secret put ADMIN_KEY            --name wh-build
+#   wrangler secret put UNSPLASH_ACCESS_KEY  --name wh-build
+#   wrangler secret put GOOGLE_PLACES_API_KEY --name wh-build
+#   wrangler secret put REGISTERDOMAIN_API_KEY --name wh-build
+#   wrangler secret put PAYFAST_MERCHANT_ID  --name wh-build
+#   wrangler secret put PAYFAST_SANDBOX_MERCHANT_ID --name wh-build
