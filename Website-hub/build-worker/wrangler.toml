@@ -4,16 +4,16 @@ compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 # ── KV Namespaces ──────────────────────────────────────────────
-# Replace <KV_NAMESPACE_ID> with your actual KV namespace ID from the dashboard
+# Replace b63e5b885ead4c02a9e184dd6477e711 with your actual KV namespace ID from the dashboard
 [[kv_namespaces]]
 binding = "SITES"
-id = "<KV_NAMESPACE_ID>"
+id = "b63e5b885ead4c02a9e184dd6477e711"
 
 # ── R2 Buckets ─────────────────────────────────────────────────
-# Replace <R2_BUCKET_NAME> with your actual bucket name (e.g. wh-assets)
+# Replace wh-assets with your actual bucket name (e.g. wh-assets)
 [[r2_buckets]]
 binding = "ASSETS"
-bucket_name = "<R2_BUCKET_NAME>"
+bucket_name = "wh-assets"
 
 # ── Queues (Producer + Consumer) ───────────────────────────────
 # Replace <QUEUE_ID> with your actual queue ID from the dashboard

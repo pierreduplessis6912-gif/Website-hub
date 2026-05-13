@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 # ── KV Namespaces ──────────────────────────────────────────────
 [[kv_namespaces]]
 binding = "SITES"
-id = "<KV_NAMESPACE_ID>"
+id = "b63e5b885ead4c02a9e184dd6477e711"
 
 # ── Queues (Producer — upgrade triggers rebuild) ───────────────
 [[queues.producers]]
