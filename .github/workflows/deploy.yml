@@ -15,7 +15,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: build-worker
+          workingDirectory: Website-hub/build-worker
 
   deploy-patch:
     name: Deploy wh-patch
@@ -28,7 +28,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: patch-worker
+          workingDirectory: Website-hub/patch-worker
 
   deploy-launch:
     name: Deploy wh-launch
@@ -41,4 +41,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: launch-worker
+          workingDirectory: Website-hub/launch-worker
