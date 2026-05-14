@@ -1423,7 +1423,7 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
       env,
       { maxTokens: PASS_3_MAX_TOKENS }, // Pass 3 Muscle = CSS, must not be truncated
     );
-    cssBlock = p2Raw.trim();
+    cssBlock = stripMarkdown(p2Raw).trim();
 
     if (!cssBlock.includes('<style>')) throw new Error('No <style> block in Pass 2 output');
 
@@ -1460,12 +1460,13 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     // ── Pass 4: Skin — Full HTML render ───────────────────────
     let html = null;
     try {
-      html = await callClaudeInternal(
+      const p4Raw = await callClaudeInternal(
         buildPass4SystemPrompt(pageName, pkg),
         [{ role: 'user', content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
         env,
         { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
       );
+      html = stripMarkdown(p4Raw);
     } catch (err) {
       console.warn(`Pass 4 failed for "${pageName}":`, err.message);
     }
@@ -1474,12 +1475,13 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     if (!html || !html.includes('<!DOCTYPE')) {
       console.warn(`Pass 4 invalid output for "${pageName}" — retrying`);
       try {
-        html = await callClaudeInternal(
+        const p4Retry = await callClaudeInternal(
           buildPass4SystemPrompt(pageName, pkg),
           [{ role: 'user', content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
           env,
           { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
         );
+        html = stripMarkdown(p4Retry);
       } catch (e) { console.error(`Pass 4 retry failed for "${pageName}":`, e.message); continue; }
     }
 
@@ -1536,8 +1538,9 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
           { maxTokens: pass5Budgets[pageName] || PASS_5_DEFAULT_TOKENS },
         );
         // Pass 5 returns the patched HTML — validate before accepting
-        if (soulResult && soulResult.includes('<!DOCTYPE')) {
-          html = soulResult;
+        const soulStripped = stripMarkdown(soulResult);
+        if (soulStripped && soulStripped.includes('<!DOCTYPE')) {
+          html = soulStripped;
         } else {
           console.warn(`Pass 5 Soul returned non-HTML for "${pageName}" — keeping Pass 4 output`);
         }
@@ -1605,6 +1608,21 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
  * Pass 3 system prompt instructs the model to emit <!--WH_CSS_INJECT--> exactly
  * once; this function makes it real.
  */
+// ============================================================
+// STRIP MARKDOWN FENCES
+// Claude occasionally wraps output in ```html or ```css fences
+// despite prompt instructions. Strip them before using the output.
+// ============================================================
+
+function stripMarkdown(raw) {
+  if (!raw) return raw;
+  // Remove opening fence: ```html, ```css, ```json, ``` etc.
+  let s = raw.replace(/^```[a-z]*\s*/i, '').trimStart();
+  // Remove closing fence
+  s = s.replace(/\s*```\s*$/i, '').trimEnd();
+  return s;
+}
+
 function injectCss(html, cssBlock, pageName) {
   if (html.includes('<!--WH_CSS_INJECT-->')) {
     return html.replace('<!--WH_CSS_INJECT-->', cssBlock);
