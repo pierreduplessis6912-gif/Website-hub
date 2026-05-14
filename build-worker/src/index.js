@@ -1395,6 +1395,7 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
       : '';
 
   const unsplashContext = photoContext; // legacy alias
+  console.log(`[Build:${slug}] photoContext preview:`, photoContext.slice(0, 300) || '(empty — no photos)');
 
   // ── PASS 1 — Skeleton: Content Strategy + Industry Matrix ───
   let contentJson;
@@ -1644,28 +1645,47 @@ function injectCss(html, cssBlock, pageName) {
 function injectHeroImage(html, unsplashContext) {
   if (!unsplashContext) return html;
 
-  // Extract first Unsplash URL from the photo context block
-  const match = unsplashContext.match(/https:\/\/images\.unsplash\.com\/[^\s\n"')]+/);
-  if (!match) return html;
-  const heroUrl = match[0];
+  // Extract first usable image URL — Unsplash OR R2/CDN client photos
+  // Try image-extension URLs first, then any https URL as fallback
+  const imgMatch = unsplashContext.match(/https?:\/\/[^\s\n"')]+\.(?:jpg|jpeg|png|webp|gif)(?:[^\s\n"')]*)?/i);
+  const anyMatch = unsplashContext.match(/https?:\/\/[^\s\n"')]+/);
+  const rawUrl   = (imgMatch || anyMatch)?.[0];
+  if (!rawUrl) return html;
+
+  // For Unsplash URLs: append sizing params. For R2/CDN: use as-is.
+  const heroUrl = rawUrl.includes('unsplash.com')
+    ? rawUrl.split('?')[0] + '?w=1600&q=80&auto=format'
+    : rawUrl;
 
   // Case 1: Claude left the UNSPLASH_URL placeholder — replace it
   if (html.includes('UNSPLASH_URL')) {
     return html.replace(/UNSPLASH_URL/g, heroUrl);
   }
 
-  // Case 2: Hero section exists but has no background-image — inject it
-  if (html.includes('class="hero"') && !html.includes('background-image')) {
-    return html.replace(
-      /class="hero"/,
-      `class="hero" style="background-image:url('${heroUrl}')"`
-    );
+  // Case 2: Hero has background-image in inline style — replace if empty/malformed/placeholder
+  const bgImgRe = /(class="hero"[^>]*?style="[^"]*background-image:url\()([^)]*)(\)[^"]*")/;
+  const bgMatch = html.match(bgImgRe);
+  if (bgMatch) {
+    const currentUrl = bgMatch[2].replace(/['"]/g, '').trim();
+    // Only overwrite if the URL is missing, empty, a placeholder, or non-http
+    if (!currentUrl || currentUrl === '' || currentUrl.includes('UNSPLASH') || !currentUrl.startsWith('http')) {
+      return html.replace(bgImgRe, `$1'${heroUrl}'$3`);
+    }
+    return html; // Already has a real URL — leave it alone
   }
 
-  // Case 3: Hero has a background-image style but it's empty or malformed
+  // Case 3: Hero exists but has no background-image at all — inject it
   if (html.includes('class="hero"')) {
+    // If there's already a style attribute on the hero, prepend to it
+    if (/class="hero"[^>]*style="/.test(html)) {
+      return html.replace(
+        /(class="hero"[^>]*style=")([^"]*")/,
+        `$1background-image:url('${heroUrl}');$2`
+      );
+    }
+    // No style attribute — add one
     return html.replace(
-      /class="hero"\s+style="background-image:url\([^)]*\)"/,
+      /class="hero"/,
       `class="hero" style="background-image:url('${heroUrl}')"`
     );
   }
