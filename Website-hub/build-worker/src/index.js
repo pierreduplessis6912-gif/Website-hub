@@ -72,12 +72,15 @@ const PREVIEW_DOMAIN = 'preview.websitehub.co.za';
 
 // This worker's own hostname (used to detect API requests vs site serving).
 // All other hostnames fall through to live site serving.
-const WORKER_DOMAIN  = 'dropbox-proxy.pierreduplessis6912.workers.dev';
+const WORKER_DOMAIN  = 'wh-patch.pierreduplessis6912.workers.dev';
 
 // Pass token budgets — Pass 2 ceiling is non-negotiable. See triggerBuildInternal
 // for the rationale (unclosed </style> swallows the body in rawtext mode).
-const PASS_1_MAX_TOKENS = 3000;
-const PASS_2_MAX_TOKENS = 5000;
+const PASS_1_MAX_TOKENS = 3500; // Pass 1 Skeleton — content strategy JSON
+const PASS_2_MAX_TOKENS = 4500; // Pass 2 Organs — copy and messaging
+const PASS_3_MAX_TOKENS = 5500; // Pass 3 Muscle — CSS design system (non-negotiable floor)
+const PASS_4_DEFAULT_TOKENS = 6000; // Pass 4 Skin — HTML per page
+const PASS_5_DEFAULT_TOKENS = 3000; // Pass 5 Soul — personality and polish
 
 // ────────────────────────────────────────────────────────────
 // EXPORT
@@ -134,15 +137,17 @@ export default {
       const { airtableId, paymentId, fields, isOutbound, buildToken } = message.body;
       const slug = slugify(fields?.['Business Name'] || '');
       try {
-        await triggerBuildInternal(airtableId, paymentId, env, fields, isOutbound);
+        const resolvedSlug = await triggerBuildInternal(airtableId, paymentId, env, fields, isOutbound);
+        // Use resolvedSlug (from Airtable refetch) — not the pre-computed slug which may be '' when fields is null
+        const finalSlug = resolvedSlug || slug;
         message.ack();
         await logActivity(env, 'build_completed', { airtableId, business: fields?.['Business Name'] });
 
         if (buildToken) {
           await env.SITES.put(`build_status:${buildToken}`, JSON.stringify({
             status:     'ready',
-            slug,
-            previewUrl: `https://${PREVIEW_DOMAIN}/${slug}`,
+            slug:       finalSlug,
+            previewUrl: `https://${PREVIEW_DOMAIN}/${finalSlug}`,
           }));
         }
 
@@ -1124,7 +1129,218 @@ async function handleAdminPurge(request, env) {
 }
 
 // ============================================================
-// BUILD PIPELINE — three-tier (express / standard / premium)
+// INDUSTRY MATRIX — pre-build creative brief lookup
+// Each entry gives Claude a complete creative direction before Pass 1.
+// ============================================================
+
+const INDUSTRY_MATRIX = {
+  plumbing: {
+    aesthetic: 'bold_modern',
+    palette: { bg: '#0d1117', surface: '#161b22', accent: '#f97316', text: '#f0f0f0', muted: '#8b949e' },
+    fonts: { display: 'Syne', body: 'DM Sans' },
+    mood: 'reliable, urgent, no-nonsense',
+    copyStyle: 'Direct. Short sentences. Strong action verbs. Urgency without panic. SA working-class warmth.',
+    vibeWords: ['Fast', 'Reliable', 'Licensed', 'Emergency', 'Trusted'],
+    heroImage: 'plumber pipes tools professional south africa',
+    trustSignals: ['Licensed & Insured', '24/7 Emergency', 'Upfront Quotes', 'Local & Trusted'],
+    emotionalRegister: 'Calm confidence. We fix problems fast. No drama.',
+  },
+  electrical: {
+    aesthetic: 'bold_modern',
+    palette: { bg: '#0a0e1a', surface: '#111827', accent: '#eab308', text: '#f9fafb', muted: '#9ca3af' },
+    fonts: { display: 'Bebas Neue', body: 'Inter' },
+    mood: 'precise, safety-first, authoritative',
+    copyStyle: 'Technical credibility made simple. Safety without fear. Certifications mentioned naturally.',
+    vibeWords: ['Certified', 'Safe', 'Precise', 'Compliant', 'Professional'],
+    heroImage: 'electrician work south africa electrical panel',
+    trustSignals: ['COC Certified', 'Fully Insured', 'SANS Compliant', 'Free Inspection'],
+    emotionalRegister: 'Expert and calm. We know what we're doing so you don't have to worry.',
+  },
+  cleaning: {
+    aesthetic: 'soft_organic',
+    palette: { bg: '#f8fafc', surface: '#ffffff', accent: '#06b6d4', text: '#1e293b', muted: '#64748b' },
+    fonts: { display: 'Playfair Display', body: 'Lato' },
+    mood: 'fresh, reliable, inviting, homely',
+    copyStyle: 'Warm and reassuring. Before/after language. Clean imagery. Light and airy tone.',
+    vibeWords: ['Spotless', 'Fresh', 'Reliable', 'Thorough', 'Trusted'],
+    heroImage: 'cleaning service south africa professional home',
+    trustSignals: ['Police Cleared Staff', 'Insured', 'Eco-Friendly Products', 'Satisfaction Guarantee'],
+    emotionalRegister: 'Warm and welcoming. Your home in safe hands.',
+  },
+  construction: {
+    aesthetic: 'raw_editorial',
+    palette: { bg: '#111111', surface: '#1a1a1a', accent: '#f59e0b', text: '#fafafa', muted: '#a3a3a3' },
+    fonts: { display: 'Barlow Condensed', body: 'Barlow' },
+    mood: 'strong, skilled, serious, built-to-last',
+    copyStyle: 'Masculine confidence. Specific about materials and timelines. SA township-to-suburb credibility.',
+    vibeWords: ['Built Right', 'On Time', 'Quality Materials', 'Experienced', 'Guaranteed'],
+    heroImage: 'construction building south africa workers professional',
+    trustSignals: ['NHBRC Registered', '10+ Year Guarantee', 'CIDB Graded', 'Free Quote'],
+    emotionalRegister: 'Solid. No fluff. We build things that last.',
+  },
+  beauty: {
+    aesthetic: 'refined_luxury',
+    palette: { bg: '#1a0a0a', surface: '#2d1515', accent: '#e879a0', text: '#fdf2f8', muted: '#c084a8' },
+    fonts: { display: 'Cormorant Garamond', body: 'Nunito' },
+    mood: 'luxurious, empowering, feminine, confidence-giving',
+    copyStyle: 'Aspirational but accessible. SA beauty culture references. Empowerment language. Glow-up energy.',
+    vibeWords: ['Flawless', 'Confident', 'Luxurious', 'Transformative', 'You Deserve This'],
+    heroImage: 'beauty salon south africa hair makeup professional',
+    trustSignals: ['Qualified Beauticians', 'Premium Products', 'Hygiene Certified', 'By Appointment'],
+    emotionalRegister: 'Empowering. You walk in ordinary, you walk out extraordinary.',
+  },
+  automotive: {
+    aesthetic: 'bold_modern',
+    palette: { bg: '#0a0a0a', surface: '#1a1a2e', accent: '#ef4444', text: '#ffffff', muted: '#9ca3af' },
+    fonts: { display: 'Rajdhani', body: 'Roboto' },
+    mood: 'precise, mechanically capable, masculine pride',
+    copyStyle: 'Tech-speak made accessible. Specific about brands and models serviced. SA petrolhead culture.',
+    vibeWords: ['Expert', 'Fast Turnaround', 'Warranted Work', 'All Makes', 'Trusted'],
+    heroImage: 'auto repair mechanic south africa workshop professional',
+    trustSignals: ['MIWA Member', 'Manufacturer Approved', 'Lifetime Warranty Parts', '6-Month Labour Guarantee'],
+    emotionalRegister: 'Competent confidence. Your car is in expert hands.',
+  },
+  food: {
+    aesthetic: 'warm_artisan',
+    palette: { bg: '#1c0f05', surface: '#2d1a0e', accent: '#f97316', text: '#fef3c7', muted: '#d97706' },
+    fonts: { display: 'Playfair Display', body: 'Merriweather Sans' },
+    mood: 'warm, indulgent, homemade, community',
+    copyStyle: 'Sensory language. Smell, taste, texture words. SA flavour culture — braai, bunny chow, koeksister energy.',
+    vibeWords: ['Fresh', 'Homemade', 'Authentic', 'Flavourful', 'Made with Love'],
+    heroImage: 'food restaurant catering south africa traditional',
+    trustSignals: ['Halaal Certified', 'Fresh Daily', 'Local Ingredients', 'Family Recipe'],
+    emotionalRegister: 'Warm and hungry. Food is love made edible.',
+  },
+  fitness: {
+    aesthetic: 'bold_modern',
+    palette: { bg: '#050505', surface: '#111111', accent: '#22c55e', text: '#f0fdf4', muted: '#6b7280' },
+    fonts: { display: 'Oswald', body: 'Open Sans' },
+    mood: 'energetic, transformative, disciplined, community',
+    copyStyle: 'Motivational without cliché. Real results language. SA fitness culture — outdoor training, township gyms.',
+    vibeWords: ['Transform', 'Results', 'Discipline', 'Community', 'Stronger'],
+    heroImage: 'gym fitness trainer south africa workout',
+    trustSignals: ['Qualified Trainers', 'Proven Results', 'All Fitness Levels', 'Free Assessment'],
+    emotionalRegister: 'Motivating and inclusive. Your best self starts here.',
+  },
+  retail: {
+    aesthetic: 'soft_organic',
+    palette: { bg: '#ffffff', surface: '#f9fafb', accent: '#7c3aed', text: '#111827', muted: '#6b7280' },
+    fonts: { display: 'DM Serif Display', body: 'DM Sans' },
+    mood: 'curated, trustworthy, value-driven, local pride',
+    copyStyle: 'Benefit-first. Price transparency. SA value consciousness. Local is lekker energy.',
+    vibeWords: ['Quality', 'Value', 'Local', 'Trusted', 'Wide Range'],
+    heroImage: 'retail shop south africa small business products',
+    trustSignals: ['Lowest Price Guarantee', 'Easy Returns', 'Local Business', 'Fast Delivery'],
+    emotionalRegister: 'Friendly and value-conscious. We have what you need.',
+  },
+  medical: {
+    aesthetic: 'soft_organic',
+    palette: { bg: '#f0f9ff', surface: '#ffffff', accent: '#0ea5e9', text: '#0c4a6e', muted: '#64748b' },
+    fonts: { display: 'Source Serif 4', body: 'Source Sans 3' },
+    mood: 'calm, trustworthy, professional, caring',
+    copyStyle: 'Reassuring and clear. No jargon. Empathetic. SA healthcare context — medical aid, state/private crossover.',
+    vibeWords: ['Trusted', 'Caring', 'Professional', 'Experienced', 'Compassionate'],
+    heroImage: 'medical doctor clinic south africa healthcare professional',
+    trustSignals: ['HPCSA Registered', 'Medical Aid Accepted', 'Same-Day Appointments', 'Confidential'],
+    emotionalRegister: 'Calm and caring. You're in safe, experienced hands.',
+  },
+  legal: {
+    aesthetic: 'refined_luxury',
+    palette: { bg: '#0f0f0f', surface: '#1a1a1a', accent: '#c9a84c', text: '#f5f5f5', muted: '#a3a3a3' },
+    fonts: { display: 'EB Garamond', body: 'Libre Baskerville' },
+    mood: 'authoritative, discreet, trustworthy, experienced',
+    copyStyle: 'Dignified and precise. Plain language explanations. SA legal landscape awareness.',
+    vibeWords: ['Experienced', 'Trusted', 'Discreet', 'Results-Driven', 'Expert Counsel'],
+    heroImage: 'lawyer attorney south africa legal office professional',
+    trustSignals: ['Admitted Attorney', '15+ Years Experience', 'Free Consultation', 'Confidential'],
+    emotionalRegister: 'Authoritative and reassuring. Your rights are our priority.',
+  },
+  realestate: {
+    aesthetic: 'refined_luxury',
+    palette: { bg: '#0a0a0a', surface: '#1a1a1a', accent: '#d4af37', text: '#ffffff', muted: '#9ca3af' },
+    fonts: { display: 'Cormorant Garamond', body: 'Montserrat' },
+    mood: 'aspirational, trustworthy, knowledgeable, premium',
+    copyStyle: 'Location-specific. SA property market language. Aspirational without being unattainable.',
+    vibeWords: ['Prime Location', 'Experienced', 'Trusted', 'Results', 'Your Dream Home'],
+    heroImage: 'real estate property south africa homes luxury',
+    trustSignals: ['Registered Estate Agent', 'PropStats Verified', 'FFC Certificate', 'Free Valuation'],
+    emotionalRegister: 'Premium and knowledgeable. We find the right property at the right price.',
+  },
+  transport: {
+    aesthetic: 'bold_modern',
+    palette: { bg: '#0a0f1e', surface: '#111827', accent: '#3b82f6', text: '#f9fafb', muted: '#9ca3af' },
+    fonts: { display: 'Titillium Web', body: 'Open Sans' },
+    mood: 'reliable, on-time, professional, safe',
+    copyStyle: 'Logistics language made human. Safety and timeliness front and centre. SA route knowledge.',
+    vibeWords: ['On Time', 'Safe', 'Reliable', 'Professional', 'Affordable'],
+    heroImage: 'transport logistics south africa driver professional',
+    trustSignals: ['GPS Tracked', 'Fully Insured', 'Licensed Drivers', 'On-Time Guarantee'],
+    emotionalRegister: 'Reliable and professional. Your goods arrive safely, on time, every time.',
+  },
+  events: {
+    aesthetic: 'warm_artisan',
+    palette: { bg: '#1a0533', surface: '#2d0a57', accent: '#e879f9', text: '#fdf4ff', muted: '#c084fc' },
+    fonts: { display: 'Abril Fatface', body: 'Poppins' },
+    mood: 'celebratory, creative, memorable, energetic',
+    copyStyle: 'Excitement and anticipation. Sensory language. SA celebration culture — stokvels, lobola, matric dances.',
+    vibeWords: ['Unforgettable', 'Spectacular', 'Custom', 'Professional', 'Magical'],
+    heroImage: 'event planning south africa celebration party',
+    trustSignals: ['100+ Events', 'Fully Equipped', 'Day-Of Coordination', 'Free Consultation'],
+    emotionalRegister: 'Joyful and professional. Every detail, perfectly executed.',
+  },
+  education: {
+    aesthetic: 'soft_organic',
+    palette: { bg: '#fefce8', surface: '#ffffff', accent: '#ca8a04', text: '#1c1917', muted: '#78716c' },
+    fonts: { display: 'Nunito', body: 'Nunito Sans' },
+    mood: 'nurturing, encouraging, knowledgeable, community',
+    copyStyle: 'Warm and encouraging. Results-focused. SA education landscape — matric, NQF levels, tutoring culture.',
+    vibeWords: ['Qualified', 'Results', 'Nurturing', 'Experienced', 'Success'],
+    heroImage: 'tutor teacher south africa education classroom',
+    trustSignals: ['SACE Registered', 'Qualified Teachers', 'Proven Pass Rates', 'Small Groups'],
+    emotionalRegister: 'Warm and encouraging. Every learner can succeed with the right support.',
+  },
+};
+
+function getIndustryBrief(industry) {
+  if (!industry) return INDUSTRY_MATRIX.plumbing; // safe default
+  const key = industry.toLowerCase().replace(/[^a-z]/g, '');
+  // Fuzzy match
+  if (key.includes('plumb')) return INDUSTRY_MATRIX.plumbing;
+  if (key.includes('electr')) return INDUSTRY_MATRIX.electrical;
+  if (key.includes('clean') || key.includes('maid') || key.includes('domestic')) return INDUSTRY_MATRIX.cleaning;
+  if (key.includes('build') || key.includes('construct') || key.includes('renovate') || key.includes('paint')) return INDUSTRY_MATRIX.construction;
+  if (key.includes('beauty') || key.includes('hair') || key.includes('nail') || key.includes('salon') || key.includes('spa')) return INDUSTRY_MATRIX.beauty;
+  if (key.includes('auto') || key.includes('car') || key.includes('mech') || key.includes('panel') || key.includes('tyre')) return INDUSTRY_MATRIX.automotive;
+  if (key.includes('food') || key.includes('cater') || key.includes('restaurant') || key.includes('bakery') || key.includes('cook')) return INDUSTRY_MATRIX.food;
+  if (key.includes('fit') || key.includes('gym') || key.includes('train') || key.includes('sport')) return INDUSTRY_MATRIX.fitness;
+  if (key.includes('retail') || key.includes('shop') || key.includes('store')) return INDUSTRY_MATRIX.retail;
+  if (key.includes('med') || key.includes('health') || key.includes('clinic') || key.includes('doctor') || key.includes('nurse')) return INDUSTRY_MATRIX.medical;
+  if (key.includes('legal') || key.includes('law') || key.includes('attorn') || key.includes('advocate')) return INDUSTRY_MATRIX.legal;
+  if (key.includes('property') || key.includes('estate') || key.includes('realty')) return INDUSTRY_MATRIX.realestate;
+  if (key.includes('transport') || key.includes('logistics') || key.includes('deliver') || key.includes('courier') || key.includes('driver')) return INDUSTRY_MATRIX.transport;
+  if (key.includes('event') || key.includes('wedding') || key.includes('party') || key.includes('function')) return INDUSTRY_MATRIX.events;
+  if (key.includes('tutor') || key.includes('teach') || key.includes('educat') || key.includes('school') || key.includes('training')) return INDUSTRY_MATRIX.education;
+  // Return a generic brief if no match
+  return {
+    aesthetic: 'bold_modern',
+    palette: { bg: '#0a0a0f', surface: '#111118', accent: '#6ee7b7', text: '#f0f0f5', muted: '#6b7280' },
+    fonts: { display: 'Syne', body: 'DM Sans' },
+    mood: 'professional, trustworthy, local',
+    copyStyle: 'Warm and direct. South African tone. No corporate jargon.',
+    vibeWords: ['Professional', 'Trusted', 'Local', 'Experienced', 'Reliable'],
+    heroImage: `${industry} professional south africa business`,
+    trustSignals: ['Experienced Team', 'Fully Insured', 'Local Business', 'Free Quote'],
+    emotionalRegister: 'Trustworthy and approachable. Local experts who care.',
+  };
+}
+
+// ============================================================
+// BUILD PIPELINE — 5-pass architecture (express / standard / premium)
+// Pass 1: Skeleton — content strategy + industry matrix lookup
+// Pass 2: Organs  — copy and messaging
+// Pass 3: Muscle  — CSS design system
+// Pass 4: Skin    — full HTML per page (sequential)
+// Pass 5: Soul    — personality polish (sequential)
 // ============================================================
 
 async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields, isOutbound = false) {
@@ -1146,23 +1362,45 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     'Domain':      domain,
   }, env);
 
-  // Unsplash photos for Pass 3
+  // Industry matrix lookup — feeds creative brief into Pass 1
+  const industryBrief = getIndustryBrief(f['Industry'] || f['Business Name'] || '');
+
+  // Unsplash photos — use industry brief search term for better results
   let unsplashPhotos = [];
-  try { unsplashPhotos = await fetchUnsplashPhotos(f, env); }
+  try { unsplashPhotos = await fetchUnsplashPhotos(f, env, industryBrief.heroImage); }
   catch (e) { console.warn('Unsplash fetch failed (non-fatal):', e); }
 
-  const unsplashContext = unsplashPhotos.length > 0
-    ? `\n\nPHOTOS (use these direct URLs in <img> tags — never base64):\n` +
-      unsplashPhotos.map(p => `${p.slot}: ${p.url}\nCredit: ${p.credit} on Unsplash`).join('\n') +
-      `\n\nInclude small "Photos: Unsplash" credit in footer.\n`
-    : '';
+  // R2 client photos — Fix E: read client-uploaded photos from R2
+  let r2PhotoUrls = [];
+  try {
+    if (env.ASSETS) {
+      const r2List = await env.ASSETS.list({ prefix: `${slug}/photos/` });
+      if (r2List.objects && r2List.objects.length > 0) {
+        r2PhotoUrls = r2List.objects.map(obj =>
+          `https://assets.websitehub.co.za/${obj.key}`
+        );
+      }
+    }
+  } catch (e) { console.warn('R2 photo fetch failed (non-fatal):', e); }
 
-  // ── PASS 1 — Content & Strategy ─────────────────────────────
+  // Build photo context — prefer client photos, fallback to Unsplash
+  const photoContext = r2PhotoUrls.length > 0
+    ? `\n\nCLIENT PHOTOS (use these first — real photos from the business):\n` +
+      r2PhotoUrls.map((url, i) => `photo_${i+1}: ${url}`).join('\n') + '\n'
+    : unsplashPhotos.length > 0
+      ? `\n\nPHOTOS (use these direct URLs in <img> tags — never base64):\n` +
+        unsplashPhotos.map(p => `${p.slot}: ${p.url}\nCredit: ${p.credit} on Unsplash`).join('\n') +
+        `\n\nInclude small "Photos: Unsplash" credit in footer.\n`
+      : '';
+
+  const unsplashContext = photoContext; // legacy alias
+
+  // ── PASS 1 — Skeleton: Content Strategy + Industry Matrix ───
   let contentJson;
   try {
     const p1Raw = await callClaudeInternal(
-      buildPass1SystemPrompt(),
-      [{ role: 'user', content: buildPass1UserPrompt(f) }],
+      buildPass1SystemPrompt(industryBrief),
+      [{ role: 'user', content: buildPass1UserPrompt(f, industryBrief) }],
       env,
       { maxTokens: PASS_1_MAX_TOKENS },
     );
@@ -1180,9 +1418,9 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
   try {
     const p2Raw = await callClaudeInternal(
       buildPass2SystemPrompt(),
-      [{ role: 'user', content: buildPass2UserPrompt(contentJson, f) }],
+      [{ role: 'user', content: buildPass2UserPrompt(contentJson, f, industryBrief) }],
       env,
-      { maxTokens: PASS_2_MAX_TOKENS },
+      { maxTokens: PASS_3_MAX_TOKENS }, // Pass 3 Muscle = CSS, must not be truncated
     );
     cssBlock = p2Raw.trim();
 
@@ -1207,78 +1445,102 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     throw new Error(`Pass 2 failed: ${e.message}`);
   }
 
-  // ── PASS 3 — Per-page parallel renders ──────────────────────
-  // Express: 1 page (index). Standard: 4 pages. Premium: 5 pages.
-  const pages           = caps.pages;
-  const pageTokenBudgets = caps.pageTokenBudget;
+  // ── PASSES 4 & 5 — Skin + Soul (sequential per page) ────────
+  // Pass 4 (Skin): Full HTML per page — sequential to avoid CPU timeout
+  // Pass 5 (Soul): Personality polish — surgical micro-copy layer
+  // Express: 1 page. Standard: 4 pages. Premium: 5 pages.
+  const pages            = caps.pages;
+  const pass4Budgets     = caps.pass4TokenBudget || caps.pageTokenBudget;
+  const pass5Budgets     = caps.pass5TokenBudget;
 
-  const rawPageHtmls = [];
-  for (const pageName of pages) {
-    try {
-      const html = await callClaudeInternal(
-        buildPass3PageSystemPrompt(pageName, pkg),
-        [{ role: 'user', content: buildPass3PageUserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
-        env,
-        { maxTokens: pageTokenBudgets[pageName] || 5000 },
-      );
-      rawPageHtmls.push(html);
-    } catch (err) {
-      console.warn(`Pass 3 failed for "${pageName}":`, err.message);
-      rawPageHtmls.push(null);
-    }
-  }
-
-  // ── QA + per-page retry ─────────────────────────────────────
   const builtPages = {};
 
-  for (let i = 0; i < pages.length; i++) {
-    const pageName = pages[i];
-    let html       = rawPageHtmls[i];
-
-    if (!html || !html.includes('<!DOCTYPE')) {
-      console.warn(`Pass 3 invalid output for "${pageName}" — retrying`);
-      try {
-        html = await callClaudeInternal(
-          buildPass3PageSystemPrompt(pageName, pkg),
-          [{ role: 'user', content: buildPass3PageUserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
-          env,
-          { maxTokens: pageTokenBudgets[pageName] || 5000 },
-        );
-      } catch (e) { console.error(`Retry failed for "${pageName}":`, e.message); continue; }
+  for (const pageName of pages) {
+    // ── Pass 4: Skin — Full HTML render ───────────────────────
+    let html = null;
+    try {
+      html = await callClaudeInternal(
+        buildPass4SystemPrompt(pageName, pkg),
+        [{ role: 'user', content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
+        env,
+        { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
+      );
+    } catch (err) {
+      console.warn(`Pass 4 failed for "${pageName}":`, err.message);
     }
 
-    // Inject CSS BEFORE QA so QA can verify the placeholder was actually replaced
+    // Pass 4 validation + retry
+    if (!html || !html.includes('<!DOCTYPE')) {
+      console.warn(`Pass 4 invalid output for "${pageName}" — retrying`);
+      try {
+        html = await callClaudeInternal(
+          buildPass4SystemPrompt(pageName, pkg),
+          [{ role: 'user', content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
+          env,
+          { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
+        );
+      } catch (e) { console.error(`Pass 4 retry failed for "${pageName}":`, e.message); continue; }
+    }
+
+    // Inject CSS
     html = injectCss(html, cssBlock, pageName);
 
+    // QA check
     const qaResult = runQAChecks(html, f, pageName, contentJson);
     if (!qaResult.passed) {
       console.warn(`QA failed "${pageName}":`, qaResult.failures.join(', '));
       try {
         const qaRetry = await callClaudeInternal(
-          buildPass3PageSystemPrompt(pageName, pkg),
+          buildPass4SystemPrompt(pageName, pkg),
           [
-            { role: 'user',      content: buildPass3PageUserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) },
+            { role: 'user',      content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) },
             { role: 'assistant', content: html },
             { role: 'user',      content: `QA failed: ${qaResult.failures.join(', ')}. Fix and return complete corrected HTML.` },
           ],
           env,
-          { maxTokens: pageTokenBudgets[pageName] || 5000 },
+          { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
         );
         const retryHtml = injectCss(qaRetry, cssBlock, pageName);
         const retryQA   = runQAChecks(retryHtml, f, pageName, contentJson);
-        if (!retryQA.passed) {
+        if (retryQA.passed) {
+          html = retryHtml;
+          await updateAirtableRecord(airtableId, { 'QA Status': 'Passed' }, env);
+        } else {
           await sendWhatsApp(env.WH_PHONE,
-            `⚠️ QA FAILED x2 — page "${pageName}": ${f['Business Name']}\nFailed: ${retryQA.failures.join(', ')}\nAirtable: ${airtableId}`,
+            `⚠️ QA FAILED x2 — page "${pageName}": ${f['Business Name']}\nFailed: ${retryQA.failures.join(', ')}`,
             env, { skipTestRedirect: true },
           ).catch(() => {});
           await updateAirtableRecord(airtableId, { 'QA Status': 'Failed' }, env);
-        } else {
-          html = retryHtml;
-          await updateAirtableRecord(airtableId, { 'QA Status': 'Passed' }, env);
         }
       } catch(e) { console.warn(`QA retry error "${pageName}":`, e.message); }
     } else {
       await updateAirtableRecord(airtableId, { 'QA Status': 'Passed' }, env);
+    }
+
+    // ── Pass 5: Soul — Personality & Polish ───────────────────
+    // Surgical micro-copy layer. Reads rendered HTML, patches specific elements.
+    // Skipped if Pass 4 failed.
+    if (html && pass5Budgets) {
+      try {
+        const soulResult = await callClaudeInternal(
+          buildPass5SystemPrompt(pageName, industryBrief),
+          [{
+            role: 'user',
+            content: buildPass5UserPrompt(pageName, html, contentJson, f, industryBrief),
+          }],
+          env,
+          { maxTokens: pass5Budgets[pageName] || PASS_5_DEFAULT_TOKENS },
+        );
+        // Pass 5 returns the patched HTML — validate before accepting
+        if (soulResult && soulResult.includes('<!DOCTYPE')) {
+          html = soulResult;
+        } else {
+          console.warn(`Pass 5 Soul returned non-HTML for "${pageName}" — keeping Pass 4 output`);
+        }
+      } catch (e) {
+        // Pass 5 is non-critical — if it fails, keep Pass 4 output
+        console.warn(`Pass 5 Soul failed for "${pageName}" (non-fatal):`, e.message);
+      }
     }
 
     builtPages[pageName] = html;
@@ -1328,6 +1590,9 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     `✅ BUILD COMPLETE: ${f['Business Name']}\nPreview: ${previewUrl}\nPackage: ${pkg}\nPages: ${pages.length}\nOutbound: ${isOutbound ? 'Yes' : 'No'}\nTokens: ~${tokens}`,
     env, { skipTestRedirect: true },
   );
+
+  // Return slug so queue consumer can write correct build_status (Fix D)
+  return slug;
 }
 
 /**
@@ -1777,22 +2042,37 @@ async function fetchGooglePlacesProspects(province, industry, limit, env) {
 // exact card counts matching contentJson.services length.
 // ============================================================
 
-function buildPass1SystemPrompt() {
-  return `You are a South African website content strategist with 15 years experience building brands for SA small businesses. You understand the local market, the language, the trust signals that convert.
+function buildPass1SystemPrompt(industryBrief) {
+  return `You are a South African brand strategist and content director. You have 15 years building brands for SA small businesses across every industry and township.
 
-Output ONLY valid JSON — no preamble, no explanation, no markdown backticks. Start with { and end with }.
+CREATIVE BRIEF FOR THIS BUILD:
+Mood: ${industryBrief.mood}
+Copy Style: ${industryBrief.copyStyle}
+Emotional Register: ${industryBrief.emotionalRegister}
+Vibe Words to weave in: ${industryBrief.vibeWords.join(', ')}
+Trust Signals to reference: ${industryBrief.trustSignals.join(', ')}
+Suggested colour direction: bg ${industryBrief.palette.bg}, accent ${industryBrief.palette.accent}
+Aesthetic: ${industryBrief.aesthetic}
+Display Font suggestion: ${industryBrief.fonts.display}
+Body Font suggestion: ${industryBrief.fonts.body}
 
-Your copy MUST be:
-- Warm, confident, specifically South African (not corporate, not American)
-- Headline-driven: short, punchy, memorable
-- Built around the business's actual story, not generic filler
-
-You MUST NOT use Lorem Ipsum, AI-sounding language, or generic stock phrases.`;
+OUTPUT RULES — non-negotiable:
+→ Output ONLY valid JSON. Start with { and end with }. No preamble, no backticks.
+→ Copy MUST be warm, confident, specifically South African — not corporate, not American.
+→ Headlines MUST be short, punchy, memorable — built around the actual business story.
+→ Colours MUST be influenced by the brief above unless the client specified something different.
+→ NEVER use Lorem Ipsum, AI-sounding language, or generic stock phrases.
+→ The creative brief above is your compass — let it inform every word and colour choice.`;
 }
 
-function buildPass1UserPrompt(fields) {
+function buildPass1UserPrompt(fields, industryBrief) {
   const pkg       = fields['Package'] || 'Standard';
   const isPremium = packageKey(pkg) === 'premium';
+
+  const brief = industryBrief || {};
+  const suggestedPalette = brief.palette
+    ? `Suggested: bg ${brief.palette.bg}, accent ${brief.palette.accent} (override if client specified colours)`
+    : 'Choose industry-appropriate';
 
   return `Generate website content for this South African business. Return ONLY this JSON structure with no other text:
 
@@ -1803,9 +2083,12 @@ About: ${fields['About'] || ''}
 Services: ${fields['Services'] || ''}
 Area: ${fields['Area'] || ''}
 Package: ${pkg}
-Voice/Vibe: ${fields['Vibe'] || 'Professional, warm, South African'}
+Voice/Vibe: ${fields['Vibe'] || brief.mood || 'Professional, warm, South African'}
 Social bio: ${fields['Bio'] || 'Not provided'}
-Colours requested: ${fields['Colours'] || 'Choose industry-appropriate'}
+Colours requested: ${fields['Colours'] || suggestedPalette}
+Suggested fonts: Display: ${brief.fonts?.display || 'Syne'}, Body: ${brief.fonts?.body || 'DM Sans'}
+Vibe words to weave in: ${brief.vibeWords?.join(', ') || ''}
+Trust signals to reference: ${brief.trustSignals?.join(', ') || ''}
 
 Return this exact JSON:
 {
@@ -1871,7 +2154,7 @@ TOKEN BUDGET WARNING:
 This stylesheet must be complete and fully closed with </style>. If you are approaching the response limit, prioritise: hero styles, nav styles, section styles, card styles, FAB. Cut animations and decorative effects before cutting structural styles. NEVER leave a CSS rule with an open brace and no close.`;
 }
 
-function buildPass2UserPrompt(contentJson, fields) {
+function buildPass2UserPrompt(contentJson, fields, industryBrief) {
   return `Generate the shared CSS design system for this website.
 
 BRAND TOKENS:
@@ -1917,7 +2200,8 @@ REQUIRED COMPONENTS — all MUST be present, named exactly as below:
 Output ONLY the <style> block. Start immediately with <style>.`;
 }
 
-function buildPass3PageSystemPrompt(pageName, pkg) {
+function buildPass4SystemPrompt(pageName, pkg) {
+// Also aliased as buildPass3PageSystemPrompt for backward compatibility
   const pkgKey  = packageKey(pkg);
   const caps    = getPackageCaps(pkgKey);
   const navStr  = caps.pages.map(p => p === 'index' ? 'Home' : (p[0].toUpperCase() + p.slice(1))).join(' | ');
@@ -1937,7 +2221,8 @@ OUTPUT RULES — non-negotiable:
 → You are building the ${pageName.toUpperCase()} page only. Do not include sections belonging to other pages.`;
 }
 
-function buildPass3PageUserPrompt(pageName, contentJson, cssBlock, fields, unsplashContext, slug, pkg, env) {
+function buildPass4UserPrompt(pageName, contentJson, cssBlock, fields, unsplashContext, slug, pkg, env) {
+// Also aliased as buildPass3PageUserPrompt for backward compatibility
   const pkgKey    = packageKey(pkg);
   const caps      = getPackageCaps(pkgKey);
   const isPremium = pkgKey === 'premium';
@@ -2204,6 +2489,66 @@ document.querySelector('.hamburger').addEventListener('click',function(){
 ${pageContent}
 
 Output ONLY the complete HTML. Start with <!DOCTYPE html>.`;
+}
+
+// ============================================================
+
+// ============================================================
+// PASS 5 PROMPTS — Soul: Personality & Polish
+// Pass 5 reads the completed Pass 4 HTML and makes surgical
+// micro-copy improvements — it does NOT rewrite the page.
+// It patches: hero copy, CTA text, stat labels, section tags,
+// pull quotes, and footer tagline. Returns complete HTML.
+// ============================================================
+
+function buildPass5SystemPrompt(pageName, industryBrief) {
+  const brief = industryBrief || {};
+  return `You are a South African brand voice specialist doing final personality polish on a completed website page.
+
+YOUR MISSION — surgical micro-copy improvements only:
+→ Strengthen the hero headline if it sounds generic
+→ Make CTAs more specific and action-driven (e.g. "WhatsApp Pierre Now" not "Contact Us")
+→ Punch up stat labels to be more specific to the business
+→ Make section tags feel alive (not "Our Services" — something that fits this exact business)
+→ Sharpen the pull quote to be truly memorable
+→ Add ONE unexpected human detail that makes the brand feel real
+
+CREATIVE BRIEF:
+Mood: ${brief.mood || 'professional, warm, South African'}
+Copy style: ${brief.copyStyle || 'Direct. Warm. SA-specific.'}
+Emotional register: ${brief.emotionalRegister || 'Trustworthy and approachable.'}
+Vibe words: ${brief.vibeWords?.join(', ') || ''}
+
+OUTPUT RULES — non-negotiable:
+→ Return the COMPLETE page HTML with your patches applied
+→ Do NOT change layout, CSS, images, or structure
+→ Do NOT add new sections or remove existing ones
+→ Only change text content in the specific elements above
+→ If the copy is already strong, return the HTML unchanged
+→ Start with <!DOCTYPE and end with </html>`;
+}
+
+function buildPass5UserPrompt(pageName, html, contentJson, fields, industryBrief) {
+  const brief = industryBrief || {};
+  return `Apply personality polish to this ${pageName} page for ${fields['Business Name'] || 'this business'}.
+
+Business context:
+- Industry: ${fields['Industry'] || 'General'}
+- Area: ${fields['Area'] || 'South Africa'}
+- About: ${fields['About'] || ''}
+- Vibe requested: ${fields['Vibe'] || brief.mood || ''}
+
+Focus areas to check and improve:
+1. Hero headline — is it punchy and specific to THIS business?
+2. CTA buttons — are they personal and action-driven?
+3. Stat labels — are they specific or generic?
+4. Section tags — do they feel alive?
+5. Pull quote — is it truly memorable?
+6. Any element that sounds like AI wrote it — make it human.
+
+Return the complete page HTML with improvements applied:
+
+${html}`;
 }
 
 // ============================================================

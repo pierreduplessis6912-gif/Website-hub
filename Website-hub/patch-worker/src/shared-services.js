@@ -61,7 +61,12 @@ export const PRICING = Object.freeze({
 export const PACKAGE_CAPS = Object.freeze({
   express: {
     pages:           ['index'],
-    pageTokenBudget: { index: 6000 },
+    // 5-pass architecture token budgets per page
+    // Pass 4 (Skin/HTML) gets the largest budget — full page render
+    pass4TokenBudget: { index: 7000 },
+    pass5TokenBudget: { index: 3000 },
+    // Legacy pageTokenBudget kept for backward compat during transition
+    pageTokenBudget:  { index: 7000 },
     emailAccounts:   0,
     gallery:         false,
     referral:        false,
@@ -70,7 +75,9 @@ export const PACKAGE_CAPS = Object.freeze({
   },
   standard: {
     pages:           ['index', 'services', 'about', 'contact'],
-    pageTokenBudget: { index: 5000, services: 5000, about: 5000, contact: 4000 },
+    pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000 },
+    pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500 },
+    pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000 },
     emailAccounts:   1,
     gallery:         false,
     referral:        true,
@@ -79,7 +86,9 @@ export const PACKAGE_CAPS = Object.freeze({
   },
   premium: {
     pages:           ['index', 'services', 'about', 'contact', 'gallery'],
-    pageTokenBudget: { index: 5000, services: 5000, about: 5000, contact: 4000, gallery: 4000 },
+    pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
+    pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500, gallery: 2500 },
+    pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
     emailAccounts:   2,
     gallery:         true,
     referral:        true,

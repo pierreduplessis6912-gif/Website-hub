@@ -94,6 +94,7 @@ export default {
 
     if (path === '/payfast-webhook')  return handlePayfastWebhook(request, env, ctx);
     if (path === '/go-live')          return handleGoLive(request, env, ctx);
+    if (path === '/go-live-link')     return handleGoLiveLink(request, env, ctx);
     if (path === '/suspend-site')     return handleSuspendSite(request, env);
     if (path === '/reinstate-site')   return handleReinstateSite(request, env);
     if (path === '/upgrade')          return handleUpgrade(request, env);
@@ -143,6 +144,44 @@ async function handleHealth(env) {
 // Idempotency: keyed on (paymentId or airtableId+amount) for 24h.
 // Signature: MD5 of sorted query string + passphrase; sandbox uses sandbox passphrase.
 // ============================================================
+
+// ── /go-live-link — server-side PayFast link generation (Fix B) ──────────────
+// Called by preview-manage.html handleGoLive(). Generates signed PayFast URL
+// server-side so signature includes passphrase and sandbox mode is respected.
+async function handleGoLiveLink(request, env, ctx) {
+  if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+
+  let body;
+  try { body = await request.json(); }
+  catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
+
+  const { airtableId, slug, package: pkg, retainer } = body;
+  if (!airtableId) return Response.json({ error: 'airtableId required' }, { status: 400 });
+
+  const amount    = retainer || 699;
+  const itemName  = 'Website Hub Monthly Subscription';
+  const returnUrl = `https://preview.websitehub.co.za/${slug || ''}`;
+  const notifyUrl = `https://wh-launch.pierreduplessis6912.workers.dev/payfast-webhook`;
+  const cancelUrl = `https://preview.websitehub.co.za/${slug || ''}`;
+
+  const url = buildPayFastLink(amount, itemName, airtableId, env, {
+    returnUrl,
+    notifyUrl,
+    cancelUrl,
+    customStr2: pkg || 'Standard',
+  });
+
+  // In TEST_MODE log the intent and return sandbox URL
+  if (isTestMode(env)) {
+    const testKey = `test_log:go_live_link:${airtableId}:${Date.now()}`;
+    await env.SITES.put(testKey, JSON.stringify({
+      airtableId, slug, pkg, amount, url, ts: new Date().toISOString(),
+    }), { expirationTtl: 86400 * 7 });
+    console.log(`[TEST] go-live-link generated for ${airtableId}: ${url}`);
+  }
+
+  return Response.json({ url });
+}
 
 async function handlePayfastWebhook(request, env, ctx) {
   if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
