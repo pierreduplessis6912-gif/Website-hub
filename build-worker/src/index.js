@@ -72,7 +72,7 @@ const PREVIEW_DOMAIN = 'preview.websitehub.co.za';
 
 // This worker's own hostname (used to detect API requests vs site serving).
 // All other hostnames fall through to live site serving.
-const WORKER_DOMAIN  = 'wh-patch.pierreduplessis6912.workers.dev';
+const WORKER_DOMAIN  = 'wh-build.pierreduplessis6912.workers.dev';
 
 // Pass token budgets — Pass 2 ceiling is non-negotiable. See triggerBuildInternal
 // for the rationale (unclosed </style> swallows the body in rawtext mode).
