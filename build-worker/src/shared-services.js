@@ -556,7 +556,7 @@ export async function callClaudeInternal(systemPrompt, messages, env, options = 
     throw new Error('Empty response received from Anthropic');
   }
   await logHealth(env, 'anthropic', 'success');
-  return fullText.replace(/^```[a-z]*\n/i, "").replace(/\n```$/i, "").trim();
+  return fullText.replace(/```[a-zA-Z]*\n/g, "").replace(/\n```/g, "").trim();
 }
 
 // ────────────────────────────────────────────────────────────
