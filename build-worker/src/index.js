@@ -1370,11 +1370,12 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
   try { unsplashPhotos = await fetchUnsplashPhotos(f, env, industryBrief.heroImage); }
   catch (e) { console.warn('Unsplash fetch failed (non-fatal):', e); }
 
-  // R2 client photos — Fix E: read client-uploaded photos from R2
+  // R2 client photos — read from gallery/ prefix (consistent with patch-worker
+  // upload path and /gallery-assets listing endpoint)
   let r2PhotoUrls = [];
   try {
     if (env.ASSETS) {
-      const r2List = await env.ASSETS.list({ prefix: `${slug}/photos/` });
+      const r2List = await env.ASSETS.list({ prefix: `${slug}/gallery/` });
       if (r2List.objects && r2List.objects.length > 0) {
         r2PhotoUrls = r2List.objects.map(obj =>
           `https://assets.websitehub.co.za/${obj.key}`
@@ -1484,6 +1485,9 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
 
     // Inject CSS
     html = injectCss(html, cssBlock, pageName);
+
+    // Guarantee hero background image is set regardless of Claude compliance
+    if (pageName === 'index') html = injectHeroImage(html, unsplashContext);
 
     // QA check
     const qaResult = runQAChecks(html, f, pageName, contentJson);
@@ -1609,6 +1613,46 @@ function injectCss(html, cssBlock, pageName) {
   if (html.includes('</head>')) return html.replace('</head>', `${cssBlock}\n</head>`);
   if (/<body\b/i.test(html))   return html.replace(/<body\b/i, `${cssBlock}\n<body`);
   return cssBlock + '\n' + html;
+}
+
+// ============================================================
+// HERO IMAGE INJECTION
+// Guarantees the hero background-image is set regardless of whether
+// Claude replaced the UNSPLASH_URL placeholder or omitted it entirely.
+// Extracts the first Unsplash URL from the unsplashContext string and
+// writes it into the hero section style attribute.
+// ============================================================
+
+function injectHeroImage(html, unsplashContext) {
+  if (!unsplashContext) return html;
+
+  // Extract first Unsplash URL from the photo context block
+  const match = unsplashContext.match(/https:\/\/images\.unsplash\.com\/[^\s\n"')]+/);
+  if (!match) return html;
+  const heroUrl = match[0];
+
+  // Case 1: Claude left the UNSPLASH_URL placeholder — replace it
+  if (html.includes('UNSPLASH_URL')) {
+    return html.replace(/UNSPLASH_URL/g, heroUrl);
+  }
+
+  // Case 2: Hero section exists but has no background-image — inject it
+  if (html.includes('class="hero"') && !html.includes('background-image')) {
+    return html.replace(
+      /class="hero"/,
+      `class="hero" style="background-image:url('${heroUrl}')"`
+    );
+  }
+
+  // Case 3: Hero has a background-image style but it's empty or malformed
+  if (html.includes('class="hero"')) {
+    return html.replace(
+      /class="hero"\s+style="background-image:url\([^)]*\)"/,
+      `class="hero" style="background-image:url('${heroUrl}')"`
+    );
+  }
+
+  return html;
 }
 
 // ============================================================
@@ -2235,8 +2279,9 @@ function buildPass4UserPrompt(pageName, contentJson, cssBlock, fields, unsplashC
 
   // Patch-worker URL for the gallery fetch script. Resolved here so the model
   // receives the actual URL, not a literal ${WORKER_URL_PATCH} placeholder.
+  // WORKER_URL_PATCH must be set as a Cloudflare env var — no old-worker fallback.
   const patchWorkerUrl = env?.WORKER_URL_PATCH
-    || 'https://wh-enrichment-worker.pierreduplessis6912.workers.dev';
+    || 'https://wh-patch.pierreduplessis6912.workers.dev';
 
   // Build nav links from the actual page set for this tier
   const navLinks = caps.pages.map(p => {
