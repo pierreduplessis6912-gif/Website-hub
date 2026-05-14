@@ -78,8 +78,8 @@ const WORKER_DOMAIN  = 'wh-build.pierreduplessis6912.workers.dev';
 // for the rationale (unclosed </style> swallows the body in rawtext mode).
 const PASS_1_MAX_TOKENS = 3500; // Pass 1 Skeleton — content strategy JSON
 const PASS_2_MAX_TOKENS = 4500; // Pass 2 Organs — copy and messaging
-const PASS_3_MAX_TOKENS = 5500; // Pass 3 Muscle — CSS design system (non-negotiable floor)
-const PASS_4_DEFAULT_TOKENS = 6000; // Pass 4 Skin — HTML per page
+const PASS_3_MAX_TOKENS = 8000; // Pass 3 Muscle — CSS design system (bumped — truncated </style> = black screen)
+const PASS_4_DEFAULT_TOKENS = 8000; // Pass 4 Skin — HTML per page (bumped — truncated HTML = blank content)
 const PASS_5_DEFAULT_TOKENS = 3000; // Pass 5 Soul — personality and polish
 
 // ────────────────────────────────────────────────────────────
