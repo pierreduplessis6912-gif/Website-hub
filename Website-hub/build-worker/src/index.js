@@ -72,7 +72,7 @@ const PREVIEW_DOMAIN = 'preview.websitehub.co.za';
 
 // This worker's own hostname (used to detect API requests vs site serving).
 // All other hostnames fall through to live site serving.
-const WORKER_DOMAIN  = 'wh-patch.pierreduplessis6912.workers.dev';
+const WORKER_DOMAIN  = 'wh-build.pierreduplessis6912.workers.dev';
 
 // Pass token budgets — Pass 2 ceiling is non-negotiable. See triggerBuildInternal
 // for the rationale (unclosed </style> swallows the body in rawtext mode).
@@ -1370,11 +1370,12 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
   try { unsplashPhotos = await fetchUnsplashPhotos(f, env, industryBrief.heroImage); }
   catch (e) { console.warn('Unsplash fetch failed (non-fatal):', e); }
 
-  // R2 client photos — Fix E: read client-uploaded photos from R2
+  // R2 client photos — read from gallery/ prefix (consistent with patch-worker
+  // upload path and /gallery-assets listing endpoint)
   let r2PhotoUrls = [];
   try {
     if (env.ASSETS) {
-      const r2List = await env.ASSETS.list({ prefix: `${slug}/photos/` });
+      const r2List = await env.ASSETS.list({ prefix: `${slug}/gallery/` });
       if (r2List.objects && r2List.objects.length > 0) {
         r2PhotoUrls = r2List.objects.map(obj =>
           `https://assets.websitehub.co.za/${obj.key}`
@@ -2235,8 +2236,9 @@ function buildPass4UserPrompt(pageName, contentJson, cssBlock, fields, unsplashC
 
   // Patch-worker URL for the gallery fetch script. Resolved here so the model
   // receives the actual URL, not a literal ${WORKER_URL_PATCH} placeholder.
+  // WORKER_URL_PATCH must be set as a Cloudflare env var — no old-worker fallback.
   const patchWorkerUrl = env?.WORKER_URL_PATCH
-    || 'https://wh-enrichment-worker.pierreduplessis6912.workers.dev';
+    || 'https://wh-patch.pierreduplessis6912.workers.dev';
 
   // Build nav links from the actual page set for this tier
   const navLinks = caps.pages.map(p => {

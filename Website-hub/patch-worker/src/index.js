@@ -395,7 +395,7 @@ async function handleUploadAssets(request, env, ctx) {
 
     const ext      = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const r2Key    = `${slug}/brand/${Date.now()}_${safeName}`;
+    const r2Key    = `${slug}/gallery/${Date.now()}_${safeName}`;
 
     try {
       await env.ASSETS.put(r2Key, bytes, {
