@@ -1154,7 +1154,7 @@ const INDUSTRY_MATRIX = {
     vibeWords: ['Certified', 'Safe', 'Precise', 'Compliant', 'Professional'],
     heroImage: 'electrician work south africa electrical panel',
     trustSignals: ['COC Certified', 'Fully Insured', 'SANS Compliant', 'Free Inspection'],
-    emotionalRegister: 'Expert and calm. We know what we're doing so you don't have to worry.',
+    emotionalRegister: "Expert and calm. We know what we're doing so you don't have to worry.",
   },
   cleaning: {
     aesthetic: 'soft_organic',
@@ -1242,7 +1242,7 @@ const INDUSTRY_MATRIX = {
     vibeWords: ['Trusted', 'Caring', 'Professional', 'Experienced', 'Compassionate'],
     heroImage: 'medical doctor clinic south africa healthcare professional',
     trustSignals: ['HPCSA Registered', 'Medical Aid Accepted', 'Same-Day Appointments', 'Confidential'],
-    emotionalRegister: 'Calm and caring. You're in safe, experienced hands.',
+    emotionalRegister: "Calm and caring. You're in safe, experienced hands.",
   },
   legal: {
     aesthetic: 'refined_luxury',
