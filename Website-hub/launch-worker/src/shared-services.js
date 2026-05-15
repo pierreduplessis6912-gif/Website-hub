@@ -61,12 +61,12 @@ export const PRICING = Object.freeze({
 export const PACKAGE_CAPS = Object.freeze({
   express: {
     pages:           ['index'],
-    // 5-pass architecture token budgets per page
-    // Pass 4 (Skin/HTML) gets the largest budget — full page render
-    pass4TokenBudget: { index: 12000 },
-    pass5TokenBudget: { index: 4000 },
-    // Legacy pageTokenBudget kept for backward compat during transition
-    pageTokenBudget:  { index: 12000 },
+    // 4-pass architecture token budgets per page
+    // Pass 2 = CSS only (no HTML). Pass 3 = slot-fill HTML. Pass 4 = copy polish.
+    pass3TokenBudget: { index: 2000 },
+    pass4TokenBudget: { index: 3000 },
+    // pageTokenBudget kept for backward compat
+    pageTokenBudget:  { index: 3000 },
     emailAccounts:   0,
     gallery:         false,
     referral:        false,
@@ -75,9 +75,9 @@ export const PACKAGE_CAPS = Object.freeze({
   },
   standard: {
     pages:           ['index', 'services', 'about', 'contact'],
-    pass4TokenBudget: { index: 12000, services: 12000, about: 12000, contact: 10000 },
-    pass5TokenBudget: { index: 4000, services: 4000, about: 4000, contact: 3000 },
-    pageTokenBudget:  { index: 12000, services: 12000, about: 12000, contact: 10000 },
+    pass3TokenBudget: { index: 2000, services: 2000, about: 2000, contact: 2000 },
+    pass4TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 3000 },
+    pageTokenBudget:  { index: 3000, services: 3000, about: 3000, contact: 3000 },
     emailAccounts:   1,
     gallery:         false,
     referral:        true,
