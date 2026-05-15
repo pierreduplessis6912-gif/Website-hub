@@ -2373,8 +2373,12 @@ Replace UNSPLASH_URL with the first photo URL from PHOTOS below.
   CTA 1 (.btn-primary):  "${contentJson.cta_primary  || 'Get a Free Quote'}" → https://wa.me/${waIntl}
   CTA 2 (.btn-outline):  "${contentJson.cta_secondary || 'WhatsApp Us'}"     → https://wa.me/${waIntl}
 
-STATS STRIP (.stats-strip):
-  ${contentJson.stat1_num} ${contentJson.stat1_lbl} | ${contentJson.stat2_num} ${contentJson.stat2_lbl} | ${contentJson.stat3_num} ${contentJson.stat3_lbl}
+STATS STRIP (.stats-strip) — use this EXACT HTML structure:
+<div class="stats-strip">
+  <div><strong>${contentJson.stat1_num}</strong><span>${contentJson.stat1_lbl}</span></div>
+  <div><strong>${contentJson.stat2_num}</strong><span>${contentJson.stat2_lbl}</span></div>
+  <div><strong>${contentJson.stat3_num}</strong><span>${contentJson.stat3_lbl}</span></div>
+</div>
 
 SERVICES SECTION (id="services", class="section"):
   Tag: "${contentJson.services_section_tag || 'What We Do'}"
@@ -2404,7 +2408,7 @@ ${unsplashContext}`;
   const pageContent = {
 
     index: isExpress ? expressIndex : `
-BUILD: HOME PAGE — conversion-focused. Hero + stats strip + bottom CTA only. No services grid, no full about (those are separate pages).
+BUILD: HOME PAGE — conversion-focused. Hero + stats strip + services preview + about teaser + bottom CTA.
 
 HERO SECTION — use this EXACT HTML structure (fill in content, keep all attributes):
 <section id="home" class="hero" style="background-image:url(UNSPLASH_URL);">
@@ -2421,10 +2425,31 @@ Replace UNSPLASH_URL with the first photo URL from PHOTOS below.
   CTA 1 (.btn-primary):  "${contentJson.cta_primary  || 'Get a Free Quote'}" → https://wa.me/${waIntl}
   CTA 2 (.btn-outline):  "${contentJson.cta_secondary || 'WhatsApp Us'}"     → https://wa.me/${waIntl}
 
-STATS STRIP (.stats-strip — anchored to hero bottom):
-  ${contentJson.stat1_num} ${contentJson.stat1_lbl} | ${contentJson.stat2_num} ${contentJson.stat2_lbl} | ${contentJson.stat3_num} ${contentJson.stat3_lbl}
+STATS STRIP (.stats-strip — anchored to hero bottom) — use this EXACT HTML structure:
+<div class="stats-strip">
+  <div><strong>${contentJson.stat1_num}</strong><span>${contentJson.stat1_lbl}</span></div>
+  <div><strong>${contentJson.stat2_num}</strong><span>${contentJson.stat2_lbl}</span></div>
+  <div><strong>${contentJson.stat3_num}</strong><span>${contentJson.stat3_lbl}</span></div>
+</div>
 
-BOTTOM CTA SECTION:
+SERVICES PREVIEW SECTION (class="section fade-up"):
+  Section tag (.section-tag): "${contentJson.services_section_tag || 'What We Do'}"
+  H2: "${contentJson.services_h2 || 'Our Services'}"
+  Show ONLY the first 3 services as .card elements in a .grid-3:
+${servicesArr.slice(0, 3).map((s, i) => `  ${i + 1}. ${s.icon || '⚡'} ${s.name}: ${s.desc}`).join('\n')}
+  Each card: large icon, h3 service name, p description.
+  Below the grid: one centred link → <a href="/services" class="btn-outline">See All Services →</a>
+
+ABOUT TEASER SECTION (class="section fade-up"):
+  Use .grid-2 (image left from PHOTOS, text right):
+  Left: Unsplash about/team photo
+  Right:
+    Section tag (.section-tag): "${contentJson.about_section_tag || 'Our Story'}"
+    Pull quote (blockquote, left border var(--acc)): "${contentJson.about_pull_quote || ''}"
+    One sentence: "${contentJson.about_p1 ? contentJson.about_p1.split('.')[0] + '.' : ''}"
+    CTA: <a href="/about" class="btn-outline">Meet the Team →</a>
+
+BOTTOM CTA SECTION (class="section" style text-align center):
   Button (.btn-primary): "WhatsApp Us Now" → https://wa.me/${waIntl}
 
 ${unsplashContext}`,
@@ -2485,9 +2510,14 @@ CONTACT INFO GRID (.grid-2, each a .card):
   📧 ${email || '(not provided)'}
   📍 ${area}
 
-CONTACT FORM (Formspree):
-  <form action="https://formspree.io/f/placeholder" method="POST">
-  Fields: Name, Phone (tel), Message (textarea 4 rows), Submit (.btn-primary)
+CONTACT FORM — WhatsApp intercept (no server needed):
+  Use this EXACT form structure. The JS reads the fields and opens WhatsApp with the enquiry pre-filled.
+  <form id="contactForm" onsubmit="return false;">
+    <input type="text"  id="cf-name"  placeholder="Your name"         required style="width:100%;padding:12px;margin-bottom:10px;background:var(--surface);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius);color:var(--text);font-size:15px;">
+    <input type="tel"   id="cf-phone" placeholder="Your phone number"  style="width:100%;padding:12px;margin-bottom:10px;background:var(--surface);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius);color:var(--text);font-size:15px;">
+    <textarea id="cf-msg" rows="4"   placeholder="How can we help you?" required style="width:100%;padding:12px;margin-bottom:14px;background:var(--surface);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius);color:var(--text);font-size:15px;resize:none;"></textarea>
+    <button type="submit" class="btn-primary" style="width:100%;" onclick="(function(){var n=document.getElementById('cf-name').value.trim();var p=document.getElementById('cf-phone').value.trim();var m=document.getElementById('cf-msg').value.trim();if(!n||!m){alert('Please fill in your name and message.');return;}var msg=encodeURIComponent('📩 New enquiry from your website\n\nName: '+n+(p?'\nPhone: '+p:'')+'\nMessage: '+m);window.open('https://wa.me/${waIntl}?text='+msg,'_blank');})()">Send via WhatsApp</button>
+  </form>
 ${isPremium ? `
 MAP EMBED:
   <iframe src="https://maps.google.com/maps?q=${encodeURIComponent((area || 'South Africa') + ', South Africa')}&output=embed" width="100%" height="300" style="border:0;border-radius:var(--radius);" loading="lazy" allowfullscreen></iframe>
@@ -2580,6 +2610,17 @@ Domain:         ${domain}
 document.querySelector('.hamburger').addEventListener('click',function(){
   document.getElementById('mobileNav').classList.toggle('open');
 });
+// Fade-up scroll animations
+(function(){
+  var els=document.querySelectorAll('.fade-up');
+  if(!els.length) return;
+  var obs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}
+    });
+  },{threshold:0.12});
+  els.forEach(function(el){obs.observe(el);});
+})();
 </script>
 
 ══ PAGE CONTENT ══
