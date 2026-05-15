@@ -556,7 +556,17 @@ export async function callClaudeInternal(systemPrompt, messages, env, options = 
     throw new Error('Empty response received from Anthropic');
   }
   await logHealth(env, 'anthropic', 'success');
-  return fullText;
+
+  // Strip markdown fences that Claude sometimes wraps around HTML/CSS/JSON output.
+  // Handles: ```html, ```css, ```json, ``` — at start and end of response.
+  // This is the single source of truth for fence stripping; build-worker's
+  // local stripMarkdown() is kept as a second defence layer.
+  const stripped = fullText
+    .replace(/^```[a-zA-Z]*\r?\n?/, '')  // opening fence + optional language tag
+    .replace(/\r?\n?```\s*$/, '')         // closing fence
+    .trim();
+
+  return stripped || fullText; // fall back to raw if strip produces empty string
 }
 
 // ────────────────────────────────────────────────────────────

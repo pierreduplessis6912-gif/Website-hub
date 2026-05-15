@@ -78,8 +78,8 @@ const WORKER_DOMAIN  = 'wh-build.pierreduplessis6912.workers.dev';
 // for the rationale (unclosed </style> swallows the body in rawtext mode).
 const PASS_1_MAX_TOKENS = 3500; // Pass 1 Skeleton — content strategy JSON
 const PASS_2_MAX_TOKENS = 4500; // Pass 2 Organs — copy and messaging
-const PASS_3_MAX_TOKENS = 5500; // Pass 3 Muscle — CSS design system (non-negotiable floor)
-const PASS_4_DEFAULT_TOKENS = 6000; // Pass 4 Skin — HTML per page
+const PASS_3_MAX_TOKENS = 8000; // Pass 3 Muscle — CSS design system (bumped — truncated </style> = black screen)
+const PASS_4_DEFAULT_TOKENS = 8000; // Pass 4 Skin — HTML per page (bumped — truncated HTML = blank content)
 const PASS_5_DEFAULT_TOKENS = 3000; // Pass 5 Soul — personality and polish
 
 // ────────────────────────────────────────────────────────────
@@ -1395,6 +1395,7 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
       : '';
 
   const unsplashContext = photoContext; // legacy alias
+  console.log(`[Build:${slug}] photoContext preview:`, photoContext.slice(0, 300) || '(empty — no photos)');
 
   // ── PASS 1 — Skeleton: Content Strategy + Industry Matrix ───
   let contentJson;
@@ -1423,7 +1424,7 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
       env,
       { maxTokens: PASS_3_MAX_TOKENS }, // Pass 3 Muscle = CSS, must not be truncated
     );
-    cssBlock = p2Raw.trim();
+    cssBlock = stripMarkdown(p2Raw).trim();
 
     if (!cssBlock.includes('<style>')) throw new Error('No <style> block in Pass 2 output');
 
@@ -1460,12 +1461,13 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     // ── Pass 4: Skin — Full HTML render ───────────────────────
     let html = null;
     try {
-      html = await callClaudeInternal(
+      const p4Raw = await callClaudeInternal(
         buildPass4SystemPrompt(pageName, pkg),
         [{ role: 'user', content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
         env,
         { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
       );
+      html = stripMarkdown(p4Raw);
     } catch (err) {
       console.warn(`Pass 4 failed for "${pageName}":`, err.message);
     }
@@ -1474,17 +1476,21 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     if (!html || !html.includes('<!DOCTYPE')) {
       console.warn(`Pass 4 invalid output for "${pageName}" — retrying`);
       try {
-        html = await callClaudeInternal(
+        const p4Retry = await callClaudeInternal(
           buildPass4SystemPrompt(pageName, pkg),
           [{ role: 'user', content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
           env,
           { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
         );
+        html = stripMarkdown(p4Retry);
       } catch (e) { console.error(`Pass 4 retry failed for "${pageName}":`, e.message); continue; }
     }
 
     // Inject CSS
     html = injectCss(html, cssBlock, pageName);
+
+    // Guarantee hero background image is set regardless of Claude compliance
+    if (pageName === 'index') html = injectHeroImage(html, unsplashContext);
 
     // QA check
     const qaResult = runQAChecks(html, f, pageName, contentJson);
@@ -1533,8 +1539,9 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
           { maxTokens: pass5Budgets[pageName] || PASS_5_DEFAULT_TOKENS },
         );
         // Pass 5 returns the patched HTML — validate before accepting
-        if (soulResult && soulResult.includes('<!DOCTYPE')) {
-          html = soulResult;
+        const soulStripped = stripMarkdown(soulResult);
+        if (soulStripped && soulStripped.includes('<!DOCTYPE')) {
+          html = soulStripped;
         } else {
           console.warn(`Pass 5 Soul returned non-HTML for "${pageName}" — keeping Pass 4 output`);
         }
@@ -1602,6 +1609,21 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
  * Pass 3 system prompt instructs the model to emit <!--WH_CSS_INJECT--> exactly
  * once; this function makes it real.
  */
+// ============================================================
+// STRIP MARKDOWN FENCES
+// Claude occasionally wraps output in ```html or ```css fences
+// despite prompt instructions. Strip them before using the output.
+// ============================================================
+
+function stripMarkdown(raw) {
+  if (!raw) return raw;
+  // Remove opening fence: ```html, ```css, ```json, ``` etc.
+  let s = raw.replace(/^```[a-z]*\s*/i, '').trimStart();
+  // Remove closing fence
+  s = s.replace(/\s*```\s*$/i, '').trimEnd();
+  return s;
+}
+
 function injectCss(html, cssBlock, pageName) {
   if (html.includes('<!--WH_CSS_INJECT-->')) {
     return html.replace('<!--WH_CSS_INJECT-->', cssBlock);
@@ -1610,6 +1632,65 @@ function injectCss(html, cssBlock, pageName) {
   if (html.includes('</head>')) return html.replace('</head>', `${cssBlock}\n</head>`);
   if (/<body\b/i.test(html))   return html.replace(/<body\b/i, `${cssBlock}\n<body`);
   return cssBlock + '\n' + html;
+}
+
+// ============================================================
+// HERO IMAGE INJECTION
+// Guarantees the hero background-image is set regardless of whether
+// Claude replaced the UNSPLASH_URL placeholder or omitted it entirely.
+// Extracts the first Unsplash URL from the unsplashContext string and
+// writes it into the hero section style attribute.
+// ============================================================
+
+function injectHeroImage(html, unsplashContext) {
+  if (!unsplashContext) return html;
+
+  // Extract first usable image URL — Unsplash OR R2/CDN client photos
+  // Try image-extension URLs first, then any https URL as fallback
+  const imgMatch = unsplashContext.match(/https?:\/\/[^\s\n"')]+\.(?:jpg|jpeg|png|webp|gif)(?:[^\s\n"')]*)?/i);
+  const anyMatch = unsplashContext.match(/https?:\/\/[^\s\n"')]+/);
+  const rawUrl   = (imgMatch || anyMatch)?.[0];
+  if (!rawUrl) return html;
+
+  // For Unsplash URLs: append sizing params. For R2/CDN: use as-is.
+  const heroUrl = rawUrl.includes('unsplash.com')
+    ? rawUrl.split('?')[0] + '?w=1600&q=80&auto=format'
+    : rawUrl;
+
+  // Case 1: Claude left the UNSPLASH_URL placeholder — replace it
+  if (html.includes('UNSPLASH_URL')) {
+    return html.replace(/UNSPLASH_URL/g, heroUrl);
+  }
+
+  // Case 2: Hero has background-image in inline style — replace if empty/malformed/placeholder
+  const bgImgRe = /(class="hero"[^>]*?style="[^"]*background-image:url\()([^)]*)(\)[^"]*")/;
+  const bgMatch = html.match(bgImgRe);
+  if (bgMatch) {
+    const currentUrl = bgMatch[2].replace(/['"]/g, '').trim();
+    // Only overwrite if the URL is missing, empty, a placeholder, or non-http
+    if (!currentUrl || currentUrl === '' || currentUrl.includes('UNSPLASH') || !currentUrl.startsWith('http')) {
+      return html.replace(bgImgRe, `$1'${heroUrl}'$3`);
+    }
+    return html; // Already has a real URL — leave it alone
+  }
+
+  // Case 3: Hero exists but has no background-image at all — inject it
+  if (html.includes('class="hero"')) {
+    // If there's already a style attribute on the hero, prepend to it
+    if (/class="hero"[^>]*style="/.test(html)) {
+      return html.replace(
+        /(class="hero"[^>]*style=")([^"]*")/,
+        `$1background-image:url('${heroUrl}');$2`
+      );
+    }
+    // No style attribute — add one
+    return html.replace(
+      /class="hero"/,
+      `class="hero" style="background-image:url('${heroUrl}')"`
+    );
+  }
+
+  return html;
 }
 
 // ============================================================
@@ -1729,15 +1810,19 @@ function getCollectionId(industry) {
   return null;
 }
 
-async function fetchUnsplashPhotos(f, env) {
+async function fetchUnsplashPhotos(f, env, heroImageQuery) {
   if (!env.UNSPLASH_ACCESS_KEY) return [];
 
   const industry     = f['Industry'] || '';
   const vibe         = f['Vibe']     || '';
   const collectionId = getCollectionId(industry);
 
+  // heroImageQuery comes from the industry matrix (e.g. 'plumber pipes tools professional south africa')
+  // Use it for the hero slot when provided — more relevant than the generic fallback.
+  const heroQuery = heroImageQuery || `${industry} hero South Africa`;
+
   const slots = [
-    { slot: 'HERO IMAGE',                query: `${industry} hero South Africa` },
+    { slot: 'HERO IMAGE',                query: heroQuery },
     { slot: 'ABOUT SECTION IMAGE',       query: `${industry} people team South Africa` },
     { slot: 'SERVICE IMAGE 1',           query: `${industry} professional workspace` },
     { slot: 'SERVICE IMAGE 2',           query: `${industry} ${vibe} detail` },
