@@ -79,7 +79,7 @@ const WORKER_DOMAIN  = 'wh-build.pierreduplessis6912.workers.dev';
 const PASS_1_MAX_TOKENS = 3500; // Pass 1 Skeleton — content strategy JSON
 const PASS_2_MAX_TOKENS = 4500; // Pass 2 Organs — copy and messaging
 const PASS_3_MAX_TOKENS = 8000; // Pass 3 Muscle — CSS design system (bumped — truncated </style> = black screen)
-const PASS_4_DEFAULT_TOKENS = 8000; // Pass 4 Skin — HTML per page (bumped — truncated HTML = blank content)
+const PASS_4_DEFAULT_TOKENS = 12000; // Pass 4 Skin — HTML per page (raised — 350-line truncation fix)
 const PASS_5_DEFAULT_TOKENS = 3000; // Pass 5 Soul — personality and polish
 
 // ────────────────────────────────────────────────────────────
@@ -2544,8 +2544,18 @@ INCLUDE THIS EXACT SCRIPT (patch-worker URL is already substituted below):
 
   return `Build the complete ${pageName.toUpperCase()} page.
 
-══ SHARED CSS (REFERENCE ONLY — DO NOT include this in your output. In <head>, put exactly <!--WH_CSS_INJECT--> instead. The build pipeline injects the styles afterwards.) ══
-${cssBlock}
+══ CSS CLASSES (REFERENCE ONLY — DO NOT output any <style> block. Put exactly <!--WH_CSS_INJECT--> in <head> and the pipeline injects the real stylesheet.) ══
+Use ONLY these exact class names:
+.nav .nav-links .hamburger .mobile-nav .mobile-nav.open
+.hero .hero-content .hero-overlay .stats-strip
+.section .section-tag .page-hero
+.card .grid-2 .grid-3 .grid-5
+.btn-primary .btn-outline .fab-wa
+.gallery-grid .gallery-item .fade-up
+footer
+CSS vars: --bg --surface --acc --text --muted --radius --transition
+Fonts: var(--font-display) headings, var(--font-body) body
+Mobile breakpoint: 720px — all grids collapse to 1 column below this.
 
 ══ NAV ══
 <nav class="nav">
