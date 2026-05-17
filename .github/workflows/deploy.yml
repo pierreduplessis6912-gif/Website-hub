@@ -15,7 +15,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: Website-hub/build-worker
+          workingDirectory: build-worker
 
   deploy-patch:
     name: Deploy wh-patch
@@ -28,7 +28,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: Website-hub/patch-worker
+          workingDirectory: patch-worker
 
   deploy-launch:
     name: Deploy wh-launch
@@ -41,4 +41,30 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: Website-hub/launch-worker
+          workingDirectory: launch-worker
+
+  deploy-pulse:
+    name: Deploy wh-pulse
+    runs-on: ubuntu-latest
+    needs: deploy-launch
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy wh-pulse
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: pulse-worker
+
+  deploy-reactivate:
+    name: Deploy wh-reactivate
+    runs-on: ubuntu-latest
+    needs: deploy-pulse
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy wh-reactivate
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: reactivate-worker

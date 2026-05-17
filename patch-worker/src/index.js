@@ -42,6 +42,7 @@ import {
   sendWhatsApp, queueScheduledMessage, normaliseSaPhone,
   getAirtableRecord, updateAirtableRecord, listAirtableRecords,
   logActivity, logHealth, getFlag,
+  constantTimeCompare, checkRateLimit,
 } from './shared-services.js';
 
 // ────────────────────────────────────────────────────────────
@@ -277,7 +278,7 @@ async function triggerFullRebuild(airtableId, slug, patch, env) {
     // Reset status so build-worker accepts the rebuild
     const current = (await getAirtableRecord(airtableId, env)).fields;
     if (current['Status'] !== 'Live') {
-      await updateAirtableRecord(airtableId, { 'Status': 'Deposit Paid' }, env);
+      await updateAirtableRecord(airtableId, { 'Status': 'Lead' }, env);
     }
 
     await env.BUILD_QUEUE.send({
@@ -335,6 +336,13 @@ function applyPalette(html, paletteName) {
 
 async function handleUploadAssets(request, env, ctx) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+
+  // Rate limiting: 10 uploads per minute per IP
+  const clientIp = request.headers.get('cf-connecting-ip') || 'unknown';
+  const allowed = await checkRateLimit(env, `upload:${clientIp}`, 60000, 10);
+  if (!allowed) {
+    return jsonResponse({ error: 'Upload rate limit exceeded — max 10 uploads/minute' }, 429);
+  }
 
   let formData;
   try { formData = await request.formData(); }
@@ -395,7 +403,7 @@ async function handleUploadAssets(request, env, ctx) {
 
     const ext      = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const r2Key    = `${slug}/brand/${Date.now()}_${safeName}`;
+    const r2Key    = `${slug}/gallery/${Date.now()}_${safeName}`;
 
     try {
       await env.ASSETS.put(r2Key, bytes, {
@@ -444,6 +452,7 @@ async function handleUploadAssets(request, env, ctx) {
 // rebuild via queue consumer.
 // ============================================================
 
+// Canonical implementation. The duplicate in build-worker has been removed.
 async function runVisionAndRebuild(airtableId, slug, r2Paths, files, env) {
   let brandBrief = '';
 
@@ -481,7 +490,7 @@ async function runVisionAndRebuild(airtableId, slug, r2Paths, files, env) {
 
   // Only reset status if NOT already Live
   if (currentFields['Status'] !== 'Live') {
-    await updateAirtableRecord(airtableId, { 'Status': 'Deposit Paid' }, env);
+    await updateAirtableRecord(airtableId, { 'Status': 'Lead' }, env);
   }
 
   // Queue rebuild — build-worker's queue consumer handles it
@@ -506,6 +515,7 @@ async function runVisionAndRebuild(airtableId, slug, r2Paths, files, env) {
  * Calls Claude Vision with the uploaded images and returns a plain-text
  * brand brief that downstream Pass 1 uses to colour the design.
  */
+// Canonical implementation. The duplicate in build-worker has been removed.
 async function extractBrandSignals(images, slug, env) {
   const content = [{
     type: 'text',
@@ -602,7 +612,7 @@ async function handleGalleryAssets(request, env, path) {
     const urls = (listed.objects || [])
       .filter(obj => /\.(jpg|jpeg|png|webp|gif)$/i.test(obj.key))
       .map(obj => {
-        if (env.ASSETS_DOMAIN_READY === 'true') return `https://${ASSETS_DOMAIN}/${obj.key}`;
+        if (env.ASSETS_DOMAIN_READY === 'true' || env.ASSETS_DOMAIN_READY === true) return `https://${ASSETS_DOMAIN}/${obj.key}`;
         return `${ownUrl}/asset/${obj.key}`;
       });
 
@@ -630,7 +640,7 @@ async function handleGalleryAssets(request, env, path) {
 
 async function handlePatchGallery(request, env) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
-  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY)) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
@@ -665,7 +675,7 @@ async function handlePatchGallery(request, env) {
 async function patchGalleryInKV(slug, domain, r2Paths, env) {
   const ownUrl = env.WORKER_URL_PATCH || '';
   const photoUrls = r2Paths.map(key => {
-    if (env.ASSETS_DOMAIN_READY === 'true') return `https://${ASSETS_DOMAIN}/${key}`;
+    if (env.ASSETS_DOMAIN_READY === 'true' || env.ASSETS_DOMAIN_READY === true) return `https://${ASSETS_DOMAIN}/${key}`;
     return `${ownUrl}/asset/${key}`;
   });
 
@@ -994,7 +1004,7 @@ async function processRevision(airtableId, payload, env, opts = {}) {
 
 async function handleApplyRevisionPayment(request, env) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
-  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) {
+  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY)) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
 
@@ -1185,7 +1195,7 @@ async function handleIncomingEmail(message, env) {
 
   } else {
     if (status !== 'Live') {
-      await updateAirtableRecord(airtableId, { 'Status': 'Deposit Paid' }, env);
+      await updateAirtableRecord(airtableId, { 'Status': 'Lead' }, env);
     }
 
     await env.BUILD_QUEUE.send({

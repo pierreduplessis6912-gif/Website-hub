@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">About</a>
+        <a href="contact.html" class="active">Contact</a>
+      </div>
+      <a href="tel:{{phone}}" class="nav-phone">{{phone}}</a>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short" style="min-height: 30vh; padding-bottom:0;">
+    <div class="container hero-content text-center" style="margin: 0 auto;">
+      <span class="badge">{{contact_section_tag}}</span>
+      <h1>{{contact_h2_line1}}<br><span class="accent">{{contact_h2_line2}}</span></h1>
+    </div>
+  </header>
+
+  <section class="contact-main">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: contact -->
+      <div class="grid-2" style="margin-bottom: 2rem;">
+        <div class="contact-card">
+          <h3>📞 Call Us Now</h3>
+          <a href="tel:{{phone}}" class="phone-huge">{{phone}}</a>
+          <a href="tel:{{phone}}" class="btn btn-outline" style="width:100%;">Tap to Call</a>
+        </div>
+        <div class="contact-card" style="border-color: var(--accent-color);">
+          <h3>💬 WhatsApp Us</h3>
+          <div style="font-size: 4rem; margin: 1rem 0;">📱</div>
+          <a href="https://wa.me/{{phone}}" class="btn btn-primary" style="width:100%;">{{cta_primary}}</a>
+        </div>
+      </div>
+      <p style="text-align: center; color: var(--text-muted); margin-bottom: 4rem;">{{contact_copy}}</p>
+      <!-- WH_EXPRESS_END -->
+
+      <div class="hours-panel">
+        <h3 style="text-align: center; margin-bottom: 1.5rem; font-size: 1.5rem;">Operating Hours</h3>
+        <div class="hour-row">
+          <span>Weekdays</span>
+          <span>{{hours_weekday}}</span>
+        </div>
+        <div class="hour-row">
+          <span>Saturday</span>
+          <span>{{hours_saturday}}</span>
+        </div>
+        <div class="hour-row">
+          <span class="hour-emergency">Emergencies</span>
+          <span class="hour-emergency">{{hours_emergency}}</span>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 3rem; padding: 20px; background: rgba(255,255,255,0.02); border-radius: 8px;">
+        <p>We cover {{area}} and surrounding suburbs.</p>
+        <a href="emergency-p5.html" style="color: var(--accent-color); text-decoration: underline; margin-top: 10px; display: inline-block;">View full coverage area</a>
+      </div>
+
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa">💬</a>
+
+  <footer>
+    <div class="container">
+      {{business_name}} &middot; {{area}} &middot; <a href="tel:{{phone}}">{{phone}}</a> &middot; &copy; 2024
+    </div>
+  </footer>
+
+</body>
+</html>

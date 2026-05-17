@@ -58,7 +58,7 @@ import {
   PRICING, PACKAGE_CAPS,
   isTestMode, packageKey, getPricingTier, getPackageCaps, getUpgradeDelta, buildPayFastLink,
   jsonResponse, corsResponse, htmlResponse,
-  slugify, escapeHtml, nextMonthDate, todayDateString, md5,
+  slugify, escapeHtml, nextMonthDate, todayDateString, md5, constantTimeCompare,
   callClaudeInternal,
   sendWhatsApp, normaliseSaPhone,
   getAirtableRecord, updateAirtableRecord,
@@ -75,7 +75,6 @@ const PREVIEW_DOMAIN = 'preview.websitehub.co.za';
 // Domain proxy — same as build-worker; kept local since launch-worker is the
 // only other consumer (during go-live for domain registration)
 const DOMAIN_PROXY_URL    = 'https://websitehub.co.za/domain-proxy.php';
-const DOMAIN_PROXY_SECRET = 'wh-proxy-d8f3a1b9c2e4f7d6a5b8c3e1f9d2a4b7';
 
 // PayFast tolerance for amount comparisons (rounding edge cases on PayFast side)
 const AMOUNT_TOLERANCE = 10;
@@ -338,8 +337,8 @@ async function handleGoLivePayment(airtableId, paymentId, amount, env, ctx) {
     return;
   }
 
-  // ── Lead / Deposit Paid / QA → first-time go-live ───────────
-  const firstTimeStatuses = ['Lead', 'Deposit Paid', 'QA'];
+  // ── Lead / QA → first-time go-live ───────────
+  const firstTimeStatuses = ['Lead', 'QA'];
   if (!firstTimeStatuses.includes(status)) {
     // Unknown status — alert owner for manual review rather than auto-acting
     await sendWhatsApp(env.WH_PHONE,
@@ -352,11 +351,10 @@ async function handleGoLivePayment(airtableId, paymentId, amount, env, ctx) {
     return;
   }
 
-  // Record payment, then trigger internal go-live
+  // Record payment — status stays 'QA' until handleGoLiveInternal sets 'Live'
   await updateAirtableRecord(airtableId, {
     'PayFast Payment ID': paymentId || '',
     'Payment Date':       todayDateString(),
-    'Status':             'Deposit Paid',
   }, env);
 
   await logActivity(env, 'payment_received', {
@@ -364,7 +362,7 @@ async function handleGoLivePayment(airtableId, paymentId, amount, env, ctx) {
   });
 
   // Go live (applies panel choices + writes live KV + binds hostname + sends messages)
-  ctx.waitUntil(handleGoLiveInternal(airtableId, env, { ...f, 'Status': 'Deposit Paid' })
+  ctx.waitUntil(handleGoLiveInternal(airtableId, env, f)
     .catch(async err => {
       console.error('Go-live after payment failed:', err);
       await sendWhatsApp(env.WH_PHONE,
@@ -554,7 +552,7 @@ async function handleFailedPayment(airtableId, customStr2, env) {
 
 async function handleGoLive(request, env, ctx) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
-  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY)) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
@@ -709,10 +707,10 @@ async function handleGoLiveInternal(airtableId, env, f) {
   await sendWhatsApp(f['WhatsApp'], goLiveMsg.trim(), env);
 
   // ── 10. Schedule post-go-live touches ───────────────────────
-  const day1Date = new Date(Date.now() + 1  * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const day7Date = new Date(Date.now() + 7  * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const day30Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const day90Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const day1Date = new Date(Date.now() + 1  * 24 * 60 * 60 * 1000).toISOString();
+  const day7Date = new Date(Date.now() + 7  * 24 * 60 * 60 * 1000).toISOString();
+  const day30Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const day90Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
 
   await env.SITES.put(`post_golive_d1:${airtableId}`,  day1Date);
   await env.SITES.put(`post_golive_d7:${airtableId}`,  day7Date);
@@ -760,9 +758,10 @@ async function applyPanelChoicesToDrafts(slug, pages, env) {
       html = html.replace(/<style/i, `<style>:root{--chosen-palette:${choices.palette};}</style>\n<style`);
     }
     if (choices.logo_url) {
+      const safeUrl = escapeHtml(choices.logo_url);
       html = html.replace(
         /<img[^>]+id=["']site-logo["'][^>]*>/i,
-        `<img id="site-logo" src="${choices.logo_url}" alt="Logo" style="max-height:60px;">`,
+        `<img id="site-logo" src="${safeUrl}" alt="Logo" style="max-height:60px;">`,
       );
     }
 
@@ -861,7 +860,7 @@ ${referralLink ? `👥 One referral = one free month:\n${referralLink}\n\n` : ''
 
 async function handleSuspendSite(request, env) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
-  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY)) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
@@ -907,7 +906,7 @@ async function handleSuspendSite(request, env) {
 
 async function handleReinstateSite(request, env) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
-  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY)) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
@@ -1038,6 +1037,14 @@ async function bindCustomHostname(hostname, env) {
     return { test_mode: true, hostname };
   }
 
+  // Domain ownership check: verify domain is in client's Airtable record
+  const allowedDomains = await env.SITES.list({ prefix: `live:` }).catch(() => ({ keys: [] }));
+  const isKnownDomain = allowedDomains.keys.some(k => k.name.startsWith(`live:${hostname}:`) || k.name === `live:${hostname}`);
+  if (!isKnownDomain) {
+    console.warn(`Domain ${hostname} not found in KV — skipping CF binding`);
+    return { skipped: true, reason: 'domain_not_found_in_kv' };
+  }
+
   if (!env.CF_ACCOUNT_ID || !env.CF_API_TOKEN || !env.CF_ZONE_ID) {
     throw new Error('Cloudflare API not configured (CF_ACCOUNT_ID, CF_API_TOKEN, CF_ZONE_ID)');
   }
@@ -1098,10 +1105,12 @@ async function registerDomainViaProxy(slug, env) {
 }
 
 async function callDomainProxy(action, sld, tld = 'co.za', extra = {}, env) {
+  const secret = env.DOMAIN_PROXY_SECRET || '';
+  if (!secret) console.warn('DOMAIN_PROXY_SECRET env var not set — domain proxy calls will be rejected');
   try {
     const res = await fetch(DOMAIN_PROXY_URL, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': DOMAIN_PROXY_SECRET },
+      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': secret },
       body:    JSON.stringify({ action, sld, tld, ...extra }),
     });
     const data = await res.json();
@@ -1370,7 +1379,7 @@ async function handleGoogleProfile(request, env, ctx) {
 
   // Admin POST
   if (request.method !== 'POST') return jsonResponse({ error: 'POST or GET only' }, 405);
-  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY)) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }

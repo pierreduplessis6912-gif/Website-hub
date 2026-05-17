@@ -1,0 +1,32 @@
+name = "wh-reactivate"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# — KV Namespaces ————————————————————————————
+[[kv_namespaces]]
+binding = "SITES"
+id = "b63e5b885ead4c02a9e184dd6477e711"
+
+# — Queues (Producer only — build-worker consumes) ——
+[[queues.producers]]
+binding = "BUILD_QUEUE"
+queue = "wh-build-queue"
+
+# — Environment Variables ————————————————————
+[vars]
+TEST_MODE            = "true"
+OUTBOUND_ENABLED     = "false"
+WORKER_URL_BUILD     = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_PATCH     = "https://wh-patch.pierreduplessis6912.workers.dev"
+WORKER_URL_LAUNCH    = "https://wh-launch.pierreduplessis6912.workers.dev"
+
+# — Secrets (set via CLI — do NOT put values here) ——
+# Run these once per secret:
+#   wrangler secret put AIRTABLE_TOKEN       --name wh-reactivate
+#   wrangler secret put AIRTABLE_BASE_ID     --name wh-reactivate
+#   wrangler secret put AIRTABLE_TABLE_ID    --name wh-reactivate
+#   wrangler secret put META_WA_TOKEN        --name wh-reactivate
+#   wrangler secret put META_PHONE_NUMBER_ID --name wh-reactivate
+#   wrangler secret put WH_PHONE             --name wh-reactivate
+#   wrangler secret put ADMIN_KEY            --name wh-reactivate

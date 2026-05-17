@@ -63,10 +63,10 @@ export const PACKAGE_CAPS = Object.freeze({
     pages:           ['index'],
     // 5-pass architecture token budgets per page
     // Pass 4 (Skin/HTML) gets the largest budget — full page render
-    pass4TokenBudget: { index: 8000 },
+    pass4TokenBudget: { index: 7000 },
     pass5TokenBudget: { index: 3000 },
     // Legacy pageTokenBudget kept for backward compat during transition
-    pageTokenBudget:  { index: 8000 },
+    pageTokenBudget:  { index: 7000 },
     emailAccounts:   0,
     gallery:         false,
     referral:        false,
@@ -75,9 +75,9 @@ export const PACKAGE_CAPS = Object.freeze({
   },
   standard: {
     pages:           ['index', 'services', 'about', 'contact'],
-    pass4TokenBudget: { index: 8000, services: 6000, about: 6000, contact: 8000 },
+    pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000 },
     pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500 },
-    pageTokenBudget:  { index: 8000, services: 6000, about: 6000, contact: 8000 },
+    pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000 },
     emailAccounts:   1,
     gallery:         false,
     referral:        true,
@@ -86,9 +86,9 @@ export const PACKAGE_CAPS = Object.freeze({
   },
   premium: {
     pages:           ['index', 'services', 'about', 'contact', 'gallery'],
-    pass4TokenBudget: { index: 8000, services: 6000, about: 6000, contact: 8000, gallery: 8000 },
+    pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
     pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500, gallery: 2500 },
-    pageTokenBudget:  { index: 8000, services: 6000, about: 6000, contact: 8000, gallery: 8000 },
+    pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
     emailAccounts:   2,
     gallery:         true,
     referral:        true,
@@ -116,6 +116,39 @@ export const PROSPECT_COOLDOWN_DAYS = 60;
 /** Single source of truth for sandbox mode. */
 export function isTestMode(env) {
   return env?.TEST_MODE === 'true' || env?.TEST_MODE === true;
+}
+
+// ────────────────────────────────────────────────────────────
+// SECURITY HELPERS
+// ────────────────────────────────────────────────────────────
+
+/** Constant-time string comparison to prevent timing attacks. */
+export function constantTimeCompare(a, b) {
+  const strA = String(a || '');
+  const strB = String(b || '');
+  if (strA.length !== strB.length) return false;
+  let result = 0;
+  for (let i = 0; i < strA.length; i++) {
+    result |= strA.charCodeAt(i) ^ strB.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/** Rate limit check using KV. Returns true if allowed, false if rate limited. */
+export async function checkRateLimit(env, key, windowMs = 60000, maxRequests = 30) {
+  const now = Date.now();
+  const windowStart = Math.floor(now / windowMs) * windowMs;
+  const limitKey = `ratelimit:${key}:${windowStart}`;
+
+  try {
+    const current = parseInt(await env.SITES.get(limitKey).catch(() => '0') || '0');
+    if (current >= maxRequests) return false;
+    await env.SITES.put(limitKey, String(current + 1), { expirationTtl: Math.ceil(windowMs / 1000) + 1 });
+    return true;
+  } catch {
+    // If KV fails, allow the request (fail open for availability)
+    return true;
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -211,6 +244,46 @@ export function todayDateString() {
   return new Date().toISOString().split('T')[0];
 }
 
+
+// ────────────────────────────────────────────────────────────
+// SAFE INFLATE — ZIP bomb protection
+// ────────────────────────────────────────────────────────────
+
+const MAX_INFLATE_OUTPUT = 50 * 1024 * 1024; // 50MB max output
+
+export async function safeInflate(data, maxOutput = MAX_INFLATE_OUTPUT) {
+  try {
+    const ds = new DecompressionStream('deflate-raw');
+    const writer = ds.writable.getWriter();
+    writer.write(data);
+    writer.close();
+    const reader = ds.readable.getReader();
+    const chunks = [];
+    let totalSize = 0;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        totalSize += value.length;
+        if (totalSize > maxOutput) {
+          reader.releaseLock();
+          throw new Error(`Inflate output exceeded ${maxOutput} bytes — possible ZIP bomb`);
+        }
+        chunks.push(value);
+      }
+    }
+
+    const out = new Uint8Array(totalSize);
+    let off = 0;
+    for (const c of chunks) { out.set(c, off); off += c.length; }
+    return out;
+  } catch (e) {
+    if (e.message.includes('ZIP bomb')) throw e;
+    return null;
+  }
+}
+
 // MD5 — needed for PayFast signature generation.
 // Pure JS implementation (no Web Crypto MD5 in Workers runtime).
 export function md5(str) {
@@ -254,6 +327,125 @@ export function md5(str) {
   return [a, b, c, d]
     .map(n => Array.from({ length: 4 }, (_, i) => ((n >> (i * 8)) & 0xFF).toString(16).padStart(2, '0')).join(''))
     .join('');
+}
+
+
+// ────────────────────────────────────────────────────────────
+// QUALITY GATES — Autonomous enforcement without human loop
+// ────────────────────────────────────────────────────────────
+
+/** Validates color contrast ratio (WCAG AA = 4.5:1 for normal text). */
+export function hasContrast(bgHex, textHex, minRatio = 4.5) {
+  const luminance = (hex) => {
+    const rgb = hex.replace('#', '').match(/.{2}/g).map(x => {
+      const v = parseInt(x, 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  };
+  const L1 = luminance(bgHex) + 0.05;
+  const L2 = luminance(textHex) + 0.05;
+  const ratio = L1 > L2 ? L1 / L2 : L2 / L1;
+  return ratio >= minRatio;
+}
+
+/** Extracts all hex colors from a CSS block. */
+export function extractColors(cssBlock) {
+  const colors = new Set();
+  const matches = cssBlock.matchAll(/#[0-9a-fA-F]{3,6}/g);
+  for (const m of matches) colors.add(m[0].toLowerCase());
+  return [...colors];
+}
+
+/** Checks for generic AI filler phrases that kill brand authenticity. */
+export function detectGenericCopy(html) {
+  const fillerPhrases = [
+    'we are a company that',
+    'we are dedicated to',
+    'our mission is to',
+    'we strive to',
+    'excellence in everything we do',
+    'customer satisfaction is our priority',
+    'quality you can trust',
+    'your one-stop shop',
+    'we pride ourselves',
+    'leading provider of',
+    'committed to delivering',
+    'tailored solutions',
+    'unparalleled service',
+  ];
+  const found = [];
+  const lowerHtml = html.toLowerCase();
+  for (const phrase of fillerPhrases) {
+    if (lowerHtml.includes(phrase)) found.push(phrase);
+  }
+  return found;
+}
+
+/** Validates that images are reachable (HEAD check). */
+export async function validateImages(html, env, timeoutMs = 5000) {
+  const imgMatches = html.matchAll(/<img[^>]+src="(https?:\/\/[^"]+)"/gi);
+  const urls = [...new Set([...imgMatches].map(m => m[1]))];
+  const results = { ok: [], broken: [] };
+
+  await Promise.all(urls.map(async (url) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
+      clearTimeout(timer);
+      if (res.ok) results.ok.push(url);
+      else results.broken.push({ url, status: res.status });
+    } catch (e) {
+      clearTimeout(timer);
+      results.broken.push({ url, error: e.message });
+    }
+  }));
+
+  return results;
+}
+
+/** Scores brand voice authenticity (0-100). Higher = more specific, less generic. */
+export function scoreBrandVoice(html, businessName, industry, area) {
+  let score = 50; // Baseline
+  const lower = html.toLowerCase();
+
+  // Bonus: business name appears in body (not just title)
+  const nameWords = businessName.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const nameInBody = nameWords.filter(w => lower.includes(w)).length;
+  score += Math.min(nameInBody * 5, 20);
+
+  // Bonus: area mentioned
+  if (area && lower.includes(area.toLowerCase())) score += 10;
+
+  // Bonus: industry-specific terms
+  const industryTerms = {
+    plumbing: ['leak', 'pipe', 'drain', 'geyser', 'burst', 'tap'],
+    electrical: ['wiring', 'certificate', 'compliance', 'db board', 'tripping'],
+    cleaning: ['deep clean', 'steam', 'hygiene', 'spotless', 'oven'],
+    construction: ['brick', 'cement', 'renovation', 'extension', 'roofing'],
+    beauty: ['braids', 'nails', 'facial', 'massage', 'wax'],
+    automotive: ['service', 'brake', 'clutch', 'diagnostic', 'tyre'],
+    food: ['fresh', 'daily', 'homemade', 'recipe', 'ingredients'],
+    fitness: ['personal training', 'gym', 'weights', 'cardio', 'results'],
+    medical: ['consultation', 'appointment', 'clinic', 'prescription'],
+    legal: ['attorney', 'consultation', 'case', 'legal advice'],
+    realestate: ['property', 'valuation', 'bond', 'listing', 'viewing'],
+  };
+  const terms = industryTerms[Object.keys(industryTerms).find(k => (industry || '').toLowerCase().includes(k))];
+  if (terms) {
+    const matched = terms.filter(t => lower.includes(t)).length;
+    score += Math.min(matched * 5, 15);
+  }
+
+  // Penalty: generic filler
+  const filler = detectGenericCopy(html);
+  score -= filler.length * 8;
+
+  // Penalty: Lorem ipsum or placeholder
+  if (lower.includes('lorem ipsum') || lower.includes('placeholder')) score -= 30;
+
+  return Math.max(0, Math.min(100, score));
 }
 
 // ────────────────────────────────────────────────────────────
@@ -556,7 +748,7 @@ export async function callClaudeInternal(systemPrompt, messages, env, options = 
     throw new Error('Empty response received from Anthropic');
   }
   await logHealth(env, 'anthropic', 'success');
-  return fullText.replace(/```[a-zA-Z]*\n/g, "").replace(/\n```/g, "").trim();
+  return fullText;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -690,13 +882,37 @@ export function isInSendWindow(opts = {}) {
  * @param {boolean} [options.respectDayOfWeek=true]  Retainer reminders set false (still gated to hours).
  */
 export async function queueScheduledMessage(airtableId, phone, message, env, options = {}) {
-  const { respectDayOfWeek = true } = options;
+  const { respectDayOfWeek = true, scheduledFor = null } = options;
+
+  // If scheduled for future, always queue regardless of window
+  const now = Date.now();
+  const targetTime = scheduledFor ? new Date(scheduledFor).getTime() : now;
+
+  if (targetTime > now) {
+    const queueKey = `msg_queue:${targetTime}:${String(phone).slice(-6)}:${Date.now().toString(36)}`;
+    await env.SITES.put(
+      queueKey,
+      JSON.stringify({
+        airtableId,
+        phone,
+        message,
+        respectDayOfWeek,
+        scheduledFor: new Date(targetTime).toISOString(),
+        queuedAt: new Date(now).toISOString(),
+      }),
+      { expirationTtl: 60 * 60 * 24 * 7 },
+    ).catch(e => {
+      console.warn('Queue write failed — sending immediately as fallback:', e?.message || e);
+      return sendWhatsApp(phone, message, env);
+    });
+    return null;
+  }
 
   if (isInSendWindow({ respectDayOfWeek })) {
     return sendWhatsApp(phone, message, env);
   }
 
-  const queueKey = `msg_queue:${Date.now()}:${String(phone).slice(-6)}`;
+  const queueKey = `msg_queue:${Date.now()}:${String(phone).slice(-6)}:${Date.now().toString(36)}`;
   await env.SITES.put(
     queueKey,
     JSON.stringify({
@@ -723,6 +939,7 @@ export async function processMessageQueue(env) {
 
   const sast = new Date(Date.now() + SAST_OFFSET_MS);
   const day  = sast.getUTCDay();
+  const now  = Date.now();
 
   const [w1Keys, w2Keys] = await Promise.all([
     env.SITES.list({ prefix: 'msg_queue:'  }).catch(() => ({ keys: [] })),
@@ -734,6 +951,13 @@ export async function processMessageQueue(env) {
       const raw = await env.SITES.get(key.name);
       if (!raw) continue;
       const item       = JSON.parse(raw);
+
+      // Respect scheduledFor — skip if not yet time
+      if (item.scheduledFor) {
+        const scheduledTime = new Date(item.scheduledFor).getTime();
+        if (scheduledTime > now) continue; // Not yet time
+      }
+
       const respectDay = item.respectDayOfWeek !== undefined ? item.respectDayOfWeek : true;
       if (respectDay && !SEND_WINDOW.days.includes(day)) continue;
 
@@ -1099,6 +1323,369 @@ export async function createZohoCreditNote(args, env) {
     await logHealth(env, 'zoho', 'error', e?.message || 'credit note failed');
     return null;
   }
+}
+
+// ────────────────────────────────────────────────────────────
+// TEMPLATE SYSTEM — archetype detection, KV fetch, token replace
+// Used exclusively by build-worker. Lives here so shared-services
+// is the single source of truth for all pipeline helpers.
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Maps an industry string to one of the 5 template archetypes.
+ * Falls back to 'emergency' — the most conversion-focused template.
+ */
+export function detectArchetype(industry) {
+  const key = (industry || '').toLowerCase().replace(/[^a-z\s]/g, '');
+  if (/plumb|electr|locksmith|ac repair|hvac|geyser|security|pest|tow truck|handyman|appli/.test(key))
+    return 'emergency';
+  if (/lawyer|attorney|account|doctor|dentist|physio|financial|architect|consult|audit|tax|notary/.test(key))
+    return 'trust';
+  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty/.test(key))
+    return 'experience';
+  if (/hardware|pharmacy|butcher|grocer|creche|dry clean|laundry|florist|nursery|pet shop|bottle store/.test(key))
+    return 'local';
+  if (/panel|landscap|renovat|contractor|painter|tiler|designer|trainer|gym|fitness|photog|wedding photo/.test(key))
+    return 'results';
+  return 'emergency';
+}
+
+/**
+ * Fetches template HTML files from KV for the given archetype and package tier.
+ * Falls back to 'emergency' archetype if the requested set isn't loaded yet.
+ *
+ * @param {string} archetype  'emergency' | 'trust' | 'experience' | 'local' | 'results'
+ * @param {string} pkg        Package key from packageKey() — 'express' | 'standard' | 'premium'
+ * @param {object} env
+ * @returns {{ css: string, pages: Record<string, string> }}
+ */
+export async function fetchTemplates(archetype, pkg, env) {
+  const pageKeys = {
+    express:  ['index'],
+    standard: ['index', 'services', 'about', 'contact'],
+    premium:  ['index', 'services', 'about', 'contact', 'p5'],
+  };
+
+  const tier = pageKeys[pkg] || pageKeys.standard;
+  const css  = await env.SITES.get(`template:${archetype}:css`).catch(() => null) || '';
+
+  const pages = {};
+  for (const page of tier) {
+    pages[page] = await env.SITES.get(`template:${archetype}:${page}`).catch(() => null);
+  }
+
+  // Fallback: if templates not loaded, try emergency
+  if (!pages.index) {
+    console.warn(`Templates missing for archetype "${archetype}" — falling back to emergency`);
+    if (archetype !== 'emergency') return fetchTemplates('emergency', pkg, env);
+    throw new Error('No templates loaded in KV. Run /bootstrap-templates first.');
+  }
+
+  return { css, pages };
+}
+
+/**
+ * Replaces all {{token}} placeholders in an HTML string with values from
+ * contentJson and businessFields. Any token not found in the map is left
+ * as-is (so claudePersonalise can fill remaining gaps).
+ *
+ * @param {string} html
+ * @param {object} contentJson   Output from Pass 1 Claude call
+ * @param {object} businessFields  Normalised fields from Airtable record
+ * @param {string} ogImage       Resolved Unsplash or R2 image URL
+ */
+export function tokenReplace(html, contentJson, businessFields, ogImage) {
+  const c = contentJson   || {};
+  const b = businessFields || {};
+  const s = (arr, i, k) => Array.isArray(arr) && arr[i] ? (arr[i][k] || '') : '';
+
+  const tokens = {
+    // ── Global ────────────────────────────────────────────────
+    business_name:   b.name  || '',
+    phone:           b.phone || '',
+    area:            b.area  || '',
+    page_title:      c.page_title      || b.name || '',
+    og_title:        c.og_title        || b.name || '',
+    og_description:  c.og_description  || c.hero_copy || '',
+    og_image:        ogImage || '',
+
+    // ── Hero ──────────────────────────────────────────────────
+    hero_badge:        c.hero_badge        || '',
+    hero_h1_line1:     c.hero_h1_line1     || '',
+    hero_h1_line2:     c.hero_h1_line2     || '',
+    hero_h1_line3:     c.hero_h1_line3     || '',
+    hero_accent_word:  c.hero_accent_word  || '',
+    hero_copy:         c.hero_copy         || '',
+    hero_mood_line:    c.hero_mood_line    || '',
+    hero_result_stat:  c.hero_result_stat  || '',
+    hero_result_label: c.hero_result_label || '',
+    cta_primary:       c.cta_primary       || 'Contact Us',
+    cta_secondary:     c.cta_secondary     || 'Learn More',
+    tagline:           c.tagline           || '',
+
+    // ── Stats (emergency) ─────────────────────────────────────
+    stat1_num: c.stat1_num || '', stat1_lbl: c.stat1_lbl || '',
+    stat2_num: c.stat2_num || '', stat2_lbl: c.stat2_lbl || '',
+    stat3_num: c.stat3_num || '', stat3_lbl: c.stat3_lbl || '',
+
+    // ── Proof stats (results) ─────────────────────────────────
+    proof_stat1_num: c.proof_stat1_num || '', proof_stat1_lbl: c.proof_stat1_lbl || '',
+    proof_stat2_num: c.proof_stat2_num || '', proof_stat2_lbl: c.proof_stat2_lbl || '',
+    proof_stat3_num: c.proof_stat3_num || '', proof_stat3_lbl: c.proof_stat3_lbl || '',
+    proof_stat4_num: c.proof_stat4_num || '', proof_stat4_lbl: c.proof_stat4_lbl || '',
+
+    // ── Services (emergency / trust / local / results) ────────
+    services_section_tag: c.services_section_tag || 'Our Services',
+    services_h2:          c.services_h2          || 'What We Do',
+    service_category:     c.service_category     || '',
+
+    service1_icon: s(c.services,0,'icon'), service1_name: s(c.services,0,'name'),
+    service1_desc: s(c.services,0,'desc'), service1_outcome: s(c.services,0,'outcome'),
+    service1_result: s(c.services,0,'result'), service1_note: s(c.services,0,'note'),
+
+    service2_icon: s(c.services,1,'icon'), service2_name: s(c.services,1,'name'),
+    service2_desc: s(c.services,1,'desc'), service2_outcome: s(c.services,1,'outcome'),
+    service2_result: s(c.services,1,'result'), service2_note: s(c.services,1,'note'),
+
+    service3_icon: s(c.services,2,'icon'), service3_name: s(c.services,2,'name'),
+    service3_desc: s(c.services,2,'desc'), service3_outcome: s(c.services,2,'outcome'),
+    service3_result: s(c.services,2,'result'), service3_note: s(c.services,2,'note'),
+
+    service4_icon: s(c.services,3,'icon'), service4_name: s(c.services,3,'name'),
+    service4_desc: s(c.services,3,'desc'), service4_outcome: s(c.services,3,'outcome'),
+    service4_result: s(c.services,3,'result'), service4_note: s(c.services,3,'note'),
+
+    service5_icon: s(c.services,4,'icon'), service5_name: s(c.services,4,'name'),
+    service5_desc: s(c.services,4,'desc'), service5_outcome: s(c.services,4,'outcome'),
+    service5_result: s(c.services,4,'result'), service5_note: s(c.services,4,'note'),
+
+    service6_icon: s(c.services,5,'icon'), service6_name: s(c.services,5,'name'),
+    service6_desc: s(c.services,5,'desc'), service6_outcome: s(c.services,5,'outcome'),
+    service6_result: s(c.services,5,'result'), service6_note: s(c.services,5,'note'),
+
+    // ── Offerings (experience) ────────────────────────────────
+    offerings_section_tag: c.offerings_section_tag || 'What We Offer',
+    offerings_h2:          c.offerings_h2          || 'Our Services',
+
+    offering1_name: s(c.offerings,0,'name'), offering1_desc: s(c.offerings,0,'desc'),
+    offering1_price: s(c.offerings,0,'price'), offering1_duration: s(c.offerings,0,'duration'),
+    offering2_name: s(c.offerings,1,'name'), offering2_desc: s(c.offerings,1,'desc'),
+    offering2_price: s(c.offerings,1,'price'), offering2_duration: s(c.offerings,1,'duration'),
+    offering3_name: s(c.offerings,2,'name'), offering3_desc: s(c.offerings,2,'desc'),
+    offering3_price: s(c.offerings,2,'price'), offering3_duration: s(c.offerings,2,'duration'),
+    offering4_name: s(c.offerings,3,'name'), offering4_desc: s(c.offerings,3,'desc'),
+    offering4_price: s(c.offerings,3,'price'), offering4_duration: s(c.offerings,3,'duration'),
+    offering5_name: s(c.offerings,4,'name'), offering5_desc: s(c.offerings,4,'desc'),
+    offering5_price: s(c.offerings,4,'price'), offering5_duration: s(c.offerings,4,'duration'),
+    offering6_name: s(c.offerings,5,'name'), offering6_desc: s(c.offerings,5,'desc'),
+    offering6_price: s(c.offerings,5,'price'), offering6_duration: s(c.offerings,5,'duration'),
+
+    // ── About ─────────────────────────────────────────────────
+    about_section_tag:    c.about_section_tag    || 'Our Story',
+    about_headline:       c.about_headline       || '',
+    about_pull_quote:     c.about_pull_quote     || '',
+    about_p1:             c.about_p1             || '',
+    about_p2:             c.about_p2             || '',
+    about_p3:             c.about_p3             || '',
+    about_philosophy:     c.about_philosophy     || '',
+    about_tagline:        c.about_tagline        || '',
+    about_proof_statement: c.about_proof_statement || '',
+
+    // ── Owner / Team ──────────────────────────────────────────
+    owner_name:         c.owner_name         || '',
+    owner_title:        c.owner_title        || 'Owner',
+    owner_credential1:  c.owner_credential1  || '',
+    owner_credential2:  c.owner_credential2  || '',
+    owner_credential3:  c.owner_credential3  || '',
+    team_member2_name:  c.team_member2_name  || '', team_member2_title: c.team_member2_title || '',
+    team_member3_name:  c.team_member3_name  || '', team_member3_title: c.team_member3_title || '',
+    staff_member2_name: c.staff_member2_name || '', staff_member2_role: c.staff_member2_role || '',
+    staff_member3_name: c.staff_member3_name || '', staff_member3_role: c.staff_member3_role || '',
+
+    // ── Trust / Credentials ───────────────────────────────────
+    trust_point1: c.trust_point1 || '', trust_point2: c.trust_point2 || '',
+    trust_point3: c.trust_point3 || '', trust_point4: c.trust_point4 || '',
+    credential1:  c.credential1  || '', credential2: c.credential2  || '',
+    credential3:  c.credential3  || '', credential4: c.credential4  || '',
+
+    // ── Contact ───────────────────────────────────────────────
+    contact_section_tag: c.contact_section_tag || 'Get In Touch',
+    contact_h2_line1:    c.contact_h2_line1    || 'Get In Touch',
+    contact_h2_line2:    c.contact_h2_line2    || '',
+    contact_copy:        c.contact_copy        || '',
+
+    // ── Hours ─────────────────────────────────────────────────
+    hours_weekday:  b.hours_weekday  || 'Mon–Fri: 8am–5pm',
+    hours_saturday: b.hours_saturday || 'Saturday: 8am–1pm',
+    hours_sunday:   b.hours_sunday   || 'Sunday: Closed',
+    hours_monday:   b.hours_weekday  || 'Monday–Friday: 8am–5pm',
+    hours_emergency: c.hours_emergency || b.hours_emergency || '24/7 for emergencies',
+
+    // ── Address ───────────────────────────────────────────────
+    address_line1: b.address_line1 || b.area || '',
+    address_line2: b.address_line2 || '',
+
+    // ── Professional (trust) ──────────────────────────────────
+    profession:       c.profession       || '',
+    founding_year:    c.founding_year    || '',
+    consultation_fee: c.consultation_fee || '',
+
+    // ── Process steps ─────────────────────────────────────────
+    process_step1_title: c.process_step1_title || '', process_step1_desc: c.process_step1_desc || '',
+    process_step2_title: c.process_step2_title || '', process_step2_desc: c.process_step2_desc || '',
+    process_step3_title: c.process_step3_title || '', process_step3_desc: c.process_step3_desc || '',
+
+    // ── Testimonials ──────────────────────────────────────────
+    testimonial1_name:    s(c.testimonials,0,'name'),    testimonial1_quote:  s(c.testimonials,0,'quote'),
+    testimonial1_result:  s(c.testimonials,0,'result'),  testimonial1_matter: s(c.testimonials,0,'matter'),
+    testimonial1_context: s(c.testimonials,0,'context'),
+    testimonial1_name_initial: (s(c.testimonials,0,'name')).charAt(0) || '',
+
+    testimonial2_name:    s(c.testimonials,1,'name'),    testimonial2_quote:  s(c.testimonials,1,'quote'),
+    testimonial2_result:  s(c.testimonials,1,'result'),  testimonial2_matter: s(c.testimonials,1,'matter'),
+    testimonial2_context: s(c.testimonials,1,'context'),
+    testimonial2_name_initial: (s(c.testimonials,1,'name')).charAt(0) || '',
+
+    testimonial3_name:    s(c.testimonials,2,'name'),    testimonial3_quote:  s(c.testimonials,2,'quote'),
+    testimonial3_result:  s(c.testimonials,2,'result'),  testimonial3_matter: s(c.testimonials,2,'matter'),
+    testimonial3_context: s(c.testimonials,2,'context'),
+    testimonial3_name_initial: (s(c.testimonials,2,'name')).charAt(0) || '',
+
+    // ── FAQ (trust p5) ────────────────────────────────────────
+    faq_intro: c.faq_intro || '',
+    faq1_q: s(c.faqs,0,'q'), faq1_a: s(c.faqs,0,'a'),
+    faq2_q: s(c.faqs,1,'q'), faq2_a: s(c.faqs,1,'a'),
+    faq3_q: s(c.faqs,2,'q'), faq3_a: s(c.faqs,2,'a'),
+    faq4_q: s(c.faqs,3,'q'), faq4_a: s(c.faqs,3,'a'),
+    faq5_q: s(c.faqs,4,'q'), faq5_a: s(c.faqs,4,'a'),
+    faq6_q: s(c.faqs,5,'q'), faq6_a: s(c.faqs,5,'a'),
+
+    // ── Coverage (emergency p5) ───────────────────────────────
+    coverage_intro:         c.coverage_intro         || '',
+    coverage_response_time: c.coverage_response_time || '30–60 minutes',
+    coverage_area1: s(c.coverage_areas,0,''), coverage_area2: s(c.coverage_areas,1,''),
+    coverage_area3: s(c.coverage_areas,2,''), coverage_area4: s(c.coverage_areas,3,''),
+    coverage_area5: s(c.coverage_areas,4,''), coverage_area6: s(c.coverage_areas,5,''),
+    coverage_area7: s(c.coverage_areas,6,''), coverage_area8: s(c.coverage_areas,7,''),
+
+    // ── Experience-specific ───────────────────────────────────
+    business_type:       c.business_type       || '',
+    vibe1: s(c.vibes,0,''), vibe2: s(c.vibes,1,''), vibe3: s(c.vibes,2,''), vibe4: s(c.vibes,3,''),
+    years_open:          c.years_open          || '',
+    team_size:           c.team_size           || '',
+    parking_note:        c.parking_note        || '',
+    gallery_section_tag: c.gallery_section_tag || 'Our Work',
+    gallery_h2:          c.gallery_h2          || 'Gallery',
+    gallery_intro:       c.gallery_intro       || '',
+
+    // ── Local-specific ────────────────────────────────────────
+    since_year:    c.since_year    || c.founding_year || '',
+    trade:         c.trade         || '',
+    about_tagline: c.about_tagline || '',
+    delivery_note: c.delivery_note || '',
+    badge1: s(c.badges,0,''), badge2: s(c.badges,1,''), badge3: s(c.badges,2,''), badge4: s(c.badges,3,''),
+    community_point1: s(c.community_points,0,''), community_point2: s(c.community_points,1,''),
+    community_point3: s(c.community_points,2,''), community_point4: s(c.community_points,3,''),
+    community_cta:    c.community_cta || '',
+    gallery_caption1: s(c.gallery_captions,0,''), gallery_caption2: s(c.gallery_captions,1,''),
+    gallery_caption3: s(c.gallery_captions,2,''), gallery_caption4: s(c.gallery_captions,3,''),
+    gallery_caption5: s(c.gallery_captions,4,''), gallery_caption6: s(c.gallery_captions,5,''),
+
+    // ── Results-specific ──────────────────────────────────────
+    clients_served:     c.clients_served     || '',
+    years_active:       c.years_active       || '',
+    response_commitment: c.response_commitment || '',
+    availability_note:  c.availability_note  || '',
+    about_proof_statement: c.about_proof_statement || '',
+
+    case1_client: s(c.case_studies,0,'client'), case1_challenge: s(c.case_studies,0,'challenge'),
+    case1_solution: s(c.case_studies,0,'solution'), case1_timeframe: s(c.case_studies,0,'timeframe'),
+    case1_result1: Array.isArray(c.case_studies?.[0]?.results) ? (c.case_studies[0].results[0]||'') : '',
+    case1_result2: Array.isArray(c.case_studies?.[0]?.results) ? (c.case_studies[0].results[1]||'') : '',
+    case1_result3: Array.isArray(c.case_studies?.[0]?.results) ? (c.case_studies[0].results[2]||'') : '',
+
+    case2_client: s(c.case_studies,1,'client'), case2_challenge: s(c.case_studies,1,'challenge'),
+    case2_solution: s(c.case_studies,1,'solution'), case2_timeframe: s(c.case_studies,1,'timeframe'),
+    case2_result1: Array.isArray(c.case_studies?.[1]?.results) ? (c.case_studies[1].results[0]||'') : '',
+    case2_result2: Array.isArray(c.case_studies?.[1]?.results) ? (c.case_studies[1].results[1]||'') : '',
+    case2_result3: Array.isArray(c.case_studies?.[1]?.results) ? (c.case_studies[1].results[2]||'') : '',
+
+    case3_client: s(c.case_studies,2,'client'), case3_challenge: s(c.case_studies,2,'challenge'),
+    case3_solution: s(c.case_studies,2,'solution'), case3_timeframe: s(c.case_studies,2,'timeframe'),
+    case3_result1: Array.isArray(c.case_studies?.[2]?.results) ? (c.case_studies[2].results[0]||'') : '',
+    case3_result2: Array.isArray(c.case_studies?.[2]?.results) ? (c.case_studies[2].results[1]||'') : '',
+    case3_result3: Array.isArray(c.case_studies?.[2]?.results) ? (c.case_studies[2].results[2]||'') : '',
+
+    client1_name: s(c.client_names,0,''), client2_name: s(c.client_names,1,''),
+    client3_name: s(c.client_names,2,''), client4_name: s(c.client_names,3,''),
+    client5_name: s(c.client_names,4,''),
+  };
+
+  // coverage_areas is an array — handle both string and object items
+  if (Array.isArray(c.coverage_areas)) {
+    for (let i = 0; i < 8; i++) {
+      const v = c.coverage_areas[i];
+      tokens[`coverage_area${i+1}`] = (typeof v === 'string' ? v : v?.name || v?.area || '') || '';
+    }
+  }
+
+  // vibes, badges, community_points, gallery_captions — same pattern
+  ['vibes', 'badges', 'community_points', 'gallery_captions', 'client_names'].forEach(key => {
+    if (Array.isArray(c[key])) {
+      const prefix = { vibes: 'vibe', badges: 'badge', community_points: 'community_point',
+                       gallery_captions: 'gallery_caption', client_names: 'client' }[key];
+      c[key].forEach((v, i) => { tokens[`${prefix}${i+1}`] = (typeof v === 'string' ? v : '') || ''; });
+    }
+  });
+
+  return html.replace(/\{\{(\w+)\}\}/g, (match, key) => tokens[key] ?? match);
+}
+
+/**
+ * Builds the Express single-scroll page by extracting WH_EXPRESS_INCLUDE
+ * sections from services, about, and contact pages and injecting them
+ * before the footer of the index page.
+ *
+ * @param {object} pages   { index, services, about, contact } — all already token-replaced
+ * @param {string} css     CSS block to inject (handled separately by injectCss)
+ * @returns {string}       Complete single-scroll HTML
+ */
+export function buildExpressPage(pages) {
+  const extract = (html, pageName) => {
+    if (!html) return '';
+    const start = `<!-- WH_EXPRESS_INCLUDE: ${pageName} -->`;
+    const end   = '<!-- WH_EXPRESS_END -->';
+    const si = html.indexOf(start);
+    const ei = html.indexOf(end, si);
+    if (si === -1 || ei === -1) return '';
+    return html.slice(si + start.length, ei).trim();
+  };
+
+  let expressHtml = pages.index || '';
+
+  const servicesSection = extract(pages.services || '', 'services');
+  const aboutSection    = extract(pages.about    || '', 'about');
+  const contactSection  = extract(pages.contact  || '', 'contact');
+
+  // Fix nav links to use anchor hrefs
+  expressHtml = expressHtml
+    .replace(/href="services\.html"/g, 'href="#services"')
+    .replace(/href="about\.html"/g,    'href="#about"')
+    .replace(/href="contact\.html"/g,  'href="#contact"')
+    .replace(/href="coverage\.html"/g, 'href="#contact"');
+
+  // Inject extracted sections before </body> (after last main section)
+  const sections = [
+    servicesSection ? `<section id="services">${servicesSection}</section>` : '',
+    aboutSection    ? `<section id="about">${aboutSection}</section>`       : '',
+    contactSection  ? `<section id="contact">${contactSection}</section>`   : '',
+  ].filter(Boolean).join('\n');
+
+  if (sections && expressHtml.includes('<footer')) {
+    expressHtml = expressHtml.replace('<footer', `${sections}\n<footer`);
+  }
+
+  return expressHtml;
 }
 
 // ────────────────────────────────────────────────────────────

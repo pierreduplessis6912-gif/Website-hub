@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coverage Area - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="emergency-p5.html" class="active">Coverage</a>
+      </div>
+      <a href="tel:{{phone}}" class="nav-phone">{{phone}}</a>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short">
+    <div class="container hero-content text-center" style="margin: 0 auto;">
+      <span class="badge">{{area}} & Surrounds</span>
+      <h1>We Come To You</h1>
+      <p style="margin: 0 auto;">{{coverage_response_time}} response time across our full coverage area.</p>
+    </div>
+  </header>
+
+  <section class="coverage-main">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: coverage -->
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <p style="font-size: 1.2rem;">{{coverage_intro}}</p>
+      </div>
+
+      <div class="pill-grid">
+        <div class="pill">{{coverage_area1}}</div>
+        <div class="pill">{{coverage_area2}}</div>
+        <div class="pill">{{coverage_area3}}</div>
+        <div class="pill">{{coverage_area4}}</div>
+        <div class="pill">{{coverage_area5}}</div>
+        <div class="pill">{{coverage_area6}}</div>
+        <div class="pill">{{coverage_area7}}</div>
+        <div class="pill">{{coverage_area8}}</div>
+      </div>
+
+      <div style="text-align: center; margin-top: 3rem; padding: 20px; background-color: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.2); border-radius: 8px;">
+        <h4 style="color: var(--accent-color); font-size: 1.2rem; margin-bottom: 5px;">Rapid Dispatch</h4>
+        <p>Most jobs reached within <strong>{{coverage_response_time}}</strong>.</p>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="how-it-works bg-surface">
+    <div class="container">
+      <div class="section-header text-center">
+        <h2>How It Works</h2>
+      </div>
+      
+      <div class="grid-3" style="text-align: center; position: relative;">
+        <!-- Desktop connector line -->
+        <div style="position: absolute; top: 40px; left: 15%; right: 15%; height: 2px; background: var(--border-color); z-index: 1;" class="d-none-mobile"></div>
+        
+        <div style="position: relative; z-index: 2;">
+          <div style="width: 80px; height: 80px; background: var(--bg-color); border: 2px solid var(--accent-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; margin: 0 auto 1.5rem auto;">1</div>
+          <h3>Call or WhatsApp</h3>
+          <p style="color: var(--text-muted);">Tell us what's broken and where you are.</p>
+        </div>
+        
+        <div style="position: relative; z-index: 2;">
+          <div style="width: 80px; height: 80px; background: var(--bg-color); border: 2px solid var(--accent-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; margin: 0 auto 1.5rem auto;">2</div>
+          <h3>We Confirm ETA</h3>
+          <p style="color: var(--text-muted);">We dispatch the nearest team member to your location.</p>
+        </div>
+
+        <div style="position: relative; z-index: 2;">
+          <div style="width: 80px; height: 80px; background: var(--bg-color); border: 2px solid var(--accent-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; margin: 0 auto 1.5rem auto;">3</div>
+          <h3>We Arrive & Fix It</h3>
+          <p style="color: var(--text-muted);">Problem solved, professionally and guaranteed.</p>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
+        <p style="margin-bottom: 1rem;">Not sure if we cover your area? WhatsApp us and we'll let you know.</p>
+        <a href="https://wa.me/{{phone}}" class="btn btn-outline">Check Coverage via WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="emergency-cta">
+    <div class="container">
+      <h2>{{contact_h2_line1}}<br><span class="accent">{{contact_h2_line2}}</span></h2>
+      <a href="https://wa.me/{{phone}}" class="btn btn-primary btn-lg">WhatsApp Us Now</a>
+      <p>Fast response in {{area}}</p>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa">💬</a>
+
+  <footer>
+    <div class="container">
+      {{business_name}} &middot; {{area}} &middot; <a href="tel:{{phone}}">{{phone}}</a> &middot; &copy; 2024
+    </div>
+  </footer>
+
+</body>
+</html>

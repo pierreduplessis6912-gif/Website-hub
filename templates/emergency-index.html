@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{business_name}} - {{page_title}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html" class="active">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <a href="tel:{{phone}}" class="nav-phone">{{phone}}</a>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container hero-content">
+      <span class="badge">{{hero_badge}}</span>
+      <h1>
+        {{hero_h1_line1}}<br>
+        {{hero_h1_line2}}<br>
+        <span class="accent">{{hero_accent_word}}</span> {{hero_h1_line3}}
+      </h1>
+      <p>{{hero_copy}}</p>
+      <div class="hero-buttons">
+        <a href="https://wa.me/{{phone}}" class="btn btn-primary">{{cta_primary}}</a>
+        <a href="tel:{{phone}}" class="btn btn-outline">{{cta_secondary}}</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="stats-strip">
+    <div class="container stats-grid">
+      <div class="stat-item">
+        <span class="stat-num">{{stat1_num}}</span>
+        <span class="stat-lbl">{{stat1_lbl}}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">{{stat2_num}}</span>
+        <span class="stat-lbl">{{stat2_lbl}}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">{{stat3_num}}</span>
+        <span class="stat-lbl">{{stat3_lbl}}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="trust-bar">
+    <div class="container trust-flex">
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24"><path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zm-2 14l-4-4 1.41-1.41L10 13.17l6.59-6.59L18 8l-8 8z"/></svg>
+        Licensed
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24"><path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zm-2 14l-4-4 1.41-1.41L10 13.17l6.59-6.59L18 8l-8 8z"/></svg>
+        Insured
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+        24/7 Response
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24"><path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zm-2 14l-4-4 1.41-1.41L10 13.17l6.59-6.59L18 8l-8 8z"/></svg>
+        Guaranteed Work
+      </div>
+    </div>
+  </div>
+
+  <section class="services-summary bg-surface">
+    <div class="container">
+      <div class="section-header text-center">
+        <span class="section-tag">{{services_section_tag}}</span>
+        <h2>{{services_h2}}</h2>
+      </div>
+      
+      <div class="grid-3">
+        <div class="service-card">
+          <span class="service-icon">{{service1_icon}}</span>
+          <h3>{{service1_name}}</h3>
+          <p>{{service1_desc}}</p>
+          <a href="https://wa.me/{{phone}}" class="service-cta">Get Help &rarr;</a>
+        </div>
+        <div class="service-card">
+          <span class="service-icon">{{service2_icon}}</span>
+          <h3>{{service2_name}}</h3>
+          <p>{{service2_desc}}</p>
+          <a href="https://wa.me/{{phone}}" class="service-cta">Get Help &rarr;</a>
+        </div>
+        <div class="service-card">
+          <span class="service-icon">{{service3_icon}}</span>
+          <h3>{{service3_name}}</h3>
+          <p>{{service3_desc}}</p>
+          <a href="https://wa.me/{{phone}}" class="service-cta">Get Help &rarr;</a>
+        </div>
+        <div class="service-card">
+          <span class="service-icon">{{service4_icon}}</span>
+          <h3>{{service4_name}}</h3>
+          <p>{{service4_desc}}</p>
+          <a href="https://wa.me/{{phone}}" class="service-cta">Get Help &rarr;</a>
+        </div>
+        <div class="service-card">
+          <span class="service-icon">{{service5_icon}}</span>
+          <h3>{{service5_name}}</h3>
+          <p>{{service5_desc}}</p>
+          <a href="https://wa.me/{{phone}}" class="service-cta">Get Help &rarr;</a>
+        </div>
+        <div class="service-card" style="display:flex; align-items:center; justify-content:center; text-align:center;">
+            <div>
+                <h3>Need something else?</h3>
+                <p>We probably fix it. Message us now.</p>
+                <a href="https://wa.me/{{phone}}" class="btn btn-outline" style="margin-top:1rem;">Ask Us</a>
+            </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="emergency-cta">
+    <div class="container">
+      <h2>{{contact_h2_line1}}<br><span class="accent">{{contact_h2_line2}}</span></h2>
+      <a href="https://wa.me/{{phone}}" class="btn btn-primary btn-lg">WhatsApp Us Now</a>
+      <p>Fast response in {{area}}</p>
+    </div>
+  </section>
+
+  <section class="about-teaser bg-surface">
+    <div class="container about-grid">
+      <div>
+        <span class="section-tag">About {{business_name}}</span>
+        <div class="pull-quote">
+          "{{about_pull_quote}}"
+        </div>
+        <ul style="list-style: none; margin-bottom: 2rem;">
+          <li style="margin-bottom: 10px;">✓ {{trust_point1}}</li>
+          <li style="margin-bottom: 10px;">✓ {{trust_point2}}</li>
+        </ul>
+        <a href="about.html" class="btn btn-outline">Learn more</a>
+      </div>
+      <div class="about-img">
+        <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80" alt="Team member">
+      </div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa">💬</a>
+
+  <footer>
+    <div class="container">
+      {{business_name}} &middot; {{area}} &middot; <a href="tel:{{phone}}">{{phone}}</a> &middot; &copy; 2024
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,34 @@
+name = "wh-pulse"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# — KV Namespaces ————————————————————————————
+[[kv_namespaces]]
+binding = "SITES"
+id = "b63e5b885ead4c02a9e184dd6477e711"
+
+# — Cron Trigger ——————————————————————————————
+# Runs daily at 6am UTC (8am SAST)
+[triggers]
+crons = ["0 6 * * *"]
+
+# — Environment Variables ————————————————————
+[vars]
+TEST_MODE            = "true"
+OUTBOUND_ENABLED     = "false"
+REFERRAL_ENABLED     = "true"
+WORKER_URL_BUILD     = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_PATCH     = "https://wh-patch.pierreduplessis6912.workers.dev"
+WORKER_URL_LAUNCH    = "https://wh-launch.pierreduplessis6912.workers.dev"
+
+# — Secrets (set via CLI — do NOT put values here) ——
+# Run these once per secret:
+#   wrangler secret put ANTHROPIC_KEY        --name wh-pulse
+#   wrangler secret put AIRTABLE_TOKEN       --name wh-pulse
+#   wrangler secret put AIRTABLE_BASE_ID     --name wh-pulse
+#   wrangler secret put AIRTABLE_TABLE_ID    --name wh-pulse
+#   wrangler secret put META_WA_TOKEN        --name wh-pulse
+#   wrangler secret put META_PHONE_NUMBER_ID --name wh-pulse
+#   wrangler secret put WH_PHONE             --name wh-pulse
+#   wrangler secret put ADMIN_KEY            --name wh-pulse

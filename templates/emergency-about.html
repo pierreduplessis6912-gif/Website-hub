@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html" class="active">About</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <a href="tel:{{phone}}" class="nav-phone">{{phone}}</a>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short">
+    <div class="container hero-content">
+      <span class="badge">{{about_section_tag}}</span>
+      <h1>{{about_headline}}</h1>
+    </div>
+  </header>
+
+  <section class="about-main">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: about -->
+      <div class="about-grid" style="margin-bottom: 3rem;">
+        <div>
+          <p style="margin-bottom: 1.5rem; font-size: 1.1rem;">{{about_p1}}</p>
+          <p style="font-size: 1.1rem; color: var(--text-muted);">{{about_p2}}</p>
+        </div>
+        <div class="about-img">
+          <img src="https://images.unsplash.com/photo-1541888019323-d6c2ce64fa36?auto=format&fit=crop&w=800&q=80" alt="{{owner_name}} and Team">
+        </div>
+      </div>
+      
+      <div class="pull-quote" style="text-align: center; border-left: none; font-size: 2rem; margin: 4rem 0;">
+        "{{about_pull_quote}}"
+        <div style="font-size: 1rem; color: var(--text-muted); font-style: normal; margin-top: 1rem; text-transform: uppercase; letter-spacing: 2px;">- {{owner_name}}</div>
+      </div>
+
+      <div class="trust-flex" style="justify-content: center; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 30px 0;">
+         <span class="badge" style="margin-bottom:0;">{{trust_point1}}</span>
+         <span class="badge" style="margin: 0 15px; margin-bottom:0;">{{trust_point2}}</span>
+         <span class="badge" style="margin-bottom:0;">{{trust_point3}}</span>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="why-us bg-surface">
+    <div class="container">
+      <div class="section-header text-center">
+        <h2>Why Choose Us</h2>
+      </div>
+      <div class="grid-3">
+        <div class="service-card text-center" style="align-items: center;">
+          <span class="service-icon">⏱️</span>
+          <h3>We Arrive On Time</h3>
+          <p>When we say we'll be there, we mean it. Your emergency is our priority.</p>
+        </div>
+        <div class="service-card text-center" style="align-items: center;">
+          <span class="service-icon">💲</span>
+          <h3>Transparent Pricing</h3>
+          <p>No hidden fees. We explain the problem and the cost before we start work.</p>
+        </div>
+        <div class="service-card text-center" style="align-items: center;">
+          <span class="service-icon">🧹</span>
+          <h3>We Clean Up</h3>
+          <p>We leave your property exactly as we found it, taking the mess with us.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="emergency-cta">
+    <div class="container">
+      <h2>{{contact_h2_line1}}<br><span class="accent">{{contact_h2_line2}}</span></h2>
+      <a href="https://wa.me/{{phone}}" class="btn btn-primary btn-lg">WhatsApp Us Now</a>
+      <p>Fast response in {{area}}</p>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa">💬</a>
+
+  <footer>
+    <div class="container">
+      {{business_name}} &middot; {{area}} &middot; <a href="tel:{{phone}}">{{phone}}</a> &middot; &copy; 2024
+    </div>
+  </footer>
+
+</body>
+</html>

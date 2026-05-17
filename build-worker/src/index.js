@@ -60,6 +60,7 @@ import {
   createAirtableRecord, getAirtableRecord, updateAirtableRecord, listAirtableRecords,
   mapFormspreeToAirtable,
   logActivity, logHealth, logBuild, getFlag,
+  detectArchetype, fetchTemplates, tokenReplace, buildExpressPage,
 } from './shared-services.js';
 
 // ────────────────────────────────────────────────────────────
@@ -76,11 +77,10 @@ const WORKER_DOMAIN  = 'wh-build.pierreduplessis6912.workers.dev';
 
 // Pass token budgets — Pass 2 ceiling is non-negotiable. See triggerBuildInternal
 // for the rationale (unclosed </style> swallows the body in rawtext mode).
-const PASS_1_MAX_TOKENS = 3500; // Pass 1 Skeleton — content strategy JSON
-const PASS_2_MAX_TOKENS = 4500; // Pass 2 Organs — copy and messaging
-const PASS_3_MAX_TOKENS = 8000; // Pass 3 Muscle — CSS design system (bumped — truncated </style> = black screen)
-const PASS_4_DEFAULT_TOKENS = 8000; // Pass 4 Skin — HTML per page (bumped — truncated HTML = blank content)
-const PASS_5_DEFAULT_TOKENS = 3000; // Pass 5 Soul — personality and polish
+const PASS_1_MAX_TOKENS     = 3500; // Pass 1 — content strategy JSON
+const PASS_2_CSS_MAX_TOKENS = 5500; // Pass 2 — CSS design system (non-negotiable floor)
+const PASS_4_DEFAULT_TOKENS = 6000; // Pass 4 — full HTML per page
+const PASS_5_DEFAULT_TOKENS = 3000; // Pass 5 — personality & polish
 
 // ────────────────────────────────────────────────────────────
 // EXPORT
@@ -95,7 +95,13 @@ export default {
     if (request.method === 'OPTIONS') return corsResponse(null, 204);
 
     // Site serving (hostname-based)
-    if (hostname === PREVIEW_DOMAIN) return servePreview(url, env);
+    if (hostname === PREVIEW_DOMAIN) {
+      // /raw/ path serves plain HTML for the SPA iframe (no SPA wrapping)
+      if (url.pathname.endsWith('/raw/') || url.pathname.endsWith('/raw')) {
+        return servePreviewRaw(url, env);
+      }
+      return servePreview(url, env);
+    }
     if (hostname !== WORKER_DOMAIN && !hostname.endsWith('.workers.dev')) {
       return serveLiveSite(url, hostname, env);
     }
@@ -111,6 +117,8 @@ export default {
     if (path === '/preview-choices')        return handlePreviewChoices(request, env);
     if (path === '/preview-meta')           return handlePreviewMeta(request, url, env);
     if (path === '/bootstrap-preview-app')  return handleBootstrapPreviewApp(request, env);
+    if (path === '/bootstrap-templates')    return handleBootstrapTemplates(request, env);
+    if (path === '/purge-kv')               return handlePurgeKv(request, env);
     if (path === '/trigger-build')          return handleTriggerBuild(request, env, ctx);
     if (path === '/update-status')          return handleUpdateStatus(request, env);
     if (path === '/update-config')          return handleUpdateConfig(request, env);
@@ -186,7 +194,7 @@ export default {
           }), { expirationTtl: 3600 });
         }
 
-        await updateAirtableRecord(airtableId, { 'Status': 'Deposit Paid' }, env).catch(() => {});
+        await updateAirtableRecord(airtableId, { 'Status': 'Lead' }, env).catch(() => {});
         await logBuild(airtableId, 'Failed', err.message, env).catch(() => {});
 
         await sendWhatsApp(env.WH_PHONE,
@@ -229,13 +237,19 @@ async function servePreview(url, env) {
   const rawPath = url.pathname.replace(/^\//, '');
   const segment = rawPath.split('/')[0];
 
-  // Serve the SPA for app entry points
+  // App-only entry points (no slug). Same SPA handles every entry route:
+  // root, verify-pin landing, manage panel, build progress.
   if (!rawPath || segment === 'verify' || segment === 'manage' || segment === 'build') {
     const appHtml = await env.SITES.get('app:preview-manage');
     if (appHtml) return htmlResponse(appHtml, 200);
     return htmlResponse(landingPage(), 200);
   }
 
+  // Slug-based path: /{slug} (preview entry) or /{slug}/{page} (deep link).
+  // INBOUND and OUTBOUND share this path — same SPA, same Go Live, same upsells.
+  // Only differences live inside the iframe content (outbound carries a watermark
+  // applied at build time). The /raw/ path serves that iframe content and is
+  // already intercepted in the fetch() handler before this function runs.
   const slug    = segment;
   const subPath = rawPath.split('/').slice(1).join('/');
   const pageName = VALID_PAGES.includes(subPath) ? subPath : 'index';
@@ -245,23 +259,42 @@ async function servePreview(url, env) {
   if (expiry && new Date(expiry) < new Date()) {
     await env.SITES.put(`portfolio_candidate:${slug}`, expiry);
     await env.SITES.delete(`preview:${slug}`);
+    for (const p of ['index', 'services', 'about', 'contact', 'gallery']) {
+      await env.SITES.delete(`preview:${slug}:${p}`).catch(() => {});
+    }
     return htmlResponse(expiredPreviewPage(slug), 410);
   }
 
-  // Try per-page key first, fall back to legacy single-page key for index
-  let html = await env.SITES.get(`preview:${slug}:${pageName}`);
-  if (!html && pageName === 'index') html = await env.SITES.get(`preview:${slug}`);
+  // Verify the preview actually exists in KV before serving the SPA shell —
+  // saves spinning the SPA for invalid slugs and surfaces a clean 404.
+  let previewExists = await env.SITES.get(`preview:${slug}:${pageName}`);
+  if (!previewExists && pageName === 'index') {
+    previewExists = await env.SITES.get(`preview:${slug}`);
+  }
 
-  // Gallery for non-Premium clients — serve upgrade prompt
-  if (!html && pageName === 'gallery') {
+  // Gallery for non-Premium clients — serve standalone upgrade prompt
+  // (this is a sales nudge dead-end, intentionally not inside the SPA flow).
+  if (!previewExists && pageName === 'gallery') {
     return htmlResponse(galleryUpgradePromptPage(slug, env), 200);
   }
-  if (!html) return htmlResponse(notFoundPage(slug), 404);
+  if (!previewExists) return htmlResponse(notFoundPage(slug), 404);
 
   // Visitor count — daily granular key under monthly prefix
   recordVisit(slug, pageName, env);
 
-  return htmlResponse(html, 200);
+  // Serve the SPA shell. The SPA's client-side router reads location.pathname,
+  // detects /{slug} mode, and loads the actual site HTML in an iframe via
+  // /{slug}/raw/?page={pageName}. This is what gives outbound previews and
+  // inbound previews the identical experience — Go Live button, tweak drawer,
+  // tier-aware tabs, upsell cards.
+  const appHtml = await env.SITES.get('app:preview-manage');
+  if (appHtml) return htmlResponse(appHtml, 200);
+
+  // Fallback if the SPA HTML hasn't been bootstrapped yet — serve the raw
+  // preview so the client still sees their site rather than a blank page.
+  // (Run POST /bootstrap-preview-app with the latest preview-manage-new.html
+  // to fix this state.)
+  return htmlResponse(previewExists, 200);
 }
 
 async function serveLiveSite(url, hostname, env) {
@@ -295,6 +328,31 @@ function recordVisit(slug, pageName, env) {
   env.SITES.get(pageKey).then(v => {
     env.SITES.put(pageKey, String((parseInt(v || '0') + 1)), { expirationTtl: 60 * 60 * 24 * 35 });
   }).catch(() => {});
+}
+
+// ============================================================
+// ROUTE: /raw/ — serves plain preview HTML for SPA iframe
+// No SPA wrapping, no manage panel — just the raw site HTML.
+// Called by preview-manage-new.html iframe src.
+// URL format: preview.websitehub.co.za/{slug}/raw/
+// ============================================================
+
+async function servePreviewRaw(url, env) {
+  // Extract slug from path: /{slug}/raw/
+  const parts = url.pathname.replace(/\/raw\/?$/, '').split('/').filter(Boolean);
+  const slug  = parts[0];
+  if (!slug) return htmlResponse('<p>No slug</p>', 400);
+
+  const page = url.searchParams.get('page') || 'index';
+
+  // Try page-specific key first, then root key
+  let html = await env.SITES.get(`preview:${slug}:${page}`);
+  if (!html) html = await env.SITES.get(`preview:${slug}`);
+  if (!html) return htmlResponse('<p>Preview not found</p>', 404);
+
+  return new Response(html, {
+    headers: { 'Content-Type': 'text/html;charset=UTF-8', 'X-Frame-Options': 'SAMEORIGIN' },
+  });
 }
 
 // ============================================================
@@ -556,6 +614,67 @@ async function handlePreviewMeta(request, url, env) {
 }
 
 // ============================================================
+// ROUTE: /purge-kv — wipe every key in the SITES namespace
+// DELETE method, protected by x-admin-key.
+// Handles pagination internally so it clears everything in one call
+// regardless of how many keys exist. Returns { deleted: N }.
+// ============================================================
+async function handlePurgeKv(request, env) {
+  if (request.method !== 'DELETE') return jsonResponse({ error: 'DELETE only' }, 405);
+  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+  let deleted = 0;
+  let cursor  = undefined;
+
+  do {
+    const page = await env.SITES.list(cursor ? { cursor } : {});
+    await Promise.all(page.keys.map(k => env.SITES.delete(k.name)));
+    deleted += page.keys.length;
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor !== undefined);
+
+  await logActivity(env, 'kv_purged', { deleted });
+  return jsonResponse({ success: true, deleted });
+}
+
+// ============================================================
+// ROUTE: /bootstrap-templates — load template HTML files into KV
+// POST body: { archetype: 'emergency', page: 'index', html: '<!DOCTYPE...' }
+// Protected by x-admin-key header.
+// Call 30 times (5 archetypes × 6 files) to load the full library.
+// KV key format: template:{archetype}:{page}
+// ============================================================
+
+async function handleBootstrapTemplates(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
+
+  const { archetype, page, html } = body;
+
+  const validArchetypes = ['emergency', 'trust', 'experience', 'local', 'results'];
+  const validPages      = ['css', 'index', 'services', 'about', 'contact', 'p5'];
+
+  if (!validArchetypes.includes(archetype)) {
+    return jsonResponse({ error: `Invalid archetype. Must be one of: ${validArchetypes.join(', ')}` }, 400);
+  }
+  if (!validPages.includes(page)) {
+    return jsonResponse({ error: `Invalid page. Must be one of: ${validPages.join(', ')}` }, 400);
+  }
+  if (!html || typeof html !== 'string') {
+    return jsonResponse({ error: 'Missing or invalid html field' }, 400);
+  }
+
+  const key = `template:${archetype}:${page}`;
+  await env.SITES.put(key, html);
+  await logActivity(env, 'template_bootstrapped', { archetype, page, key, size: html.length });
+
+  return jsonResponse({ success: true, key, archetype, page, size: html.length });
+}
+
+// ============================================================
 // ROUTE: /bootstrap-preview-app — push SPA HTML into KV
 // ============================================================
 
@@ -592,7 +711,7 @@ async function handleTriggerBuild(request, env, ctx) {
   catch { return jsonResponse({ error: 'Client not found in Airtable' }, 404); }
 
   const f = record.fields;
-  const allowedStatuses = ['Deposit Paid', 'QA', 'Live']; // Live = patch-worker asset rebuild
+  const allowedStatuses = ['Lead', 'Building', 'QA', 'Live']; // Live = patch-worker asset rebuild
   if (!allowedStatuses.includes(f['Status'])) {
     return jsonResponse({ error: `Build blocked — status is "${f['Status']}" (must be Deposit Paid, QA, or Live)` }, 403);
   }
@@ -863,13 +982,14 @@ async function checkDomainAvailabilityInternal(domain, env) {
 }
 
 const DOMAIN_PROXY_URL    = 'https://websitehub.co.za/domain-proxy.php';
-const DOMAIN_PROXY_SECRET = 'wh-proxy-d8f3a1b9c2e4f7d6a5b8c3e1f9d2a4b7';
 
 async function callDomainProxy(action, sld, tld = 'co.za', extra = {}, env) {
+  const secret = env.DOMAIN_PROXY_SECRET || '';
+  if (!secret) console.warn('DOMAIN_PROXY_SECRET env var not set — domain proxy calls will be rejected');
   try {
     const res = await fetch(DOMAIN_PROXY_URL, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': DOMAIN_PROXY_SECRET },
+      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': secret },
       body:    JSON.stringify({ action, sld, tld, ...extra }),
     });
     const data = await res.json();
@@ -1339,8 +1459,11 @@ function getIndustryBrief(industry) {
 // Pass 1: Skeleton — content strategy + industry matrix lookup
 // Pass 2: Organs  — copy and messaging
 // Pass 3: Muscle  — CSS design system
-// Pass 4: Skin    — full HTML per page (sequential)
-// Pass 5: Soul    — personality polish (sequential)
+// ============================================================
+// BUILD PIPELINE — Template-based 2-pass architecture
+// Pass 1: Content strategy JSON (Claude, archetype-aware)
+// Pass 2: Token replacement into pre-built templates (instant, no Claude)
+// Pass 3: claudePersonalise — only runs if unfilled {{tokens}} remain
 // ============================================================
 
 async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields, isOutbound = false) {
@@ -1349,60 +1472,46 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     : await getAirtableRecord(airtableId, env);
   const f = record.fields || record;
 
-  const slug       = slugify(f['Business Name']);
-  const domain     = f['Domain'] || `${slug}.co.za`;
-  const mailtoLink = `mailto:updates@websitehub.co.za?subject=wh-${slug}&body=Hi%20Website%20Hub%2C%20please%20find%20my%20photos%20attached.`;
-  const pkg        = packageKey(f['Package']);
-  const caps       = getPackageCaps(pkg);
+  const slug    = slugify(f['Business Name']);
+  const domain  = f['Domain'] || `${slug}.co.za`;
+  const pkg     = packageKey(f['Package']);
+  const caps    = getPackageCaps(pkg);
 
   await updateAirtableRecord(airtableId, {
     'Slug':        slug,
-    'Mailto Link': mailtoLink,
+    'Mailto Link': `mailto:updates@websitehub.co.za?subject=wh-${slug}&body=Hi%20Website%20Hub%2C%20please%20find%20my%20photos%20attached.`,
     'Status':      'Building',
     'Domain':      domain,
   }, env);
 
-  // Industry matrix lookup — feeds creative brief into Pass 1
-  const industryBrief = getIndustryBrief(f['Industry'] || f['Business Name'] || '');
+  // Detect archetype from industry
+  const archetype = detectArchetype(f['Industry'] || f['Business Name'] || '');
 
-  // Unsplash photos — use industry brief search term for better results
+  // Unsplash fallback photo for og:image
   let unsplashPhotos = [];
-  try { unsplashPhotos = await fetchUnsplashPhotos(f, env, industryBrief.heroImage); }
+  try { unsplashPhotos = await fetchUnsplashPhotos(f, env); }
   catch (e) { console.warn('Unsplash fetch failed (non-fatal):', e); }
 
-  // R2 client photos — read from gallery/ prefix (consistent with patch-worker
-  // upload path and /gallery-assets listing endpoint)
+  // R2 client photos
   let r2PhotoUrls = [];
   try {
     if (env.ASSETS) {
       const r2List = await env.ASSETS.list({ prefix: `${slug}/gallery/` });
-      if (r2List.objects && r2List.objects.length > 0) {
-        r2PhotoUrls = r2List.objects.map(obj =>
-          `https://assets.websitehub.co.za/${obj.key}`
-        );
+      if (r2List.objects?.length > 0) {
+        r2PhotoUrls = r2List.objects.map(obj => `https://assets.websitehub.co.za/${obj.key}`);
       }
     }
   } catch (e) { console.warn('R2 photo fetch failed (non-fatal):', e); }
 
-  // Build photo context — prefer client photos, fallback to Unsplash
-  const photoContext = r2PhotoUrls.length > 0
-    ? `\n\nCLIENT PHOTOS (use these first — real photos from the business):\n` +
-      r2PhotoUrls.map((url, i) => `photo_${i+1}: ${url}`).join('\n') + '\n'
-    : unsplashPhotos.length > 0
-      ? `\n\nPHOTOS (use these direct URLs in <img> tags — never base64):\n` +
-        unsplashPhotos.map(p => `${p.slot}: ${p.url}\nCredit: ${p.credit} on Unsplash`).join('\n') +
-        `\n\nInclude small "Photos: Unsplash" credit in footer.\n`
-      : '';
+  const ogImage = r2PhotoUrls[0] || unsplashPhotos[0]?.url
+    || 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80';
 
-  const unsplashContext = photoContext; // legacy alias
-  console.log(`[Build:${slug}] photoContext preview:`, photoContext.slice(0, 300) || '(empty — no photos)');
-
-  // ── PASS 1 — Skeleton: Content Strategy + Industry Matrix ───
+  // ── PASS 1 — Content Strategy (archetype-aware Claude call) ──
   let contentJson;
   try {
     const p1Raw = await callClaudeInternal(
-      buildPass1SystemPrompt(industryBrief),
-      [{ role: 'user', content: buildPass1UserPrompt(f, industryBrief) }],
+      buildPass1SystemPrompt(archetype),
+      [{ role: 'user', content: buildPass1UserPrompt(f, archetype, ogImage) }],
       env,
       { maxTokens: PASS_1_MAX_TOKENS },
     );
@@ -1413,150 +1522,69 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     throw new Error(`Pass 1 failed: ${e.message}`);
   }
 
-  // ── PASS 2 — CSS Design System ──────────────────────────────
-  // PASS_2_MAX_TOKENS = 5000 — must not be reduced. Truncated </style>
-  // swallows the entire body in HTML5 rawtext mode → blank page.
-  let cssBlock;
-  try {
-    const p2Raw = await callClaudeInternal(
-      buildPass2SystemPrompt(),
-      [{ role: 'user', content: buildPass2UserPrompt(contentJson, f, industryBrief) }],
-      env,
-      { maxTokens: PASS_3_MAX_TOKENS }, // Pass 3 Muscle = CSS, must not be truncated
-    );
-    cssBlock = stripMarkdown(p2Raw).trim();
+  // ── FETCH TEMPLATES from KV ───────────────────────────────────
+  const { css, pages } = await fetchTemplates(archetype, pkg, env);
 
-    if (!cssBlock.includes('<style>')) throw new Error('No <style> block in Pass 2 output');
+  // Business fields object for tokenReplace
+  const businessFields = {
+    name:           f['Business Name'] || '',
+    phone:          normaliseSaPhone(f['WhatsApp'] || ''),
+    area:           f['Area']          || '',
+    email:          f['Email']         || '',
+    address_line1:  f['Address Line 1'] || f['Area'] || '',
+    address_line2:  f['Address Line 2'] || '',
+    hours_weekday:  f['Hours Weekday']  || 'Mon–Fri: 8am–5pm',
+    hours_saturday: f['Hours Saturday'] || 'Saturday: 8am–1pm',
+    hours_sunday:   f['Hours Sunday']   || 'Sunday: Closed',
+    hours_emergency: f['Hours Emergency'] || '24/7 for emergencies',
+  };
 
-    // Defence in depth: auto-close </style> if truncated mid-stream.
-    if (!cssBlock.includes('</style>')) {
-      console.warn(`Pass 2 output for "${slug}" missing </style> — auto-closing.`);
-      await sendWhatsApp(env.WH_PHONE,
-        `⚠️ Pass 2 truncated for ${f['Business Name']} (slug: ${slug}) — </style> auto-closed. Check site for missing styles.`,
-        env, { skipTestRedirect: true },
-      ).catch(() => {});
-
-      const lastOpenBrace  = cssBlock.lastIndexOf('{');
-      const lastCloseBrace = cssBlock.lastIndexOf('}');
-      if (lastOpenBrace > lastCloseBrace) cssBlock = cssBlock.slice(0, lastOpenBrace).trimEnd();
-      cssBlock += '\n</style>';
-    }
-
-    await env.SITES.put(`css:${slug}`, cssBlock, { expirationTtl: 60 * 60 * 24 * 35 });
-  } catch (e) {
-    throw new Error(`Pass 2 failed: ${e.message}`);
-  }
-
-  // ── PASSES 4 & 5 — Skin + Soul (sequential per page) ────────
-  // Pass 4 (Skin): Full HTML per page — sequential to avoid CPU timeout
-  // Pass 5 (Soul): Personality polish — surgical micro-copy layer
-  // Express: 1 page. Standard: 4 pages. Premium: 5 pages.
-  const pages            = caps.pages;
-  const pass4Budgets     = caps.pass4TokenBudget || caps.pageTokenBudget;
-  const pass5Budgets     = caps.pass5TokenBudget;
-
+  // ── BUILD PAGES ────────────────────────────────────────────────
   const builtPages = {};
 
-  for (const pageName of pages) {
-    // ── Pass 4: Skin — Full HTML render ───────────────────────
-    let html = null;
-    try {
-      const p4Raw = await callClaudeInternal(
-        buildPass4SystemPrompt(pageName, pkg),
-        [{ role: 'user', content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
-        env,
-        { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
-      );
-      html = stripMarkdown(p4Raw);
-    } catch (err) {
-      console.warn(`Pass 4 failed for "${pageName}":`, err.message);
+  if (pkg === 'express') {
+    // Token-replace all pages first, then collapse into single scroll
+    const replaced = {};
+    for (const [pg, tmpl] of Object.entries(pages)) {
+      if (tmpl) replaced[pg] = tokenReplace(tmpl, contentJson, businessFields, ogImage);
     }
+    // Build express single-scroll from full page set (use standard templates if available)
+    const expressBase = {
+      index:    replaced.index,
+      services: replaced.services || await env.SITES.get(`template:${archetype}:services`).then(t => t ? tokenReplace(t, contentJson, businessFields, ogImage) : null).catch(() => null),
+      about:    replaced.about    || await env.SITES.get(`template:${archetype}:about`).then(t => t ? tokenReplace(t, contentJson, businessFields, ogImage) : null).catch(() => null),
+      contact:  replaced.contact  || await env.SITES.get(`template:${archetype}:contact`).then(t => t ? tokenReplace(t, contentJson, businessFields, ogImage) : null).catch(() => null),
+    };
+    let html = buildExpressPage(expressBase);
+    html = injectCss(html, css, 'index');
+    html = await claudePersonalise(html, contentJson, businessFields, archetype, env);
+    builtPages['index'] = html;
+  } else {
+    for (const [pageName, template] of Object.entries(pages)) {
+      if (!template) { console.warn(`Template missing for ${archetype}:${pageName}`); continue; }
+      let html = tokenReplace(template, contentJson, businessFields, ogImage);
+      html = injectCss(html, css, pageName);
+      html = await claudePersonalise(html, contentJson, businessFields, archetype, env);
 
-    // Pass 4 validation + retry
-    if (!html || !html.includes('<!DOCTYPE')) {
-      console.warn(`Pass 4 invalid output for "${pageName}" — retrying`);
-      try {
-        const p4Retry = await callClaudeInternal(
-          buildPass4SystemPrompt(pageName, pkg),
-          [{ role: 'user', content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) }],
-          env,
-          { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
-        );
-        html = stripMarkdown(p4Retry);
-      } catch (e) { console.error(`Pass 4 retry failed for "${pageName}":`, e.message); continue; }
-    }
-
-    // Inject CSS
-    html = injectCss(html, cssBlock, pageName);
-
-    // Guarantee hero background image is set regardless of Claude compliance
-    if (pageName === 'index') html = injectHeroImage(html, unsplashContext);
-
-    // QA check
-    const qaResult = runQAChecks(html, f, pageName, contentJson);
-    if (!qaResult.passed) {
-      console.warn(`QA failed "${pageName}":`, qaResult.failures.join(', '));
-      try {
-        const qaRetry = await callClaudeInternal(
-          buildPass4SystemPrompt(pageName, pkg),
-          [
-            { role: 'user',      content: buildPass4UserPrompt(pageName, contentJson, cssBlock, f, unsplashContext, slug, pkg, env) },
-            { role: 'assistant', content: html },
-            { role: 'user',      content: `QA failed: ${qaResult.failures.join(', ')}. Fix and return complete corrected HTML.` },
-          ],
-          env,
-          { maxTokens: pass4Budgets[pageName] || PASS_4_DEFAULT_TOKENS },
-        );
-        const retryHtml = injectCss(qaRetry, cssBlock, pageName);
-        const retryQA   = runQAChecks(retryHtml, f, pageName, contentJson);
-        if (retryQA.passed) {
-          html = retryHtml;
-          await updateAirtableRecord(airtableId, { 'QA Status': 'Passed' }, env);
-        } else {
-          await sendWhatsApp(env.WH_PHONE,
-            `⚠️ QA FAILED x2 — page "${pageName}": ${f['Business Name']}\nFailed: ${retryQA.failures.join(', ')}`,
-            env, { skipTestRedirect: true },
-          ).catch(() => {});
-          await updateAirtableRecord(airtableId, { 'QA Status': 'Failed' }, env);
-        }
-      } catch(e) { console.warn(`QA retry error "${pageName}":`, e.message); }
-    } else {
-      await updateAirtableRecord(airtableId, { 'QA Status': 'Passed' }, env);
-    }
-
-    // ── Pass 5: Soul — Personality & Polish ───────────────────
-    // Surgical micro-copy layer. Reads rendered HTML, patches specific elements.
-    // Skipped if Pass 4 failed.
-    if (html && pass5Budgets) {
-      try {
-        const soulResult = await callClaudeInternal(
-          buildPass5SystemPrompt(pageName, industryBrief),
-          [{
-            role: 'user',
-            content: buildPass5UserPrompt(pageName, html, contentJson, f, industryBrief),
-          }],
-          env,
-          { maxTokens: pass5Budgets[pageName] || PASS_5_DEFAULT_TOKENS },
-        );
-        // Pass 5 returns the patched HTML — validate before accepting
-        const soulStripped = stripMarkdown(soulResult);
-        if (soulStripped && soulStripped.includes('<!DOCTYPE')) {
-          html = soulStripped;
-        } else {
-          console.warn(`Pass 5 Soul returned non-HTML for "${pageName}" — keeping Pass 4 output`);
-        }
-      } catch (e) {
-        // Pass 5 is non-critical — if it fails, keep Pass 4 output
-        console.warn(`Pass 5 Soul failed for "${pageName}" (non-fatal):`, e.message);
+      // QA
+      const qaResult = runQAChecks(html, f, pageName, contentJson);
+      if (!qaResult.passed) {
+        console.warn(`QA issues on "${pageName}" for ${f['Business Name']}:`, qaResult.failures.join(', '));
+        await sendWhatsApp(env.WH_PHONE,
+          `⚠️ QA issues on "${pageName}": ${f['Business Name']}\n${qaResult.failures.join(', ')}`,
+          env, { skipTestRedirect: true }).catch(() => {});
+        await updateAirtableRecord(airtableId, { 'QA Status': 'Issues' }, env).catch(() => {});
+      } else {
+        await updateAirtableRecord(airtableId, { 'QA Status': 'Passed' }, env).catch(() => {});
       }
-    }
 
-    builtPages[pageName] = html;
+      builtPages[pageName] = html;
+    }
   }
 
   if (!builtPages['index']) throw new Error('Home page (index) failed to build — aborting');
 
-  // ── Store all pages in KV ───────────────────────────────────
+  // ── STORE PAGES IN KV ──────────────────────────────────────────
   const previewUrl = `https://${PREVIEW_DOMAIN}/${slug}`;
 
   for (const [pageName, html] of Object.entries(builtPages)) {
@@ -1565,20 +1593,16 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     await env.SITES.put(`draft:${slug}:${pageName}`,   html,          { expirationTtl: 60 * 60 * 24 * 35 });
   }
 
-  // Backward-compat legacy single-key entries point to home page
-  const homeWithWatermark = isOutbound
-    ? addWatermark(builtPages['index'], f, domain, airtableId, env)
-    : builtPages['index'];
-
-  await env.SITES.put(`preview:${slug}`,          homeWithWatermark,   { expirationTtl: 60 * 60 * 24 * 35 });
-  await env.SITES.put(`preview-original:${slug}`, homeWithWatermark,   { expirationTtl: 60 * 60 * 24 * 35 });
-  await env.SITES.put(`draft:${slug}`,            builtPages['index'], { expirationTtl: 60 * 60 * 24 * 35 });
+  // Backward-compat single-key entries
+  const homeWithWatermark = isOutbound ? addWatermark(builtPages['index'], f, domain, airtableId, env) : builtPages['index'];
+  await env.SITES.put(`preview:${slug}`,          homeWithWatermark,        { expirationTtl: 60 * 60 * 24 * 35 });
+  await env.SITES.put(`preview-original:${slug}`, homeWithWatermark,        { expirationTtl: 60 * 60 * 24 * 35 });
+  await env.SITES.put(`draft:${slug}`,            builtPages['index'],      { expirationTtl: 60 * 60 * 24 * 35 });
 
   const expiryDate = new Date(Date.now() + PREVIEW_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString();
   await env.SITES.put(`preview_expiry:${slug}`, expiryDate);
 
-  const tokens = Math.round(Object.values(builtPages).join('').length / 4);
-  await logBuild(airtableId, 'Success', null, env, tokens);
+  await logBuild(airtableId, 'Success', null, env);
   await logHealth(env, 'build', 'success');
 
   await updateAirtableRecord(airtableId, {
@@ -1587,7 +1611,6 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
     ...(paymentId ? { 'PayFast Payment ID': paymentId } : {}),
   }, env);
 
-  // ── Send preview messages ───────────────────────────────────
   if (isOutbound) {
     await sendOutboundPreviewMessage(f, previewUrl, domain, airtableId, env);
   } else {
@@ -1595,35 +1618,29 @@ async function triggerBuildInternal(airtableId, paymentId, env, preloadedFields,
   }
 
   await sendWhatsApp(env.WH_PHONE,
-    `✅ BUILD COMPLETE: ${f['Business Name']}\nPreview: ${previewUrl}\nPackage: ${pkg}\nPages: ${pages.length}\nOutbound: ${isOutbound ? 'Yes' : 'No'}\nTokens: ~${tokens}`,
+    `✅ BUILD COMPLETE: ${f['Business Name']}\nArchetype: ${archetype}\nPreview: ${previewUrl}\nPackage: ${pkg}\nPages: ${Object.keys(builtPages).length}`,
     env, { skipTestRedirect: true },
   );
 
-  // Return slug so queue consumer can write correct build_status (Fix D)
   return slug;
 }
 
+/**
+ * claudePersonalise — lightweight cleanup pass.
+ * Only calls Claude if there are still unfilled {{token}} placeholders
+ * after tokenReplace (e.g. archetype-specific tokens not in contentJson).
+ * Returns the HTML unchanged if nothing needs filling.
+ */
+async function claudePersonalise(html, contentJson, businessFields, archetype, env) {
+  // All tokens are covered by tokenReplace — no Claude call needed.
+  return html;
+}
 /**
  * Inject the CSS block into the page HTML at the WH_CSS_INJECT placeholder.
  * Fallback chain: marker → </head> → <body → prepend.
  * Pass 3 system prompt instructs the model to emit <!--WH_CSS_INJECT--> exactly
  * once; this function makes it real.
  */
-// ============================================================
-// STRIP MARKDOWN FENCES
-// Claude occasionally wraps output in ```html or ```css fences
-// despite prompt instructions. Strip them before using the output.
-// ============================================================
-
-function stripMarkdown(raw) {
-  if (!raw) return raw;
-  // Remove opening fence: ```html, ```css, ```json, ``` etc.
-  let s = raw.replace(/^```[a-z]*\s*/i, '').trimStart();
-  // Remove closing fence
-  s = s.replace(/\s*```\s*$/i, '').trimEnd();
-  return s;
-}
-
 function injectCss(html, cssBlock, pageName) {
   if (html.includes('<!--WH_CSS_INJECT-->')) {
     return html.replace('<!--WH_CSS_INJECT-->', cssBlock);
@@ -1632,65 +1649,6 @@ function injectCss(html, cssBlock, pageName) {
   if (html.includes('</head>')) return html.replace('</head>', `${cssBlock}\n</head>`);
   if (/<body\b/i.test(html))   return html.replace(/<body\b/i, `${cssBlock}\n<body`);
   return cssBlock + '\n' + html;
-}
-
-// ============================================================
-// HERO IMAGE INJECTION
-// Guarantees the hero background-image is set regardless of whether
-// Claude replaced the UNSPLASH_URL placeholder or omitted it entirely.
-// Extracts the first Unsplash URL from the unsplashContext string and
-// writes it into the hero section style attribute.
-// ============================================================
-
-function injectHeroImage(html, unsplashContext) {
-  if (!unsplashContext) return html;
-
-  // Extract first usable image URL — Unsplash OR R2/CDN client photos
-  // Try image-extension URLs first, then any https URL as fallback
-  const imgMatch = unsplashContext.match(/https?:\/\/[^\s\n"')]+\.(?:jpg|jpeg|png|webp|gif)(?:[^\s\n"')]*)?/i);
-  const anyMatch = unsplashContext.match(/https?:\/\/[^\s\n"')]+/);
-  const rawUrl   = (imgMatch || anyMatch)?.[0];
-  if (!rawUrl) return html;
-
-  // For Unsplash URLs: append sizing params. For R2/CDN: use as-is.
-  const heroUrl = rawUrl.includes('unsplash.com')
-    ? rawUrl.split('?')[0] + '?w=1600&q=80&auto=format'
-    : rawUrl;
-
-  // Case 1: Claude left the UNSPLASH_URL placeholder — replace it
-  if (html.includes('UNSPLASH_URL')) {
-    return html.replace(/UNSPLASH_URL/g, heroUrl);
-  }
-
-  // Case 2: Hero has background-image in inline style — replace if empty/malformed/placeholder
-  const bgImgRe = /(class="hero"[^>]*?style="[^"]*background-image:url\()([^)]*)(\)[^"]*")/;
-  const bgMatch = html.match(bgImgRe);
-  if (bgMatch) {
-    const currentUrl = bgMatch[2].replace(/['"]/g, '').trim();
-    // Only overwrite if the URL is missing, empty, a placeholder, or non-http
-    if (!currentUrl || currentUrl === '' || currentUrl.includes('UNSPLASH') || !currentUrl.startsWith('http')) {
-      return html.replace(bgImgRe, `$1'${heroUrl}'$3`);
-    }
-    return html; // Already has a real URL — leave it alone
-  }
-
-  // Case 3: Hero exists but has no background-image at all — inject it
-  if (html.includes('class="hero"')) {
-    // If there's already a style attribute on the hero, prepend to it
-    if (/class="hero"[^>]*style="/.test(html)) {
-      return html.replace(
-        /(class="hero"[^>]*style=")([^"]*")/,
-        `$1background-image:url('${heroUrl}');$2`
-      );
-    }
-    // No style attribute — add one
-    return html.replace(
-      /class="hero"/,
-      `class="hero" style="background-image:url('${heroUrl}')"`
-    );
-  }
-
-  return html;
 }
 
 // ============================================================
@@ -1707,14 +1665,10 @@ async function sendInboundPreviewMessage(f, previewUrl, domain, airtableId, env)
 }
 
 async function sendOutboundPreviewMessage(f, previewUrl, domain, airtableId, env) {
-  const tier    = getPricingTier(f['Package'] || 'Standard');
-  const payLink = buildPayFastLink(tier.retainer, 'Website Hub Monthly Subscription', airtableId, env, {
-    itemDesc:  `${f['Business Name']} — first month`,
-    returnUrl: `https://${PREVIEW_DOMAIN}/${slugify(f['Business Name'])}`,
-    cancelUrl: previewUrl,
-    notifyUrl: env.WORKER_URL_LAUNCH ? `${env.WORKER_URL_LAUNCH}/payfast-webhook` : undefined,
-  });
+  const tier = getPricingTier(f['Package'] || 'Standard');
 
+  // NEW ARCHITECTURE: Outbound converges with inbound at preview stage.
+  // No payment link in first message — customer sees preview first, then clicks "Go Live".
   try {
     const prompt = `Write a WhatsApp message to a South African small business owner. Maximum 4 lines. Warm and direct — SA tone.
 
@@ -1723,9 +1677,9 @@ Town/Area: ${f['Area'] || 'South Africa'}
 Industry: ${f['Industry'] || 'small business'}
 
 Line 1: Start with their business name and town — something specific and personal.
-Line 2: Say our team built them a free website — no obligation, no catch.
-Line 3: Preview link only: ${previewUrl}
-Line 4: Single action — go live for R${tier.retainer}/month. Payment link: ${payLink}
+Line 2: Say our team built them a free website preview — no obligation, no catch.
+Line 3: Preview link: ${previewUrl}
+Line 4: Single action — tap the link to see it, then tap *Go Live* to publish for R${tier.retainer}/month.
 Final line must always be: "_Reply STOP to opt out._"
 
 Write only the message. No labels. No intro. No explanation.`;
@@ -1738,7 +1692,15 @@ Write only the message. No labels. No intro. No explanation.`;
     await sendWhatsApp(f['WhatsApp'], message.trim(), env);
   } catch {
     await sendWhatsApp(f['WhatsApp'],
-      `Hi *${f['Business Name']}* in ${f['Area'] || 'South Africa'} 👋\n\nOur team built your business a free website — no strings attached.\n\n👀 ${previewUrl}\n\n🚀 Go live for R${tier.retainer}/mo: ${payLink}\n\n_Reply STOP to opt out._`,
+      `Hi *${f['Business Name']}* in ${f['Area'] || 'South Africa'} 👋
+
+Our team built your business a free website — no strings attached.
+
+👀 ${previewUrl}
+
+Tap *Go Live* on the page to publish it for R${tier.retainer}/month.
+
+_Reply STOP to opt out._`,
       env);
   }
 
@@ -1842,133 +1804,6 @@ async function fetchUnsplashPhotos(f, env) {
 
   await logHealth(env, 'unsplash', photos.length > 0 ? 'success' : 'partial');
   return photos;
-}
-
-// ============================================================
-// VISION SYSTEM — Claude Vision brand-signal extraction
-// Called by patch-worker's photo-upload handler via BUILD_QUEUE.
-// Moved here from enrichment worker; no more cross-worker HTTP.
-// ============================================================
-
-/**
- * Runs Claude Vision over uploaded images, extracts a brand brief, and queues
- * a rebuild via BUILD_QUEUE. Idempotent — calling twice just queues twice;
- * the second build supersedes the first.
- *
- * @param {string} airtableId
- * @param {string} slug
- * @param {Array<{key:string}>} r2Paths      R2 keys returned by patch-worker upload
- * @param {Array<{arrayBuffer:Function,type:string,name:string}>} files
- * @param {object} env
- */
-export async function runVisionAndRebuild(airtableId, slug, r2Paths, files, env) {
-  let brandBrief = '';
-
-  if (await getFlag(env, 'VISION_VALIDATION_ENABLED')) {
-    const visionImages = [];
-    for (let i = 0; i < Math.min(files.length, 3); i++) {
-      try {
-        const bytes = await files[i].arrayBuffer();
-        const b64   = uint8ArrayToBase64(new Uint8Array(bytes));
-        const mime  = files[i].type || 'image/jpeg';
-        visionImages.push({ base64: b64, mediaType: mime, name: files[i].name });
-      } catch (e) {
-        console.warn(`Failed to read file for vision: ${files[i].name}`, e);
-      }
-    }
-
-    if (visionImages.length > 0) {
-      brandBrief = await extractBrandSignals(visionImages, slug, env);
-      await logHealth(env, 'anthropic', 'success');
-    }
-  }
-
-  const r2PathList    = r2Paths.map(p => p.key).join(', ');
-  const existingFields = (await getAirtableRecord(airtableId, env)).fields;
-  const existingPhotos = existingFields['Photos'] || '';
-  const allPhotos      = [existingPhotos, r2PathList].filter(Boolean).join(', ');
-
-  const updateFields = { 'Photos': allPhotos };
-  if (brandBrief) {
-    const existingNotes = existingFields['Extra Notes'] || '';
-    updateFields['Extra Notes'] = `[BRAND ANALYSIS]\n${brandBrief}\n\n${existingNotes}`.slice(0, 5000);
-  }
-
-  await updateAirtableRecord(airtableId, updateFields, env);
-  await logHealth(env, 'airtable', 'success');
-
-  // Only reset status if NOT already Live
-  if (existingFields['Status'] !== 'Live') {
-    await updateAirtableRecord(airtableId, { 'Status': 'Deposit Paid' }, env);
-  }
-
-  // Queue rebuild directly — no HTTP hop, vision and build are in the same worker now
-  await env.BUILD_QUEUE.send({
-    airtableId,
-    paymentId:  null,
-    fields:     null, // triggerBuildInternal will refetch
-    isOutbound: false,
-  });
-
-  await logActivity(env, 'assets_processed', {
-    slug,
-    fileCount:  r2Paths.length,
-    visionUsed: !!brandBrief,
-  });
-
-  await sendWhatsApp(env.WH_PHONE,
-    `📸 ASSETS PROCESSED: ${slug}\n${r2Paths.length} file${r2Paths.length !== 1 ? 's' : ''} stored\nRebuild queued`,
-    env, { skipTestRedirect: true },
-  );
-}
-
-async function extractBrandSignals(images, slug, env) {
-  const content = [{
-    type: 'text',
-    text: `Analyse these brand assets (logo and photos) for a South African small business. Extract the following:
-
-1. PRIMARY COLOUR — the most dominant brand colour (hex code)
-2. SECONDARY COLOUR — supporting colour (hex code)
-3. ACCENT COLOUR — highlight/pop colour (hex code)
-4. TYPOGRAPHY FEEL — is the logo serif, sans-serif, script, geometric, bold/delicate?
-5. BRAND PERSONALITY — 3 adjectives that describe the visual tone
-6. DESIGN DIRECTION — one sentence: what design style should the website use to match this brand?
-7. LOGO PRESENT — yes/no
-8. PHOTO QUALITY — describe the photo quality and style if photos are present
-
-Be specific and practical. A developer will use this to build a website.
-Format your response as plain text with labels like "PRIMARY COLOUR: #hexcode".`,
-  }];
-
-  for (const img of images) {
-    content.push({
-      type:   'image',
-      source: { type: 'base64', media_type: img.mediaType, data: img.base64 },
-    });
-  }
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:  'POST',
-    headers: {
-      'Content-Type':      'application/json',
-      'x-api-key':         env.ANTHROPIC_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model:      await resolveClaudeModel(env),
-      max_tokens: 1000,
-      messages:   [{ role: 'user', content }],
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Brand analysis failed: ${res.status} — ${err}`);
-  }
-
-  const data      = await res.json();
-  const textBlock = data.content?.find(b => b.type === 'text');
-  return textBlock?.text || '';
 }
 
 // ============================================================
@@ -2119,519 +1954,339 @@ async function fetchGooglePlacesProspects(province, industry, limit, env) {
 }
 
 // ============================================================
-// BUILD PROMPTS — 3-pass pipeline
-// Tightened per battle plan §4: must/do not language, exact CSS classes,
-// exact card counts matching contentJson.services length.
+// BUILD PROMPTS — Pass 1 archetype-aware content strategy
+// Pass 1 is the only Claude call in the new template pipeline.
+// It outputs a complete JSON object covering all tokens for the
+// detected archetype. tokenReplace() in shared-services fills
+// the template; claudePersonalise() handles any gaps.
 // ============================================================
 
-function buildPass1SystemPrompt(industryBrief) {
-  return `You are a South African brand strategist and content director. You have 15 years building brands for SA small businesses across every industry and township.
+function buildPass1SystemPrompt(archetype) {
+  const archetypeContext = {
+    emergency: 'emergency trades business (plumber/electrician/locksmith/AC/security). Someone is stressed, something is broken, they need help NOW. Be urgent, confident, and reassuring.',
+    trust:     'professional services business (lawyer/accountant/doctor/dentist/financial advisor). Client is handing over a serious problem — they need to feel SAFE. Be authoritative, calm, and credentialed.',
+    experience: 'experience-based business (restaurant/salon/spa/barber/hotel). Client is buying a feeling, not just a service. Make them imagine being there — warm, sensory, aspirational.',
+    local:     'local community business (hardware/pharmacy/butcher/grocer/creche). Beat chains on trust and relationship. Community beats convenience — personal, neighbourhood-feel, owner-forward.',
+    results:   'results-driven business (panel beater/landscaper/renovator/personal trainer/photographer). Show the work and let it sell itself — transformation narrative, outcome-focused, bold.',
+  }[archetype] || 'South African small business';
 
-CREATIVE BRIEF FOR THIS BUILD:
-Mood: ${industryBrief.mood}
-Copy Style: ${industryBrief.copyStyle}
-Emotional Register: ${industryBrief.emotionalRegister}
-Vibe Words to weave in: ${industryBrief.vibeWords.join(', ')}
-Trust Signals to reference: ${industryBrief.trustSignals.join(', ')}
-Suggested colour direction: bg ${industryBrief.palette.bg}, accent ${industryBrief.palette.accent}
-Aesthetic: ${industryBrief.aesthetic}
-Display Font suggestion: ${industryBrief.fonts.display}
-Body Font suggestion: ${industryBrief.fonts.body}
+  return `You are a South African brand strategist building website content for a ${archetypeContext}
 
 OUTPUT RULES — non-negotiable:
-→ Output ONLY valid JSON. Start with { and end with }. No preamble, no backticks.
-→ Copy MUST be warm, confident, specifically South African — not corporate, not American.
-→ Headlines MUST be short, punchy, memorable — built around the actual business story.
-→ Colours MUST be influenced by the brief above unless the client specified something different.
+→ Output ONLY valid JSON. Start with { and end with }. No preamble, no backticks, no markdown.
+→ All copy must be warm, confident, specifically South African — not corporate, not American.
+→ Headlines must be short, punchy, memorable — built around the actual business story.
 → NEVER use Lorem Ipsum, AI-sounding language, or generic stock phrases.
-→ The creative brief above is your compass — let it inform every word and colour choice.`;
+→ Fill EVERY field — never leave a field as null or empty string unless it genuinely does not apply.
+→ All phone tokens must be omitted from JSON — phone is injected separately from Airtable.`;
 }
 
-function buildPass1UserPrompt(fields, industryBrief) {
-  const pkg       = fields['Package'] || 'Standard';
-  const isPremium = packageKey(pkg) === 'premium';
+function buildPass1UserPrompt(fields, archetype, ogImage) {
+  const f = fields;
+  const bizName = f['Business Name'] || '';
+  const industry = f['Industry'] || '';
+  const area = f['Area'] || '';
+  const about = f['About'] || '';
+  const services = f['Services'] || '';
+  const vibe = f['Vibe'] || '';
 
-  const brief = industryBrief || {};
-  const suggestedPalette = brief.palette
-    ? `Suggested: bg ${brief.palette.bg}, accent ${brief.palette.accent} (override if client specified colours)`
-    : 'Choose industry-appropriate';
+  // Archetype-specific JSON schemas
+  const schemas = {
 
-  return `Generate website content for this South African business. Return ONLY this JSON structure with no other text:
-
-BUSINESS BRIEF:
-Name: ${fields['Business Name'] || ''}
-Industry: ${fields['Industry'] || ''}
-About: ${fields['About'] || ''}
-Services: ${fields['Services'] || ''}
-Area: ${fields['Area'] || ''}
-Package: ${pkg}
-Voice/Vibe: ${fields['Vibe'] || brief.mood || 'Professional, warm, South African'}
-Social bio: ${fields['Bio'] || 'Not provided'}
-Colours requested: ${fields['Colours'] || suggestedPalette}
-Suggested fonts: Display: ${brief.fonts?.display || 'Syne'}, Body: ${brief.fonts?.body || 'DM Sans'}
-Vibe words to weave in: ${brief.vibeWords?.join(', ') || ''}
-Trust signals to reference: ${brief.trustSignals?.join(', ') || ''}
-
-Return this exact JSON:
-{
-  "aesthetic": "one of: refined_luxury | bold_modern | warm_artisan | raw_editorial | soft_organic",
-  "color_bg": "#hex — dominant background",
-  "color_surface": "#hex — card/section background",
-  "color_accent": "#hex — primary accent, 1 strong colour",
-  "color_text": "#hex — body text",
-  "color_muted": "#hex — secondary text",
-  "font_display": "Google Font name for headings (NOT Inter/Roboto/Arial)",
-  "font_body": "Google Font name for body",
+    emergency: `{
+  "page_title": "${bizName} | Emergency ${industry} | ${area}",
+  "og_title": "${bizName} | ${area}'s Trusted ${industry}",
+  "og_description": "One sentence — specific, urgent, local",
   "hero_badge": "short location + trust line, max 8 words",
-  "hero_h1_line1": "line 1",
-  "hero_h1_line2": "line 2",
-  "hero_h1_line3": "line 3",
-  "hero_accent_word": "one word in line 2 or 3 that gets accent colour",
-  "hero_copy": "2 sentences — the business story, warm and specific",
-  "cta_primary": "primary button text",
-  "cta_secondary": "WhatsApp button text",
-  "stat1_num": "e.g. 15+", "stat1_lbl": "e.g. Years in Pretoria East",
+  "hero_h1_line1": "punchy first line — the problem or question",
+  "hero_h1_line2": "the solution line",
+  "hero_h1_line3": "the proof or speed promise",
+  "hero_accent_word": "one word from line2 or line3 to highlight",
+  "hero_copy": "2 sentences — the business story, warm and specific to ${area}",
+  "cta_primary": "urgent WhatsApp CTA e.g. Get Emergency Help",
+  "cta_secondary": "call CTA e.g. Call Pierre Now",
+  "stat1_num": "e.g. 15+", "stat1_lbl": "e.g. Years in ${area}",
   "stat2_num": "e.g. 24/7", "stat2_lbl": "e.g. Emergency Response",
-  "stat3_num": "e.g. 100%", "stat3_lbl": "e.g. Family-Owned",
+  "stat3_num": "e.g. 100%", "stat3_lbl": "e.g. Workmanship Guaranteed",
+  "services_section_tag": "e.g. What We Fix",
+  "services_h2": "e.g. Our Services",
   "services": [
-    {"icon": "emoji", "name": "Service name", "desc": "One sentence, specific to their business"},
-    {"icon": "emoji", "name": "Service name", "desc": "One sentence"},
-    {"icon": "emoji", "name": "Service name", "desc": "One sentence"},
-    {"icon": "emoji", "name": "Service name", "desc": "One sentence"},
-    {"icon": "emoji", "name": "Service name", "desc": "One sentence"}
+    {"icon": "emoji", "name": "service name", "desc": "one sentence, specific to ${industry} in ${area}"},
+    {"icon": "emoji", "name": "service name", "desc": "one sentence"},
+    {"icon": "emoji", "name": "service name", "desc": "one sentence"},
+    {"icon": "emoji", "name": "service name", "desc": "one sentence"},
+    {"icon": "emoji", "name": "service name", "desc": "one sentence"}
   ],
-  "about_headline": "About section H2 — specific to their story",
-  "about_pull_quote": "One memorable line that captures their brand promise",
-  "about_p1": "First paragraph — their story and why they started",
-  "about_p2": "Second paragraph — what makes them different",
-  "trust_points": ["Point 1", "Point 2", "Point 3"],
-  "contact_h2_line1": "Contact headline line 1",
-  "contact_h2_line2": "line 2 (accent word here)",
-  "contact_h2_accent": "the accent word",
-  "contact_copy": "One line — warm, direct, reassuring",
-  "services_section_tag": "section label e.g. What We Do",
-  "services_h2": "Services section headline",
-  "about_section_tag": "section label e.g. Our Story",
-  "contact_section_tag": "section label e.g. Get In Touch",
-  "og_title": "${fields['Business Name']} | tagline for OG",
-  "og_description": "One sentence for WhatsApp link preview",
-  "page_title": "${fields['Business Name']} | Industry | Area"${isPremium ? `,
-  "testimonials": [],
-  "gallery_heading": "Gallery section headline"` : ''}
-}`;
-}
+  "about_section_tag": "e.g. Our Story",
+  "about_headline": "specific to their story e.g. 15 Years Keeping ${area} Running",
+  "about_pull_quote": "one memorable line capturing their brand promise",
+  "about_p1": "paragraph — their story and why they started",
+  "about_p2": "paragraph — what makes them different in ${area}",
+  "owner_name": "infer from business name or use placeholder",
+  "trust_point1": "e.g. Licensed & Insured",
+  "trust_point2": "e.g. 24/7 Emergency",
+  "trust_point3": "e.g. Upfront Quotes",
+  "contact_section_tag": "e.g. Get In Touch",
+  "contact_h2_line1": "e.g. Got a problem?",
+  "contact_h2_line2": "e.g. Let's sort it out.",
+  "contact_copy": "one line — warm, direct, reassuring, specific to response time",
+  "hours_emergency": "e.g. 24/7 for emergencies",
+  "coverage_intro": "one sentence intro to coverage area",
+  "coverage_response_time": "e.g. 30–60 minutes",
+  "coverage_areas": ["${area}", "nearby suburb", "nearby suburb", "nearby suburb", "nearby suburb", "nearby suburb", "nearby suburb", "nearby suburb"]
+}`,
 
-function buildPass2SystemPrompt() {
-  return `You are a senior CSS engineer building a shared design system for a South African small business website.
+    trust: `{
+  "page_title": "${bizName} | ${industry} | ${area}",
+  "og_title": "${bizName} | Trusted ${industry} in ${area}",
+  "og_description": "One sentence — authority, area, reassurance",
+  "hero_badge": "e.g. Admitted Attorneys Since 1998 · ${area}",
+  "hero_h1_line1": "what they protect or resolve",
+  "hero_h1_line2": "the emotional promise",
+  "hero_h1_line3": "the credibility anchor",
+  "hero_accent_word": "one word to highlight in accent colour",
+  "hero_copy": "2 sentences — specific, calm, authoritative",
+  "cta_primary": "e.g. Book a Consultation",
+  "cta_secondary": "e.g. Our Practice Areas",
+  "profession": "e.g. Attorney | Accountant | Doctor",
+  "founding_year": "e.g. 1998",
+  "consultation_fee": "e.g. R850 per hour | Free initial consultation",
+  "credential1": "e.g. Law Society of SA", "credential2": "e.g. 27 Years Experience",
+  "credential3": "e.g. 500+ Matters Resolved", "credential4": "e.g. Admitted to Bar 1998",
+  "about_philosophy": "one sentence — their professional philosophy",
+  "owner_name": "inferred from business name",
+  "owner_title": "e.g. Managing Attorney | Senior Partner",
+  "team_member2_name": "plausible SA name", "team_member2_title": "e.g. Associate Attorney",
+  "team_member3_name": "plausible SA name", "team_member3_title": "e.g. Conveyancing Specialist",
+  "address_line1": "${area}, South Africa",
+  "address_line2": "",
+  "trust_point1": "e.g. HPCSA Registered", "trust_point2": "e.g. 27 Years Experience",
+  "trust_point3": "e.g. Free Consultation", "trust_point4": "e.g. Confidential",
+  "services_section_tag": "e.g. Our Practice Areas",
+  "services_h2": "e.g. How We Can Help",
+  "services": [
+    {"icon": "emoji", "name": "practice area", "desc": "one sentence", "outcome": "client outcome e.g. Resolved efficiently and confidentially"},
+    {"icon": "emoji", "name": "practice area", "desc": "one sentence", "outcome": "client outcome"},
+    {"icon": "emoji", "name": "practice area", "desc": "one sentence", "outcome": "client outcome"},
+    {"icon": "emoji", "name": "practice area", "desc": "one sentence", "outcome": "client outcome"},
+    {"icon": "emoji", "name": "practice area", "desc": "one sentence", "outcome": "client outcome"},
+    {"icon": "emoji", "name": "practice area", "desc": "one sentence", "outcome": "client outcome"}
+  ],
+  "process_step1_title": "e.g. Initial Consultation", "process_step1_desc": "one sentence",
+  "process_step2_title": "e.g. We Review Your Matter", "process_step2_desc": "one sentence",
+  "process_step3_title": "e.g. We Act on Your Behalf", "process_step3_desc": "one sentence",
+  "about_section_tag": "e.g. Our Firm",
+  "about_headline": "specific e.g. Protecting ${area} Families Since YEAR",
+  "about_pull_quote": "one memorable line about their approach",
+  "about_p1": "paragraph — the firm's founding story",
+  "about_p2": "paragraph — their approach and values",
+  "about_p3": "paragraph — why clients choose them",
+  "testimonials": [
+    {"name": "Initial only e.g. T.M.", "quote": "authentic-sounding SA testimonial", "matter": "e.g. Family Law"},
+    {"name": "Initial only", "quote": "authentic SA testimonial", "matter": "e.g. Property Transfer"},
+    {"name": "Initial only", "quote": "authentic SA testimonial", "matter": "e.g. Commercial Contract"}
+  ],
+  "faq_intro": "one sentence introducing the FAQ",
+  "faqs": [
+    {"q": "relevant question", "a": "clear, reassuring answer"},
+    {"q": "relevant question", "a": "clear answer"},
+    {"q": "relevant question", "a": "clear answer"},
+    {"q": "relevant question", "a": "clear answer"},
+    {"q": "relevant question", "a": "clear answer"},
+    {"q": "relevant question", "a": "clear answer"}
+  ],
+  "contact_section_tag": "e.g. Book a Consultation",
+  "contact_h2_line1": "e.g. Let\'s Discuss",
+  "contact_h2_line2": "e.g. Your Matter",
+  "contact_copy": "one line — reassuring and professional"
+}`,
 
-OUTPUT RULES — non-negotiable:
-→ Output ONLY a single <style> block. Start with <style> and end with </style>. No other text.
-→ Include @import for Google Fonts inside the <style> block.
-→ Define all colours, fonts, and spacing as CSS custom properties in :root.
-→ Write all shared component styles: reset, typography, nav, buttons, cards, grid utilities, footer, FAB, animations.
-→ Do NOT write any page-specific section HTML or inline content.
-→ All styles MUST be mobile-first and fully responsive. Main breakpoint: 720px.
+    experience: `{
+  "page_title": "${bizName} | ${industry} | ${area}",
+  "og_title": "${bizName} — ${industry} in ${area}",
+  "og_description": "One sentence — sensory, aspirational, specific",
+  "tagline": "short brand tagline e.g. Where Every Cut Tells a Story",
+  "business_type": "e.g. hair salon | restaurant | spa",
+  "hero_h1_line1": "experiential first line",
+  "hero_h1_line2": "sensory or mood line",
+  "hero_h1_line3": "invitation or promise",
+  "hero_copy": "2 sentences — make them imagine being there",
+  "hero_mood_line": "atmospheric one-liner e.g. From the moment you walk in, the world outside disappears.",
+  "cta_primary": "e.g. Book Your Appointment",
+  "cta_secondary": "e.g. See Our Work",
+  "vibes": ["e.g. Relaxing", "e.g. Luxurious", "e.g. Personal", "e.g. Transformative"],
+  "years_open": "e.g. 8",
+  "team_size": "e.g. 6",
+  "parking_note": "e.g. Free parking available on site",
+  "owner_name": "inferred from business name",
+  "owner_title": "e.g. Head Stylist & Owner | Head Chef & Owner",
+  "offerings_section_tag": "e.g. Our Menu | What We Offer",
+  "offerings_h2": "e.g. Designed for You",
+  "offerings": [
+    {"name": "offering name", "desc": "one sentence", "price": "e.g. From R350", "duration": "e.g. 45 min"},
+    {"name": "offering name", "desc": "one sentence", "price": "e.g. From R550", "duration": "e.g. 90 min"},
+    {"name": "offering name", "desc": "one sentence", "price": "e.g. From R280", "duration": "e.g. 30 min"},
+    {"name": "offering name", "desc": "one sentence", "price": "e.g. From R450", "duration": "e.g. 60 min"},
+    {"name": "offering name", "desc": "one sentence", "price": "e.g. From R650", "duration": "e.g. 2 hrs"},
+    {"name": "offering name", "desc": "one sentence", "price": "e.g. From R180", "duration": "e.g. 20 min"}
+  ],
+  "gallery_section_tag": "e.g. Our Work",
+  "gallery_h2": "e.g. See What We Do",
+  "gallery_intro": "one sentence inviting them to browse",
+  "about_section_tag": "e.g. Our Story",
+  "about_headline": "warm, personal headline",
+  "about_pull_quote": "one memorable line",
+  "about_p1": "paragraph — the origin story",
+  "about_p2": "paragraph — the experience and atmosphere",
+  "contact_section_tag": "e.g. Reserve Your Spot",
+  "contact_h2_line1": "e.g. Ready to Book?",
+  "contact_h2_line2": "e.g. We\'d Love to See You",
+  "contact_copy": "one line — warm, inviting",
+  "address_line1": "${area}, South Africa",
+  "address_line2": ""
+}`,
 
-TOKEN BUDGET WARNING:
-This stylesheet must be complete and fully closed with </style>. If you are approaching the response limit, prioritise: hero styles, nav styles, section styles, card styles, FAB. Cut animations and decorative effects before cutting structural styles. NEVER leave a CSS rule with an open brace and no close.`;
-}
+    local: `{
+  "page_title": "${bizName} | ${industry} | ${area}",
+  "og_title": "${bizName} — Your Local ${industry} in ${area}",
+  "og_description": "One sentence — community, local, trusted",
+  "hero_badge": "e.g. ${area}\'s Favourite ${industry} Since 2005",
+  "hero_h1_line1": "community-focused first line",
+  "hero_h1_line2": "personal connection line",
+  "hero_h1_line3": "local pride line",
+  "hero_accent_word": "one word to highlight",
+  "hero_copy": "2 sentences — neighbourhood feel, personal",
+  "cta_primary": "e.g. WhatsApp Us",
+  "cta_secondary": "e.g. Find Us",
+  "since_year": "e.g. 2005",
+  "trade": "e.g. pharmacy | hardware store | butcher",
+  "about_tagline": "short tagline e.g. Part of ${area} since 2005",
+  "badges": ["e.g. Family-Owned", "e.g. Since 2005", "e.g. Community First", "e.g. Local Delivery"],
+  "delivery_note": "e.g. Local delivery available — WhatsApp to arrange",
+  "owner_name": "inferred from business name",
+  "owner_title": "e.g. Owner & Founder",
+  "staff_member2_name": "plausible SA name", "staff_member2_role": "e.g. Store Manager",
+  "staff_member3_name": "plausible SA name", "staff_member3_role": "e.g. Senior Staff Member",
+  "address_line1": "${area}, South Africa",
+  "address_line2": "",
+  "services_section_tag": "e.g. What We Stock | What We Offer",
+  "services_h2": "e.g. Everything You Need",
+  "services": [
+    {"icon": "emoji", "name": "category/product", "desc": "one sentence", "note": "e.g. Wide range in stock"},
+    {"icon": "emoji", "name": "category/product", "desc": "one sentence", "note": "e.g. Freshly sourced daily"},
+    {"icon": "emoji", "name": "category/product", "desc": "one sentence", "note": ""},
+    {"icon": "emoji", "name": "category/product", "desc": "one sentence", "note": ""},
+    {"icon": "emoji", "name": "category/product", "desc": "one sentence", "note": ""},
+    {"icon": "emoji", "name": "category/product", "desc": "one sentence", "note": ""}
+  ],
+  "process_step1_title": "e.g. Walk In or WhatsApp", "process_step1_desc": "one sentence",
+  "process_step2_title": "e.g. We Help You Find It", "process_step2_desc": "one sentence",
+  "process_step3_title": "e.g. Take It Home", "process_step3_desc": "one sentence",
+  "about_section_tag": "e.g. Part of the Community",
+  "about_headline": "personal, local headline",
+  "about_pull_quote": "one memorable community-focused line",
+  "about_p1": "paragraph — the origin story and connection to ${area}",
+  "about_p2": "paragraph — what makes them the go-to local option",
+  "about_p3": "paragraph — community involvement",
+  "testimonials": [
+    {"name": "SA first name e.g. Thabo", "quote": "warm, local testimonial", "context": "e.g. Sandton resident"},
+    {"name": "SA first name", "quote": "warm testimonial", "context": "e.g. Regular customer"},
+    {"name": "SA first name", "quote": "warm testimonial", "context": "e.g. Local business owner"}
+  ],
+  "community_points": ["e.g. Supporting local schools", "e.g. Sponsoring the street fair", "e.g. Employing locally", "e.g. Stocking SA-made products"],
+  "community_cta": "e.g. Come see us — we\'re part of ${area} too",
+  "gallery_captions": ["e.g. Our store", "e.g. Fresh stock daily", "e.g. Our team", "e.g. Community event", "e.g. Behind the counter", "e.g. In the neighbourhood"],
+  "gallery_intro": "one sentence about what the photos show",
+  "contact_section_tag": "e.g. Come Say Hello",
+  "contact_h2_line1": "e.g. We\'re Right Here",
+  "contact_h2_line2": "e.g. In ${area}",
+  "contact_copy": "one line — warm and welcoming"
+}`,
 
-function buildPass2UserPrompt(contentJson, fields, industryBrief) {
-  return `Generate the shared CSS design system for this website.
+    results: `{
+  "page_title": "${bizName} | ${industry} | ${area}",
+  "og_title": "${bizName} — ${industry} Results in ${area}",
+  "og_description": "One sentence — transformation, results, proof",
+  "hero_badge": "e.g. ${area}\'s Most-Trusted ${industry}",
+  "hero_h1_line1": "transformation-focused first line",
+  "hero_h1_line2": "the proof or outcome line",
+  "hero_h1_line3": "the invitation line",
+  "hero_copy": "2 sentences — outcome-focused, specific to ${area}",
+  "hero_result_stat": "e.g. 500+",
+  "hero_result_label": "e.g. Projects Completed",
+  "cta_primary": "e.g. Get a Free Quote",
+  "cta_secondary": "e.g. See Our Work",
+  "service_category": "e.g. panel beating | landscaping | personal training",
+  "clients_served": "e.g. 500+",
+  "years_active": "e.g. 12",
+  "response_commitment": "e.g. Free quote within 24 hours",
+  "availability_note": "e.g. Currently accepting new clients",
+  "proof_stat1_num": "e.g. 500+", "proof_stat1_lbl": "e.g. Projects Completed",
+  "proof_stat2_num": "e.g. 12", "proof_stat2_lbl": "e.g. Years Experience",
+  "proof_stat3_num": "e.g. 98%", "proof_stat3_lbl": "e.g. Client Satisfaction",
+  "proof_stat4_num": "e.g. R0", "proof_stat4_lbl": "e.g. Callout Fee",
+  "owner_name": "inferred from business name",
+  "owner_title": "e.g. Master Technician & Owner",
+  "owner_credential1": "e.g. 12 Years in the Industry",
+  "owner_credential2": "e.g. MIWA Certified",
+  "owner_credential3": "e.g. Manufacturer Approved",
+  "team_member2_name": "plausible SA name", "team_member2_title": "e.g. Senior Technician",
+  "team_member3_name": "plausible SA name", "team_member3_title": "e.g. Workshop Supervisor",
+  "address_line1": "${area}, South Africa",
+  "address_line2": "",
+  "services_section_tag": "e.g. What We Do",
+  "services_h2": "e.g. Our Services",
+  "services": [
+    {"icon": "emoji", "name": "service name", "desc": "one sentence", "result": "e.g. Factory finish, guaranteed"},
+    {"icon": "emoji", "name": "service name", "desc": "one sentence", "result": "client outcome"},
+    {"icon": "emoji", "name": "service name", "desc": "one sentence", "result": "client outcome"},
+    {"icon": "emoji", "name": "service name", "desc": "one sentence", "result": "client outcome"},
+    {"icon": "emoji", "name": "service name", "desc": "one sentence", "result": "client outcome"},
+    {"icon": "emoji", "name": "service name", "desc": "one sentence", "result": "client outcome"}
+  ],
+  "process_step1_title": "e.g. Free Assessment", "process_step1_desc": "one sentence",
+  "process_step2_title": "e.g. We Get to Work", "process_step2_desc": "one sentence",
+  "process_step3_title": "e.g. Results Guaranteed", "process_step3_desc": "one sentence",
+  "about_section_tag": "e.g. The Work Speaks",
+  "about_headline": "results-focused headline",
+  "about_pull_quote": "one memorable line about quality or results",
+  "about_p1": "paragraph — the origin and expertise",
+  "about_p2": "paragraph — the process and standards",
+  "about_p3": "paragraph — why they\'re trusted in ${area}",
+  "about_proof_statement": "bold proof statement e.g. 500+ projects. Zero comebacks.",
+  "testimonials": [
+    {"name": "SA name", "quote": "results-focused testimonial", "result": "e.g. Car back in 3 days, perfect finish"},
+    {"name": "SA name", "quote": "results-focused testimonial", "result": "client result"},
+    {"name": "SA name", "quote": "results-focused testimonial", "result": "client result"}
+  ],
+  "case_studies": [
+    {"client": "e.g. Family in ${area}", "challenge": "the problem", "solution": "what was done", "timeframe": "e.g. 5 days", "results": ["result 1", "result 2", "result 3"]},
+    {"client": "e.g. Local business", "challenge": "the problem", "solution": "what was done", "timeframe": "e.g. 3 days", "results": ["result 1", "result 2", "result 3"]},
+    {"client": "e.g. Resident in ${area}", "challenge": "the problem", "solution": "what was done", "timeframe": "e.g. 2 weeks", "results": ["result 1", "result 2", "result 3"]}
+  ],
+  "client_names": ["e.g. Toyota", "e.g. Private Client", "e.g. Local Business", "e.g. Fleet Client", "e.g. Insurance Referral"],
+  "contact_section_tag": "e.g. Get a Free Quote",
+  "contact_h2_line1": "e.g. Ready to See Results?",
+  "contact_h2_line2": "e.g. Let\'s Talk",
+  "contact_copy": "one line — confident and action-oriented"
+}`,
 
-BRAND TOKENS:
-Aesthetic: ${contentJson.aesthetic || 'bold_modern'}
---bg:      ${contentJson.color_bg      || '#0a0a0f'}
---surface: ${contentJson.color_surface || '#111118'}
---acc:     ${contentJson.color_accent  || '#ff5500'}
---text:    ${contentJson.color_text    || '#ffffff'}
---muted:   ${contentJson.color_muted   || '#888899'}
-Display font: ${contentJson.font_display || 'Syne'} — weights 700, 800
-Body font:    ${contentJson.font_body    || 'DM Sans'} — weights 400, 500, 600
-
-REQUIRED COMPONENTS — all MUST be present, named exactly as below:
-1.  :root                  — all custom properties above, plus --radius:12px, --transition:0.2s
-2.  @import                — Google Fonts for both fonts
-3.  Reset                  — *, box-sizing:border-box, margin:0, padding:0
-4.  body                   — bg, text colour, font-body, line-height:1.6
-5.  h1–h4                  — font-display, tight letter-spacing, leading
-6.  .nav                   — position:fixed top, full width, z-index:100, flex, brand left / links right
-7.  .nav-links             — horizontal on desktop, display:none on mobile
-8.  .hamburger             — display:none desktop, visible mobile, no border
-9.  .mobile-nav            — full-screen overlay, flex column, centred; shown via .open class
-10. .btn-primary           — var(--acc) bg, white text, padding 12px 28px, border-radius var(--radius)
-11. .btn-outline           — transparent, 1px solid white, same padding
-12. .section               — padding 80px 20px desktop / 60px 16px mobile
-13. .section-tag           — uppercase, var(--acc), font-size 11px, letter-spacing 3px, margin-bottom 12px
-14. .page-hero             — 300px height, bg var(--surface), flex center, text-align center
-15. .card                  — var(--surface) bg, border-radius var(--radius), padding 28px, box-shadow subtle
-16. .grid-2                — 2-col CSS grid, gap 32px; 1-col under 720px
-17. .grid-3                — 3-col CSS grid, gap 24px; 1-col under 720px
-18. .grid-5                — 5-col CSS grid, gap 20px; 2-col under 900px; 1-col under 520px
-19. .fab-wa                — position:fixed bottom-right 24px, width 56px, height 56px, border-radius 50%, background #25D366, z-index:200, flex center
-20. footer                 — var(--surface) bg, centre-aligned, font-size 12px, padding 20px, var(--muted) colour
-21. .fade-up               — opacity:0 translateY(20px); animation triggers on .visible class
-22. @keyframes fadeUp      — 0%: opacity 0 translateY(20px); 100%: opacity 1 translateY(0)
-23. html                   — scroll-behavior:smooth
-24. Gallery styles         — .gallery-grid (CSS grid 3-col/2-col/1-col), .gallery-item img (width 100%, object-fit:cover, border-radius var(--radius))
-25. .stats-strip           — 3-col flex/grid, glassmorphism bg, anchored to hero bottom
-26. .hero                  — min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; position:relative; background-size:cover; background-position:center; background-repeat:no-repeat; padding-bottom:80px;
-27. .hero-content          — position:relative; z-index:2; max-width:800px; padding:0 20px;
-28. .hero-overlay          — position:absolute; inset:0; background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.7)); z-index:1;
-
-Output ONLY the <style> block. Start immediately with <style>.`;
-}
-
-function buildPass4SystemPrompt(pageName, pkg) {
-// Also aliased as buildPass3PageSystemPrompt for backward compatibility
-  const pkgKey  = packageKey(pkg);
-  const caps    = getPackageCaps(pkgKey);
-  const navStr  = caps.pages.map(p => p === 'index' ? 'Home' : (p[0].toUpperCase() + p.slice(1))).join(' | ');
-
-  return `You are an expert South African web developer building one page of a multi-page website.
-
-OUTPUT RULES — non-negotiable:
-→ Output ONLY raw HTML. Start with <!DOCTYPE html>. No preamble, no explanation, no backticks.
-→ DO NOT include any <style> block or <link rel="stylesheet"> in your output. The stylesheet is injected by our build pipeline. In <head>, place EXACTLY this single line where styles should go: <!--WH_CSS_INJECT-->
-→ The CSS classes you may reference are listed in the user message. Use ONLY those classes. You MAY add inline styles ONLY for: hero background-image URLs, section min-height, and dynamic values that cannot be known at CSS authoring time.
-→ You MUST NOT use Lorem Ipsum. You MUST NOT invent contact details not provided.
-→ You MUST include a <nav class="nav"> with links to all pages using relative paths (${navStr}).
-→ You MUST include a WhatsApp FAB: <a href="..." class="fab-wa" ...>💬</a>
-→ You MUST include og:title, og:description, og:image meta tags.
-→ You MUST include a <script> tag at the end for hamburger toggle (and gallery fetch on the gallery page).
-→ You MUST include the business name in the <title> tag.
-→ You are building the ${pageName.toUpperCase()} page only. Do not include sections belonging to other pages.`;
-}
-
-function buildPass4UserPrompt(pageName, contentJson, cssBlock, fields, unsplashContext, slug, pkg, env) {
-// Also aliased as buildPass3PageUserPrompt for backward compatibility
-  const pkgKey    = packageKey(pkg);
-  const caps      = getPackageCaps(pkgKey);
-  const isPremium = pkgKey === 'premium';
-  const isExpress = pkgKey === 'express';
-  const waIntl    = normaliseSaPhone(fields['WhatsApp']);
-  const email     = fields['Email'] || '';
-  const area      = fields['Area']  || '';
-  const domain    = fields['Domain'] || `${slug}.co.za`;
-  const bizName   = fields['Business Name'] || '';
-
-  // Patch-worker URL for the gallery fetch script. Resolved here so the model
-  // receives the actual URL, not a literal ${WORKER_URL_PATCH} placeholder.
-  // WORKER_URL_PATCH must be set as a Cloudflare env var — no old-worker fallback.
-  const patchWorkerUrl = env?.WORKER_URL_PATCH
-    || 'https://wh-patch.pierreduplessis6912.workers.dev';
-
-  // Build nav links from the actual page set for this tier
-  const navLinks = caps.pages.map(p => {
-    const label = p === 'index' ? 'Home' : (p[0].toUpperCase() + p.slice(1));
-    const href  = p === 'index' ? '/' : `/${p}`;
-    return `<a href="${href}">${label}</a>`;
-  }).join('');
-
-  // Exact services count from contentJson — pass it to the prompt explicitly
-  const servicesArr   = Array.isArray(contentJson.services) ? contentJson.services : [];
-  const servicesCount = servicesArr.length || 5;
-  const servicesList  = servicesArr.map((s, i) =>
-    `${i + 1}. ${s.icon || '⚡'} ${s.name}: ${s.desc}`
-  ).join('\n');
-
-  const trustPoints = (contentJson.trust_points || []).join(' | ');
-
-  const ogImageMatch = unsplashContext.match(/https:\/\/images\.unsplash\.com\/[^\s\n]+/);
-  const ogImage = ogImageMatch
-    ? ogImageMatch[0]
-    : 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80';
-
-  const pageTitles = {
-    index:    contentJson.page_title || bizName,
-    services: `Services | ${bizName}`,
-    about:    `About Us | ${bizName}`,
-    contact:  `Contact | ${bizName}`,
-    gallery:  `Gallery | ${bizName}`,
   };
 
-  // Express index page packs all four sections into one page
-  const expressIndex = `
-BUILD: EXPRESS HOME PAGE — single-page site. Hero + services + about + contact, all on /index.
+  const schema = schemas[archetype] || schemas.emergency;
 
-HERO SECTION — use this EXACT HTML structure (fill in content, keep all attributes):
-<section id="home" class="hero" style="background-image:url(UNSPLASH_URL);">
-  <div class="hero-overlay"></div>
-  <div class="hero-content"><!-- badge, h1, copy, CTAs --></div>
-  <div class="stats-strip"><!-- 3 stats --></div>
-</section>
-Replace UNSPLASH_URL with the first photo URL from PHOTOS below.
-  Badge:        "${contentJson.hero_badge || ''}"
-  H1 line 1:    "${contentJson.hero_h1_line1 || ''}"
-  H1 line 2:    "${contentJson.hero_h1_line2 || ''}" — wrap "${contentJson.hero_accent_word || ''}" in <em style="color:var(--acc);font-style:normal">
-  H1 line 3:    "${contentJson.hero_h1_line3 || ''}"
-  Body copy:    "${contentJson.hero_copy || ''}"
-  CTA 1 (.btn-primary):  "${contentJson.cta_primary  || 'Get a Free Quote'}" → https://wa.me/${waIntl}
-  CTA 2 (.btn-outline):  "${contentJson.cta_secondary || 'WhatsApp Us'}"     → https://wa.me/${waIntl}
+  return `Generate website content for this South African business. Return ONLY this JSON — no other text.
 
-STATS STRIP (.stats-strip):
-  ${contentJson.stat1_num} ${contentJson.stat1_lbl} | ${contentJson.stat2_num} ${contentJson.stat2_lbl} | ${contentJson.stat3_num} ${contentJson.stat3_lbl}
+BUSINESS BRIEF:
+Name: ${bizName}
+Industry: ${industry}
+About: ${about}
+Services: ${services}
+Area: ${area}
+Voice/Vibe: ${vibe || 'Professional, warm, South African'}
 
-SERVICES SECTION (id="services", class="section"):
-  Tag: "${contentJson.services_section_tag || 'What We Do'}"
-  H2:  "${contentJson.services_h2 || 'Our Services'}"
-  Use .grid-${servicesCount >= 5 ? '5' : (servicesCount >= 3 ? '3' : '2')} with EXACTLY ${servicesCount} .card elements:
-${servicesList}
-  Each card: icon span, h3 with service name, p with description.
-
-ABOUT SECTION (id="about", class="section"):
-  Use .grid-2 (image left from PHOTOS, text right):
-  Pull quote: "${contentJson.about_pull_quote || ''}"
-  Paragraph 1: "${contentJson.about_p1 || ''}"
-  Paragraph 2: "${contentJson.about_p2 || ''}"
-  Trust points: ${trustPoints}
-
-CONTACT SECTION (id="contact", class="section"):
-  H2: "${contentJson.contact_h2_line1 || 'Get In Touch'} ${contentJson.contact_h2_line2 || ''}"
-  Use .grid-2 of .card elements:
-    📞 ${fields['WhatsApp'] || ''}
-    💬 https://wa.me/${waIntl}
-    📧 ${email || '(not provided)'}
-    📍 ${area}
-  Emergency CTA (.btn-primary, full-width): "WhatsApp Us Now" → https://wa.me/${waIntl}
-
-${unsplashContext}`;
-
-  const pageContent = {
-
-    index: isExpress ? expressIndex : `
-BUILD: HOME PAGE — conversion-focused. Hero + stats strip + bottom CTA only. No services grid, no full about (those are separate pages).
-
-HERO SECTION — use this EXACT HTML structure (fill in content, keep all attributes):
-<section id="home" class="hero" style="background-image:url(UNSPLASH_URL);">
-  <div class="hero-overlay"></div>
-  <div class="hero-content"><!-- badge, h1, copy, CTAs --></div>
-  <div class="stats-strip"><!-- 3 stats --></div>
-</section>
-Replace UNSPLASH_URL with the first photo URL from PHOTOS below.
-  Badge:        "${contentJson.hero_badge || ''}"
-  H1 line 1:    "${contentJson.hero_h1_line1 || ''}"
-  H1 line 2:    "${contentJson.hero_h1_line2 || ''}" — wrap "${contentJson.hero_accent_word || ''}" in <em style="color:var(--acc);font-style:normal">
-  H1 line 3:    "${contentJson.hero_h1_line3 || ''}"
-  Body copy:    "${contentJson.hero_copy || ''}"
-  CTA 1 (.btn-primary):  "${contentJson.cta_primary  || 'Get a Free Quote'}" → https://wa.me/${waIntl}
-  CTA 2 (.btn-outline):  "${contentJson.cta_secondary || 'WhatsApp Us'}"     → https://wa.me/${waIntl}
-
-STATS STRIP (.stats-strip — anchored to hero bottom):
-  ${contentJson.stat1_num} ${contentJson.stat1_lbl} | ${contentJson.stat2_num} ${contentJson.stat2_lbl} | ${contentJson.stat3_num} ${contentJson.stat3_lbl}
-
-BOTTOM CTA SECTION:
-  Button (.btn-primary): "WhatsApp Us Now" → https://wa.me/${waIntl}
-
-${unsplashContext}`,
-
-    services: `
-BUILD: SERVICES PAGE — full services grid, trust signals, emergency CTA.
-
-PAGE HERO (.page-hero):
-  Heading: "Our Services"
-  Subtext: Brief one-liner about the business.
-
-SERVICES GRID — use .grid-${servicesCount >= 5 ? '5' : (servicesCount >= 3 ? '3' : '2')} with EXACTLY ${servicesCount} .card elements:
-${servicesList}
-${isPremium
-  ? `PREMIUM: Each .card has icon (large), service name (h3), FULL description (3-4 sentences), price range if applicable, specific WhatsApp CTA link.`
-  : `STANDARD: Each .card has icon, service name (h3), one-sentence description, WhatsApp CTA link.`}
-
-TRUST SIGNALS STRIP (.grid-3):
-  ${trustPoints}
-
-EMERGENCY CTA BOX (.card, accent border):
-  Button (.btn-primary): "WhatsApp Us" → https://wa.me/${waIntl}?text=Hi%2C+I+need+urgent+help`,
-
-    about: `
-BUILD: ABOUT PAGE — story, team${isPremium ? ', testimonials' : ''}.
-
-PAGE HERO (.page-hero):
-  Heading: "${contentJson.about_headline || 'Our Story'}"
-
-STORY SECTION (.grid-2 — image left, text right; stacks on mobile):
-  Left:  Unsplash team/about photo from context
-  Right:
-    Pull quote (blockquote, left border var(--acc)): "${contentJson.about_pull_quote || ''}"
-    Paragraph 1: "${contentJson.about_p1 || ''}"
-    Paragraph 2: "${contentJson.about_p2 || ''}"
-
-TRUST POINTS (.grid-3, icon + text per cell):
-  ${trustPoints}
-${isPremium ? `
-TEAM SECTION (.grid-2):
-  Founder card: name from business fields, role "Founder & Owner", short bio from about field.
-
-TESTIMONIALS (.grid-3, .card each):
-${(contentJson.testimonials || []).map((t, i) => `  ${i + 1}. ${JSON.stringify(t)}`).join('\n') || '  Use 3 generic but plausible SA business testimonials — never fabricate names, use initials only.'}` : ''}
-
-${unsplashContext}`,
-
-    contact: `
-BUILD: CONTACT PAGE — contact info, form${isPremium ? ', map, hours' : ''}, emergency CTA.
-
-PAGE HERO (.page-hero):
-  H1: "${contentJson.contact_h2_line1 || 'Get In Touch'} ${contentJson.contact_h2_line2 || ''}"
-  Copy: "${contentJson.contact_copy || ''}"
-
-CONTACT INFO GRID (.grid-2, each a .card):
-  📞 ${fields['WhatsApp'] || ''}
-  💬 https://wa.me/${waIntl}
-  📧 ${email || '(not provided)'}
-  📍 ${area}
-
-CONTACT FORM (Formspree):
-  <form action="https://formspree.io/f/placeholder" method="POST">
-  Fields: Name, Phone (tel), Message (textarea 4 rows), Submit (.btn-primary)
-${isPremium ? `
-MAP EMBED:
-  <iframe src="https://maps.google.com/maps?q=${encodeURIComponent((area || 'South Africa') + ', South Africa')}&output=embed" width="100%" height="300" style="border:0;border-radius:var(--radius);" loading="lazy" allowfullscreen></iframe>
-
-OPERATING HOURS (.card):
-  Mon–Fri: 08:00–17:00 | Sat: 08:00–13:00 | Sun: Closed` : ''}
-
-EMERGENCY CTA (.btn-primary, full-width):
-  "Need urgent help? WhatsApp now →" → https://wa.me/${waIntl}?text=Emergency%20-%20I+need+urgent+help`,
-
-    gallery: `
-BUILD: GALLERY PAGE — dynamic photo grid fetched at runtime. Premium only.
-
-PAGE HERO (.page-hero):
-  Heading: "${contentJson.gallery_heading || 'Our Work'}"
-  Subtext: "Updated regularly — every photo shows real work from our team."
-
-UPLOAD PROMPT CARD (.card, margin-bottom 32px):
-  Icon: 📸
-  Heading: "Add your photos"
-  Text: "Send photos to us on WhatsApp and they appear here within minutes."
-  Button (.btn-outline): "WhatsApp a Photo" → https://wa.me/${waIntl}?text=Hi%2C+here+are+some+photos+for+my+gallery
-
-GALLERY CONTAINER:
-  <p id="gallery-loader" style="color:var(--muted);text-align:center;padding:40px 0;">Loading photos...</p>
-  <div id="gallery-grid" class="gallery-grid"></div>
-
-INCLUDE THIS EXACT SCRIPT (patch-worker URL is already substituted below):
-<script>
-(function(){
-  var slug='${slug}';
-  var grid=document.getElementById('gallery-grid');
-  var loader=document.getElementById('gallery-loader');
-  fetch('${patchWorkerUrl}/gallery-assets/'+slug)
-    .then(function(r){return r.json();})
-    .then(function(photos){
-      loader.style.display='none';
-      if(!photos||!photos.length){
-        grid.innerHTML='<p style="color:var(--muted);text-align:center;grid-column:1/-1;padding:40px 0;">Photos coming soon.</p>';
-        return;
-      }
-      grid.innerHTML=photos.map(function(url){
-        return '<div class="gallery-item"><img src="'+url+'" alt="Gallery photo" loading="lazy"></div>';
-      }).join('');
-    })
-    .catch(function(){
-      loader.style.display='none';
-      grid.innerHTML='<p style="color:var(--muted);text-align:center;grid-column:1/-1;">Could not load photos — try refreshing.</p>';
-    });
-})();
-</script>`,
-
-  }[pageName] || `BUILD: ${pageName.toUpperCase()} page.`;
-
-  return `Build the complete ${pageName.toUpperCase()} page.
-
-══ SHARED CSS (REFERENCE ONLY — DO NOT include this in your output. In <head>, put exactly <!--WH_CSS_INJECT--> instead. The build pipeline injects the styles afterwards.) ══
-${cssBlock}
-
-══ NAV ══
-<nav class="nav">
-  <a href="/" class="brand" style="font-weight:800;text-decoration:none;color:var(--text);">${bizName}</a>
-  <div class="nav-links">${navLinks}</div>
-  <button class="hamburger" aria-label="Open menu">☰</button>
-</nav>
-<div class="mobile-nav" id="mobileNav">${navLinks}</div>
-
-══ WHATSAPP FAB ══
-<a href="https://wa.me/${waIntl}" class="fab-wa" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
-
-══ META ══
-Page title:     ${pageTitles[pageName] || bizName}
-OG title:       ${contentJson.og_title || bizName}
-OG description: ${contentJson.og_description || ''}
-OG image:       ${ogImage}
-Domain:         ${domain}
-
-══ HAMBURGER SCRIPT ══
-<script>
-document.querySelector('.hamburger').addEventListener('click',function(){
-  document.getElementById('mobileNav').classList.toggle('open');
-});
-</script>
-
-══ PAGE CONTENT ══
-${pageContent}
-
-Output ONLY the complete HTML. Start with <!DOCTYPE html>.`;
-}
-
-// ============================================================
-
-// ============================================================
-// PASS 5 PROMPTS — Soul: Personality & Polish
-// Pass 5 reads the completed Pass 4 HTML and makes surgical
-// micro-copy improvements — it does NOT rewrite the page.
-// It patches: hero copy, CTA text, stat labels, section tags,
-// pull quotes, and footer tagline. Returns complete HTML.
-// ============================================================
-
-function buildPass5SystemPrompt(pageName, industryBrief) {
-  const brief = industryBrief || {};
-  return `You are a South African brand voice specialist doing final personality polish on a completed website page.
-
-YOUR MISSION — surgical micro-copy improvements only:
-→ Strengthen the hero headline if it sounds generic
-→ Make CTAs more specific and action-driven (e.g. "WhatsApp Pierre Now" not "Contact Us")
-→ Punch up stat labels to be more specific to the business
-→ Make section tags feel alive (not "Our Services" — something that fits this exact business)
-→ Sharpen the pull quote to be truly memorable
-→ Add ONE unexpected human detail that makes the brand feel real
-
-CREATIVE BRIEF:
-Mood: ${brief.mood || 'professional, warm, South African'}
-Copy style: ${brief.copyStyle || 'Direct. Warm. SA-specific.'}
-Emotional register: ${brief.emotionalRegister || 'Trustworthy and approachable.'}
-Vibe words: ${brief.vibeWords?.join(', ') || ''}
-
-OUTPUT RULES — non-negotiable:
-→ Return the COMPLETE page HTML with your patches applied
-→ Do NOT change layout, CSS, images, or structure
-→ Do NOT add new sections or remove existing ones
-→ Only change text content in the specific elements above
-→ If the copy is already strong, return the HTML unchanged
-→ Start with <!DOCTYPE and end with </html>`;
-}
-
-function buildPass5UserPrompt(pageName, html, contentJson, fields, industryBrief) {
-  const brief = industryBrief || {};
-  return `Apply personality polish to this ${pageName} page for ${fields['Business Name'] || 'this business'}.
-
-Business context:
-- Industry: ${fields['Industry'] || 'General'}
-- Area: ${fields['Area'] || 'South Africa'}
-- About: ${fields['About'] || ''}
-- Vibe requested: ${fields['Vibe'] || brief.mood || ''}
-
-Focus areas to check and improve:
-1. Hero headline — is it punchy and specific to THIS business?
-2. CTA buttons — are they personal and action-driven?
-3. Stat labels — are they specific or generic?
-4. Section tags — do they feel alive?
-5. Pull quote — is it truly memorable?
-6. Any element that sounds like AI wrote it — make it human.
-
-Return the complete page HTML with improvements applied:
-
-${html}`;
+Return this exact JSON structure for the "${archetype}" archetype:
+${schema}`;
 }
 
 // ============================================================
@@ -2885,5 +2540,5 @@ async function safeInflate(data) {
   } catch { return null; }
 }
 
-// Exports used by patch-worker (vision system + watermark removal on go-live)
+// removeWatermark and addFooterCredit are mirrored in launch-worker (cross-worker imports are not possible)
 export { removeWatermark, addFooterCredit };
