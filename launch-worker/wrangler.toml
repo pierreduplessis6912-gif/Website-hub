@@ -3,43 +3,51 @@ main = "src/index.js"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# ── KV Namespaces ──────────────────────────────────────────────
+# — KV Namespaces ————————————————————————————
 [[kv_namespaces]]
 binding = "SITES"
 id = "b63e5b885ead4c02a9e184dd6477e711"
 
-# ── Queues (Producer — upgrade triggers rebuild) ───────────────
-[[queues.producers]]
-binding = "BUILD_QUEUE"
-queue = "wh-build-queue"
-
+# — Environment Variables ————————————————————
 [vars]
-TEST_MODE                  = "true"
-WORKER_URL_BUILD           = "https://wh-build.pierreduplessis6912.workers.dev"
-WORKER_URL_PATCH           = "https://wh-patch.pierreduplessis6912.workers.dev"
+TEST_MODE            = "true"
+OUTBOUND_ENABLED     = "false"
+REFERRAL_ENABLED     = "true"
+WORKER_URL_BUILD     = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_PATCH     = "https://wh-patch.pierreduplessis6912.workers.dev"
+WORKER_URL_LAUNCH    = "https://wh-launch.pierreduplessis6912.workers.dev"
 
-# ── Secrets ────────────────────────────────────────────────────
-#   wrangler secret put PAYFAST_MERCHANT_ID         --name wh-launch
-#   wrangler secret put PAYFAST_MERCHANT_KEY        --name wh-launch
-#   wrangler secret put PAYFAST_SANDBOX_MERCHANT_ID --name wh-launch
-#   wrangler secret put PAYFAST_SANDBOX_MERCHANT_KEY --name wh-launch
-#   wrangler secret put CF_ACCOUNT_ID               --name wh-launch
-#   wrangler secret put CF_API_TOKEN                --name wh-launch
-#   wrangler secret put CF_ZONE_ID                  --name wh-launch
-#   wrangler secret put AIRTABLE_TOKEN              --name wh-launch
-#   wrangler secret put AIRTABLE_BASE_ID            --name wh-launch
-#   wrangler secret put AIRTABLE_TABLE_ID           --name wh-launch
-#   wrangler secret put META_WA_TOKEN               --name wh-launch
-#   wrangler secret put META_PHONE_NUMBER_ID        --name wh-launch
-#   wrangler secret put WH_PHONE                    --name wh-launch
-#   wrangler secret put ADMIN_KEY                   --name wh-launch
-#   wrangler secret put ANTHROPIC_KEY               --name wh-launch
-#   wrangler secret put ZOHO_CLIENT_ID              --name wh-launch
-#   wrangler secret put ZOHO_CLIENT_SECRET          --name wh-launch
-#   wrangler secret put ZOHO_REFRESH_TOKEN          --name wh-launch
-#   wrangler secret put ZOHO_ORG_ID                 --name wh-launch
-#   wrangler secret put ZOHO_MAIL_TOKEN             --name wh-launch
-#   wrangler secret put ZOHO_MAIL_ORG_ID            --name wh-launch
-#   wrangler secret put GOOGLE_CLIENT_ID            --name wh-launch
-#   wrangler secret put GOOGLE_CLIENT_SECRET        --name wh-launch
-#   wrangler secret put REGISTERDOMAIN_API_KEY      --name wh-launch
+# — cPanel Hosting (RegisterDomain Premier package) ——————————
+CPANEL_HOST          = "s54.registerdomain.net.za"
+CPANEL_USERNAME      = "websiteh"
+CPANEL_NS1           = "ns1.s54.registerdomain.net.za"
+CPANEL_NS2           = "ns2.s54.registerdomain.net.za"
+
+# — RegisterDomain Reseller API ——————————————————————————————
+REGISTERDOMAIN_API_URL   = "https://www.registerdomain.co.za/modules/addons/DomainsReseller/api/index.php"
+REGISTERDOMAIN_EMAIL     = "loc10@live.co.za"
+
+# — Secrets (set via CLI — do NOT put values here) ——
+# Run these once:
+#   wrangler secret put CPANEL_PASSWORD            --name wh-launch
+#   wrangler secret put REGISTERDOMAIN_API_KEY     --name wh-launch
+#   wrangler secret put PAYFAST_MERCHANT_ID        --name wh-launch
+#   wrangler secret put PAYFAST_MERCHANT_KEY       --name wh-launch
+#   wrangler secret put PAYFAST_SANDBOX_MERCHANT_ID   --name wh-launch
+#   wrangler secret put PAYFAST_SANDBOX_MERCHANT_KEY  --name wh-launch
+#   wrangler secret put CF_ACCOUNT_ID              --name wh-launch
+#   wrangler secret put CF_API_TOKEN               --name wh-launch
+#   wrangler secret put CF_ZONE_ID                 --name wh-launch
+#   wrangler secret put AIRTABLE_TOKEN             --name wh-launch
+#   wrangler secret put AIRTABLE_BASE_ID           --name wh-launch
+#   wrangler secret put AIRTABLE_TABLE_ID          --name wh-launch
+#   wrangler secret put META_WA_TOKEN              --name wh-launch
+#   wrangler secret put META_PHONE_NUMBER_ID       --name wh-launch
+#   wrangler secret put WH_PHONE                   --name wh-launch
+#   wrangler secret put ADMIN_KEY                  --name wh-launch
+#   wrangler secret put ANTHROPIC_KEY              --name wh-launch
+#   wrangler secret put ZOHO_MAIL_TOKEN            --name wh-launch
+#   wrangler secret put ZOHO_MAIL_ORG_ID           --name wh-launch
+#   wrangler secret put GOOGLE_CLIENT_ID           --name wh-launch
+#   wrangler secret put GOOGLE_CLIENT_SECRET       --name wh-launch
+#   wrangler secret put GOOGLE_REFRESH_TOKEN       --name wh-launch

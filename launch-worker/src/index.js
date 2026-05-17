@@ -101,6 +101,7 @@ export default {
     if (path === '/google-auth')      return handleGoogleAuth(url, env);
     if (path === '/google-profile')   return handleGoogleProfile(request, env, ctx);
     if (path === '/health')           return handleHealth(env);
+    if (path === '/promo-checkout')    return handlePromoCheckout(request, env, ctx);
 
     return jsonResponse({ error: 'Not found', path }, 404);
   },
@@ -547,6 +548,85 @@ async function handleFailedPayment(airtableId, customStr2, env) {
 }
 
 // ============================================================
+// ROUTE: /promo-checkout — bypass PayFast with a valid promo code
+// POST body: { airtableId, slug, promoCode, package, retainer, choices }
+// Validates env.PROMO_CODE (case-insensitive), then runs the full
+// go-live pipeline for real — domain, hosting, email, WhatsApp, GBP.
+// Works across all three tiers. Set via:
+//   wrangler secret put PROMO_CODE --name wh-launch
+// ============================================================
+async function handlePromoCheckout(request, env, ctx) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+
+  let body;
+  try { body = await request.json(); }
+  catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
+
+  const { airtableId, slug, promoCode, package: pkg, retainer, choices } = body;
+
+  // Validate promo code — case-insensitive, constant-time compare
+  const storedCode = (env.PROMO_CODE || '').trim().toUpperCase();
+  const givenCode  = (promoCode || '').trim().toUpperCase();
+  if (!storedCode || !givenCode || givenCode !== storedCode) {
+    await logActivity(env, 'promo_invalid', { airtableId, slug, ts: new Date().toISOString() });
+    return jsonResponse({ error: 'Invalid promo code' }, 403);
+  }
+
+  if (!airtableId) return jsonResponse({ error: 'Missing airtableId' }, 400);
+
+  let record;
+  try { record = await getAirtableRecord(airtableId, env); }
+  catch { return jsonResponse({ error: 'Client not found' }, 404); }
+
+  const f = { ...record.fields };
+
+  // Apply chosen package if different from current
+  const chosenPkg = pkg || f['Package'] || 'Standard';
+  if (chosenPkg !== f['Package']) {
+    await updateAirtableRecord(airtableId, { 'Package': chosenPkg }, env);
+    f['Package'] = chosenPkg;
+  }
+
+  // Apply panel choices if provided
+  if (choices && typeof choices === 'object') {
+    const updates = {};
+    if (choices.palette)  updates['Palette Choice'] = choices.palette;
+    if (choices.font)     updates['Font Choice']    = choices.font;
+    if (choices.photo)    updates['Photo Choice']   = choices.photo;
+    if (choices.tagline)  updates['Tagline Choice'] = choices.tagline;
+    if (choices.logo_url) updates['Logo URL']       = choices.logo_url;
+    if (Object.keys(updates).length) {
+      await updateAirtableRecord(airtableId, updates, env);
+      Object.assign(f, updates);
+    }
+  }
+
+  // Log promo usage (partial code only — never log the full code)
+  await logActivity(env, 'promo_checkout', {
+    airtableId, slug,
+    pkg: chosenPkg,
+    retainer: retainer || 0,
+    promoHint: givenCode.substring(0, 3) + '***',
+    ts: new Date().toISOString(),
+  });
+
+  // Fire the full go-live pipeline asynchronously
+  // (domain registration, hosting, email, WhatsApp, GBP)
+  ctx.waitUntil(
+    handleGoLiveInternal(airtableId, env, f).catch(err => {
+      console.error('[promo-checkout] go-live failed:', err);
+      logActivity(env, 'promo_go_live_error', { airtableId, slug, error: err.message });
+    })
+  );
+
+  return jsonResponse({
+    success: true,
+    domain:  f['Domain'] || `${(f['Slug'] || slug || '').toLowerCase()}.co.za`,
+    pkg:     chosenPkg,
+  });
+}
+
+// ============================================================
 // ROUTE: /go-live — admin direct go-live trigger
 // ============================================================
 
@@ -601,6 +681,7 @@ async function handleGoLiveInternal(airtableId, env, f) {
 
   // ── 2. Strip watermark, add footer credit, write live KV ────
   let homeHtml = null;
+  const builtPages = {}; // collected for cPanel upload
   for (const pageName of pages) {
     let pageHtml = await env.SITES.get(`draft:${slug}:${pageName}`);
     if (!pageHtml && pageName === 'index') pageHtml = await env.SITES.get(`draft:${slug}`);
@@ -618,6 +699,7 @@ async function handleGoLiveInternal(airtableId, env, f) {
     pageHtml = addFooterCredit(pageHtml);
     await env.SITES.put(`live:${domain}:${pageName}`, pageHtml);
     if (pageName === 'index') homeHtml = pageHtml;
+    builtPages[pageName] = pageHtml;
   }
 
   if (!homeHtml) {
@@ -643,14 +725,24 @@ async function handleGoLiveInternal(airtableId, env, f) {
     'Manage Token':            manageToken,
   }, env);
 
-  // ── 5. Cloudflare custom hostname binding (non-fatal) ───────
-  bindCustomHostname(domain, env).catch(e => {
-    console.warn('CF hostname binding failed:', e?.message || e);
-    sendWhatsApp(env.WH_PHONE,
-      `⚠️ CF hostname binding failed for ${domain}: ${e.message}\nSite is reachable via workers.dev URL; DNS needs manual setup.`,
-      env, { skipTestRedirect: true },
-    ).catch(() => {});
-  });
+  // ── 5. Provision client hosting: register domain → cPanel addon →
+  //        upload HTML → create emails (all non-fatal, logged) ──────
+  if (!isTestMode(env)) {
+    provisionClientHosting(slug, domain, builtPages, f, env).catch(e => {
+      console.warn('Client hosting provisioning failed (non-fatal):', e?.message || e);
+      sendWhatsApp(env.WH_PHONE,
+        `⚠️ Hosting setup failed for ${domain}: ${e.message}`,
+        env, { skipTestRedirect: true },
+      ).catch(() => {});
+    });
+  } else {
+    await env.SITES.put(
+      `test_log:hosting:${slug}:${Date.now()}`,
+      JSON.stringify({ action: 'provision_hosting', slug, domain, pages: Object.keys(builtPages), ts: new Date().toISOString() }),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+    console.log(`[TEST] Would provision cPanel hosting for ${domain}:`, Object.keys(builtPages));
+  }
 
   // ── 6. Zoho retainer invoice (unpaid, with payLink) ─────────
   const payLink = buildPayFastLink(
@@ -674,29 +766,10 @@ async function handleGoLiveInternal(airtableId, env, f) {
     payLink,
   }, env).catch(e => console.warn('Zoho retainer invoice failed:', e?.message || e));
 
-  // ── 7. Domain registration (non-fatal, gated) ───────────────
-  // Skip for outbound prospects (Source = Scrape) until they explicitly opt in;
-  // skip entirely in TEST_MODE.
-  if (!isTestMode(env) && f['Source'] !== 'Scrape') {
-    registerDomainViaProxy(slug, env).catch(e => {
-      console.warn('Domain registration failed (non-fatal):', e?.message || e);
-      sendWhatsApp(env.WH_PHONE,
-        `⚠️ Domain reg failed for ${domain}: ${e.message}`,
-        env, { skipTestRedirect: true },
-      ).catch(() => {});
-    });
-  } else if (isTestMode(env)) {
-    await env.SITES.put(
-      `test_log:domain:${slug}:${Date.now()}`,
-      JSON.stringify({ action: 'register', slug, domain, ts: new Date().toISOString() }),
-      { expirationTtl: 60 * 60 * 24 * 30 },
-    );
-  }
+  // ── 7. Domain registration + cPanel hosting handled in step 5 ──
+  // (provisionClientHosting covers register → addon → upload → emails)
 
-  // ── 8. Provision Zoho email accounts (non-fatal) ────────────
-  provisionZohoEmails(airtableId, f, domain, env).catch(e => {
-    console.warn('Zoho email provisioning failed (non-fatal):', e?.message || e);
-  });
+  // ── 8. Email provisioning handled in step 5 (cPanel UAPI) ──────
 
   // ── 9. Claude-written go-live WhatsApp ──────────────────────
   const referralUnlocked = caps.referral && await getFlag(env, 'REFERRAL_ENABLED');
@@ -1607,3 +1680,252 @@ function industryToGoogleCategory(industry) {
 // ============================================================
 // End of launch-worker.js
 // ============================================================
+
+
+// ============================================================
+// REGISTERDOMAIN RESELLER API
+// Docs: https://www.registerdomain.co.za reseller portal
+// Auth: time-based HMAC token (changes hourly)
+// ============================================================
+
+async function generateRegisterDomainToken(env) {
+  // Token = base64(hmac_sha256(api_key, email:yy-mm-dd HH))
+  // PHP equivalent: base64_encode(hash_hmac("sha256", $key, "$email:".gmdate("y-m-d H")))
+  const now = new Date();
+  const y = now.getUTCFullYear().toString().slice(-2);
+  const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(now.getUTCDate()).padStart(2, '0');
+  const H = String(now.getUTCHours()).padStart(2, '0');
+  const dateHour = `${y}-${m}-${d} ${H}`;
+  // Key = email:dateHour, Data = api_key (unusual but matches PHP docs)
+  const keyBytes  = new TextEncoder().encode(`${env.REGISTERDOMAIN_EMAIL}:${dateHour}`);
+  const dataBytes = new TextEncoder().encode(env.REGISTERDOMAIN_API_KEY);
+  const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', cryptoKey, dataBytes);
+  return btoa(String.fromCharCode(...new Uint8Array(sig)));
+}
+
+async function callRegisterDomainApi(action, params, env) {
+  const token = await generateRegisterDomainToken(env);
+  const baseUrl = env.REGISTERDOMAIN_API_URL || 'https://www.registerdomain.co.za/modules/addons/DomainsReseller/api/index.php';
+  const res = await fetch(baseUrl + action, {
+    method:  'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'username':     env.REGISTERDOMAIN_EMAIL,
+      'token':        token,
+    },
+    body: JSON.stringify(params),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`RegisterDomain API ${action} error ${res.status}: ${text.slice(0, 200)}`);
+  try { return JSON.parse(text); } catch { return { raw: text }; }
+}
+
+async function registerClientDomain(domain, env) {
+  return callRegisterDomainApi('/order/domains/register', {
+    domain,
+    regperiod:   '1',
+    nameserver1: env.CPANEL_NS1 || 'ns1.s54.registerdomain.net.za',
+    nameserver2: env.CPANEL_NS2 || 'ns2.s54.registerdomain.net.za',
+    addons: { dnsmanagement: 0, emailforwarding: 0, idprotection: 0 },
+  }, env);
+}
+
+// ============================================================
+// CPANEL API HELPERS
+// Host: s54.registerdomain.net.za:2083
+// Auth: HTTP Basic (username:password) over HTTPS
+// ============================================================
+
+function cpanelBasicAuth(env) {
+  return 'Basic ' + btoa(`${env.CPANEL_USERNAME || 'websiteh'}:${env.CPANEL_PASSWORD}`);
+}
+
+async function cpanelUapi(module, fn, params, env) {
+  const qs  = new URLSearchParams(params).toString();
+  const url = `https://${env.CPANEL_HOST}:2083/execute/${module}/${fn}?${qs}`;
+  const res = await fetch(url, { headers: { Authorization: cpanelBasicAuth(env) } });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`cPanel UAPI ${module}/${fn} ${res.status}: ${text.slice(0, 200)}`);
+  try { return JSON.parse(text); } catch { return { raw: text }; }
+}
+
+async function cpanelApi2(module, fn, params, env) {
+  const qs = new URLSearchParams({
+    cpanel_jsonapi_module:     module,
+    cpanel_jsonapi_func:       fn,
+    cpanel_jsonapi_apiversion: '2',
+    ...params,
+  }).toString();
+  const url = `https://${env.CPANEL_HOST}:2083/json-api/cpanel?${qs}`;
+  const res = await fetch(url, { headers: { Authorization: cpanelBasicAuth(env) } });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`cPanel API2 ${module}/${fn} ${res.status}: ${text.slice(0, 200)}`);
+  try { return JSON.parse(text); } catch { return { raw: text }; }
+}
+
+async function addCpanelAddonDomain(domain, env) {
+  // Document root: public_html/{domain}  (cPanel default for addon domains)
+  const subDomain = domain.replace(/\./g, '_'); // cPanel needs a valid subdomain label
+  return cpanelApi2('AddonDomain', 'addaddondomain', {
+    newdomain: domain,
+    subdomain:  subDomain,
+    dir:        `public_html/${domain}`,
+  }, env);
+}
+
+async function uploadFileToCpanel(domain, fileName, content, env) {
+  const dir = `/home/${env.CPANEL_USERNAME || 'websiteh'}/public_html/${domain}`;
+  return cpanelUapi('Fileman', 'save_file_content', { dir, file: fileName, content }, env);
+}
+
+async function createCpanelEmail(emailName, domain, password, env) {
+  return cpanelUapi('Email', 'add_pop', {
+    email:              emailName,
+    domain,
+    password,
+    quota:              0,   // unlimited quota from pool
+    send_welcome_email: 1,   // cPanel auto-sends iOS/Mac config email to the account
+  }, env);
+}
+
+function generateEmailPassword() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let pwd = '';
+  for (const b of bytes) pwd += chars[b % chars.length];
+  return pwd;
+}
+
+function getEmailsForPackage(pkg) {
+  // Returns array of email account names to auto-create based on package
+  const p = (pkg || '').toLowerCase();
+  if (p === 'express')  return [];           // No emails — upsell in SPA
+  if (p === 'standard') return ['info', 'admin'];          // 2 emails
+  if (p === 'premium')  return ['info', 'admin'];          // 2 emails + 3 slots in manage panel
+  return ['info'];                           // Safe fallback
+}
+
+const HTACCESS = `Options -Indexes
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([^.]+)$ $1.html [L]
+`;
+
+// ============================================================
+// MAIN ORCHESTRATOR — called from handleGoLiveInternal step 5
+// Order matters: register → addon domain → upload files → emails
+// All sub-steps are individually non-fatal and logged.
+// ============================================================
+
+async function provisionClientHosting(slug, domain, builtPages, f, env) {
+  const pkg = f['Package'] || 'Standard';
+  const log = (msg) => console.log(`[cPanel] ${domain}: ${msg}`);
+
+  // ── A. Register domain ─────────────────────────────────────
+  // Skip if source is Scrape (they haven't paid yet, no domain purchase)
+  if (f['Source'] !== 'Scrape') {
+    try {
+      const regResult = await registerClientDomain(domain, env);
+      log('Domain registered: ' + JSON.stringify(regResult).slice(0, 100));
+      await logActivity(env, 'domain_registered', { domain, slug, result: regResult });
+    } catch (e) {
+      console.warn(`[cPanel] Domain registration failed for ${domain}:`, e.message);
+      await logActivity(env, 'domain_register_failed', { domain, slug, error: e.message });
+      // Continue — domain may already exist or be registered elsewhere
+    }
+  }
+
+  // ── B. Add addon domain to cPanel ──────────────────────────
+  try {
+    const addonResult = await addCpanelAddonDomain(domain, env);
+    log('Addon domain added: ' + JSON.stringify(addonResult).slice(0, 100));
+    await logActivity(env, 'cpanel_addon_domain_added', { domain, slug });
+  } catch (e) {
+    console.warn(`[cPanel] Addon domain failed for ${domain}:`, e.message);
+    await logActivity(env, 'cpanel_addon_domain_failed', { domain, slug, error: e.message });
+    // Continue — domain may already exist as addon
+  }
+
+  // ── C. Upload HTML pages ────────────────────────────────────
+  for (const [pageName, html] of Object.entries(builtPages)) {
+    const fileName = pageName === 'index' ? 'index.html' : `${pageName}.html`;
+    try {
+      await uploadFileToCpanel(domain, fileName, html, env);
+      log(`Uploaded ${fileName}`);
+    } catch (e) {
+      console.warn(`[cPanel] File upload failed — ${fileName}:`, e.message);
+    }
+  }
+
+  // ── D. Upload .htaccess for clean URLs ──────────────────────
+  try {
+    await uploadFileToCpanel(domain, '.htaccess', HTACCESS, env);
+    log('Uploaded .htaccess');
+  } catch (e) {
+    console.warn('[cPanel] .htaccess upload failed:', e.message);
+  }
+
+  // ── E. Provision email accounts ─────────────────────────────
+  // All accounts under a domain share one password — simpler for the client.
+  const emailNames    = getEmailsForPackage(pkg);
+  const emailPassword = generateEmailPassword();
+  const emailCreds    = [];
+
+  for (const name of emailNames) {
+    try {
+      await createCpanelEmail(name, domain, emailPassword, env);
+      emailCreds.push({ address: `${name}@${domain}` });
+      log(`Email created: ${name}@${domain}`);
+    } catch (e) {
+      console.warn(`[cPanel] Email creation failed — ${name}@${domain}:`, e.message);
+    }
+  }
+
+  // Store credentials in Airtable + KV
+  if (emailCreds.length) {
+    const mailHost     = env.CPANEL_HOST || 's54.registerdomain.net.za';
+    const emailSummary = emailCreds.map(e => e.address).join(', ');
+    await updateAirtableRecord(airtableId, {
+      'Email Accounts': emailSummary,
+      'Email Password': emailPassword,
+    }, env).catch(() => {});
+    await env.SITES.put(
+      `email_creds:${slug}`,
+      JSON.stringify({ accounts: emailCreds, password: emailPassword, mailHost }),
+      { expirationTtl: 60 * 60 * 24 * 365 },
+    );
+
+    // ── Send email credentials via WhatsApp ──────────────────
+    const accountLines = emailCreds.map(e => `✅ ${e.address}`).join('\n');
+    const emailMsg = `📧 *Your email accounts are ready!*
+
+${accountLines}
+
+🔑 *Password:* ${emailPassword}
+_(same for all accounts — change anytime in your manage panel)_
+
+⚙️ *Setup settings:*
+• Incoming (IMAP): ${mailHost} — Port 993 (SSL)
+• Outgoing (SMTP): ${mailHost} — Port 465 (SSL)
+
+📱 Check your inbox — cPanel will also send you a one-tap iPhone/Mac config email automatically.`;
+
+    if (f['WhatsApp']) {
+      await sendWhatsApp(f['WhatsApp'], emailMsg, env).catch(e => {
+        console.warn('[cPanel] Email creds WhatsApp failed:', e.message);
+      });
+    }
+  }
+
+  await logActivity(env, 'hosting_provisioned', {
+    domain, slug, pkg,
+    pages:  Object.keys(builtPages),
+    emails: emailCreds.map(e => e.address),
+  });
+
+  log('Provisioning complete ✓');
+}

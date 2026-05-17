@@ -204,6 +204,15 @@ a{color:inherit;text-decoration:none;}
 .go-live-price{font-size:11px;opacity:0.8;display:block;margin-top:2px;font-weight:400;}
 .not-interested-btn{width:100%;padding:10px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:13px;transition:all 0.15s;}
 .not-interested-btn:hover{color:var(--red);border-color:rgba(255,59,48,0.3);}
+.promo-section{padding:12px 20px 4px;text-align:center;}
+.promo-toggle{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;padding:4px;}
+.promo-toggle:hover{color:var(--white);}
+.promo-input-wrap{display:none;gap:8px;margin-top:8px;padding:0 4px;}
+.promo-input-wrap input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--white);font-size:13px;font-family:var(--font-mono);}
+.promo-input-wrap button{background:var(--orange);border:none;border-radius:8px;padding:10px 16px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.promo-applied{display:none;font-size:12px;color:#00c97a;padding:6px 0 2px;font-weight:600;letter-spacing:0.02em;}
+.go-live-btn.promo-active{background:linear-gradient(135deg,#00c97a,#00a660)!important;}
+
 
 @media(max-width:640px){
   .preview-bottom-bar{padding:0 12px;}
@@ -468,6 +477,14 @@ a{color:inherit;text-decoration:none;}
         <span class="go-live-price" id="drawerGoLivePrice">R—/month — no setup fee</span>
       </button>
       <button class="not-interested-btn" onclick="handleNotInterested()">Not interested</button>
+      <div class="promo-section" id="promoSection">
+        <button class="promo-toggle" onclick="togglePromoField()">Have a promo code?</button>
+        <div class="promo-input-wrap" id="promoInputWrap">
+          <input type="text" id="promoInput" placeholder="Enter code" autocomplete="off" autocorrect="off" autocapitalize="characters" maxlength="32">
+          <button onclick="applyPromoCode()">Apply</button>
+        </div>
+        <div class="promo-applied" id="promoApplied">✅ Promo applied — Go Live is on us</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1417,6 +1434,9 @@ async function handleGoLive() {
   const id = appState.airtableId;
   if (!id) { toast('Loading...'); return; }
 
+  // Promo code bypass — skip PayFast entirely, go straight to go-live pipeline
+  if (appState.promoCode) { return handlePromoCheckout(); }
+
   // Fix B: Server-side PayFast link generation — includes signature + sandbox mode
   try {
     toast('Preparing checkout...');
@@ -1443,6 +1463,73 @@ async function handleGoLive() {
     }
   } catch (e) {
     toast('Network error. Please check your connection and try again.');
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// PROMO CODE — bypass PayFast and go straight to go-live
+// ────────────────────────────────────────────────────────────
+function togglePromoField() {
+  const wrap = document.getElementById('promoInputWrap');
+  const showing = wrap.style.display === 'flex';
+  wrap.style.display = showing ? 'none' : 'flex';
+  if (!showing) document.getElementById('promoInput').focus();
+}
+
+function applyPromoCode() {
+  const code = (document.getElementById('promoInput').value || '').trim();
+  if (!code) { toast('Enter your promo code'); return; }
+  appState.promoCode = code;
+  document.getElementById('promoInputWrap').style.display = 'none';
+  document.getElementById('promoApplied').style.display   = 'block';
+  // Update button to signal free activation
+  const btn = document.querySelector('.go-live-btn');
+  if (btn) btn.classList.add('promo-active');
+  const priceEl = document.getElementById('drawerGoLivePrice');
+  if (priceEl) priceEl.textContent = 'FREE — promo applied';
+  const ctaEl = document.getElementById('ctaPrice');
+  if (ctaEl) ctaEl.textContent = 'FREE';
+  toast('Promo code saved ✅ Tap Go Live to activate');
+}
+
+async function handlePromoCheckout() {
+  const id = appState.airtableId;
+  if (!id) { toast('Loading...'); return; }
+  toast('Activating your site...');
+  try {
+    const res = await fetch(`${WORKER_LAUNCH}/promo-checkout`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        airtableId: id,
+        slug:       appState.slug,
+        promoCode:  appState.promoCode,
+        package:    appState.package  || 'Standard',
+        retainer:   appState.retainer || 999,
+        choices:    appState.choices  || {},
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 403) {
+        // Invalid code — reset state
+        appState.promoCode = null;
+        document.getElementById('promoApplied').style.display   = 'none';
+        document.getElementById('promoInputWrap').style.display = 'flex';
+        document.querySelector('.go-live-btn')?.classList.remove('promo-active');
+        const priceEl = document.getElementById('drawerGoLivePrice');
+        if (priceEl) priceEl.textContent = `R${appState.retainer || 999}/month — no setup fee`;
+        toast('Invalid promo code ❌ Please check and try again');
+        return;
+      }
+      toast(data.error || 'Something went wrong. Try again.');
+      return;
+    }
+    toast('🚀 Site activated! Domain provisioning underway...');
+    setTimeout(() => toast(`Live at ${data.domain} — manage link coming via WhatsApp`), 3500);
+  } catch (e) {
+    console.error('promo-checkout error:', e);
+    toast('Network error — please try again');
   }
 }
 
