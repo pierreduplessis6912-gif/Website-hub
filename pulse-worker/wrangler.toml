@@ -18,7 +18,6 @@ id = "b63e5b885ead4c02a9e184dd6477e711"
 binding = "DB"
 database_name = "website-hub-db"
 database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
-migrations_dir = "../migrations"
 
 # Cron triggers
 # Main daily cron: 06:00 UTC = 08:00 SAST
