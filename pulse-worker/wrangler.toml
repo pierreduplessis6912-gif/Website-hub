@@ -1,34 +1,29 @@
 name = "wh-pulse"
 main = "src/index.js"
-compatibility_date = "2025-01-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-01-01"
+account_id = "4c559b9dff9fae56803b9c275b518597"
 
-# — KV Namespaces ————————————————————————————
+[vars]
+TEST_MODE = "true"
+WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_LAUNCH = "https://wh-launch.pierreduplessis6912.workers.dev"
+
+# KV — monthly summary HTML, leaderboard cache
 [[kv_namespaces]]
 binding = "SITES"
 id = "b63e5b885ead4c02a9e184dd6477e711"
 
-# — Cron Trigger ——————————————————————————————
-# Runs daily at 6am UTC (8am SAST)
+# D1 — all sequence queries (dunning, post-golive, win-back, referral vesting)
+[[d1_databases]]
+binding = "DB"
+database_name = "website-hub-db"
+database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
+
+# Cron triggers
+# Main daily cron: 06:00 UTC = 08:00 SAST
+# Queue drain: every 15 min 07:00-10:00 UTC = 09:00-12:00 SAST, Tue-Thu
 [triggers]
-crons = ["0 6 * * *"]
-
-# — Environment Variables ————————————————————
-[vars]
-TEST_MODE            = "true"
-OUTBOUND_ENABLED     = "false"
-REFERRAL_ENABLED     = "true"
-WORKER_URL_BUILD     = "https://wh-build.pierreduplessis6912.workers.dev"
-WORKER_URL_PATCH     = "https://wh-patch.pierreduplessis6912.workers.dev"
-WORKER_URL_LAUNCH    = "https://wh-launch.pierreduplessis6912.workers.dev"
-
-# — Secrets (set via CLI — do NOT put values here) ——
-# Run these once per secret:
-#   wrangler secret put ANTHROPIC_KEY        --name wh-pulse
-#   wrangler secret put AIRTABLE_TOKEN       --name wh-pulse
-#   wrangler secret put AIRTABLE_BASE_ID     --name wh-pulse
-#   wrangler secret put AIRTABLE_TABLE_ID    --name wh-pulse
-#   wrangler secret put META_WA_TOKEN        --name wh-pulse
-#   wrangler secret put META_PHONE_NUMBER_ID --name wh-pulse
-#   wrangler secret put WH_PHONE             --name wh-pulse
-#   wrangler secret put ADMIN_KEY            --name wh-pulse
+crons = [
+  "0 6 * * *",
+  "*/15 7-10 * * 2-4"
+]

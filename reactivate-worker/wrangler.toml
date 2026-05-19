@@ -1,32 +1,72 @@
 name = "wh-reactivate"
 main = "src/index.js"
-compatibility_date = "2025-01-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-01-01"
+account_id = "4c559b9dff9fae56803b9c275b518597"
 
-# — KV Namespaces ————————————————————————————
+[vars]
+TEST_MODE = "true"
+WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_LAUNCH = "https://wh-launch.pierreduplessis6912.workers.dev"
+
+# KV — conversation state, opt-out flags
 [[kv_namespaces]]
 binding = "SITES"
 id = "b63e5b885ead4c02a9e184dd6477e711"
 
-# — Queues (Producer only — build-worker consumes) ——
-[[queues.producers]]
-binding = "BUILD_QUEUE"
-queue = "wh-build-queue"
+# D1 — cancellation records, win-back sequences, inbound reply routing
+[[d1_databases]]
+binding = "DB"
+database_name = "website-hub-db"
+database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
 
-# — Environment Variables ————————————————————
-[vars]
-TEST_MODE            = "true"
-OUTBOUND_ENABLED     = "false"
-WORKER_URL_BUILD     = "https://wh-build.pierreduplessis6912.workers.dev"
-WORKER_URL_PATCH     = "https://wh-patch.pierreduplessis6912.workers.dev"
-WORKER_URL_LAUNCH    = "https://wh-launch.pierreduplessis6912.workers.dev"
 
-# — Secrets (set via CLI — do NOT put values here) ——
-# Run these once per secret:
-#   wrangler secret put AIRTABLE_TOKEN       --name wh-reactivate
-#   wrangler secret put AIRTABLE_BASE_ID     --name wh-reactivate
-#   wrangler secret put AIRTABLE_TABLE_ID    --name wh-reactivate
-#   wrangler secret put META_WA_TOKEN        --name wh-reactivate
-#   wrangler secret put META_PHONE_NUMBER_ID --name wh-reactivate
-#   wrangler secret put WH_PHONE             --name wh-reactivate
-#   wrangler secret put ADMIN_KEY            --name wh-reactivate
+# ============================================================
+# NOTES FOR BUILDER
+# ============================================================
+#
+# 1. Replace 9c422081-af06-4c1b-b59e-f40e0d08fefa in ALL 5 files with the
+#    UUID from Cloudflare Dashboard → D1 → website-hub-db
+#    Pierre creates this manually (Part 2 of the spec).
+#
+# 2. The D1 binding name is "DB" across all workers.
+#    All env.DB calls in shared-services.js use this binding.
+#
+# 3. KV namespace ID b63e5b885ead4c02a9e184dd6477e711 is the
+#    SITES namespace — now used for HTML content only.
+#    No state data goes into KV anymore.
+#
+# 4. R2 bucket wh-assets is only bound where file uploads
+#    happen: build-worker (Unsplash photos) and patch-worker
+#    (logo/hero/gallery uploads).
+#
+# 5. The email binding on patch-worker is for Cloudflare Email
+#    Routing (updates@websitehub.co.za → gallery photos).
+#
+# 6. TEST_MODE = "true" on all workers. Flip to "false" in
+#    Cloudflare Dashboard when ready for production.
+#    Never hardcode "false" here — always change via Dashboard.
+#
+# 7. Worker secrets are NOT in wrangler.toml.
+#    They are set via Cloudflare Dashboard → Worker → Settings.
+#    Required secrets per worker:
+#
+#    All workers:
+#      ANTHROPIC_KEY, META_WA_TOKEN, META_PHONE_NUMBER_ID,
+#      WH_PHONE, ADMIN_KEY, RESEND_API_KEY
+#
+#    build-worker only:
+#      UNSPLASH_ACCESS_KEY, GOOGLE_PLACES_API_KEY,
+#      REGISTERDOMAIN_API_KEY, TURNSTILE_SECRET_KEY,
+#      PAYFAST_MERCHANT_ID, PAYFAST_SANDBOX_MERCHANT_ID
+#
+#    launch-worker only:
+#      PAYFAST_MERCHANT_ID, PAYFAST_SANDBOX_MERCHANT_ID,
+#      REGISTERDOMAIN_API_KEY, ZOHO_CLIENT_ID,
+#      ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN,
+#      ZOHO_ORGANISATION_ID, GBP_API_KEY
+#
+# 8. Airtable secrets (AIRTABLE_TOKEN, AIRTABLE_BASE_ID,
+#    AIRTABLE_TABLE_ID) can be removed from all workers
+#    once D1 migration is complete and verified.
+#
+# ============================================================

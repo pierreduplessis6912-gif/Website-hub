@@ -1,60 +1,46 @@
 name = "wh-build"
 main = "src/index.js"
-compatibility_date = "2025-01-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-01-01"
+account_id = "4c559b9dff9fae56803b9c275b518597"
 
-# ── KV Namespaces ──────────────────────────────────────────────
-# Replace <KV_NAMESPACE_ID> with your actual KV namespace ID from the dashboard
+[vars]
+TEST_MODE = "true"
+WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_PATCH = "https://wh-patch.pierreduplessis6912.workers.dev"
+WORKER_URL_LAUNCH = "https://wh-launch.pierreduplessis6912.workers.dev"
+WORKER_URL_PULSE = "https://wh-pulse.pierreduplessis6912.workers.dev"
+WORKER_URL_REACTIVATE = "https://wh-reactivate.pierreduplessis6912.workers.dev"
+
+[[routes]]
+pattern = "preview.websitehub.co.za/*"
+zone_name = "websitehub.co.za"
+
+# KV — content shelf only (HTML blobs, SPA, templates)
 [[kv_namespaces]]
 binding = "SITES"
 id = "b63e5b885ead4c02a9e184dd6477e711"
 
-# ── R2 Buckets ─────────────────────────────────────────────────
-# Replace <R2_BUCKET_NAME> with your actual bucket name (e.g. wh-assets)
+# R2 — asset storage (photos, logos, gallery)
 [[r2_buckets]]
 binding = "ASSETS"
 bucket_name = "wh-assets"
 
-# ── Queues (Producer + Consumer) ───────────────────────────────
-# Replace <QUEUE_ID> with your actual queue ID from the dashboard
+# D1 — the brain (all client data)
+[[d1_databases]]
+binding = "DB"
+database_name = "website-hub-db"
+database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
+
+# Queue — build pipeline
 [[queues.producers]]
 binding = "BUILD_QUEUE"
 queue = "wh-build-queue"
 
 [[queues.consumers]]
 queue = "wh-build-queue"
-max_batch_size = 1
-max_retries = 2
+max_batch_size = 5
+max_batch_timeout = 30
 
-# ── Cron Trigger ───────────────────────────────────────────────
-# Runs outbound prospecting at 9pm UTC (11pm SAST)
+# Cron — outbound prospecting (11pm SAST = 9pm UTC)
 [triggers]
 crons = ["0 21 * * *"]
-
-# ── Environment Variables ──────────────────────────────────────
-# Non-secret config — set here. Secrets go in dashboard or via:
-#   wrangler secret put SECRET_NAME
-[vars]
-TEST_MODE                  = "true"
-OUTBOUND_ENABLED           = "false"
-REFERRAL_ENABLED           = "true"
-VISION_VALIDATION_ENABLED  = "false"
-WORKER_URL_BUILD           = "https://wh-build.pierreduplessis6912.workers.dev"
-WORKER_URL_PATCH           = "https://wh-patch.pierreduplessis6912.workers.dev"
-WORKER_URL_LAUNCH          = "https://wh-launch.pierreduplessis6912.workers.dev"
-
-# ── Secrets (set via CLI — do NOT put values here) ─────────────
-# Run these once per secret:
-#   wrangler secret put ANTHROPIC_KEY        --name wh-build
-#   wrangler secret put AIRTABLE_TOKEN       --name wh-build
-#   wrangler secret put AIRTABLE_BASE_ID     --name wh-build
-#   wrangler secret put AIRTABLE_TABLE_ID    --name wh-build
-#   wrangler secret put META_WA_TOKEN        --name wh-build
-#   wrangler secret put META_PHONE_NUMBER_ID --name wh-build
-#   wrangler secret put WH_PHONE             --name wh-build
-#   wrangler secret put ADMIN_KEY            --name wh-build
-#   wrangler secret put UNSPLASH_ACCESS_KEY  --name wh-build
-#   wrangler secret put GOOGLE_PLACES_API_KEY --name wh-build
-#   wrangler secret put REGISTERDOMAIN_API_KEY --name wh-build
-#   wrangler secret put PAYFAST_MERCHANT_ID  --name wh-build
-#   wrangler secret put PAYFAST_SANDBOX_MERCHANT_ID --name wh-build
