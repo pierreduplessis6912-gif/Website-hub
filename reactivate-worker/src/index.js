@@ -1,61 +1,53 @@
 // ============================================================
 // WEBSITE HUB — reactivate-worker.js
-// Owns inbound + churn flow:
-//   — /cancel-site       Three-branch cancellation (FILE / DOMAIN / ARCHIVE)
-//   — /reactivate-site   Restore cancelled clients
-//   — /not-interested    Prospect cooldown (link from outbound watermark)
-//   — /stop-reply        Permanent opt-out
-//   — /inbound-reply     Meta WhatsApp webhook — verification + intent routing
-//   — /health            Service health
+// Owns inbound + churn flow.
 //
-// INBOUND INTENT ROUTING:
-//   STOP / opt out               → opt-out flow (permanent)
-//   YES (Live + recent go-live)  → trigger GBP creation (launch-worker)
-//   YES (Live + manage panel)    → forward to upgrade target flow
-//   YES (prospect opted in)      → triggers build (sets Client Name, queues build)
-//   any name (prospect 'sent')   → also triggers build (treats reply as opt-in)
-//   UPGRADE / PREMIUM            → launch-worker /upgrade
-//   CANCEL                       → owner alert + acknowledgement
-//   REACTIVATE                   → /reactivate-site flow
-//   anything else                → forward to owner with context
-//
-// META WEBHOOK:
-//   GET  /inbound-reply?hub.mode=subscribe&hub.verify_token=X&hub.challenge=Y
-//        → returns hub.challenge if token matches META_VERIFY_TOKEN
-//   POST /inbound-reply with Meta JSON body + X-Hub-Signature-256 header
-//        → validates HMAC-SHA256, parses messages, routes by intent
-//
-// CROSS-WORKER:
-//   POST {WORKER_URL_LAUNCH}/google-profile   → admin trigger for GBP
-//   POST {WORKER_URL_LAUNCH}/upgrade          → upgrade link generator
-//   Queue env.BUILD_QUEUE.send()              → prospect opt-in builds
+// ROUTES:
+//   POST /cancel-site       Three-branch cancellation (archive/file/domain)
+//   GET  /reactivate-site   Prospect win-back PayFast redirect
+//   POST /reactivate-site   Admin direct reactivation (no payment)
+//   GET  /not-interested    Prospect cooldown (link from outbound watermark)
+//   GET  /stop-reply        Permanent opt-out
+//   POST /inbound-reply     Meta WhatsApp webhook — verification + intent routing
+//   GET  /inbound-reply     Meta webhook verification handshake
+//   GET  /health
 //
 // CANCELLATION OPTIONS:
-//   archive (default) — write suspended:{domain}, keep KV. Easiest reactivation.
-//                       Use for "I'm pausing for now" — pulse-worker fires win-back at 90d.
-//   file              — delete live KV entries, keep suspended:{domain} forever.
-//                       Use for permanent shutdown but want it documented.
-//   domain            — delete live KV entries, delete suspended:{domain},
-//                       unbind CF custom hostname. Use when client takes their domain elsewhere.
+//   archive — status='cancelled', live KV kept → instant reactivation.
+//             Build-worker shows suspended page for status='cancelled'.
+//             Pulse-worker fires win-back at 90 days.
+//   file    — status='cancelled', live KV deleted. Rebuild needed on reactivation.
+//   domain  — status='cancelled', live KV deleted, CF hostname unbound.
 //
-// SECRETS:
-//   META_VERIFY_TOKEN, META_WEBHOOK_SECRET (optional — verifies HMAC if set),
-//   AIRTABLE_*, ADMIN_KEY, WH_PHONE, WORKER_URL_LAUNCH, CF_* (for domain unbind)
+// KEY ARCHITECTURE NOTES (v2):
+//   — Client lookup by phone: D1 getClientByPhone (no Airtable listRecords)
+//   — Prospect state: D1 prospects table (not KV prospect_state:*)
+//   — Opt-out: KV optout:* (kept — sendWhatsApp already checks this) + D1 clients.opted_out
+//   — Cancellation marker: D1 cancellation_date + status='cancelled'
+//     (pulse-worker win-back queries this, no KV cancelled:* key needed)
+//   — manage_token invalidated by clearing clients.manage_token in D1
+//     (no KV manage_token:* key to delete)
+//
+// NOTE FOR BUILD-WORKER:
+//   serveLiveSite() should check status === 'suspended' || status === 'cancelled'
+//   to show the suspended page for cancelled (archive) clients.
+//   Current build-worker only checks 'suspended'. Minor follow-up fix needed.
 // ============================================================
 
 import {
   PRICING, PACKAGE_CAPS,
   PROSPECT_COOLDOWN_DAYS, WIN_BACK_TRIGGER_DAYS,
-  isTestMode, packageKey, getPricingTier, getPackageCaps,
+  isTestMode, packageKey, getPricingTier, buildPayFastLink,
   jsonResponse, corsResponse, htmlResponse,
   slugify, escapeHtml, todayDateString, nextMonthDate,
-  sendWhatsApp, queueScheduledMessage, normaliseSaPhone,
-  getAirtableRecord, updateAirtableRecord, listAirtableRecords,
-  logActivity, logHealth,
+  sendWhatsApp, normaliseSaPhone,
+  logEvent,
+  getClientById, getClientByPhone, getClientBySlug, updateClient,
+  logMessage,
 } from './shared-services.js';
 
 // ────────────────────────────────────────────────────────────
-// CONSTANTS — intent keyword matching (case-insensitive)
+// INTENT KEYWORDS
 // ────────────────────────────────────────────────────────────
 
 const INTENT_KEYWORDS = Object.freeze({
@@ -97,340 +89,272 @@ export default {
 // ============================================================
 
 async function handleHealth(env) {
-  const services = ['airtable', 'whatsapp', 'meta_webhook'];
-  const health = {};
-  for (const svc of services) {
-    try {
-      const raw = await env.SITES.get(`health:${svc}`);
-      health[svc] = raw ? JSON.parse(raw) : { status: 'unknown' };
-    } catch { health[svc] = { status: 'unknown' }; }
-  }
+  let d1Status = 'unknown';
+  try { await env.DB.prepare('SELECT 1').first(); d1Status = 'ok'; }
+  catch { d1Status = 'error'; }
+
   return jsonResponse({
-    ok:       true,
-    worker:   'reactivate-worker',
-    time:     new Date().toISOString(),
-    testMode: isTestMode(env),
-    services: health,
+    ok: true, worker: 'reactivate-worker',
+    time: new Date().toISOString(), testMode: isTestMode(env), d1: d1Status,
   });
 }
 
 // ============================================================
 // ROUTE: /cancel-site
-// Body: { airtableId, option: 'archive' | 'file' | 'domain', reason? }
-// Auth: x-admin-key (for admin trigger) OR inbound webhook (no auth, marks
-//       in Airtable as cancellation_pending for admin review)
+// Body: { clientId, option: 'archive' | 'file' | 'domain', reason? }
 // ============================================================
 
 async function handleCancelSite(request, env, ctx) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
 
-  const { airtableId, option = 'archive', reason = '' } = body;
-  if (!airtableId) return jsonResponse({ error: 'Missing airtableId' }, 400);
-
-  if (!VALID_CANCEL_OPTIONS.includes(option)) {
+  const { clientId, option = 'archive', reason = '' } = body;
+  if (!clientId) return jsonResponse({ error: 'Missing clientId' }, 400);
+  if (!VALID_CANCEL_OPTIONS.includes(option))
     return jsonResponse({ error: `Invalid option — must be one of: ${VALID_CANCEL_OPTIONS.join(', ')}` }, 400);
-  }
 
-  const isAdmin = request.headers.get('x-admin-key') === env.ADMIN_KEY;
-  if (!isAdmin) return jsonResponse({ error: 'Unauthorized' }, 401);
+  const client = await getClientById(env, clientId).catch(() => null);
+  if (!client) return jsonResponse({ error: 'Client not found' }, 404);
 
-  let record;
-  try { record = await getAirtableRecord(airtableId, env); }
-  catch { return jsonResponse({ error: 'Client not found' }, 404); }
-
-  const f      = record.fields;
-  const slug   = f['Slug'] || slugify(f['Business Name']);
-  const domain = (f['Domain'] || `${slug}.co.za`)
-    .replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+  const slug   = client.slug   || slugify(client.business_name);
+  const domain = (client.domain || `${slug}.co.za`).replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
 
   // Branch on cancellation option
   if (option === 'archive') {
-    await env.SITES.put(`suspended:${domain}`, '1');
-    // Keep all live:{domain}:* entries so reactivation is instant
+    // Status = cancelled, live KV kept → instant reactivation if they come back.
+    // build-worker should show suspended page for status='cancelled' (see NOTE above).
   } else if (option === 'file') {
-    await env.SITES.put(`suspended:${domain}`, '1');
-    // Delete live KV entries — site goes to "Site temporarily unavailable" page
     await deleteLiveKvEntries(slug, domain, env);
   } else if (option === 'domain') {
-    // Hard cancel — client takes their domain elsewhere
     await deleteLiveKvEntries(slug, domain, env);
-    await env.SITES.delete(`suspended:${domain}`);
-    // Unbind CF custom hostname (best-effort, non-fatal)
     ctx.waitUntil(unbindCustomHostname(domain, env).catch(e => {
       console.warn('CF hostname unbind failed:', e?.message || e);
     }));
   }
 
-  // Set the cancellation marker that pulse-worker's win-back cron watches
-  await env.SITES.put(`cancelled:${airtableId}`, new Date().toISOString());
-
-  // Delete manage token so the old manage URL stops working
-  if (f['Manage Token']) {
-    await env.SITES.delete(`manage_token:${f['Manage Token']}`).catch(() => {});
-  }
-
-  // Update Airtable
-  await updateAirtableRecord(airtableId, {
-    'Status':               'Cancelled',
-    'Cancellation Date':    todayDateString(),
-    'Cancellation Option':  option,
-    'Cancellation Reason':  reason || '',
-    'Monthly Retainer Active': false,
-  }, env);
+  // Update D1 — status + cancellation fields
+  await updateClient(env, clientId, {
+    status:                  'cancelled',
+    cancellation_date:       new Date().toISOString(),
+    cancellation_option:     option,
+    cancellation_reason:     reason || '',
+    monthly_retainer_active: 0,
+    manage_token:            null, // invalidate manage URL
+  });
 
   // Client confirmation
-  const name = f['Client Name']?.split(' ')[0] || 'there';
+  const name = (client.client_name || '').split(' ')[0] || 'there';
   let clientMsg;
   if (option === 'archive') {
-    clientMsg = `Hi ${name} — we've paused *${f['Business Name']}*. No more invoices.\n\nYour site is on hold but kept on file. If you ever want to bring it back, just reply REACTIVATE and we'll have it up in minutes.\n\nAll the best.\n— Pierre, Website Hub`;
+    clientMsg = `Hi ${name} — we've paused *${client.business_name}*. No more invoices.\n\nYour site is on hold but kept on file. If you ever want to bring it back, just reply REACTIVATE and we'll have it up in minutes.\n\nAll the best.\n— Pierre, Website Hub`;
   } else if (option === 'file') {
-    clientMsg = `Hi ${name} — we've cancelled *${f['Business Name']}* and removed your site from our servers. No more invoices.\n\nIf you change your mind later, we can rebuild from scratch with our normal subscription. No build fee.\n\nAll the best.\n— Pierre, Website Hub`;
-  } else { // domain
-    clientMsg = `Hi ${name} — we've cancelled *${f['Business Name']}* and released your domain (*${domain}*) so you can use it elsewhere.\n\nGood luck with everything.\n— Pierre, Website Hub`;
+    clientMsg = `Hi ${name} — we've cancelled *${client.business_name}* and removed your site from our servers. No more invoices.\n\nIf you change your mind later, we can rebuild from scratch with our normal subscription. No build fee.\n\nAll the best.\n— Pierre, Website Hub`;
+  } else {
+    clientMsg = `Hi ${name} — we've cancelled *${client.business_name}* and released your domain (*${domain}*) so you can use it elsewhere.\n\nGood luck with everything.\n— Pierre, Website Hub`;
   }
-  await sendWhatsApp(f['WhatsApp'], clientMsg, env);
+  await sendWhatsApp(client.phone, clientMsg, env);
 
-  // Owner alert
   await sendWhatsApp(env.WH_PHONE,
-    `🛑 CANCELLED: ${f['Business Name']}\nOption: ${option}\nReason: ${reason || '(none given)'}\nDomain: ${domain}\nAirtable: ${airtableId}\nWin-back eligible in ${WIN_BACK_TRIGGER_DAYS} days.`,
+    `🛑 CANCELLED: ${client.business_name}\nOption: ${option}\nReason: ${reason || '(none)'}\nDomain: ${domain}\nClient: ${clientId}\nWin-back in ${WIN_BACK_TRIGGER_DAYS} days.`,
     env, { skipTestRedirect: true });
 
-  await logActivity(env, 'site_cancelled', {
-    airtableId, business: f['Business Name'], option, reason, domain,
+  await logEvent(env, 'reactivate', 'cancellation', 'success', {
+    clientId, metadata: { business: client.business_name, option, reason, domain },
   });
 
   return jsonResponse({ success: true, option, winBackEligibleIn: WIN_BACK_TRIGGER_DAYS });
 }
 
-/**
- * Deletes the per-page live KV entries for a slug+domain.
- * Used by 'file' and 'domain' cancellation options.
- */
 async function deleteLiveKvEntries(slug, domain, env) {
-  const caps  = getPackageCaps('Premium'); // 5 pages — covers all tiers
-  const pages = caps.pages;
+  const pages = PACKAGE_CAPS.premium.pages; // all possible pages
   for (const p of pages) {
     await env.SITES.delete(`live:${domain}:${p}`).catch(() => {});
   }
   await env.SITES.delete(`live:${domain}`).catch(() => {});
 }
 
-/**
- * Unbinds a Cloudflare custom hostname. Best-effort — failures don't block
- * the rest of the cancellation flow.
- */
 async function unbindCustomHostname(hostname, env) {
   if (isTestMode(env)) {
     await env.SITES.put(
       `test_log:cf_unbind:${hostname}:${Date.now()}`,
       JSON.stringify({ hostname, ts: new Date().toISOString() }),
       { expirationTtl: 60 * 60 * 24 * 30 },
-    );
+    ).catch(() => {});
     return { test_mode: true };
   }
-  if (!env.CF_ACCOUNT_ID || !env.CF_API_TOKEN || !env.CF_ZONE_ID) {
+  if (!env.CF_ACCOUNT_ID || !env.CF_API_TOKEN || !env.CF_ZONE_ID)
     throw new Error('Cloudflare API not configured');
-  }
 
-  // First, find the custom_hostname ID by listing and matching
-  const listRes = await fetch(
+  const listRes  = await fetch(
     `https://api.cloudflare.com/client/v4/zones/${env.CF_ZONE_ID}/custom_hostnames?hostname=${encodeURIComponent(hostname)}`,
     { headers: { 'Authorization': `Bearer ${env.CF_API_TOKEN}` } },
   );
   const listData = await listRes.json();
-  if (!listRes.ok || !listData.success) throw new Error(`CF list failed: ${JSON.stringify(listData.errors)}`);
+  if (!listRes.ok || !listData.success)
+    throw new Error(`CF list failed: ${JSON.stringify(listData.errors)}`);
 
   const match = (listData.result || []).find(h => h.hostname === hostname);
-  if (!match) return { not_found: true }; // already unbound, no-op
+  if (!match) return { not_found: true };
 
-  const delRes = await fetch(
+  const delRes  = await fetch(
     `https://api.cloudflare.com/client/v4/zones/${env.CF_ZONE_ID}/custom_hostnames/${match.id}`,
-    {
-      method:  'DELETE',
-      headers: { 'Authorization': `Bearer ${env.CF_API_TOKEN}` },
-    },
+    { method: 'DELETE', headers: { 'Authorization': `Bearer ${env.CF_API_TOKEN}` } },
   );
   const delData = await delRes.json();
-  if (!delRes.ok || !delData.success) throw new Error(`CF delete failed: ${JSON.stringify(delData.errors)}`);
+  if (!delRes.ok || !delData.success)
+    throw new Error(`CF delete failed: ${JSON.stringify(delData.errors)}`);
 
-  await logActivity(env, 'cf_hostname_unbound', { hostname, id: match.id });
+  await logEvent(env, 'reactivate', 'hostname_unbound', 'success', { metadata: { hostname, id: match.id } });
   return { unbound: true, id: match.id };
 }
 
 // ============================================================
 // ROUTE: /reactivate-site
-// Accepts both GET (tap from win-back WhatsApp link) and POST (admin/SPA).
-// GET ?airtableId=X — looks up record, generates fresh PayFast, redirects.
-// POST { airtableId } with admin key — immediate reactivation without payment.
+// GET  ?clientId=X → PayFast redirect (win-back link)
+// POST { clientId } with x-admin-key → admin direct reactivation
 // ============================================================
 
 async function handleReactivateSite(request, env, ctx) {
   const url = new URL(request.url);
 
   if (request.method === 'GET') {
-    const airtableId = url.searchParams.get('airtableId');
-    if (!airtableId) return htmlResponse(simpleErrorPage('Missing record ID.'), 400);
+    const clientId = url.searchParams.get('clientId');
+    if (!clientId) return htmlResponse(simpleErrorPage('Missing client ID.'), 400);
 
-    let record;
-    try { record = await getAirtableRecord(airtableId, env); }
-    catch { return htmlResponse(simpleErrorPage('Record not found.'), 404); }
+    const client = await getClientById(env, clientId).catch(() => null);
+    if (!client) return htmlResponse(simpleErrorPage('Record not found.'), 404);
 
-    const f      = record.fields;
-    const tier   = getPricingTier(f['Package'] || 'Standard');
-    const launchUrl = env.WORKER_URL_LAUNCH || '';
+    const tier = PRICING[packageKey(client.package || 'standard')];
 
-    // Build a PayFast link via launch-worker URL pattern (no custom_str2 = subscription)
-    // and an "amount" matching the retainer. PayFast COMPLETE webhook will fire
-    // handleGoLivePayment which detects Status=Cancelled → reinstateInternal.
-    // For Cancelled status, we first need to flip it to Suspended so the launch-worker
-    // recognises it as a reinstatement target. Do that here.
-    await updateAirtableRecord(airtableId, { 'Status': 'Suspended' }, env);
+    // Flip to suspended so launch-worker.handleGoLivePayment routes it as reinstatement
+    await updateClient(env, clientId, { status: 'suspended' });
 
-    const itemName  = encodeURIComponent('Website Hub Reactivation');
-    const returnUrl = encodeURIComponent(`https://preview.websitehub.co.za/${f['Slug'] || slugify(f['Business Name'])}`);
-    const notifyUrl = encodeURIComponent(`${launchUrl}/payfast-webhook`);
-    const sandboxHost = isTestMode(env) ? 'sandbox.payfast.co.za' : 'www.payfast.co.za';
-    const merchantId  = isTestMode(env)
-      ? (env.PAYFAST_SANDBOX_MERCHANT_ID || '10000100')
-      : (env.PAYFAST_MERCHANT_ID || '13581217');
-    const payLink = `https://${sandboxHost}/eng/process?merchant_id=${merchantId}&amount=${tier.retainer}&item_name=${itemName}&custom_str1=${airtableId}&return_url=${returnUrl}&notify_url=${notifyUrl}`;
+    const payLink = buildPayFastLink(tier.retainer, 'Website Hub Reactivation', clientId, env, {
+      returnUrl: `https://preview.websitehub.co.za/${client.slug || slugify(client.business_name)}`,
+      notifyUrl: env.WORKER_URL_LAUNCH ? `${env.WORKER_URL_LAUNCH}/payfast-webhook` : undefined,
+    });
 
     return Response.redirect(payLink, 302);
   }
 
-  // POST — admin direct reactivation (no payment required, e.g. comping a client)
   if (request.method !== 'POST') return jsonResponse({ error: 'GET or POST only' }, 405);
   if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
 
-  const { airtableId } = body;
-  if (!airtableId) return jsonResponse({ error: 'Missing airtableId' }, 400);
+  const { clientId } = body;
+  if (!clientId) return jsonResponse({ error: 'Missing clientId' }, 400);
 
-  let record;
-  try { record = await getAirtableRecord(airtableId, env); }
-  catch { return jsonResponse({ error: 'Client not found' }, 404); }
+  const client = await getClientById(env, clientId).catch(() => null);
+  if (!client) return jsonResponse({ error: 'Client not found' }, 404);
 
-  ctx.waitUntil(reactivateInternal(airtableId, record.fields, env));
+  ctx.waitUntil(reactivateInternal(client, env));
   return jsonResponse({ success: true, message: 'Reactivation started' });
 }
 
-async function reactivateInternal(airtableId, f, env) {
-  const slug   = f['Slug'] || slugify(f['Business Name']);
-  const domain = (f['Domain'] || `${slug}.co.za`)
-    .replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+async function reactivateInternal(client, env) {
+  const slug   = client.slug   || slugify(client.business_name);
+  const domain = (client.domain || `${slug}.co.za`).replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
 
-  // Clear the cancellation marker so pulse-worker doesn't re-send win-back
-  await env.SITES.delete(`cancelled:${airtableId}`);
-  await env.SITES.delete(`winback_sent:${airtableId}`);
-
-  // If KV live entries still exist (archive option), just unsuspend
+  // Check if live KV still exists (archive path — instant reactivation)
   const hasLive = await env.SITES.get(`live:${domain}`);
+
   if (hasLive) {
-    await env.SITES.delete(`suspended:${domain}`);
-    await updateAirtableRecord(airtableId, {
-      'Status':                  'Live',
-      'Monthly Retainer Active': true,
-      'Next Invoice Date':       nextMonthDate(),
-    }, env);
-
-    const name = f['Client Name']?.split(' ')[0] || 'there';
-    await sendWhatsApp(f['WhatsApp'],
-      `✅ Welcome back, ${name}! *${f['Business Name']}* is live again at https://${domain}\n\n— Pierre, Website Hub`,
-      env);
-
-  } else {
-    // KV entries were deleted (file/domain option) — queue a fresh build
-    await updateAirtableRecord(airtableId, {
-      'Status': 'Deposit Paid', // build-worker accepts this status
-    }, env);
-    await env.BUILD_QUEUE.send({
-      airtableId,
-      paymentId:  null,
-      fields:     null,
-      isOutbound: false,
+    // Archive path: live KV exists, just flip status back to live
+    await updateClient(env, client.id, {
+      status:                  'live',
+      monthly_retainer_active: 1,
+      next_invoice_date:       nextMonthDate(),
+      cancellation_date:       null,
+      cancellation_option:     null,
+      cancellation_reason:     null,
     });
 
-    const name = f['Client Name']?.split(' ')[0] || 'there';
-    await sendWhatsApp(f['WhatsApp'],
-      `🎉 Welcome back, ${name}! We're rebuilding *${f['Business Name']}* now — you'll have a fresh preview in about 10 minutes.\n\n— Pierre, Website Hub`,
+    const name = (client.client_name || '').split(' ')[0] || 'there';
+    await sendWhatsApp(client.phone,
+      `✅ Welcome back, ${name}! *${client.business_name}* is live again at https://${domain}\n\n— Pierre, Website Hub`,
+      env);
+  } else {
+    // File/domain path: live KV was deleted — queue a fresh rebuild
+    await updateClient(env, client.id, {
+      status:            'lead',
+      cancellation_date: null,
+      cancellation_option: null,
+    });
+
+    await env.BUILD_QUEUE.send({ clientId: client.id, paymentId: null, isOutbound: false });
+
+    const name = (client.client_name || '').split(' ')[0] || 'there';
+    await sendWhatsApp(client.phone,
+      `🎉 Welcome back, ${name}! We're rebuilding *${client.business_name}* now — you'll have a fresh preview in about 10 minutes.\n\n— Pierre, Website Hub`,
       env);
   }
 
   await sendWhatsApp(env.WH_PHONE,
-    `🎉 REACTIVATED: ${f['Business Name']}\nDomain: ${domain}\nAirtable: ${airtableId}`,
+    `🎉 REACTIVATED: ${client.business_name}\nDomain: ${domain}\nClient: ${client.id}`,
     env, { skipTestRedirect: true });
 
-  await logActivity(env, 'site_reactivated', {
-    airtableId, business: f['Business Name'], domain,
+  await logEvent(env, 'reactivate', 'reactivation', 'success', {
+    clientId: client.id, metadata: { business: client.business_name, domain },
   });
 }
 
 // ============================================================
-// ROUTE: /not-interested
-// GET link from outbound preview watermark.
-// Sets prospect_closed:{phone} so pulse-worker's prospect cron skips them
-// for PROSPECT_COOLDOWN_DAYS.
+// ROUTE: /not-interested — prospect cooldown
+// GET ?slug=X&phone=Y from outbound watermark "Not interested" link
 // ============================================================
 
 async function handleNotInterested(request, url, env) {
   const slug  = url.searchParams.get('slug');
   const phone = url.searchParams.get('phone');
 
-  // Try to identify the prospect even if only one of slug/phone is provided
-  let airtableId = null, businessName = null, normalisedPhone = null;
+  let clientId = null, businessName = null, normalisedPhone = null;
 
   if (phone) {
     normalisedPhone = normaliseSaPhone(phone);
-    const stateRaw = await env.SITES.get(`prospect_state:${normalisedPhone}`).catch(() => null);
-    if (stateRaw) {
-      const state = JSON.parse(stateRaw);
-      airtableId = state.airtableId;
-    }
+    const client = await getClientByPhone(env, normalisedPhone).catch(() => null);
+    if (client) { clientId = client.id; businessName = client.business_name; }
   }
-  if (!airtableId && slug) {
-    const outboundRaw = await env.SITES.get(`outbound:${slug}`).catch(() => null);
-    if (outboundRaw) airtableId = outboundRaw;
+  if (!clientId && slug) {
+    const client = await getClientBySlug(env, slug).catch(() => null);
+    if (client) { clientId = client.id; businessName = client.business_name; normalisedPhone = normalisedPhone || client.phone; }
   }
 
-  if (airtableId) {
-    try {
-      const record = await getAirtableRecord(airtableId, env);
-      const f = record.fields;
-      businessName    = f['Business Name'];
-      normalisedPhone = normalisedPhone || normaliseSaPhone(f['WhatsApp']);
+  if (clientId) {
+    // Set prospect cooldown in D1 prospects table
+    await env.DB.prepare(
+      `UPDATE prospects SET status = 'rejected',
+       cooldown_until = datetime('now', '+${PROSPECT_COOLDOWN_DAYS} days')
+       WHERE phone = ?`
+    ).bind(normalisedPhone || '').run().catch(() => {});
 
-      await updateAirtableRecord(airtableId, { 'Status': 'Not Interested' }, env);
-    } catch (e) {
-      console.warn('not-interested airtable update failed:', e?.message || e);
-    }
+    // Mark client as not-interested (optional status update for prospects-as-clients)
+    await updateClient(env, clientId, { conversation_state: 'CLOSED' }).catch(() => {});
   }
 
-  // Cooldown marker
+  // KV prospect state cleanup
   if (normalisedPhone) {
-    await env.SITES.put(`prospect_closed:${normalisedPhone}`, new Date().toISOString());
-    await env.SITES.put(`prospect_state:${normalisedPhone}`, JSON.stringify({
-      airtableId, slug, phase: 'closed', closedAt: new Date().toISOString(),
-    }), { expirationTtl: 60 * 60 * 24 * PROSPECT_COOLDOWN_DAYS });
+    await env.SITES.delete(`prospect_state:${normalisedPhone}`).catch(() => {});
   }
 
   await sendWhatsApp(env.WH_PHONE,
     `❌ NOT INTERESTED: ${businessName || slug || normalisedPhone || 'unknown prospect'}\n${PROSPECT_COOLDOWN_DAYS}-day cooldown set.`,
     env, { skipTestRedirect: true });
 
-  await logActivity(env, 'prospect_not_interested', { airtableId, slug, phone: normalisedPhone });
+  await logEvent(env, 'reactivate', 'prospect_not_interested', 'success', {
+    clientId, metadata: { slug, phone: normalisedPhone },
+  });
 
   return htmlResponse(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>No problem</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#0d0d0d;color:#f0ede8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center}.box{max-width:380px;background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:40px 28px}.icon{font-size:40px;margin-bottom:16px}h2{font-size:22px;font-weight:800;margin-bottom:10px}p{color:#888;line-height:1.7;font-size:14px}</style></head><body><div class="box"><div class="icon">👋</div><h2>No problem at all</h2><p>We won't contact you again. All the best with your business.</p></div></body></html>`);
 }
 
 // ============================================================
-// ROUTE: /stop-reply
-// GET or POST — permanent opt-out. Sets optout:{phone} (no TTL) so
-// sendWhatsApp always skips this number going forward.
+// ROUTE: /stop-reply — permanent opt-out
+// KV optout:* kept (sendWhatsApp checks it) + D1 clients.opted_out
 // ============================================================
 
 async function handleStopReply(request, url, env) {
@@ -443,42 +367,44 @@ async function handleStopReply(request, url, env) {
   const normalisedPhone = normaliseSaPhone(phone);
   if (!normalisedPhone) return htmlResponse(simpleErrorPage('Invalid phone format.'), 400);
 
+  // KV optout — sendWhatsApp checks this on every send
   await env.SITES.put(`optout:${normalisedPhone}`, new Date().toISOString());
 
-  // Clean up any prospect state too
+  // D1 opt-out
+  const client = await getClientByPhone(env, normalisedPhone).catch(() => null);
+  if (client) {
+    await updateClient(env, client.id, { opted_out: 1, opted_out_at: new Date().toISOString() }).catch(() => {});
+  }
+
+  // D1 prospect cooldown
+  await env.DB.prepare(
+    `UPDATE prospects SET status = 'opted_out', cooldown_until = datetime('now', '+3650 days')
+     WHERE phone = ?`
+  ).bind(normalisedPhone).run().catch(() => {});
+
+  // Clean up KV prospect state
   await env.SITES.delete(`prospect_state:${normalisedPhone}`).catch(() => {});
 
   await sendWhatsApp(env.WH_PHONE,
     `🚫 OPT-OUT: +${normalisedPhone}`,
     env, { skipTestRedirect: true });
 
-  await logActivity(env, 'opt_out', { phone: normalisedPhone });
+  await logEvent(env, 'reactivate', 'opt_out', 'success', { metadata: { phone: normalisedPhone } });
 
   return htmlResponse(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Opted out</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#0d0d0d;color:#f0ede8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center}.box{max-width:380px;background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:40px 28px}.icon{font-size:40px;margin-bottom:16px}h2{font-size:22px;font-weight:800;margin-bottom:10px}p{color:#888;line-height:1.7;font-size:14px}</style></head><body><div class="box"><div class="icon">✓</div><h2>You're opted out</h2><p>We won't message you again. All the best.</p></div></body></html>`);
 }
 
 // ============================================================
 // ROUTE: /inbound-reply — Meta WhatsApp webhook
-//
-// GET (verification, once per webhook registration):
-//   ?hub.mode=subscribe&hub.verify_token=X&hub.challenge=Y
-//   If X === META_VERIFY_TOKEN, returns Y as plain text.
-//
-// POST (incoming messages):
-//   Validates X-Hub-Signature-256 if META_WEBHOOK_SECRET is set.
-//   Parses Meta's nested JSON for the message text + sender phone.
-//   Routes by intent keyword + Airtable record status.
 // ============================================================
 
 async function handleInboundReply(request, env, ctx) {
   const url = new URL(request.url);
 
-  // ── GET verification ────────────────────────────────────────
   if (request.method === 'GET') {
     const mode      = url.searchParams.get('hub.mode');
     const token     = url.searchParams.get('hub.verify_token');
     const challenge = url.searchParams.get('hub.challenge');
-
     if (mode === 'subscribe' && token === env.META_VERIFY_TOKEN) {
       return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
@@ -487,14 +413,12 @@ async function handleInboundReply(request, env, ctx) {
 
   if (request.method !== 'POST') return jsonResponse({ error: 'GET or POST only' }, 405);
 
-  // Read body once, verify signature, then parse
   const rawBody = await request.text();
 
-  // ── HMAC verification (if META_WEBHOOK_SECRET is configured) ─
   if (env.META_WEBHOOK_SECRET) {
     const sigHeader = request.headers.get('x-hub-signature-256');
     if (!sigHeader || !(await verifyMetaSignature(rawBody, sigHeader, env.META_WEBHOOK_SECRET))) {
-      await logHealth(env, 'meta_webhook', 'error', 'signature mismatch');
+      await logEvent(env, 'reactivate', 'meta_webhook_sig_fail', 'failure');
       return new Response('Invalid signature', { status: 401 });
     }
   }
@@ -503,36 +427,24 @@ async function handleInboundReply(request, env, ctx) {
   try { payload = JSON.parse(rawBody); }
   catch { return new Response('Invalid JSON', { status: 400 }); }
 
-  // Process all messages in the payload (Meta may batch)
   const messages = extractInboundMessages(payload);
-  if (messages.length === 0) {
-    // Status updates, delivery receipts, etc — acknowledge silently
-    return new Response('OK', { status: 200 });
-  }
+  if (messages.length === 0) return new Response('OK', { status: 200 });
 
-  // Process asynchronously, return 200 immediately so Meta doesn't retry
   ctx.waitUntil(processInboundMessages(messages, env));
-
-  await logHealth(env, 'meta_webhook', 'success');
+  await logEvent(env, 'reactivate', 'meta_webhook', 'success', { metadata: { count: messages.length } });
   return new Response('OK', { status: 200 });
 }
 
-/**
- * Web Crypto HMAC-SHA256 signature verification for Meta webhooks.
- * Header format: "sha256={hex}"
- */
 async function verifyMetaSignature(body, signatureHeader, secret) {
   try {
     const enc = new TextEncoder();
     const key = await crypto.subtle.importKey(
       'raw', enc.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false, ['sign'],
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
     );
-    const sig = await crypto.subtle.sign('HMAC', key, enc.encode(body));
+    const sig    = await crypto.subtle.sign('HMAC', key, enc.encode(body));
     const sigHex = Array.from(new Uint8Array(sig))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+      .map(b => b.toString(16).padStart(2, '0')).join('');
     return `sha256=${sigHex}` === signatureHeader;
   } catch (e) {
     console.warn('Signature verification error:', e);
@@ -540,10 +452,6 @@ async function verifyMetaSignature(body, signatureHeader, secret) {
   }
 }
 
-/**
- * Walks Meta's nested webhook payload and pulls out [{ from, text, type }, ...].
- * Ignores status updates, delivery receipts, and non-text messages.
- */
 function extractInboundMessages(payload) {
   const out = [];
   try {
@@ -554,7 +462,6 @@ function extractInboundMessages(payload) {
           if (m.type === 'text' && m.text?.body) {
             out.push({ from: m.from, text: m.text.body, type: 'text', timestamp: m.timestamp });
           } else if (m.type === 'button' && m.button?.text) {
-            // Quick-reply button taps come as type=button
             out.push({ from: m.from, text: m.button.text, type: 'button', timestamp: m.timestamp });
           }
         }
@@ -571,96 +478,87 @@ async function processInboundMessages(messages, env) {
     try { await routeInboundMessage(msg, env); }
     catch (e) {
       console.warn('Inbound message routing failed:', e?.message || e);
-      await logActivity(env, 'inbound_routing_error', { from: msg.from, error: e.message });
+      await logEvent(env, 'reactivate', 'inbound_routing_error', 'failure', {
+        metadata: { from: msg.from, error: e.message },
+      });
     }
   }
 }
 
 /**
- * Main intent router. Looks up state from Airtable + KV, applies keyword
- * matching in priority order, and dispatches to the right handler.
- *
- * Priority (highest first):
- *   1. STOP → opt-out (always wins)
- *   2. Active prospect state → name reply or YES → trigger build
- *   3. Live client + recent go-live + YES → trigger GBP
- *   4. UPGRADE / PREMIUM → upgrade flow
- *   5. REACTIVATE → reactivation flow
- *   6. CANCEL → owner alert, await admin processing
- *   7. unrecognised → forward to owner
+ * Intent router. Looks up D1 client + prospect state, routes by keyword.
+ * Priority: STOP > prospect state > client context intents > forward
  */
 async function routeInboundMessage(msg, env) {
   const phone = normaliseSaPhone(msg.from);
   const text  = String(msg.text || '').trim();
   const upper = text.toUpperCase();
 
-  // ── 1. STOP keywords (always highest priority) ──────────────
+  // ── 1. STOP (always wins) ────────────────────────────────────
   if (matchesAny(upper, INTENT_KEYWORDS.optOut)) {
     return handleOptOutIntent(phone, env);
   }
 
-  // Look up Airtable record (by phone) + prospect state
-  const record = await findRecordByPhone(phone, env);
-  const prospectStateRaw = await env.SITES.get(`prospect_state:${phone}`).catch(() => null);
-  const prospectState    = prospectStateRaw ? JSON.parse(prospectStateRaw) : null;
+  // ── 2. D1 lookup — client by phone ──────────────────────────
+  const client = await getClientByPhone(env, phone).catch(() => null);
 
-  // ── 2. Active prospect — first reply is opt-in ──────────────
-  if (prospectState && (prospectState.phase === 'sent' || prospectState.phase === 'follow_up_sent')) {
-    return handleProspectOptIn(phone, text, prospectState, env);
+  // ── 3. D1 prospect state lookup ─────────────────────────────
+  const prospect = await env.DB.prepare(
+    `SELECT * FROM prospects WHERE phone = ? AND status IN ('pending') LIMIT 1`
+  ).bind(phone).first().catch(() => null);
+
+  // ── 4. Active prospect — first reply is opt-in ──────────────
+  if (prospect && !client) {
+    return handleProspectOptIn(phone, text, prospect, env);
   }
 
-  // ── 3. Client-context intents (require Airtable record) ─────
-  if (record) {
-    const f = record.fields;
-    const status = f['Status'] || '';
+  // ── 5. KV prospect state (legacy — outbound pre-D1 records) ─
+  const legacyStateRaw = await env.SITES.get(`prospect_state:${phone}`).catch(() => null);
+  const legacyState    = legacyStateRaw ? (() => { try { return JSON.parse(legacyStateRaw); } catch { return null; } })() : null;
+  if (legacyState && (legacyState.phase === 'sent' || legacyState.phase === 'follow_up_sent')) {
+    return handleLegacyProspectOptIn(phone, text, legacyState, env);
+  }
 
-    // YES — context-aware. If recently went live and GBP not yet processed, it's GBP opt-in.
+  // ── 6. Client-context intents ────────────────────────────────
+  if (client) {
+    const status = client.status || '';
+
     if (matchesAny(upper, INTENT_KEYWORDS.yes)) {
-      const goLiveDate = f['Go Live Date'];
-      const gbpStatus  = f['Google Profile Status'] || '';
-      if (status === 'Live' && goLiveDate && !gbpStatus) {
+      const goLiveDate = client.go_live_date;
+      const gbpStatus  = client.gbp_status || '';
+      if (status === 'live' && goLiveDate && !gbpStatus) {
         const daysSinceLive = Math.floor((Date.now() - new Date(goLiveDate).getTime()) / (1000 * 60 * 60 * 24));
-        if (daysSinceLive <= 7) {
-          return handleGbpOptIn(record.id, env);
-        }
+        if (daysSinceLive <= 7) return handleGbpOptIn(client.id, env);
       }
-      // Otherwise YES might be a generic acknowledgement — forward to owner
-      return forwardToOwner(phone, text, record, 'yes-ambiguous', env);
+      return forwardToOwner(phone, text, client, 'yes-ambiguous', env);
     }
 
-    // UPGRADE / PREMIUM
     if (matchesAny(upper, INTENT_KEYWORDS.upgrade)) {
-      return handleUpgradeIntent(record.id, f, upper, env);
+      return handleUpgradeIntent(client, upper, env);
     }
 
-    // REACTIVATE (only valid if currently Cancelled)
     if (matchesAny(upper, INTENT_KEYWORDS.reactivate)) {
-      if (status === 'Cancelled') {
-        return handleReactivateIntent(record.id, f, env);
-      }
-      return forwardToOwner(phone, text, record, 'reactivate-not-cancelled', env);
+      if (status === 'cancelled') return handleReactivateIntent(client, env);
+      return forwardToOwner(phone, text, client, 'reactivate-not-cancelled', env);
     }
 
-    // CANCEL — never auto-process; surface to owner with context
     if (matchesAny(upper, INTENT_KEYWORDS.cancel)) {
-      return handleCancelIntent(record.id, f, text, env);
+      return handleCancelIntent(client, text, env);
     }
 
-    // ── 4. Unrecognised — forward to owner with client context ─
-    return forwardToOwner(phone, text, record, 'unrecognised', env);
+    return forwardToOwner(phone, text, client, 'unrecognised', env);
   }
 
-  // ── 5. No record at all — could be a new lead or wrong number ──
-  // Forward to owner so they can decide if it's worth following up.
+  // ── 7. Unknown sender ────────────────────────────────────────
   await sendWhatsApp(env.WH_PHONE,
-    `📩 UNKNOWN SENDER (+${phone})\n\n"${text.slice(0, 200)}"\n\nNot in Airtable. May be wrong number or organic outreach.`,
+    `📩 UNKNOWN SENDER (+${phone})\n\n"${text.slice(0, 200)}"\n\nNot in D1. May be wrong number or organic outreach.`,
     env, { skipTestRedirect: true });
-  await logActivity(env, 'inbound_unknown_sender', { phone, text: text.slice(0, 100) });
+  await logEvent(env, 'reactivate', 'inbound_unknown', 'warning', {
+    metadata: { phone, snippet: text.slice(0, 100) },
+  });
 }
 
 function matchesAny(upper, keywords) {
-  // Tight match — keyword must be a discrete token (or whole message)
-  // Prevents false positives like "no problem!" matching "NO"
   for (const kw of keywords) {
     const re = new RegExp(`(^|\\s|\\W)${escapeRegex(kw)}($|\\s|\\W)`, 'i');
     if (re.test(upper)) return true;
@@ -668,26 +566,7 @@ function matchesAny(upper, keywords) {
   return false;
 }
 
-function escapeRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Looks up an Airtable record by phone number.
- * Strips '+' and matches against WhatsApp field with both formats.
- */
-async function findRecordByPhone(phone, env) {
-  if (!phone) return null;
-  // Match against both '27840142017' and '+27840142017' shapes
-  const formula = `OR({WhatsApp} = "${phone}", {WhatsApp} = "+${phone}", {WhatsApp} = "0${phone.slice(2)}")`;
-  try {
-    const records = await listAirtableRecords(formula, env, 1);
-    return records[0] || null;
-  } catch (e) {
-    console.warn('findRecordByPhone failed:', e?.message || e);
-    return null;
-  }
-}
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
 // ============================================================
 // INBOUND INTENT HANDLERS
@@ -697,143 +576,157 @@ async function handleOptOutIntent(phone, env) {
   await env.SITES.put(`optout:${phone}`, new Date().toISOString());
   await env.SITES.delete(`prospect_state:${phone}`).catch(() => {});
 
-  // Confirmation (only sent if they haven't been totally hostile)
+  // D1 opt-out
+  const client = await getClientByPhone(env, phone).catch(() => null);
+  if (client) {
+    await updateClient(env, client.id, { opted_out: 1, opted_out_at: new Date().toISOString() }).catch(() => {});
+  }
+
   await sendWhatsApp(phone,
     `Got it — we won't message you again. All the best. — Website Hub`,
-    env, { skipTestRedirect: false }); // honours their opt-out request immediately after this final reply
+    env);
 
   await sendWhatsApp(env.WH_PHONE,
     `🚫 OPTED OUT: +${phone}`,
     env, { skipTestRedirect: true });
 
-  await logActivity(env, 'inbound_opt_out', { phone });
+  await logEvent(env, 'reactivate', 'opt_out', 'success', { metadata: { phone } });
 }
 
-/**
- * Prospect reply (opted in by replying — typically with their name).
- * We don't actually parse the name out — we just save the message text as
- * the Client Name and trigger a build. Owner can review/correct in Airtable.
- *
- * Skip if message is just "NO" or similar refusal.
- */
-async function handleProspectOptIn(phone, text, prospectState, env) {
+async function handleProspectOptIn(phone, text, prospect, env) {
   const upper = text.toUpperCase().trim();
 
-  // If the prospect replied with NO or similar, treat as soft decline
   if (matchesAny(upper, INTENT_KEYWORDS.no)) {
-    await env.SITES.put(`prospect_closed:${phone}`, new Date().toISOString());
-    await env.SITES.put(`prospect_state:${phone}`, JSON.stringify({
-      ...prospectState, phase: 'declined', declinedAt: new Date().toISOString(),
-    }), { expirationTtl: 60 * 60 * 24 * PROSPECT_COOLDOWN_DAYS });
-
-    if (prospectState.airtableId) {
-      await updateAirtableRecord(prospectState.airtableId, { 'Status': 'Not Interested' }, env).catch(() => {});
-    }
-    await logActivity(env, 'prospect_declined', { phone, airtableId: prospectState.airtableId });
+    await env.DB.prepare(
+      `UPDATE prospects SET status = 'rejected',
+       cooldown_until = datetime('now', '+${PROSPECT_COOLDOWN_DAYS} days')
+       WHERE id = ?`
+    ).bind(prospect.id).run().catch(() => {});
+    await logEvent(env, 'reactivate', 'prospect_declined', 'success', { metadata: { phone } });
     return;
   }
 
-  // Extract name — take first 2 words, capitalise, limit length
-  const nameGuess = text.split(/\s+/).slice(0, 2).join(' ').slice(0, 40)
-    .replace(/[^a-zA-Z\s'-]/g, '').trim();
+  const nameGuess  = text.split(/\s+/).slice(0, 2).join(' ').slice(0, 40).replace(/[^a-zA-Z\s'-]/g, '').trim();
   const clientName = nameGuess
     ? nameGuess.split(/\s+/).map(w => w[0]?.toUpperCase() + w.slice(1).toLowerCase()).join(' ')
     : 'there';
 
-  // Update Airtable + queue build
-  if (prospectState.airtableId) {
-    await updateAirtableRecord(prospectState.airtableId, {
-      'Client Name': clientName,
-      'Status':      'Building',
-    }, env);
-
-    await env.BUILD_QUEUE.send({
-      airtableId: prospectState.airtableId,
-      paymentId:  null,
-      fields:     null, // build-worker refetches with the updated Client Name
-      isOutbound: true,
-    });
+  // If prospect already has a linked client_id, use that; otherwise create client record
+  let clientId = prospect.client_id;
+  if (!clientId) {
+    // Create client record from prospect data
+    try {
+      const { createClient, slugify: sl } = await import('./shared-services.js');
+      const result = await createClient(env, {
+        business_name: prospect.business_name,
+        client_name:   clientName,
+        phone:         phone,
+        industry:      prospect.industry || 'Other',
+        area:          prospect.area     || '',
+        about:         prospect.about    || '',
+        services:      prospect.services || '',
+        vibe:          'bold_confident',
+        status:        'lead',
+        source:        'outbound',
+        package:       'standard',
+        retainer:      PRICING.standard.retainer,
+      });
+      clientId = result.id;
+      await env.DB.prepare(`UPDATE prospects SET client_id = ?, status = 'built' WHERE id = ?`)
+        .bind(clientId, prospect.id).run().catch(() => {});
+    } catch (e) {
+      console.warn('Failed to create client from prospect opt-in:', e?.message || e);
+    }
+  } else {
+    await updateClient(env, clientId, { client_name: clientName, status: 'lead' }).catch(() => {});
   }
 
-  // Update prospect state
-  await env.SITES.put(`prospect_state:${phone}`, JSON.stringify({
-    ...prospectState, phase: 'opted_in', optedInAt: new Date().toISOString(),
-  }), { expirationTtl: 60 * 60 * 24 * 30 });
+  if (clientId) {
+    await env.BUILD_QUEUE.send({ clientId, paymentId: null, isOutbound: true });
+  }
 
-  // Acknowledge
   await sendWhatsApp(phone,
     `Brilliant ${clientName} 👋 We're building your free website preview right now — you'll have the link in about 2 minutes. Sit tight!\n\n— Website Hub`,
     env);
 
   await sendWhatsApp(env.WH_PHONE,
-    `✅ PROSPECT OPTED IN: "${clientName}" (+${phone})\nAirtable: ${prospectState.airtableId}\nBuild queued.`,
+    `✅ PROSPECT OPTED IN: "${clientName}" (+${phone})\nClient: ${clientId || 'creation failed'}\nBuild queued.`,
     env, { skipTestRedirect: true });
 
-  await logActivity(env, 'prospect_opted_in', {
-    phone, airtableId: prospectState.airtableId, name: clientName,
+  await logEvent(env, 'reactivate', 'prospect_opted_in', 'success', {
+    clientId, metadata: { phone, name: clientName },
   });
 }
 
-/**
- * YES reply to the go-live message's "📍 Reply YES to also list us on Google Maps."
- * Forwards to launch-worker /google-profile admin endpoint to trigger GBP creation.
- */
-async function handleGbpOptIn(airtableId, env) {
-  const launchUrl = env.WORKER_URL_LAUNCH;
-  if (!launchUrl) {
-    await sendWhatsApp(env.WH_PHONE,
-      `⚠️ GBP opt-in received but WORKER_URL_LAUNCH not configured. Process manually for ${airtableId}.`,
-      env, { skipTestRedirect: true });
+/** Handles legacy KV-based prospect state (pre-D1 records). */
+async function handleLegacyProspectOptIn(phone, text, prospectState, env) {
+  const upper = text.toUpperCase().trim();
+  if (matchesAny(upper, INTENT_KEYWORDS.no)) {
+    await env.SITES.put(`prospect_state:${phone}`, JSON.stringify({
+      ...prospectState, phase: 'declined', declinedAt: new Date().toISOString(),
+    }), { expirationTtl: 60 * 60 * 24 * PROSPECT_COOLDOWN_DAYS }).catch(() => {});
     return;
   }
 
+  const nameGuess  = text.split(/\s+/).slice(0, 2).join(' ').slice(0, 40).replace(/[^a-zA-Z\s'-]/g, '').trim();
+  const clientName = nameGuess || 'there';
+
+  if (prospectState.clientId || prospectState.airtableId) {
+    const clientId = prospectState.clientId;
+    if (clientId) {
+      await updateClient(env, clientId, { client_name: clientName, status: 'lead' }).catch(() => {});
+      await env.BUILD_QUEUE.send({ clientId, paymentId: null, isOutbound: true });
+    }
+  }
+
+  await env.SITES.put(`prospect_state:${phone}`, JSON.stringify({
+    ...prospectState, phase: 'opted_in', optedInAt: new Date().toISOString(),
+  }), { expirationTtl: 60 * 60 * 24 * 30 }).catch(() => {});
+
+  await sendWhatsApp(phone,
+    `Brilliant ${clientName} 👋 We're building your free website preview right now — you'll have the link in about 2 minutes!\n\n— Website Hub`,
+    env);
+}
+
+async function handleGbpOptIn(clientId, env) {
+  const launchUrl = env.WORKER_URL_LAUNCH;
+  if (!launchUrl) {
+    await sendWhatsApp(env.WH_PHONE,
+      `⚠️ GBP opt-in received but WORKER_URL_LAUNCH not configured. Process manually for ${clientId}.`,
+      env, { skipTestRedirect: true });
+    return;
+  }
   try {
     const res = await fetch(`${launchUrl}/google-profile`, {
       method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key':  env.ADMIN_KEY,
-      },
-      body: JSON.stringify({ airtableId }),
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': env.ADMIN_KEY },
+      body:    JSON.stringify({ clientId }),
     });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`launch-worker GBP call failed: ${res.status} — ${errText}`);
-    }
-    await logActivity(env, 'gbp_optin_processed', { airtableId });
+    if (!res.ok) throw new Error(`launch-worker GBP call failed: ${res.status}`);
+    await logEvent(env, 'reactivate', 'gbp_optin', 'success', { clientId });
   } catch (err) {
     console.warn('GBP opt-in forward failed:', err?.message || err);
     await sendWhatsApp(env.WH_PHONE,
-      `⚠️ GBP opt-in forward failed for ${airtableId}: ${err.message}`,
+      `⚠️ GBP opt-in forward failed for ${clientId}: ${err.message}`,
       env, { skipTestRedirect: true });
   }
 }
 
-/**
- * UPGRADE / PREMIUM intent — forward to launch-worker /upgrade for
- * PayFast link generation, send link to client.
- */
-async function handleUpgradeIntent(airtableId, f, upper, env) {
+async function handleUpgradeIntent(client, upper, env) {
   const launchUrl = env.WORKER_URL_LAUNCH;
   if (!launchUrl) {
-    return forwardToOwner(normaliseSaPhone(f['WhatsApp']), 'UPGRADE intent', { id: airtableId, fields: f }, 'no-launch-worker', env);
+    return forwardToOwner(client.phone, 'UPGRADE intent', client, 'no-launch-worker', env);
   }
 
-  // Decide target tier from current package + keyword
-  const currentPkg = packageKey(f['Package'] || 'Standard');
+  const currentPkg = packageKey(client.package || 'standard');
   let target;
-  if (upper.includes('PREMIUM')) {
-    target = 'Premium';
-  } else if (upper.includes('STANDARD')) {
-    target = 'Standard';
-  } else {
-    // Just "UPGRADE" — default to next tier up
-    target = currentPkg === 'express' ? 'Standard' : 'Premium';
-  }
+  if (upper.includes('PREMIUM'))  target = 'premium';
+  else if (upper.includes('STANDARD')) target = 'standard';
+  else target = currentPkg === 'express' ? 'standard' : 'premium';
 
-  if (currentPkg === packageKey(target)) {
-    await sendWhatsApp(f['WhatsApp'],
-      `Hi! You're already on *${f['Package']}* — nothing to upgrade to that tier. Reply if you'd like to go higher.\n— Website Hub`,
+  if (currentPkg === target) {
+    await sendWhatsApp(client.phone,
+      `Hi! You're already on *${client.package}* — nothing to upgrade to that tier. Reply if you'd like to go higher.\n— Website Hub`,
       env);
     return;
   }
@@ -842,63 +735,54 @@ async function handleUpgradeIntent(airtableId, f, upper, env) {
     const res  = await fetch(`${launchUrl}/upgrade`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ airtableId, target }),
+      body:    JSON.stringify({ clientId: client.id, target }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-
-    // launch-worker already sends the upgrade message to the client; we just log
-    await logActivity(env, 'upgrade_intent_processed', { airtableId, target, delta: data.delta });
+    await logEvent(env, 'reactivate', 'upgrade_intent', 'success', {
+      clientId: client.id, metadata: { target, delta: data.delta },
+    });
   } catch (err) {
     console.warn('Upgrade intent forward failed:', err?.message || err);
     await sendWhatsApp(env.WH_PHONE,
-      `⚠️ Upgrade intent forward failed for ${f['Business Name']}: ${err.message}`,
+      `⚠️ Upgrade intent forward failed for ${client.business_name}: ${err.message}`,
       env, { skipTestRedirect: true });
   }
 }
 
-/**
- * REACTIVATE intent — only valid for currently Cancelled clients.
- * Triggers reactivateInternal directly.
- */
-async function handleReactivateIntent(airtableId, f, env) {
-  await reactivateInternal(airtableId, f, env);
+async function handleReactivateIntent(client, env) {
+  await reactivateInternal(client, env);
 }
 
-/**
- * CANCEL keyword — never auto-cancel from inbound. Always surface to
- * owner for review with full context.
- */
-async function handleCancelIntent(airtableId, f, text, env) {
-  const phone = f['WhatsApp'];
+async function handleCancelIntent(client, text, env) {
   await sendWhatsApp(env.WH_PHONE,
-    `🛑 CANCEL REQUEST: ${f['Business Name']}\n\nMessage: "${text.slice(0, 200)}"\n\nAirtable: ${airtableId}\nPhone: ${phone}\n\nTo process: POST to /cancel-site with { airtableId, option: 'archive'|'file'|'domain' }`,
+    `🛑 CANCEL REQUEST: ${client.business_name}\n\nMessage: "${text.slice(0, 200)}"\n\nClient: ${client.id}\nPhone: ${client.phone}\n\nTo process: POST /cancel-site { clientId, option: 'archive'|'file'|'domain' }`,
     env, { skipTestRedirect: true });
 
-  // Soft acknowledgement to client
-  const name = f['Client Name']?.split(' ')[0] || 'there';
-  await sendWhatsApp(phone,
+  const name = (client.client_name || '').split(' ')[0] || 'there';
+  await sendWhatsApp(client.phone,
     `Hi ${name} — got your cancellation message. Pierre will WhatsApp you back within the hour to sort it. — Website Hub`,
     env);
 
-  await logActivity(env, 'cancel_intent_received', { airtableId, phone, snippet: text.slice(0, 100) });
+  await logEvent(env, 'reactivate', 'cancel_intent', 'success', {
+    clientId: client.id, metadata: { snippet: text.slice(0, 100) },
+  });
 }
 
-/**
- * Generic forward to owner for unmatched intents. Includes client context
- * so the owner can decide what to do.
- */
-async function forwardToOwner(phone, text, record, reason, env) {
-  const f = record.fields || {};
-  const context = record.id
-    ? `${f['Business Name'] || 'Unknown'} (${f['Status'] || 'Unknown'} · ${f['Package'] || 'Unknown'})\nAirtable: ${record.id}`
-    : 'No matching record';
+async function forwardToOwner(phone, text, client, reason, env) {
+  const context = client?.id
+    ? `${client.business_name || 'Unknown'} (${client.status || 'Unknown'} · ${client.package || 'Unknown'})\nClient: ${client.id}`
+    : 'No matching D1 record';
 
   await sendWhatsApp(env.WH_PHONE,
-    `📩 INBOUND (+${phone}) — ${reason}\n${context}\n\n"${text.slice(0, 300)}"`,
+    `📩 INBOUND (+${phone}) — ${reason}\n${context}\n\n"${String(text).slice(0, 300)}"`,
     env, { skipTestRedirect: true });
 
-  await logActivity(env, 'inbound_forwarded', { phone, reason, recordId: record.id });
+  if (client?.id) {
+    await logEvent(env, 'reactivate', 'inbound_forwarded', 'success', {
+      clientId: client.id, metadata: { phone, reason },
+    });
+  }
 }
 
 // ============================================================
