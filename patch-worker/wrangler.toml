@@ -25,5 +25,4 @@ database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
 migrations_dir = "../migrations"
 
 # Email routing — receives updates@websitehub.co.za
-[send_email]
-binding = "EMAIL"
+send_email = [{binding = "EMAIL", destination_address = "updates@websitehub.co.za"}]
