@@ -1207,8 +1207,10 @@ export async function createZohoCreditNote(args, env) {
  * @returns {{ id: string, slug: string }}
  */
 export async function createClient(env, fields) {
-  const id   = crypto.randomUUID();
-  const slug = slugify(fields.business_name);
+  const id      = crypto.randomUUID();
+  let slug      = slugify(fields.business_name);
+  const exists  = await env.DB.prepare('SELECT id FROM clients WHERE slug = ? LIMIT 1').bind(slug).first().catch(() => null);
+  if (exists) slug = slug + '-' + Date.now().toString(36).slice(-4);
 
   const allFields = { ...fields, id, slug };
   const cols = Object.keys(allFields).join(', ');
