@@ -2273,6 +2273,7 @@ async function extractImagesFromZip(buffer) {
 export { removeWatermark, addFooterCredit };
 
 async function handleStart(request, url, env) {
+  if (request.method === "POST") return handleIntake(request, env, null);
   let html = await env.SITES.get('app:intake-experience');
   if (!html) return new Response('Intake form not loaded. POST HTML to /bootstrap-intake.', { status: 503 });
   html = html.replace('__TURNSTILE_SITE_KEY__', env.TURNSTILE_SITE_KEY || '');
