@@ -531,8 +531,20 @@ async function handleBuildStatus(request, url, env) {
   const token = url.searchParams.get('token');
   if (!token) return jsonResponse({ error: 'Missing token' }, 400);
   const raw = await env.SITES.get(`build_status:${token}`);
-  if (!raw) return jsonResponse({ status: 'not_found' }, 404);
-  return jsonResponse(JSON.parse(raw));
+  const data = raw ? JSON.parse(raw) : {};
+  if (data.status === 'ready') return jsonResponse(data);
+  // Fallback: check D1 directly
+  if (data.slug) {
+    try {
+      const client = await env.DB.prepare('SELECT status, slug FROM clients WHERE slug = ? LIMIT 1').bind(data.slug).first();
+      if (client?.status === 'preview_ready') {
+        const result = { status: 'ready', slug: data.slug, previewUrl: `https://preview.websitehub.co.za/${data.slug}` };
+        await env.SITES.put(`build_status:${token}`, JSON.stringify(result), { expirationTtl: 3600 });
+        return jsonResponse(result);
+      }
+    } catch(e) {}
+  }
+  return raw ? jsonResponse(data) : jsonResponse({ status: 'building' });
 }
 
 // ============================================================
