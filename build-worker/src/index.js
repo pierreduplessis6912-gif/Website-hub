@@ -2224,3 +2224,24 @@ async function extractImagesFromZip(buffer) {
 }
 
 export { removeWatermark, addFooterCredit };
+
+async function handleStart(request, url, env) {
+  let html = await env.SITES.get('app:intake-experience');
+  if (!html) return new Response('Intake form not loaded. POST HTML to /bootstrap-intake.', { status: 503 });
+  html = html.replace('__TURNSTILE_SITE_KEY__', env.TURNSTILE_SITE_KEY || '');
+  const clientId = url.searchParams.get('id');
+  let intakeDataJson = 'null';
+  if (clientId) {
+    try {
+      const { getClientById } = await import('./shared-services.js');
+      const client = await getClientById(env, clientId);
+      if (client) {
+        const slug = (client.slug || client.business_name.toLowerCase().replace(/[^a-z0-9]+/g,'-'));
+        const previewHtml = await env.SITES.get('preview:' + slug).catch(() => null);
+        intakeDataJson = JSON.stringify({ clientId: client.id, business_name: client.business_name, client_name: client.client_name, phone: client.phone, industry: client.industry, area: client.area, vibe: client.vibe, previewHtml: previewHtml || null });
+      }
+    } catch(e) { console.warn('Mode 2 lookup failed:', e?.message); }
+  }
+  html = html.replace('__INTAKE_DATA_JSON__', intakeDataJson);
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+}
