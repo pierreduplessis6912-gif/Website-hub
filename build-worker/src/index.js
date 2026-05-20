@@ -1404,7 +1404,17 @@ async function triggerBuildInternal(clientId, paymentId, env, isOutbound = false
   }
 
   // ── LAYER 3: Token replacement into templates ─────────────
-  const { css, pages } = await fetchTemplates(archetype, pkg, env);
+  let css = '', pages = {};
+  try {
+    const t = await fetchTemplates(archetype, pkg, env);
+    css = t.css; pages = t.pages;
+  } catch(e) {
+    console.warn('Templates not loaded — using placeholder');
+    const biz = client.business_name || '';
+    const area = client.area || 'South Africa';
+    const phone = client.phone || '';
+    pages = { index: `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${biz}</title><style>body{background:#0a0a0f;color:#e8e8f0;font-family:Inter,Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:24px}.c{max-width:500px}h1{font-size:32px;font-weight:800;margin-bottom:12px}p{color:#8b8b9e;margin-bottom:24px}a{display:inline-block;background:linear-gradient(135deg,#00f0ff,#b829dd);color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700}</style></head><body><div class="c"><h1>${biz}</h1><p>Proudly serving ${area}</p><a href="https://wa.me/${phone}">💬 WhatsApp Us</a></div></body></html>` };
+  }
 
   const businessFields = {
     name:            client.business_name || '',
