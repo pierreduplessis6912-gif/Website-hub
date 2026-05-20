@@ -481,7 +481,7 @@ async function handleIntake(request, env, ctx) {
     `🆕 INBOUND LEAD: ${clientFields.business_name}\nPackage: ${pkg}\nClient: ${clientFields.client_name}\nReferral: ${clientFields.referral_code_used || 'None'}\nID: ${clientId}\nBuild: ${buildUrl}`,
     env, { skipTestRedirect: true });
 
-  return jsonResponse({ success: true, redirect: buildUrl, clientId });
+  return jsonResponse({ success: true, token, redirectUrl: `https://preview.websitehub.co.za/manage/${token}`, redirect: buildUrl, clientId });
 }
 
 // ============================================================
