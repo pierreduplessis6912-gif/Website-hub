@@ -106,9 +106,34 @@ export default {
 
     if (request.method === 'OPTIONS') return corsResponse(null, 204);
 
-    if (new URL(request.url).pathname === '/start') return handleStart(request, new URL(request.url), env);
+    // API routes FIRST — before any hostname/site-serving logic
+    const path = url.pathname;
+    if (path === '/start')               return handleStart(request, url, env);
+    if (path === '/health')              return handleHealth(env);
+    if (path === '/intake' || path === '/formspree-webhook') return handleIntake(request, env, ctx);
+    if (path === '/build-status')        return handleBuildStatus(request, url, env);
+    if (path === '/verify-pin')          return handleVerifyPin(request, env, ctx);
+    if (path === '/preview-choices')     return handlePreviewChoices(request, env);
+    if (path === '/preview-meta')        return handlePreviewMeta(request, url, env);
+    if (path === '/bootstrap-preview-app') return handleBootstrapPreviewApp(request, env);
+    if (path === '/bootstrap-templates') return handleBootstrapTemplates(request, env);
+    if (path === '/bootstrap-intake')    return handleBootstrapIntake(request, env);
+    if (path === '/trigger-build')       return handleTriggerBuild(request, env, ctx);
+    if (path === '/update-status')       return handleUpdateStatus(request, env);
+    if (path === '/update-config')       return handleUpdateConfig(request, env);
+    if (path === '/outbound-prospect')   return handleOutboundProspect(request, env, ctx);
+    if (path === '/preview-revert')      return handlePreviewRevert(request, env);
+    if (path === '/check-domain')        return handleCheckDomain(url, env);
+    if (path === '/domain-check')        return handleDomainCheck(url, env);
+    if (path === '/clients')             return handleListClients(request, env);
+    if (path === '/analytics')           return handleAnalytics(request, url, env);
+    if (path === '/referral-stats')      return handleReferralStats(request, url, env);
+    if (path === '/leaderboard')         return handleLeaderboard(request, env);
+    if (path === '/admin/purge-test-data') return handleAdminPurge(request, env);
+    if (path === '/claude')              return handleClaude(request, env);
+    if (path.startsWith('/dropbox'))     return handleDropbox(request, url, env, ctx);
 
-    // Site serving (hostname-based routing)
+    // Site serving — AFTER all API routes
     if (hostname === PREVIEW_DOMAIN) {
       if (url.pathname.endsWith('/raw/') || url.pathname.endsWith('/raw')) {
         return servePreviewRaw(url, env);
@@ -119,8 +144,8 @@ export default {
       return serveLiveSite(url, hostname, env);
     }
 
-    // API routes
-    const path = url.pathname;
+    // Remaining routes (duplicate checks removed — handled above)
+    const _unused = path;
 
     if (path === '/dropbox')                return handleDropbox(request, url, env, ctx);
     if (path === '/claude')                 return handleClaude(request, env);
