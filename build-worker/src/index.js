@@ -106,8 +106,7 @@ export default {
 
     if (request.method === 'OPTIONS') return corsResponse(null, 204);
 
-    const path = new URL(request.url).pathname;
-    if (path === '/start') return handleStart(request, new URL(request.url), env);
+    if (new URL(request.url).pathname === '/start') return handleStart(request, new URL(request.url), env);
 
     // Site serving (hostname-based routing)
     if (hostname === PREVIEW_DOMAIN) {
