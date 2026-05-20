@@ -1215,7 +1215,7 @@ export async function createClient(env, fields) {
   const vals = Object.keys(allFields).map(() => '?').join(', ');
 
   await env.DB.prepare(
-    `INSERT INTO clients (${cols}) VALUES (${vals})`
+    `INSERT OR REPLACE INTO clients (${cols}) VALUES (${vals})`
   ).bind(...Object.values(allFields)).run();
 
   return { id, slug };
