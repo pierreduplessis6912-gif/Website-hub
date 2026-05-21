@@ -708,7 +708,8 @@ export async function callClaudeInternal(systemPrompt, messages, env, options = 
     throw new Error('Empty response received from Anthropic');
   }
   await logEvent(env, 'shared', 'claude_api', 'success');
-  return fullText;
+  const stripped = fullText.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  return stripped || fullText;
 }
 
 // ────────────────────────────────────────────────────────────
