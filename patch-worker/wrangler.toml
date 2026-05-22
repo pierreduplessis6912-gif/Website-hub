@@ -4,6 +4,7 @@ compatibility_date = "2024-01-01"
 account_id = "4c559b9dff9fae56803b9c275b518597"
 
 [vars]
+RESEND_API_KEY = ""
 TEST_MODE = "true"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
 
