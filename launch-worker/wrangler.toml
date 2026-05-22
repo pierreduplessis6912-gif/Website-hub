@@ -8,6 +8,8 @@ RESEND_API_KEY = ""
 PAYFAST_MERCHANT_ID = "13581217"
 PAYFAST_MERCHANT_KEY = "qwn6fknpqiivx"
 PAYFAST_PASSPHRASE = "Websitehub_3387"
+CF_ZONE_ID = "e6b58b08eb80ea03a46d010455f6b25d"
+CF_ACCOUNT_ID = "4c559b9dff9fae56803b9c275b518597"
 TEST_MODE = "false"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
 
