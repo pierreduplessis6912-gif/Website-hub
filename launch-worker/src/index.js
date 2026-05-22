@@ -166,7 +166,7 @@ async function handlePayfastWebhook(request, env, ctx) {
   // Signature verification using shared-services helper
   const passphrase = isTestMode(env)
     ? (env.PAYFAST_SANDBOX_MERCHANT_KEY || '')
-    : (env.PAYFAST_MERCHANT_KEY || '');
+    : (env.PAYFAST_PASSPHRASE || '');
 
   if (!verifyPayFastSignature(params, passphrase)) {
     console.warn('PayFast signature mismatch');
