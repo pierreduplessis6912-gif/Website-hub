@@ -977,21 +977,31 @@ async function checkDomainAvailabilityInternal(domain, env) {
   return checkDomainAvailabilityWhois(domain);
 }
 
-const DOMAIN_PROXY_URL = 'https://websitehub.co.za/domain-proxy.php';
-
+// RegisterDomain.co.za WHMCS API — direct integration
 async function callDomainProxy(action, sld, tld = 'co.za', extra = {}, env) {
-  const secret = env.DOMAIN_PROXY_SECRET || '';
+  const apiKey = env.REGISTERDOMAIN_API_KEY || '';
+  const email  = env.REGISTERDOMAIN_EMAIL  || 'loc10@live.co.za';
+  // Token: base64(HMAC-SHA256(apiKey, "email:YYYY-MM-DD HH")) — hourly rolling
+  const now    = new Date();
+  const pad    = n => String(n).padStart(2, '0');
+  const gmdate = `${now.getUTCFullYear()}-${pad(now.getUTCMonth()+1)}-${pad(now.getUTCDate())} ${pad(now.getUTCHours())}`;
+  const msgBuf = new TextEncoder().encode(`${email}:${gmdate}`);
+  const keyBuf = new TextEncoder().encode(apiKey);
+  const cryptoKey = await crypto.subtle.importKey('raw', keyBuf, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sigBuf = await crypto.subtle.sign('HMAC', cryptoKey, msgBuf);
+  const token  = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+  const endpoint = 'https://www.registerdomain.co.za/modules/addons/DomainsReseller/api/index.php';
   try {
-    const res  = await fetch(DOMAIN_PROXY_URL, {
+    const res  = await fetch(endpoint, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': secret },
+      headers: { 'Content-Type': 'application/json', 'username': email, 'token': token },
       body:    JSON.stringify({ action, sld, tld, ...extra }),
     });
     const data = await res.json();
-    await logEvent(env, 'build', 'domain_proxy', res.ok ? 'success' : 'failure', { error: data?.error });
+    await logEvent(env, 'build', 'domain_proxy', res.ok ? 'success' : 'failure', { action, domain: `${sld}.${tld}`, error: data?.error });
     return data;
   } catch (e) {
-    await logEvent(env, 'build', 'domain_proxy', 'failure', { error: e.message });
+    await logEvent(env, 'build', 'domain_proxy', 'failure', { action, error: e.message });
     throw e;
   }
 }
