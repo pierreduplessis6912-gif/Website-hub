@@ -5,6 +5,7 @@ account_id = "4c559b9dff9fae56803b9c275b518597"
 
 [vars]
 RESEND_API_KEY = ""
+REGISTERDOMAIN_EMAIL = "loc10@live.co.za"
 PAYFAST_MERCHANT_ID = "13581217"
 PAYFAST_MERCHANT_KEY = "qwn6fknpqiivx"
 PAYFAST_PASSPHRASE = "Websitehub_3387"
