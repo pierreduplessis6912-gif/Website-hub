@@ -118,6 +118,16 @@ export default {
     if (path === '/bootstrap-preview-app') return handleBootstrapPreviewApp(request, env);
     if (path === '/bootstrap-templates') return handleBootstrapTemplates(request, env);
     if (path === '/bootstrap-intake')    return handleBootstrapIntake(request, env);
+
+async function handleBootstrapIntake(request, env) {
+  if (request.method !== 'POST') return Response.json({ error: 'POST only' }, { status: 405 });
+  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const html = await request.text();
+  if (!html || !html.includes('<!DOCTYPE'))
+    return Response.json({ error: 'Invalid HTML — must be a full DOCTYPE document' }, { status: 400 });
+  await env.SITES.put('app:intake-experience', html);
+  return Response.json({ success: true, size: html.length });
+}
     if (path === '/trigger-build')       return handleTriggerBuild(request, env, ctx);
     if (path === '/update-status')       return handleUpdateStatus(request, env);
     if (path === '/update-config')       return handleUpdateConfig(request, env);

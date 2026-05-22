@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>Website Hub — Build Your Site</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<style>
+/* ── DESIGN SYSTEM — Website Hub ── */
+:root {
+  --bg-primary:    #0a0a0f;
+  --bg-secondary:  #12121a;
+  --bg-card:       rgba(20, 20, 35, 0.7);
+  --accent-cyan:   #00f0ff;
+  --accent-purple: #b829dd;
+  --accent-magenta:#ff00a0;
+  --accent-green:  #00ff88;
+  --accent-orange: #ff6b35;
+  --text-primary:  #e8e8f0;
+  --text-secondary:#8b8b9e;
+  --glass-border:  rgba(255, 255, 255, 0.08);
+  --gradient:      linear-gradient(135deg, #00f0ff, #b829dd);
+  --font-body:     'Inter', sans-serif;
+  --font-mono:     'JetBrains Mono', monospace;
+
+  /* Preview palette vars — swapped on vibe selection */
+  --preview-bg:      #0d0d14;
+  --preview-surface: #14141f;
+  --preview-accent:  #00f0ff;
+  --preview-text:    #e8e8f0;
+  --preview-muted:   #8b8b9e;
+}
+
+/* ── RESET ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-body); }
+button { font-family: var(--font-body); cursor: pointer; border: none; outline: none; background: none; }
+input, textarea, select { font-family: var(--font-body); outline: none; border: none; background: none; }
+input[type="file"] { display: none; }
+
+/* ── ANIMATED BACKGROUND ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 20%, rgba(0,240,255,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 80% 80%, rgba(184,41,221,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 60% 30%, rgba(255,0,160,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  animation: orbPulse 8s ease-in-out infinite alternate;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+@keyframes orbPulse {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
+}
+
+/* ── PROGRESS BAR ── */
+#progress-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 3px; background: rgba(255,255,255,0.05);
+}
+#progress-fill {
+  height: 100%; width: 0%;
+  background: var(--gradient);
+  transition: width 300ms ease;
+  box-shadow: 0 0 8px rgba(0,240,255,0.4);
+}
+
+/* ── PREVIEW AREA ── */
+#preview-wrap {
+  position: fixed; inset: 0; z-index: 1;
+  overflow: hidden;
+}
+.preview-site {
+  width: 100%; height: 100%;
+  background: var(--preview-bg);
+  transition: background 500ms ease;
+  display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+}
+.preview-site * { transition: color 300ms ease, background-color 400ms ease, border-color 300ms ease; }
+
+/* Preview nav */
+.preview-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(10,10,15,0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0; position: relative; z-index: 2;
+}
+.preview-nav-logo {
+  font-size: 13px; font-weight: 700; color: var(--preview-text);
+  letter-spacing: -0.3px;
+}
+.preview-nav-cta {
+  background: var(--gradient);
+  color: #fff; border-radius: 20px;
+  padding: 5px 13px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* Preview hero */
+.preview-hero {
+  flex: 1; padding: 24px 18px 16px;
+  display: flex; flex-direction: column; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.preview-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 70% 30%, rgba(0,240,255,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+.preview-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(0,240,255,0.3);
+  color: var(--accent-cyan);
+  font-size: 10px; font-weight: 500; border-radius: 20px;
+  padding: 3px 10px; margin-bottom: 12px; width: fit-content;
+  font-family: var(--font-mono);
+}
+.preview-h1 {
+  font-size: clamp(20px, 6vw, 30px); font-weight: 800;
+  line-height: 1.2; color: var(--preview-text);
+  margin-bottom: 8px; word-break: break-word;
+  letter-spacing: -0.5px;
+}
+.preview-h1 span {
+  background: var(--gradient);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.preview-sub {
+  font-size: 12px; color: var(--preview-muted);
+  line-height: 1.5; margin-bottom: 18px;
+  max-width: 280px;
+}
+.preview-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--gradient);
+  color: #fff; border-radius: 10px; padding: 11px 18px;
+  font-size: 13px; font-weight: 600; width: fit-content;
+  box-shadow: 0 4px 20px rgba(0,240,255,0.2);
+}
+
+/* Preview services strip */
+.preview-services {
+  padding: 12px 18px;
+  background: rgba(18,18,26,0.9);
+  border-top: 1px solid var(--glass-border);
+  display: flex; gap: 8px; overflow: hidden; flex-shrink: 0;
+}
+.preview-service-chip {
+  white-space: nowrap; flex-shrink: 0;
+  border: 1px solid rgba(0,240,255,0.15);
+  border-radius: 20px; padding: 4px 11px;
+  font-size: 11px; color: rgba(0,240,255,0.6);
+  font-family: var(--font-mono);
+}
+
+/* Preview watermark */
+.preview-watermark {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; z-index: 2;
+}
+.preview-watermark-text {
+  font-size: clamp(36px, 12vw, 72px); font-weight: 800;
+  color: rgba(255,255,255,0.025);
+  letter-spacing: 6px; user-select: none;
+}
+
+/* ── CARD SYSTEM ── */
+#card-wrap {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+}
+.card {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--bg-card);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px 24px 0 0;
+  padding: 24px 20px 0;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
+  min-height: 44vh; max-height: 74vh;
+  overflow-y: auto;
+  display: none; flex-direction: column;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+}
+.card.active {
+  display: flex;
+  animation: cardEnter 280ms cubic-bezier(0.4,0,0.2,1) forwards;
+}
+.card.exiting {
+  display: flex;
+  animation: cardExit 280ms cubic-bezier(0.4,0,0.2,1) forwards;
+}
+@keyframes cardEnter {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes cardExit {
+  from { transform: translateY(0);     opacity: 1; }
+  to   { transform: translateY(-40px); opacity: 0; }
+}
+.card-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.1);
+  margin: -12px auto 20px;
+  flex-shrink: 0;
+}
+.card-title {
+  font-size: 22px; font-weight: 800;
+  line-height: 1.2; color: var(--text-primary);
+  margin-bottom: 5px; flex-shrink: 0;
+  letter-spacing: -0.4px;
+}
+.card-sub {
+  font-size: 13px; color: var(--text-secondary);
+  margin-bottom: 20px; line-height: 1.5; flex-shrink: 0;
+}
+.card-body { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+
+/* ── INPUTS ── */
+.field-group { margin-bottom: 12px; }
+.field-label {
+  font-size: 10px; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 6px; display: block;
+  font-family: var(--font-mono);
+}
+.field-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-size: 16px;
+  color: var(--text-primary);
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.field-input:focus {
+  border-color: rgba(0,240,255,0.4);
+  background: rgba(0,240,255,0.04);
+}
+.field-input::placeholder { color: rgba(255,255,255,0.18); }
+
+/* ── TILES ── */
+.tile-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tile-grid-1 { grid-template-columns: 1fr; }
+
+.tile {
+  min-height: 66px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px; padding: 13px 12px;
+  display: flex; flex-direction: column;
+  align-items: flex-start; justify-content: center;
+  gap: 4px; cursor: pointer;
+  transition: transform 120ms ease, border-color 180ms ease, background 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.tile:active { transform: scale(0.96); }
+.tile.selected {
+  background: rgba(0,240,255,0.07);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 1px rgba(0,240,255,0.15) inset;
+}
+.tile-icon  { font-size: 20px; line-height: 1; }
+.tile-label { font-size: 13px; font-weight: 500; color: var(--text-primary); line-height: 1.3; }
+.tile-sub   { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+.tile-swatch { width: 12px; height: 12px; border-radius: 50%; margin-top: 2px; }
+
+/* Vibe tiles */
+.vibe-tile {
+  min-height: 78px; flex-direction: row;
+  align-items: center; gap: 14px; padding: 14px 16px;
+}
+.vibe-tile-content { flex: 1; }
+.vibe-check {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: transparent;
+  transition: all 180ms ease;
+}
+.tile.selected .vibe-check {
+  background: var(--gradient); border-color: transparent; color: #fff;
+}
+
+/* ── CHIPS ── */
+.chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px; padding: 8px 14px;
+  font-size: 13px; color: var(--text-secondary);
+  cursor: pointer; white-space: nowrap;
+  transition: transform 100ms, background 150ms, border-color 150ms, color 150ms;
+  -webkit-tap-highlight-color: transparent;
+}
+.chip:active { transform: scale(0.95); }
+.chip.selected {
+  background: rgba(0,240,255,0.08);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+.chip-add { border-style: dashed; color: rgba(255,255,255,0.25); }
+
+/* Differentiator tiles */
+.diff-tile {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px; cursor: pointer; min-height: 50px;
+  transition: background 150ms, border-color 150ms;
+  -webkit-tap-highlight-color: transparent;
+}
+.diff-tile.selected { background: rgba(0,240,255,0.06); border-color: var(--accent-cyan); }
+.diff-check {
+  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: transparent;
+  transition: all 150ms;
+}
+.diff-tile.selected .diff-check { background: var(--gradient); border-color: transparent; color: #fff; }
+.diff-label { font-size: 13px; color: var(--text-primary); line-height: 1.4; flex: 1; }
+
+/* CTA picker */
+.cta-strip { display: flex; gap: 6px; margin-top: 14px; overflow-x: auto; padding-bottom: 4px; }
+.cta-strip::-webkit-scrollbar { display: none; }
+.cta-chip {
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px; padding: 7px 13px;
+  font-size: 12px; color: var(--text-secondary);
+  cursor: pointer; white-space: nowrap;
+  transition: all 150ms;
+}
+.cta-chip.selected { background: rgba(0,240,255,0.08); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+/* ── UPLOAD ZONES ── */
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.upload-zone {
+  border: 1.5px dashed rgba(255,255,255,0.1);
+  border-radius: 16px; padding: 18px 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 7px; cursor: pointer; min-height: 96px;
+  transition: border-color 200ms, background 200ms;
+  position: relative; overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.upload-zone:active { border-color: var(--accent-cyan); background: rgba(0,240,255,0.04); }
+.upload-zone.has-file { border-color: rgba(0,255,136,0.4); border-style: solid; box-shadow: 0 0 0 1px rgba(0,255,136,0.1) inset; }
+.upload-icon  { font-size: 26px; line-height: 1; }
+.upload-label { font-size: 11px; color: var(--text-secondary); text-align: center; line-height: 1.3; }
+.upload-thumb {
+  position: absolute; inset: 0; object-fit: cover; width: 100%; height: 100%;
+  border-radius: 14px;
+  animation: thumbReveal 350ms cubic-bezier(0.4,0,0.2,1) forwards;
+}
+.upload-success-badge {
+  position: absolute; bottom: 8px; right: 8px;
+  background: var(--accent-green); color: #000;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0,255,136,0.4);
+  animation: thumbReveal 350ms 200ms cubic-bezier(0.4,0,0.2,1) both;
+}
+
+.social-expander {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--text-secondary); font-size: 13px; cursor: pointer;
+  margin-top: 4px; padding: 6px 0;
+}
+.social-expander-icon { font-size: 16px; transition: transform 200ms; }
+.social-expander-icon.open { transform: rotate(45deg); }
+.social-fields { display: none; }
+.social-fields.open { display: block; }
+
+/* Testimonial */
+.testimonial-skeleton {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px; padding: 14px;
+  margin-top: 14px; font-size: 13px;
+  color: var(--text-secondary); line-height: 1.7; font-style: italic;
+}
+.skel-field {
+  display: inline-block;
+  border-bottom: 1px solid rgba(0,240,255,0.4);
+  min-width: 70px; padding: 0 4px;
+  cursor: text; color: var(--text-primary); font-style: normal;
+}
+.skel-field:focus { outline: none; border-bottom-color: var(--accent-cyan); }
+select {
+  background: none; border: none;
+  border-bottom: 1px solid rgba(0,240,255,0.4);
+  color: var(--text-primary); font-size: 13px;
+  padding: 0 4px; cursor: pointer; font-style: normal;
+  font-family: var(--font-body);
+}
+
+/* ── PLAN CARDS ── */
+.plan-grid { display: flex; flex-direction: column; gap: 10px; }
+.plan-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px; padding: 16px;
+  cursor: pointer; position: relative;
+  transition: border-color 150ms, background 150ms;
+  -webkit-tap-highlight-color: transparent;
+}
+.plan-card.selected { border-color: var(--accent-cyan); background: rgba(0,240,255,0.06); }
+.plan-card.popular { border-color: rgba(184,41,221,0.35); }
+.plan-badge {
+  position: absolute; top: -1px; right: 14px;
+  background: var(--gradient); color: #fff;
+  font-size: 9px; font-weight: 700; border-radius: 0 0 8px 8px;
+  padding: 3px 10px; letter-spacing: 0.8px;
+  font-family: var(--font-mono);
+}
+.plan-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.plan-name {
+  font-size: 14px; font-weight: 800; color: var(--text-primary);
+  letter-spacing: 0.5px; font-family: var(--font-mono);
+}
+.plan-amount { font-size: 20px; font-weight: 800; color: var(--accent-cyan); line-height: 1; }
+.plan-period { font-size: 10px; color: var(--text-secondary); font-family: var(--font-mono); }
+.plan-features { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.plan-feature { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 7px; }
+.plan-feature::before { content: '✓'; color: var(--accent-cyan); font-weight: 700; font-size: 11px; font-family: var(--font-mono); }
+.plan-select-btn {
+  width: 100%; padding: 10px;
+  border-radius: 10px; font-size: 13px; font-weight: 600;
+  background: rgba(0,240,255,0.08); color: var(--accent-cyan);
+  border: 1px solid rgba(0,240,255,0.2);
+  transition: all 150ms;
+}
+.plan-card.selected .plan-select-btn {
+  background: var(--gradient); color: #fff; border-color: transparent;
+  box-shadow: 0 4px 16px rgba(0,240,255,0.2);
+}
+
+/* ── NEXT BUTTON ── */
+.next-btn {
+  width: 100%; padding: 15px;
+  background: var(--gradient);
+  color: #fff; border-radius: 14px;
+  font-size: 15px; font-weight: 700;
+  margin-top: 14px; flex-shrink: 0;
+  opacity: 0.25; pointer-events: none;
+  transition: opacity 200ms ease, transform 120ms ease;
+  margin-bottom: 6px;
+  box-shadow: 0 4px 20px rgba(0,240,255,0.15);
+  letter-spacing: 0.2px;
+}
+.next-btn.enabled { opacity: 1; pointer-events: all; }
+.next-btn.enabled:active { transform: scale(0.97); }
+
+/* ── MICRO COMPLETION REWARDS ── */
+@keyframes liveFlash {
+  0%   { box-shadow: 0 0 0 0   rgba(0,240,255,0); }
+  30%  { box-shadow: 0 0 0 6px rgba(0,240,255,0.25); }
+  70%  { box-shadow: 0 0 0 10px rgba(0,240,255,0.08); }
+  100% { box-shadow: 0 0 0 0   rgba(0,240,255,0); }
+}
+@keyframes liveTextPop {
+  0%,100% { transform: scale(1); }
+  40%     { transform: scale(1.04); }
+}
+@keyframes chipPop {
+  from { opacity: 0; transform: scale(0.8) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes thumbReveal {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.live-flash    { animation: liveFlash 700ms ease forwards; }
+.live-text-pop { animation: liveTextPop 400ms cubic-bezier(0.4,0,0.2,1) forwards; }
+.preview-service-chip.new { animation: chipPop 300ms cubic-bezier(0.4,0,0.2,1) forwards; }
+[data-live] { transition: color 300ms ease, background-color 400ms ease, border-color 300ms ease; }
+
+/* ── BUILDING SCREEN ── */
+#building-screen {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--bg-primary);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 28px; text-align: center;
+}
+#building-screen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 20%, rgba(0,240,255,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 80% 80%, rgba(184,41,221,0.09) 0%, transparent 60%);
+  pointer-events: none;
+}
+#building-screen.visible { display: flex; }
+
+.building-spinner {
+  width: 64px; height: 64px; position: relative; margin-bottom: 28px; flex-shrink: 0;
+}
+.building-spinner::before, .building-spinner::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid transparent;
+}
+.building-spinner::before {
+  border-top-color: var(--accent-cyan);
+  border-right-color: rgba(0,240,255,0.3);
+  animation: spin 1.2s linear infinite;
+}
+.building-spinner::after {
+  border-bottom-color: var(--accent-purple);
+  border-left-color: rgba(184,41,221,0.3);
+  animation: spin 2s linear infinite reverse;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.building-logo {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; font-family: var(--font-mono);
+  background: var(--gradient); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-clip: text;
+}
+.building-title {
+  font-size: 26px; font-weight: 800; color: var(--text-primary);
+  margin-bottom: 10px; letter-spacing: -0.5px; position: relative;
+}
+.building-tagline {
+  font-size: 13px; color: var(--text-secondary);
+  margin-bottom: 32px; line-height: 1.6; max-width: 280px; position: relative;
+}
+.building-status {
+  font-size: 13px; color: var(--accent-cyan);
+  font-weight: 500; margin-bottom: 24px;
+  font-family: var(--font-mono); position: relative;
+  transition: opacity 800ms ease;
+}
+
+/* AI Workshop Log */
+.workshop-log {
+  width: 100%; max-width: 320px;
+  background: rgba(18,18,26,0.8);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px; padding: 12px;
+  margin-bottom: 28px; font-family: var(--font-mono);
+  font-size: 11px; max-height: 110px; overflow: hidden;
+  position: relative; z-index: 1;
+}
+.workshop-log::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 28px;
+  background: linear-gradient(to bottom, transparent, rgba(18,18,26,0.9));
+  border-radius: 0 0 12px 12px; pointer-events: none;
+}
+@keyframes logLineIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.log-line {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 2px 0; animation: logLineIn 300ms ease forwards;
+}
+.log-tag {
+  font-size: 8px; font-weight: 700; border-radius: 3px;
+  padding: 2px 5px; white-space: nowrap; flex-shrink: 0; margin-top: 1px;
+  letter-spacing: 0.5px;
+}
+.log-tag.ok  { background: rgba(0,255,136,0.12);  color: var(--accent-green); }
+.log-tag.run { background: rgba(0,240,255,0.1);   color: var(--accent-cyan); }
+.log-tag.ai  { background: rgba(184,41,221,0.12); color: var(--accent-purple); }
+.log-msg { color: rgba(232,232,240,0.35); line-height: 1.4; }
+
+.building-phone-line { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; position: relative; }
+.building-phone { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; position: relative; font-family: var(--font-mono); }
+.building-note { font-size: 11px; color: rgba(255,255,255,0.2); max-width: 240px; line-height: 1.5; position: relative; }
+
+/* Turnstile */
+.cf-turnstile { position: absolute; left: -9999px; top: -9999px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- PROGRESS -->
+<div id="progress-bar"><div id="progress-fill"></div></div>
+
+<!-- PREVIEW -->
+<div id="preview-wrap">
+  <div class="preview-site" data-live="palette">
+    <div class="preview-nav">
+      <div class="preview-nav-logo" data-live="nav-name">Your Business</div>
+      <div class="preview-nav-cta" data-live="cta">WhatsApp Us</div>
+    </div>
+    <div class="preview-hero">
+      <div class="preview-badge">⬡ Trusted in <span data-live="area-badge">Your Area</span></div>
+      <h1 class="preview-h1" data-live="headline">Your Business<br><span>Starts Here</span></h1>
+      <p class="preview-sub">Serving <span data-live="area-text">your area</span> with pride. Professional, reliable, local.</p>
+      <button class="preview-btn" data-live="cta-btn">💬 WhatsApp Us</button>
+      <div class="preview-watermark"><div class="preview-watermark-text">PREVIEW</div></div>
+    </div>
+    <div class="preview-services" data-live="services-strip">
+      <div class="preview-service-chip">Service One</div>
+      <div class="preview-service-chip">Service Two</div>
+      <div class="preview-service-chip">Service Three</div>
+      <div class="preview-service-chip">Service Four</div>
+    </div>
+  </div>
+</div>
+
+<!-- CARD WRAP -->
+<div id="card-wrap">
+
+  <!-- CARD 1 -->
+  <div class="card active" id="card-1">
+    <div class="card-handle"></div>
+    <div class="card-title">Let's start with the basics</div>
+    <div class="card-sub">Before you turn the 🥩 steak your website is live.</div>
+    <div class="card-body">
+      <div class="field-group">
+        <label class="field-label">Business name</label>
+        <input class="field-input" id="c1-biz" type="text" placeholder="e.g. Zululand Flooring" autocomplete="off" autocapitalize="words">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Your name</label>
+        <input class="field-input" id="c1-name" type="text" placeholder="e.g. Thabo" autocomplete="off" autocapitalize="words">
+      </div>
+      <div class="field-group">
+        <label class="field-label">WhatsApp number</label>
+        <input class="field-input" id="c1-phone" type="tel" placeholder="e.g. 082 123 4567" autocomplete="tel">
+      </div>
+    </div>
+    <button class="next-btn" id="next-1" onclick="advanceCard(1)">Continue →</button>
+  </div>
+
+  <!-- CARD 2 -->
+  <div class="card" id="card-2">
+    <div class="card-handle"></div>
+    <div class="card-title">What kind of business are you?</div>
+    <div class="card-sub">Tap the one that fits best</div>
+    <div class="card-body">
+      <div class="tile-grid" id="industry-grid"></div>
+    </div>
+    <button class="next-btn" id="next-2" onclick="advanceCard(2)">Continue →</button>
+  </div>
+
+  <!-- CARD 3 -->
+  <div class="card" id="card-3">
+    <div class="card-handle"></div>
+    <div class="card-title">Where are you based?</div>
+    <div class="card-sub">And who do you mainly work with?</div>
+    <div class="card-body">
+      <div class="field-group" style="margin-bottom:20px;">
+        <label class="field-label">Your area</label>
+        <input class="field-input" id="c3-area" type="text" placeholder="e.g. Richards Bay, KZN" autocomplete="off">
+      </div>
+      <div class="field-label" style="margin-bottom:10px;">Primary audience</div>
+      <div class="tile-grid" id="audience-grid">
+        <div class="tile" data-val="homeowners" onclick="selectAudience(this)"><span class="tile-icon">🏠</span><span class="tile-label">Homeowners</span></div>
+        <div class="tile" data-val="businesses"  onclick="selectAudience(this)"><span class="tile-icon">🏢</span><span class="tile-label">Businesses</span></div>
+        <div class="tile" data-val="families"    onclick="selectAudience(this)"><span class="tile-icon">👨‍👩‍👧</span><span class="tile-label">Families</span></div>
+        <div class="tile" data-val="everyone"    onclick="selectAudience(this)"><span class="tile-icon">🌍</span><span class="tile-label">Everyone</span></div>
+      </div>
+    </div>
+    <button class="next-btn" id="next-3" onclick="advanceCard(3)">Continue →</button>
+  </div>
+
+  <!-- CARD 4 -->
+  <div class="card" id="card-4">
+    <div class="card-handle"></div>
+    <div class="card-title">What feeling should your site give?</div>
+    <div class="card-sub">This sets the personality of everything</div>
+    <div class="card-body">
+      <div class="tile-grid tile-grid-1" id="vibe-grid">
+        <div class="tile vibe-tile" data-vibe="bold_confident"  onclick="selectVibe(this)"><div class="tile-swatch" style="background:#ff5500"></div><div class="vibe-tile-content"><div class="tile-label">Bold &amp; Confident</div><div class="tile-sub">"We get the job done. No excuses, no shortcuts."</div></div><div class="vibe-check">✓</div></div>
+        <div class="tile vibe-tile" data-vibe="warm_friendly"   onclick="selectVibe(this)"><div class="tile-swatch" style="background:#f59e0b"></div><div class="vibe-tile-content"><div class="tile-label">Warm &amp; Friendly</div><div class="tile-sub">"We treat every client like they're family."</div></div><div class="vibe-check">✓</div></div>
+        <div class="tile vibe-tile" data-vibe="premium_minimal" onclick="selectVibe(this)"><div class="tile-swatch" style="background:#b0b0c0"></div><div class="vibe-tile-content"><div class="tile-label">Premium &amp; Minimal</div><div class="tile-sub">"Excellence in every detail, every time."</div></div><div class="vibe-check">✓</div></div>
+        <div class="tile vibe-tile" data-vibe="earthy_natural"  onclick="selectVibe(this)"><div class="tile-swatch" style="background:#6b7c5c"></div><div class="vibe-tile-content"><div class="tile-label">Earthy &amp; Natural</div><div class="tile-sub">"Honest work, sustainable results, real people."</div></div><div class="vibe-check">✓</div></div>
+      </div>
+    </div>
+    <button class="next-btn" id="next-4" onclick="advanceCard(4)">Continue →</button>
+  </div>
+
+  <!-- CARD 5 -->
+  <div class="card" id="card-5">
+    <div class="card-handle"></div>
+    <div class="card-title">What services do you offer?</div>
+    <div class="card-sub">Select all that apply — add your own if needed</div>
+    <div class="card-body">
+      <div class="chip-grid" id="services-grid"></div>
+      <div id="custom-service-wrap" style="margin-top:12px;display:none;">
+        <input class="field-input" id="custom-service-input" type="text" placeholder="Add a service (30 chars max)" maxlength="30" autocomplete="off">
+      </div>
+      <div class="field-label" style="margin-top:18px;margin-bottom:8px;">How should clients contact you?</div>
+      <div class="cta-strip" id="cta-grid">
+        <div class="cta-chip" data-cta="call_us"     onclick="selectCta(this)">📞 Call Us</div>
+        <div class="cta-chip" data-cta="whatsapp_us" onclick="selectCta(this)">💬 WhatsApp</div>
+        <div class="cta-chip" data-cta="get_quote"   onclick="selectCta(this)">💰 Get a Quote</div>
+        <div class="cta-chip" data-cta="book_online" onclick="selectCta(this)">📅 Book</div>
+        <div class="cta-chip" data-cta="visit_us"    onclick="selectCta(this)">📍 Visit Us</div>
+      </div>
+    </div>
+    <button class="next-btn" id="next-5" onclick="advanceCard(5)">Continue →</button>
+  </div>
+
+  <!-- CARD 6 -->
+  <div class="card" id="card-6">
+    <div class="card-handle"></div>
+    <div class="card-title">What makes you stand out?</div>
+    <div class="card-sub">Pick everything that applies</div>
+    <div class="card-body">
+      <div id="diff-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="margin-top:18px;">
+        <div class="field-label" style="margin-bottom:8px;">Got a testimonial? (optional)</div>
+        <div class="testimonial-skeleton">
+          "<span class="skel-field" id="skel-name" contenteditable="true">Name</span> was
+          <select id="skel-quality"><option value="professional">professional</option><option value="friendly">friendly</option><option value="reliable">reliable</option><option value="skilled">skilled</option><option value="honest">honest</option></select>,
+          fast, and affordable. Highly recommend for anyone in
+          <span class="skel-field" id="skel-area" contenteditable="true">your area</span>."
+        </div>
+      </div>
+    </div>
+    <button class="next-btn enabled" id="next-6" onclick="advanceCard(6)">Continue →</button>
+  </div>
+
+  <!-- CARD 7 -->
+  <div class="card" id="card-7">
+    <div class="card-handle"></div>
+    <div class="card-title">Show us your brand</div>
+    <div class="card-sub">Snap a photo — we'll use it to match your style (optional)</div>
+    <div class="card-body">
+      <div class="upload-grid">
+        <div class="upload-zone" id="upload-logo"   onclick="triggerUpload('logo')">  <div class="upload-icon">📷</div><div class="upload-label">Logo or sign</div></div>
+        <div class="upload-zone" id="upload-card"   onclick="triggerUpload('card')">  <div class="upload-icon">📷</div><div class="upload-label">Business card</div></div>
+        <div class="upload-zone" id="upload-photo1" onclick="triggerUpload('photo1')"><div class="upload-icon">📷</div><div class="upload-label">Work or team photo</div></div>
+        <div class="upload-zone" id="upload-photo2" onclick="triggerUpload('photo2')"><div class="upload-icon">📷</div><div class="upload-label">Another photo</div></div>
+      </div>
+      <input type="file" id="file-logo"   accept="image/*" capture="environment" onchange="handleUpload('logo',  this)">
+      <input type="file" id="file-card"   accept="image/*" capture="environment" onchange="handleUpload('card',  this)">
+      <input type="file" id="file-photo1" accept="image/*" capture="environment" onchange="handleUpload('photo1',this)">
+      <input type="file" id="file-photo2" accept="image/*" capture="environment" onchange="handleUpload('photo2',this)">
+      <div class="social-expander" onclick="toggleSocial()">
+        <span class="social-expander-icon" id="social-icon">+</span>
+        <span>Add social links</span>
+      </div>
+      <div class="social-fields" id="social-fields">
+        <div class="field-group"><input class="field-input" id="c7-instagram" type="url" placeholder="Instagram URL" style="margin-top:8px;"></div>
+        <div class="field-group"><input class="field-input" id="c7-facebook"  type="url" placeholder="Facebook URL"></div>
+        <div class="field-group"><input class="field-input" id="c7-tiktok"    type="url" placeholder="TikTok URL"></div>
+      </div>
+    </div>
+    <button class="next-btn enabled" id="next-7" onclick="advanceCard(7)">Continue →</button>
+  </div>
+
+  <!-- CARD 8 -->
+  <div class="card" id="card-8">
+    <div class="card-handle"></div>
+    <div class="card-title">Choose how your site launches</div>
+    <div class="card-sub">You can upgrade anytime — no lock-in</div>
+    <div class="card-body">
+      <div class="plan-grid">
+        <div class="plan-card" data-plan="express" data-retainer="699" onclick="selectPlan(this)">
+          <div class="plan-header"><div><div class="plan-name">EXPRESS</div></div><div class="plan-price"><div class="plan-amount">R699</div><div class="plan-period">/month</div></div></div>
+          <div class="plan-features">
+            <div class="plan-feature">Single-page landing site</div>
+            <div class="plan-feature">Your .co.za domain included</div>
+            <div class="plan-feature">WhatsApp &amp; call button</div>
+            <div class="plan-feature">1 email address</div>
+          </div>
+          <button class="plan-select-btn">Select Express</button>
+        </div>
+        <div class="plan-card popular" data-plan="standard" data-retainer="999" onclick="selectPlan(this)">
+          <div class="plan-badge">MOST POPULAR</div>
+          <div class="plan-header"><div><div class="plan-name">STANDARD</div></div><div class="plan-price"><div class="plan-amount">R999</div><div class="plan-period">/month</div></div></div>
+          <div class="plan-features">
+            <div class="plan-feature">4-page scrolling site</div>
+            <div class="plan-feature">Services + About + Contact</div>
+            <div class="plan-feature">2 email addresses</div>
+            <div class="plan-feature">Monthly analytics</div>
+            <div class="plan-feature">Referral programme</div>
+          </div>
+          <button class="plan-select-btn">Select Standard</button>
+        </div>
+        <div class="plan-card" data-plan="premium" data-retainer="1499" onclick="selectPlan(this)">
+          <div class="plan-header"><div><div class="plan-name">PREMIUM</div></div><div class="plan-price"><div class="plan-amount">R1 499</div><div class="plan-period">/month</div></div></div>
+          <div class="plan-features">
+            <div class="plan-feature">5-page premium site</div>
+            <div class="plan-feature">Photo gallery included</div>
+            <div class="plan-feature">3 email addresses</div>
+            <div class="plan-feature">Unlimited revisions</div>
+            <div class="plan-feature">Priority support</div>
+          </div>
+          <button class="plan-select-btn">Select Premium</button>
+        </div>
+      </div>
+    </div>
+    <button class="next-btn" id="next-8" onclick="submitIntake()">Launch my website →</button>
+  </div>
+
+</div><!-- end card-wrap -->
+
+<!-- Turnstile -->
+<div class="cf-turnstile" id="turnstile-widget" data-sitekey="0x4AAAAAADTMtFzrGQIODW_aGPXvFaKtA3s" data-theme="dark" data-callback="onTurnstileComplete"></div>
+
+<!-- Building screen -->
+<div id="building-screen">
+  <div class="building-spinner"><div class="building-logo">WH</div></div>
+  <div class="building-title">Launching your website...</div>
+  <div class="building-tagline">Before you turn the 🥩 steak your website is live.</div>
+  <div class="building-status" id="building-status">Analysing your brand...</div>
+  <div class="workshop-log" id="workshop-log"></div>
+  <div class="building-phone-line">We'll WhatsApp you when it's ready</div>
+  <div class="building-phone" id="building-phone">—</div>
+  <div class="building-note">Grab a coffee. Your website is being handcrafted right now.</div>
+</div>
+
+<script>window.__INTAKE_DATA__ = __INTAKE_DATA_JSON__;</script>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+const state = {
+  currentCard: 1,
+  totalCards:  8,
+  biz:         '',
+  name:        '',
+  phone:       '',
+  industry:    '',
+  area:        '',
+  audience:    '',
+  vibe:        '',
+  services:    [],
+  cta:         'whatsapp_us',
+  differentiators: [],
+  testimonial: '',
+  plan:        '',
+  retainer:    999,
+  uploads:     {}, // { logo: File, card: File, photo1: File, photo2: File }
+  instagram:   '',
+  facebook:    '',
+  tiktok:      '',
+  turnstileToken: '',
+  mode2ClientId: null,
+};
+
+// Pre-existing client data (Mode 2)
+const intakeData = window.__INTAKE_DATA__ || null;
+
+// ── INDUSTRY DATA ───────────────────────────────────────────
+const INDUSTRIES = [
+  { icon: '🔧', label: 'Plumbing' },
+  { icon: '⚡', label: 'Electrical' },
+  { icon: '🏗️', label: 'Construction' },
+  { icon: '🧹', label: 'Cleaning' },
+  { icon: '💅', label: 'Beauty & Salon' },
+  { icon: '🌿', label: 'Health & Wellness' },
+  { icon: '🍽️', label: 'Food & Restaurant' },
+  { icon: '🛍️', label: 'Retail' },
+  { icon: '⚖️', label: 'Legal' },
+  { icon: '📊', label: 'Accounting' },
+  { icon: '🚗', label: 'Automotive' },
+  { icon: '🏠', label: 'Real Estate' },
+  { icon: '⛪', label: 'Faith & Community' },
+  { icon: '💻', label: 'Tech & IT' },
+  { icon: '✨', label: 'Other' },
+];
+
+const INDUSTRY_SERVICES = {
+  'Plumbing':          ['Leak Repairs','Geyser Installation','Pipe Fitting','Drain Clearing','Bathroom Renovations','Emergency Call-outs','New Installations','Water Pressure'],
+  'Electrical':        ['DB Board Upgrades','Certificate of Compliance','Fault Finding','Lighting Installation','Power Points','Electric Fencing','Wiring','Smart Home'],
+  'Construction':      ['House Renovations','Extensions','Roofing','Plastering','Tiling','Painting','New Builds','Waterproofing'],
+  'Cleaning':          ['Domestic Cleaning','Office Cleaning','Deep Clean','Steam Cleaning','Carpet Cleaning','Post-Build Clean','Window Cleaning','Industrial Cleaning'],
+  'Beauty & Salon':    ['Hair Braiding','Relaxer','Colour & Highlights','Cut & Style','Nails','Lashes','Waxing','Facials'],
+  'Health & Wellness': ['Personal Training','Massage Therapy','Yoga Classes','Physiotherapy','Nutritional Coaching','Chiropractic','Life Coaching','Meditation'],
+  'Food & Restaurant': ['Takeaways','Sit-Down Dining','Catering','Meal Prep','Delivery','Function Catering','Braai Packages','Baked Goods'],
+  'Retail':            ['In-Store Shopping','Online Orders','Delivery','Layby','Bulk Buying','Trade Accounts','Special Orders','Gift Vouchers'],
+  'Legal':             ['Property Law','Family Law','Labour Law','Criminal Law','Commercial Law','Notarial Services','Wills & Estates','Divorce'],
+  'Accounting':        ['Tax Returns','Payroll','Bookkeeping','Business Registration','Financial Statements','BEE Compliance','VAT Returns','Auditing'],
+  'Automotive':        ['Mechanical Repairs','Panel Beating','Spray Painting','Tyres & Wheels','Full Service','Diagnostics','Brakes','Clutch & Gearbox'],
+  'Real Estate':       ['Property Sales','Rentals','Property Management','Valuations','Investment Properties','Bond Applications','Commercial Property','Off-Plan Sales'],
+  'Faith & Community': ['Sunday Services','Youth Groups','Community Outreach','Counselling','Events & Functions','Weddings','Funerals','Bible Study'],
+  'Tech & IT':         ['IT Support','Network Setup','CCTV Installation','Software Development','Website Design','Cloud Solutions','Cybersecurity','Hardware Repairs'],
+  'Other':             ['Consulting','Training','Events','Photography','Design','Marketing','Logistics','Property Services'],
+};
+
+const INDUSTRY_VIBE = {
+  'Plumbing':'bold_confident','Electrical':'bold_confident','Construction':'bold_confident',
+  'Automotive':'bold_confident','Tech & IT':'bold_confident',
+  'Cleaning':'warm_friendly','Beauty & Salon':'warm_friendly','Food & Restaurant':'warm_friendly','Retail':'warm_friendly','Faith & Community':'earthy_natural',
+  'Health & Wellness':'earthy_natural',
+  'Legal':'premium_minimal','Accounting':'premium_minimal','Real Estate':'premium_minimal',
+  'Other':'warm_friendly',
+};
+
+const VIBE_PALETTES = {
+  bold_confident:  { '--preview-bg':'#0a0a0a', '--preview-surface':'#111111', '--preview-accent':'#ff5500', '--preview-text':'#f5f5f5', '--preview-muted':'#888' },
+  warm_friendly:   { '--preview-bg':'#1a0f00', '--preview-surface':'#231500', '--preview-accent':'#f59e0b', '--preview-text':'#fef3c7', '--preview-muted':'#b45309' },
+  premium_minimal: { '--preview-bg':'#0a0a0a', '--preview-surface':'#1a1a1a', '--preview-accent':'#b0b0c0', '--preview-text':'#f5f5f5', '--preview-muted':'#666' },
+  earthy_natural:  { '--preview-bg':'#0d120a', '--preview-surface':'#131a0f', '--preview-accent':'#6b7c5c', '--preview-text':'#e8f0e3', '--preview-muted':'#7a9268' },
+};
+
+const CTA_LABELS = {
+  'call_us':'📞 Call Us', 'whatsapp_us':'💬 WhatsApp Us',
+  'get_quote':'💰 Get a Quote', 'book_online':'📅 Book Now', 'visit_us':'📍 Visit Us',
+};
+
+const DIFFERENTIATORS = [
+  'Years of experience in the industry',
+  'Family-owned and locally trusted',
+  'Fast response — we show up when we say we will',
+  'Guaranteed workmanship on every job',
+  'Free quotes, no obligation',
+  'Affordable pricing without cutting corners',
+  'Available after hours and weekends',
+  'Fully certified and insured',
+];
+
+const BUILDING_STATUSES = [
+  'Analysing your brand...','Writing your story...','Choosing your photos...',
+  'Building your pages...','Adding the finishing touches...','Almost there...',
+];
+
+// ── INITIALISE ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildIndustryGrid();
+  buildDiffGrid();
+  setupCard1Listeners();
+  setupCard3Listeners();
+  setupKeyboardHandling();
+  initMode2();
+
+  // Patch 5: offer state recovery if saved state exists
+  if (!new URLSearchParams(location.search).get('id')) {
+    const saved = loadSavedState();
+    if (saved) offerRecovery(saved);
+  }
+});
+
+// ── MODE 2 ─────────────────────────────────────────────────
+function initMode2() {
+  const params  = new URLSearchParams(location.search);
+  const clientId = params.get('id');
+  if (!clientId && !intakeData) return;
+
+  const data = intakeData || {};
+  if (!data.clientId && clientId) data.clientId = clientId;
+  if (!data.clientId) return;
+
+  state.mode2ClientId = data.clientId;
+
+  // Pre-fill known fields
+  if (data.business_name) {
+    document.getElementById('c1-biz').value = data.business_name;
+    state.biz = data.business_name;
+    updateLiveHeadline(data.business_name);
+  }
+  if (data.client_name) {
+    document.getElementById('c1-name').value = data.client_name;
+    state.name = data.client_name;
+  }
+  if (data.phone) {
+    document.getElementById('c1-phone').value = formatPhone(data.phone);
+    state.phone = data.phone;
+  }
+  if (data.area) {
+    document.getElementById('c3-area').value = data.area;
+    state.area = data.area;
+    updateLiveArea(data.area);
+  }
+  if (data.industry) {
+    state.industry = data.industry;
+    buildServicesChips(data.industry);
+    const defaultVibe = INDUSTRY_VIBE[data.industry] || 'warm_friendly';
+    setTimeout(() => {
+      const vibeEl = document.querySelector(`[data-vibe="${defaultVibe}"]`);
+      if (vibeEl) selectVibe(vibeEl);
+    }, 100);
+  }
+
+  // If preview HTML provided, embed it
+  if (data.previewHtml) {
+    embedMode2Preview(data.previewHtml);
+  }
+
+  checkCard1();
+}
+
+function embedMode2Preview(html) {
+  const wrap = document.getElementById('preview-wrap');
+  const div  = document.createElement('div');
+  div.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;';
+  div.innerHTML = html;
+  // Inject data-live attributes into the embedded HTML's matching elements
+  wrap.innerHTML = '';
+  wrap.appendChild(div);
+}
+
+// ── CARD 1 SETUP ────────────────────────────────────────────
+function setupCard1Listeners() {
+  const bizInput   = document.getElementById('c1-biz');
+  const nameInput  = document.getElementById('c1-name');
+  const phoneInput = document.getElementById('c1-phone');
+
+  bizInput.addEventListener('input',   () => { state.biz   = bizInput.value.trim();   updateLiveHeadline(state.biz); checkCard1(); });
+  nameInput.addEventListener('input',  () => { state.name  = nameInput.value.trim();  checkCard1(); });
+  phoneInput.addEventListener('input', () => {
+    const cleaned = phoneInput.value.replace(/\D/g,'');
+    phoneInput.value = formatPhoneDisplay(cleaned);
+    state.phone = normalisePhone(cleaned);
+    checkCard1();
+  });
+}
+
+function checkCard1() {
+  const ok = state.biz.length > 1 && state.name.length > 1 && state.phone.length >= 10;
+  toggleNext('next-1', ok);
+}
+
+function setupCard3Listeners() {
+  const areaInput = document.getElementById('c3-area');
+  areaInput.addEventListener('input', () => {
+    state.area = areaInput.value.trim();
+    updateLiveArea(state.area);
+    checkCard3();
+  });
+}
+
+function checkCard3() {
+  toggleNext('next-3', state.area.length > 1 && state.audience !== '');
+}
+
+// ── GRID BUILDERS ────────────────────────────────────────────
+function buildIndustryGrid() {
+  const grid = document.getElementById('industry-grid');
+  grid.innerHTML = '';
+  INDUSTRIES.forEach(ind => {
+    const t = document.createElement('div');
+    t.className = 'tile';
+    t.dataset.industry = ind.label;
+    t.onclick = () => selectIndustry(t);
+    t.innerHTML = `<span class="tile-icon">${ind.icon}</span><span class="tile-label">${ind.label}</span>`;
+    grid.appendChild(t);
+  });
+}
+
+function buildServicesChips(industry) {
+  const grid     = document.getElementById('services-grid');
+  const services = INDUSTRY_SERVICES[industry] || INDUSTRY_SERVICES['Other'];
+  state.services = [];
+  grid.innerHTML = '';
+  services.forEach(svc => {
+    const c = document.createElement('div');
+    c.className = 'chip'; c.textContent = svc;
+    c.onclick = () => toggleService(c, svc);
+    grid.appendChild(c);
+  });
+  // Custom add chip
+  let customCount = 0;
+  const addChip = document.createElement('div');
+  addChip.className = 'chip chip-add'; addChip.textContent = '+ Add your own';
+  addChip.onclick = () => {
+    if (customCount >= 3) { addChip.textContent = 'Max 3 custom'; return; }
+    document.getElementById('custom-service-wrap').style.display = 'block';
+    document.getElementById('custom-service-input').focus();
+  };
+  grid.appendChild(addChip);
+
+  const input = document.getElementById('custom-service-input');
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter' && input.value.trim()) {
+      const val = input.value.trim().slice(0, 30);
+      const newChip = document.createElement('div');
+      newChip.className = 'chip selected'; newChip.textContent = val;
+      newChip.onclick = () => toggleService(newChip, val);
+      grid.insertBefore(newChip, addChip);
+      state.services.push(val);
+      input.value = '';
+      customCount++;
+      document.getElementById('custom-service-wrap').style.display = 'none';
+      updateLiveServices();
+      checkCard5();
+    }
+  };
+  checkCard5();
+}
+
+function buildDiffGrid() {
+  const grid = document.getElementById('diff-grid');
+  grid.innerHTML = '';
+  DIFFERENTIATORS.forEach(diff => {
+    const t = document.createElement('div');
+    t.className = 'diff-tile';
+    t.dataset.val = diff;
+    t.onclick = () => toggleDiff(t, diff);
+    t.innerHTML = `<div class="diff-check">✓</div><div class="diff-label">${diff}</div>`;
+    grid.appendChild(t);
+  });
+  // "Something else" tile
+  const elseTile = document.createElement('div');
+  elseTile.className = 'diff-tile';
+  elseTile.innerHTML = `<div class="diff-check">✓</div><div class="diff-label">Something else</div>`;
+  elseTile.onclick = () => {
+    const input = document.createElement('input');
+    input.className = 'field-input'; input.maxLength = 150; input.placeholder = 'Describe your edge (150 chars)';
+    input.style.marginTop = '8px';
+    grid.appendChild(input);
+    elseTile.onclick = null;
+    elseTile.classList.add('selected');
+    elseTile.querySelector('.diff-check').textContent = '✓';
+    input.addEventListener('input', () => {
+      if (input.value.trim()) state.differentiators.push(input.value.trim());
+    });
+  };
+  grid.appendChild(elseTile);
+}
+
+// ── SELECTION HANDLERS ──────────────────────────────────────
+function selectIndustry(tile) {
+  document.querySelectorAll('#industry-grid .tile').forEach(t => t.classList.remove('selected'));
+  tile.classList.add('selected');
+  state.industry = tile.dataset.industry;
+  // Pre-select default vibe
+  const defaultVibe = INDUSTRY_VIBE[state.industry] || 'warm_friendly';
+  const vibeEl = document.querySelector(`[data-vibe="${defaultVibe}"]`);
+  if (vibeEl) selectVibe(vibeEl);
+  // Build services chips for Card 5
+  buildServicesChips(state.industry);
+  toggleNext('next-2', true);
+}
+
+function selectAudience(tile) {
+  document.querySelectorAll('#audience-grid .tile').forEach(t => t.classList.remove('selected'));
+  tile.classList.add('selected');
+  state.audience = tile.dataset.val;
+  checkCard3();
+}
+
+function selectVibe(tile) {
+  document.querySelectorAll('#vibe-grid .tile').forEach(t => t.classList.remove('selected'));
+  tile.classList.add('selected');
+  state.vibe = tile.dataset.vibe;
+  applyVibePalette(state.vibe);
+  toggleNext('next-4', true);
+}
+
+function toggleService(chip, val) {
+  chip.classList.toggle('selected');
+  if (chip.classList.contains('selected')) {
+    if (!state.services.includes(val)) state.services.push(val);
+  } else {
+    state.services = state.services.filter(s => s !== val);
+  }
+  updateLiveServices();
+  checkCard5();
+}
+
+function selectCta(chip) {
+  document.querySelectorAll('.cta-chip').forEach(c => c.classList.remove('selected'));
+  chip.classList.add('selected');
+  state.cta = chip.dataset.cta;
+  updateLiveCtaBtn();
+}
+
+function toggleDiff(tile, val) {
+  tile.classList.toggle('selected');
+  if (tile.classList.contains('selected')) {
+    if (!state.differentiators.includes(val)) state.differentiators.push(val);
+  } else {
+    state.differentiators = state.differentiators.filter(d => d !== val);
+  }
+}
+
+function selectPlan(card) {
+  document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  state.plan     = card.dataset.plan;
+  state.retainer = parseInt(card.dataset.retainer);
+  const btn = document.getElementById('next-8');
+  btn.textContent = 'Launch my website →';
+  toggleNext('next-8', true);
+}
+
+// ── LIVE PREVIEW UPDATES ────────────────────────────────────
+function updateLiveHeadline(biz) {
+  const text = biz || 'Your Business';
+  const h1   = document.querySelector('[data-live="headline"]');
+  const nav  = document.querySelector('[data-live="nav-name"]');
+  if (h1)  h1.innerHTML = `${escHtml(text)}<br><span>Here for You</span>`;
+  if (nav) nav.textContent = text || 'Your Business';
+}
+
+function updateLiveArea(area) {
+  const badge = document.querySelector('[data-live="area-badge"]');
+  const sub   = document.querySelector('[data-live="area-text"]');
+  if (badge) badge.textContent = area || 'Your Area';
+  if (sub)   sub.textContent   = area || 'your area';
+}
+
+function updateLiveServices() {
+  const strip = document.querySelector('[data-live="services-strip"]');
+  if (!strip) return;
+  strip.innerHTML = '';
+  const svcs = state.services.length ? state.services : ['Service One','Service Two','Service Three','Service Four'];
+  svcs.slice(0, 6).forEach(s => {
+    const chip = document.createElement('div');
+    chip.className = 'preview-service-chip';
+    chip.textContent = s;
+    strip.appendChild(chip);
+  });
+}
+
+function updateLiveCtaBtn() {
+  const btns = document.querySelectorAll('[data-live="cta"], [data-live="cta-btn"]');
+  const label = CTA_LABELS[state.cta] || '💬 WhatsApp Us';
+  btns.forEach(b => b.textContent = label);
+}
+
+function applyVibePalette(vibe) {
+  const palette = VIBE_PALETTES[vibe];
+  if (!palette) return;
+  const site = document.querySelector('.preview-site');
+  if (!site) return;
+  Object.entries(palette).forEach(([k, v]) => site.style.setProperty(k, v));
+}
+
+function checkCard5() {
+  toggleNext('next-5', state.services.length >= 1);
+}
+
+// ── CARD NAVIGATION ─────────────────────────────────────────
+let isAnimating = false;
+
+function advanceCard(from) {
+  if (isAnimating) return;
+  const next = from + 1;
+  if (next > state.totalCards) return;
+
+  isAnimating = true;
+  const current = document.getElementById(`card-${from}`);
+  const nextCard = document.getElementById(`card-${next}`);
+
+  current.classList.remove('active');
+  current.classList.add('exiting');
+
+  setTimeout(() => {
+    current.classList.remove('exiting');
+    nextCard.style.display = 'flex';
+    nextCard.classList.add('active');
+    state.currentCard = next;
+    updateProgress(next);
+    isAnimating = false;
+    fireCompletionReward(from); // Patch 1
+    saveStateLocally();          // Patch 5
+
+    // Autofocus first input
+    const firstInput = nextCard.querySelector('input:not([type="file"]), select');
+    if (firstInput) setTimeout(() => firstInput.focus(), 300);
+  }, 290);
+}
+
+function updateProgress(card) {
+  const pct = ((card - 1) / state.totalCards) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function toggleNext(id, enabled) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.classList.toggle('enabled', enabled);
+}
+
+// ── PATCH 4: POLISHED UPLOAD THUMBNAILS ─────────────────────
+function handleUpload(type, input) {
+  const file = input.files[0];
+  if (!file) return;
+  state.uploads[type] = file;
+
+  const zone = document.getElementById(`upload-${type}`);
+  zone.innerHTML = '';
+  zone.classList.add('has-file');
+
+  const thumb = document.createElement('img');
+  thumb.className = 'upload-thumb';
+  thumb.src = URL.createObjectURL(file);
+
+  const badge = document.createElement('div');
+  badge.className = 'upload-success-badge';
+  badge.textContent = '✓';
+
+  zone.appendChild(thumb);
+  zone.appendChild(badge);
+
+  // Brief flash on the upload zone
+  setTimeout(() => zone.style.boxShadow = '0 0 0 2px rgba(0,201,122,0.5)', 100);
+  setTimeout(() => zone.style.boxShadow = '', 800);
+}
+
+// ── PATCH 1: MICRO COMPLETION REWARDS ───────────────────────
+function flashLive(selector) {
+  const el = document.querySelector(selector);
+  if (!el) return;
+  el.classList.remove('live-flash');
+  void el.offsetWidth; // reflow
+  el.classList.add('live-flash');
+  setTimeout(() => el.classList.remove('live-flash'), 750);
+}
+
+function textPop(selector) {
+  const el = document.querySelector(selector);
+  if (!el) return;
+  el.classList.remove('live-text-pop');
+  void el.offsetWidth;
+  el.classList.add('live-text-pop');
+  setTimeout(() => el.classList.remove('live-text-pop'), 450);
+}
+
+// Called from advanceCard — fires reward for the card just completed
+function fireCompletionReward(cardNum) {
+  switch (cardNum) {
+    case 1: // Biz name → headline flashes
+      setTimeout(() => { flashLive('[data-live="headline"]'); textPop('[data-live="nav-name"]'); }, 80);
+      break;
+    case 3: // Area → area badge flashes
+      setTimeout(() => flashLive('[data-live="area-badge"]'), 80);
+      break;
+    case 4: // Vibe → whole preview pulses
+      setTimeout(() => flashLive('.preview-site'), 80);
+      break;
+    case 5: // Services → strip animates
+      setTimeout(() => {
+        flashLive('[data-live="services-strip"]');
+        document.querySelectorAll('.preview-service-chip').forEach((c, i) => {
+          c.classList.add('new');
+          c.style.animationDelay = `${i * 50}ms`;
+        });
+      }, 80);
+      break;
+    case 7: // CTA btn flashes after brand uploaded
+      setTimeout(() => textPop('[data-live="cta-btn"]'), 80);
+      break;
+  }
+}
+
+// ── PATCH 2: AI WORKSHOP BUILD SCREEN ───────────────────────
+const WORKSHOP_EVENTS = [
+  { tag: 'run', msg: 'Intake data received...' },
+  { tag: 'ai',  msg: 'Extracting brand voice...' },
+  { tag: 'run', msg: 'Selecting template archetype...' },
+  { tag: 'ai',  msg: 'Writing headline copy...' },
+  { tag: 'ok',  msg: 'Brand voice extracted ✓' },
+  { tag: 'run', msg: 'Querying photo library...' },
+  { tag: 'ai',  msg: 'Matching editorial photos...' },
+  { tag: 'ok',  msg: 'Photos matched ✓' },
+  { tag: 'run', msg: 'Building home page...' },
+  { tag: 'ai',  msg: 'Generating services content...' },
+  { tag: 'ok',  msg: 'Home page complete ✓' },
+  { tag: 'run', msg: 'Building about section...' },
+  { tag: 'ok',  msg: 'Testimonials placed ✓' },
+  { tag: 'run', msg: 'Mobile optimisation...' },
+  { tag: 'ok',  msg: 'Performance check passed ✓' },
+  { tag: 'run', msg: 'Domain configuration...' },
+  { tag: 'ok',  msg: 'SSL certificate ready ✓' },
+  { tag: 'ai',  msg: 'Final quality check...' },
+  { tag: 'ok',  msg: 'Site ready — sending WhatsApp ✓' },
+];
+
+function startWorkshopLog() {
+  const log = document.getElementById('workshop-log');
+  if (!log) return;
+  let idx = 0;
+  const addLine = () => {
+    if (idx >= WORKSHOP_EVENTS.length) return;
+    const { tag, msg } = WORKSHOP_EVENTS[idx++];
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-tag ${tag}">${tag.toUpperCase()}</span><span class="log-msg">${msg}</span>`;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+    const nextDelay = 1800 + Math.random() * 2400;
+    setTimeout(addLine, nextDelay);
+  };
+  setTimeout(addLine, 600);
+}
+
+// ── PATCH 5: STATE PRESERVATION ─────────────────────────────
+const SAVE_KEY = 'wh_intake_state';
+
+function saveStateLocally() {
+  try {
+    const toSave = {
+      biz: state.biz, name: state.name, phone: state.phone,
+      industry: state.industry, area: state.area, audience: state.audience,
+      vibe: state.vibe, services: state.services, cta: state.cta,
+      differentiators: state.differentiators, plan: state.plan,
+      retainer: state.retainer, instagram: state.instagram,
+      facebook: state.facebook, tiktok: state.tiktok,
+      currentCard: state.currentCard, savedAt: Date.now(),
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(toSave));
+  } catch { /* localStorage unavailable — non-fatal */ }
+}
+
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    // Expire saves older than 24 hours
+    if (!saved.savedAt || Date.now() - saved.savedAt > 86400000) {
+      localStorage.removeItem(SAVE_KEY);
+      return false;
+    }
+    return saved;
+  } catch { return false; }
+}
+
+function offerRecovery(saved) {
+  if (!saved || saved.currentCard <= 1) return;
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position:fixed;top:12px;left:16px;right:16px;z-index:999;
+    background:#1a1a1a;border:1px solid rgba(255,107,53,0.3);
+    border-radius:12px;padding:14px 16px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    font-size:13px;color:#f0ede8;
+    animation:cardEnter 300ms cubic-bezier(0.4,0,0.2,1) forwards;
+  `;
+  banner.innerHTML = `
+    <span>Continue where you left off — <strong>${saved.biz || 'your business'}</strong></span>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <button onclick="this.closest('div[style]').remove();localStorage.removeItem('${SAVE_KEY}')" style="font-size:12px;color:#666;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">Start fresh</button>
+      <button onclick="restoreState()" style="font-size:12px;color:#fff;padding:6px 14px;border-radius:8px;background:#ff6b35;font-weight:600;">Continue →</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+  setTimeout(() => banner.style.opacity = '0', 8000);
+  setTimeout(() => banner.remove(), 8300);
+}
+
+function restoreState() {
+  const saved = loadSavedState();
+  if (!saved) return;
+  document.querySelector('[style*="position:fixed"][style*="z-index:999"]')?.remove();
+
+  // Restore text fields
+  if (saved.biz)  { document.getElementById('c1-biz').value  = saved.biz;  state.biz  = saved.biz; }
+  if (saved.name) { document.getElementById('c1-name').value = saved.name; state.name = saved.name; }
+  if (saved.phone) {
+    const display = formatPhone(saved.phone);
+    document.getElementById('c1-phone').value = display;
+    state.phone = saved.phone;
+  }
+  if (saved.area) { document.getElementById('c3-area').value = saved.area; state.area = saved.area; }
+
+  // Restore selections
+  if (saved.industry) {
+    state.industry = saved.industry;
+    const indTile = document.querySelector(`[data-industry="${saved.industry}"]`);
+    if (indTile) { indTile.classList.add('selected'); }
+    buildServicesChips(saved.industry);
+  }
+  if (saved.audience) {
+    state.audience = saved.audience;
+    document.querySelector(`[data-val="${saved.audience}"]`)?.classList.add('selected');
+  }
+  if (saved.vibe) {
+    const vibeTile = document.querySelector(`[data-vibe="${saved.vibe}"]`);
+    if (vibeTile) selectVibe(vibeTile);
+  }
+  if (saved.services?.length) {
+    saved.services.forEach(svc => {
+      const chip = [...document.querySelectorAll('#services-grid .chip')]
+        .find(c => c.textContent === svc);
+      if (chip) { chip.classList.add('selected'); state.services.push(svc); }
+    });
+  }
+  if (saved.cta) {
+    const ctaEl = document.querySelector(`[data-cta="${saved.cta}"]`);
+    if (ctaEl) selectCta(ctaEl);
+  }
+  if (saved.plan) {
+    const planEl = document.querySelector(`[data-plan="${saved.plan}"]`);
+    if (planEl) selectPlan(planEl);
+  }
+
+  // Jump to the saved card
+  const target = Math.max(1, Math.min(saved.currentCard, state.totalCards));
+  if (target > 1) {
+    for (let i = 1; i < target; i++) {
+      document.getElementById(`card-${i}`)?.classList.remove('active');
+    }
+    const targetCard = document.getElementById(`card-${target}`);
+    if (targetCard) { targetCard.classList.add('active'); state.currentCard = target; }
+    updateProgress(target);
+    updateLiveHeadline(state.biz);
+    updateLiveArea(state.area);
+    updateLiveServices();
+  }
+}
+
+function toggleSocial() {
+  const fields = document.getElementById('social-fields');
+  const icon   = document.getElementById('social-icon');
+  const open   = fields.classList.toggle('open');
+  icon.classList.toggle('open', open);
+  icon.textContent = open ? '×' : '+';
+}
+
+// ── SUBMIT FLOW ──────────────────────────────────────────────
+async function submitIntake() {
+  if (isAnimating) return;
+  if (!state.plan) return;
+
+  // Collect final values
+  state.instagram = document.getElementById('c7-instagram')?.value?.trim() || '';
+  state.facebook  = document.getElementById('c7-facebook')?.value?.trim()  || '';
+  state.tiktok    = document.getElementById('c7-tiktok')?.value?.trim()    || '';
+
+  // Build testimonial
+  const skelName    = document.getElementById('skel-name')?.textContent?.trim();
+  const skelQuality = document.getElementById('skel-quality')?.value || 'professional';
+  const skelArea    = document.getElementById('skel-area')?.textContent?.trim();
+  if (skelName && skelName !== 'Name') {
+    state.testimonial = `"${skelName} was ${skelQuality}, fast, and affordable. Highly recommend for anyone in ${skelArea || state.area}."`;
+  }
+
+  // Trigger Turnstile
+  turnstile.execute('#turnstile-widget', { action: 'intake' });
+
+  // Show building screen immediately (Turnstile runs in background)
+  showBuildingScreen();
+
+  // POST fires after Turnstile completes (see onTurnstileComplete)
+}
+
+function onTurnstileComplete(token) {
+  state.turnstileToken = token;
+  postIntake();
+}
+
+async function postIntake() {
+  const payload = {
+    business_name: state.biz,
+    client_name:      state.name,
+    phone:            state.phone,
+    industry:         state.industry,
+    area:             state.area,
+    target_audience:  state.audience,
+    vibe:             state.vibe,
+    services:         state.services,
+    primary_cta:      state.cta,
+    differentiator:   state.differentiators.join('. '),
+    testimonial:      state.testimonial,
+    instagram:        state.instagram,
+    facebook:         state.facebook,
+    tiktok:           state.tiktok,
+    package:          state.plan,
+    retainer:         state.retainer,
+    'cf-turnstile-response': state.turnstileToken,
+    ...(state.mode2ClientId ? { existingClientId: state.mode2ClientId } : {}),
+  };
+
+  try {
+    const res  = await fetch('/intake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    // Clear saved state on success — Patch 5
+    try { localStorage.removeItem(SAVE_KEY); } catch {}
+    // Redirect to SPA build screen
+    const dest = data.redirectUrl || data.redirect; if (dest) { setTimeout(() => { window.location.href = dest; }, 1500); } else { console.warn('No redirect URL in response:', data); }
+
+    // Upload photos if any
+    if (Object.keys(state.uploads).length && data.clientId) {
+      uploadPhotosToR2(data.clientId, state.uploads).catch(() => {});
+    }
+  } catch (e) {
+    console.warn('Intake POST failed:', e);
+    // Building screen stays up — WhatsApp notification will come
+  }
+}
+
+async function uploadPhotosToR2(clientId, uploads) {
+  const formData = new FormData();
+  formData.append('clientId', clientId);
+  formData.append('slug', slugify(state.biz));
+  let i = 0;
+  Object.entries(uploads).forEach(([type, file]) => {
+    formData.append(`file_${i}`, file, `${type}-${file.name}`);
+    i++;
+  });
+  await fetch('/upload-assets', { method: 'POST', body: formData });
+}
+
+function showBuildingScreen() {
+  const screen = document.getElementById('building-screen');
+  const phone  = document.getElementById('building-phone');
+  screen.classList.add('visible');
+
+  // Show phone number
+  phone.textContent = state.phone ? `+${state.phone}` : '';
+
+  // Patch 2: start AI workshop log
+  startWorkshopLog();
+
+  // Cycle main status messages
+  let idx = 0;
+  const statusEl = document.getElementById('building-status');
+  const cycle = () => {
+    statusEl.style.opacity = '0';
+    setTimeout(() => {
+      idx = (idx + 1) % BUILDING_STATUSES.length;
+      statusEl.textContent = BUILDING_STATUSES[idx];
+      statusEl.style.opacity = '1';
+      statusEl.style.transition = 'opacity 800ms ease';
+    }, 400);
+  };
+  setInterval(cycle, 6000);
+}
+
+// ── KEYBOARD HANDLING ─────────────────────────────────────────
+function setupKeyboardHandling() {
+  if (!window.visualViewport) return;
+  window.visualViewport.addEventListener('resize', () => {
+    const cardWrap = document.getElementById('card-wrap');
+    const vv = window.visualViewport;
+    const offset = window.innerHeight - vv.height - vv.offsetTop;
+    cardWrap.style.transform = offset > 0 ? `translateY(-${offset}px)` : '';
+    cardWrap.style.transition = 'transform 150ms ease';
+  });
+}
+
+// ── UTILITIES ───────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function normalisePhone(digits) {
+  if (!digits) return '';
+  return digits.startsWith('27') ? digits : digits.replace(/^0/, '27');
+}
+
+function formatPhoneDisplay(digits) {
+  if (!digits) return '';
+  if (digits.length <= 3)  return digits;
+  if (digits.length <= 6)  return digits.slice(0,3) + ' ' + digits.slice(3);
+  if (digits.length <= 10) return digits.slice(0,3) + ' ' + digits.slice(3,6) + ' ' + digits.slice(6);
+  return digits.slice(0,2) + ' ' + digits.slice(2,4) + ' ' + digits.slice(4,7) + ' ' + digits.slice(7,11);
+}
+
+function formatPhone(p) {
+  if (!p) return '';
+  const d = p.replace(/\D/g,'');
+  return formatPhoneDisplay(d.startsWith('27') ? '0' + d.slice(2) : d);
+}
+
+function slugify(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+</script>
+
+</body>
+</html>
