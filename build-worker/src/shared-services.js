@@ -1222,12 +1222,14 @@ export async function createZohoCreditNote(args, env) {
  */
 export async function createClient(env, fields) {
   const id = crypto.randomUUID();
+  const manage_token = crypto.randomUUID();
   let slug = slugify(fields.business_name);
   const exists = await env.DB.prepare('SELECT id FROM clients WHERE slug = ? LIMIT 1').bind(slug).first().catch(() => null);
   if (exists) slug = slug + '-' + Date.now().toString(36).slice(-4);
   const svc = typeof fields.services === 'string' ? fields.services : JSON.stringify(fields.services || []);
-  await env.DB.prepare(`INSERT INTO clients (id,slug,business_name,client_name,phone,email,industry,area,vibe,services,primary_cta,target_audience,about,differentiator,testimonial,instagram,facebook,tiktok,referral_code_used,status,source,package,retainer) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,slug,fields.business_name||'',fields.client_name||'',fields.phone||'',fields.email||'',fields.industry||'',fields.area||'',fields.vibe||'bold_confident',svc,fields.primary_cta||'whatsapp_us',fields.target_audience||'everyone',fields.about||'',fields.differentiator||'',fields.testimonial||'',fields.instagram||'',fields.facebook||'',fields.tiktok||'',fields.referral_code_used||'',fields.status||'lead',fields.source||'website',fields.package||'standard',fields.retainer||999).run();
-  return { id, slug };
+  const insertResult = await env.DB.prepare(`INSERT INTO clients (id,slug,manage_token,business_name,client_name,phone,email,industry,area,vibe,services,primary_cta,target_audience,about,differentiator,testimonial,instagram,facebook,tiktok,referral_code_used,status,source,package,retainer) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,slug,manage_token,fields.business_name||'',fields.client_name||'',fields.phone||'',fields.email||'',fields.industry||'',fields.area||'',fields.vibe||'bold_confident',svc,fields.primary_cta||'whatsapp_us',fields.target_audience||'everyone',fields.about||'',fields.differentiator||'',fields.testimonial||'',fields.instagram||'',fields.facebook||'',fields.tiktok||'',fields.referral_code_used||'',fields.status||'lead',fields.source||'website',fields.package||'standard',fields.retainer||999).first();
+  if (!insertResult && insertResult !== null) throw new Error('createClient INSERT failed');
+  return { id, slug, manage_token };
 }
 export async function getClientById(env, id) {
   return await env.DB.prepare(
