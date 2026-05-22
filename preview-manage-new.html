@@ -2,1972 +2,1041 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Website Hub">
+<meta name="theme-color" content="#0a0a0f">
 <title>Website Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ── RESET ─────────────────────────────────────────────── */
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-:root{
-  --bg:#0d0d0d;--surface:#161616;--surface2:#1e1e1e;--border:#2a2a2a;
-  --white:#f0ede8;--muted:#666;--muted2:#444;
-  --orange:#ff5500;--orange2:#ff7733;
-  --green:#00c97a;--red:#ff3b30;--yellow:#ffcc00;--blue:#4a9eff;
-  --gold:#ffd700;
-  --font-display:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'DM Mono',monospace;
-  --drawer-w:320px;
+:root {
+  --bg-primary:#0a0a0f;--bg-secondary:#12121a;--bg-card:rgba(20,20,35,0.6);
+  --accent-cyan:#00f0ff;--accent-magenta:#ff00a0;--accent-purple:#b829dd;
+  --accent-green:#00ff88;--accent-orange:#ff6b35;
+  --text-primary:#e8e8f0;--text-secondary:#8b8b9e;
+  --border-glow:rgba(0,240,255,0.15);--glass-border:rgba(255,255,255,0.08);
 }
-html,body{min-height:100vh;background:var(--bg);color:var(--white);font-family:var(--font-body);}
-img{display:block;max-width:100%;}
-button{font-family:var(--font-body);cursor:pointer;border:none;outline:none;}
-input,textarea{font-family:var(--font-body);outline:none;}
-a{color:inherit;text-decoration:none;}
-
-/* ── STATES — all hidden by default, shown when .active ── */
-.state{display:none !important;}
-.state.active{display:block !important;}
-#state-building.active{display:flex !important;align-items:center;justify-content:center;}
-
-/* ── SHARED TOPBAR ─────────────────────────────────────── */
-.topbar{
-  position:fixed;top:0;left:0;right:0;z-index:200;
-  height:52px;background:rgba(13,13,13,0.95);backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+.theme-light{
+  --bg-primary:#f0f2ff;--bg-secondary:#e4e8ff;--bg-card:rgba(255,255,255,0.75);
+  --text-primary:#0d0b1e;--text-secondary:#5a5870;
+  --glass-border:rgba(0,0,0,0.08);--border-glow:rgba(0,180,255,0.25);
 }
-.topbar-brand{font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-0.5px;color:var(--white);}
-.topbar-brand span{color:var(--orange);}
-.topbar-tag{font-size:11px;font-family:var(--font-mono);color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:4px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);-webkit-font-smoothing:antialiased;transition:background .3s,color .3s;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+input{font-family:inherit;}
 
-/* ─────────────────────────────────────────────────────────
-   STATE 2 — BUILDING
-   ─────────────────────────────────────────────────────── */
-#state-building{padding:20px;min-height:100vh;text-align:center;}
-.building-wrap{max-width:380px;width:100%;}
-.building-logo{font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:40px;}
-.building-logo span{color:var(--orange);}
+/* BG */
+.bg-grid{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4;
+  background-image:linear-gradient(rgba(0,240,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,.03) 1px,transparent 1px);
+  background-size:60px 60px;animation:gridMove 20s linear infinite;}
+@keyframes gridMove{0%{transform:translate(0,0);}100%{transform:translate(60px,60px);}}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;animation:orbFloat 8s ease-in-out infinite;}
+.orb-1{width:400px;height:400px;background:rgba(0,240,255,.08);top:-100px;right:-100px;}
+.orb-2{width:300px;height:300px;background:rgba(184,41,221,.08);bottom:-50px;left:-50px;animation-delay:-4s;}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(30px,-30px) scale(1.1);}}
 
-.building-ring-wrap{position:relative;width:96px;height:96px;margin:0 auto 32px;}
-.building-ring{
-  width:96px;height:96px;border:3px solid var(--border);border-top-color:var(--orange);
-  border-radius:50%;animation:spin 0.9s linear infinite;
-}
-.building-ring-inner{
-  position:absolute;inset:12px;border:2px solid var(--border);border-bottom-color:var(--orange2);
-  border-radius:50%;animation:spin 1.4s linear infinite reverse;
-}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;z-index:1;display:none;flex-direction:column;max-width:430px;margin:0 auto;}
+.screen.active{display:flex;}
+
+/* CARDS */
+.card{background:var(--bg-card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:20px;padding:24px;transition:all .4s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent-cyan),transparent);opacity:0;transition:opacity .4s;}
+.card:hover{transform:translateY(-2px);border-color:var(--border-glow);}
+.card:hover::before{opacity:1;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 22px;border-radius:12px;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;outline:none;user-select:none;border:none;}
+.btn:active{transform:scale(.96)!important;}
+.btn-primary{background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));color:#000;font-weight:700;box-shadow:0 4px 20px rgba(0,240,255,.3),inset 0 1px 0 rgba(255,255,255,.2);}
+.btn-primary:hover{box-shadow:0 8px 30px rgba(0,240,255,.5),0 0 60px rgba(0,240,255,.2);transform:translateY(-2px);}
+.btn-magenta{background:linear-gradient(135deg,var(--accent-magenta),#ff4d8d);color:#fff;box-shadow:0 4px 20px rgba(255,0,160,.3);}
+.btn-magenta:hover{box-shadow:0 8px 30px rgba(255,0,160,.5);transform:translateY(-2px);}
+.btn-outline{background:transparent;color:var(--accent-cyan);border:1.5px solid rgba(0,240,255,.4);}
+.btn-outline:hover{background:rgba(0,240,255,.1);border-color:var(--accent-cyan);box-shadow:0 0 30px rgba(0,240,255,.2);}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--text-secondary);border:1px solid rgba(255,255,255,.1);}
+.btn-ghost:hover{background:rgba(255,255,255,.1);color:var(--text-primary);}
+.btn-full{width:100%;}
+.btn-sm{padding:8px 16px;font-size:.8rem;}
+.btn.loading{pointer-events:none;opacity:.8;}
+.btn.loading .btn-text{opacity:0;}
+.btn.loading::after{content:'';position:absolute;width:18px;height:18px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .8s linear infinite;}
+.btn.success{background:var(--accent-green)!important;color:#000!important;box-shadow:0 0 30px var(--accent-green)!important;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-.building-status{
-  font-family:var(--font-mono);font-size:13px;color:var(--orange);
-  min-height:22px;margin-bottom:12px;animation:fadeUp 0.4s ease;
+/* RIPPLE */
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:rippleEffect .6s ease-out;pointer-events:none;}
+@keyframes rippleEffect{to{transform:scale(4);opacity:0;}}
+
+/* TOGGLE */
+.toggle{width:48px;height:26px;border-radius:13px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.1);position:relative;transition:all .3s;cursor:pointer;flex-shrink:0;}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:var(--text-secondary);top:2px;left:2px;transition:all .3s cubic-bezier(.4,0,.2,1);box-shadow:0 2px 6px rgba(0,0,0,.3);}
+.toggle.on{background:rgba(0,240,255,.2);border-color:var(--accent-cyan);box-shadow:0 0 16px rgba(0,240,255,.2);}
+.toggle.on::after{left:24px;background:var(--accent-cyan);box-shadow:0 0 12px var(--accent-cyan);}
+
+/* STATUS */
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 10px var(--accent-green),0 0 20px var(--accent-green);animation:pulse 2s ease-in-out infinite;flex-shrink:0;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.6;transform:scale(1.2);}}
+
+/* SECTION LABEL */
+.section-label{font-size:.7rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-secondary);margin:20px 0 10px 2px;}
+
+/* LOCKED */
+.locked{opacity:.5;position:relative;cursor:pointer;}
+.lock-badge{position:absolute;top:10px;right:12px;font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,0,160,.15);border:1px solid rgba(255,0,160,.3);color:var(--accent-magenta);padding:3px 8px;border-radius:20px;}
+
+/* TOAST */
+.toast-container{position:fixed;top:24px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:300px;}
+.toast{background:var(--bg-card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 40px rgba(0,0,0,.4);transform:translateX(120%);animation:slideIn .4s cubic-bezier(.4,0,.2,1) forwards;font-size:.82rem;}
+.toast.hiding{animation:slideOut .4s cubic-bezier(.4,0,.2,1) forwards;}
+.toast-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.toast.success .toast-icon{background:rgba(0,255,136,.15);color:var(--accent-green);}
+.toast.error   .toast-icon{background:rgba(255,0,102,.15);color:#ff3366;}
+.toast.info    .toast-icon{background:rgba(0,240,255,.15);color:var(--accent-cyan);}
+@keyframes slideIn{to{transform:translateX(0);}}
+@keyframes slideOut{to{transform:translateX(120%);opacity:0;}}
+
+/* PKG BADGE */
+.pkg-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.pkg-express {background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.2);color:var(--accent-cyan);}
+.pkg-standard{background:rgba(184,41,221,.1);border:1px solid rgba(184,41,221,.2);color:var(--accent-purple);}
+.pkg-premium {background:rgba(255,0,160,.1);border:1px solid rgba(255,0,160,.2);color:var(--accent-magenta);}
+
+/* PROG BAR */
+.prog-track{height:4px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0;}
+.prog-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent-cyan),var(--accent-purple));box-shadow:0 0 8px rgba(0,240,255,.4);}
+
+/* ══ SCREEN 1: BUILD ══════════════════════════════ */
+#screen-build{align-items:center;justify-content:center;padding:40px 32px;text-align:center;}
+.build-logo{font-size:.85rem;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--accent-cyan);text-shadow:0 0 30px rgba(0,240,255,.8);margin-bottom:52px;}
+.rings-wrap{position:relative;width:128px;height:128px;margin:0 auto 44px;}
+.ring{position:absolute;border-radius:50%;border:2px solid transparent;}
+.ring1{inset:0;border-top-color:var(--accent-cyan);animation:spin 1.2s linear infinite;box-shadow:0 0 20px rgba(0,240,255,.15);}
+.ring2{inset:14px;border-top-color:var(--accent-purple);animation:spin 2s linear infinite reverse;}
+.ring3{inset:28px;border-top-color:var(--accent-magenta);animation:spin 3s linear infinite;}
+.ring-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:26px;}
+.build-step-text{font-size:1rem;font-weight:600;min-height:26px;margin-bottom:6px;transition:opacity .4s;}
+.build-step-sub{font-size:.78rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;margin-bottom:32px;}
+.step-nodes{display:flex;gap:8px;justify-content:center;margin-bottom:36px;}
+.step-node{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.12);transition:all .4s;}
+.step-node.active{background:var(--accent-cyan);box-shadow:0 0 10px var(--accent-cyan);transform:scale(1.4);}
+.step-node.done{background:var(--accent-green);box-shadow:0 0 6px var(--accent-green);}
+.build-demo-skip{font-size:.75rem;color:var(--text-secondary);border-bottom:1px solid var(--text-secondary);cursor:pointer;padding-bottom:1px;transition:color .2s;background:none;}
+.build-demo-skip:hover{color:var(--text-primary);}
+
+/* ══ SCREEN 2: PREVIEW ════════════════════════════ */
+#screen-preview{background:var(--bg-primary);}
+.preview-topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 14px;flex-shrink:0;background:linear-gradient(to bottom,var(--bg-primary) 70%,transparent);z-index:5;}
+.preview-biz{font-size:1rem;font-weight:700;}
+.preview-domain{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent-cyan);}
+.preview-frame{flex:1;margin:0 16px;border-radius:16px;border:1px solid var(--glass-border);overflow:hidden;background:linear-gradient(160deg,rgba(0,240,255,.03),rgba(184,41,221,.05));}
+.preview-site-mock{width:100%;height:100%;overflow-y:auto;}
+.mock-hero{background:linear-gradient(135deg,#0d0d1a,#1a0d2e);padding:28px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);transition:background .5s;}
+.mock-logo{font-size:.55rem;font-weight:700;letter-spacing:.2em;color:var(--accent-cyan);margin-bottom:8px;}
+.mock-headline{font-size:1rem;font-weight:800;line-height:1.3;margin-bottom:6px;}
+.mock-sub{font-size:.62rem;color:var(--text-secondary);line-height:1.5;}
+.mock-cta{display:inline-block;margin-top:10px;padding:7px 18px;border-radius:8px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));font-size:.62rem;font-weight:700;color:#000;}
+.mock-section{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.04);}
+.mock-section-title{font-size:.62rem;font-weight:700;letter-spacing:.1em;color:var(--accent-cyan);margin-bottom:8px;}
+.mock-cards-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.mock-card-sm{background:rgba(255,255,255,.04);border-radius:8px;padding:8px;border:1px solid rgba(255,255,255,.06);}
+.mock-card-icon{font-size:.9rem;margin-bottom:3px;}
+.mock-card-text{font-size:.58rem;color:var(--text-secondary);line-height:1.3;}
+.preview-panel{padding:14px 16px;flex-shrink:0;background:linear-gradient(to top,var(--bg-primary) 85%,transparent);}
+
+/* TWEAK ROWS */
+.tweak-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:7px;}
+.palette-row{display:flex;gap:8px;margin-bottom:14px;}
+.palette-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .2s;flex-shrink:0;}
+.palette-dot.sel,.palette-dot:hover{border-color:#fff;transform:scale(1.2);}
+.font-row{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;}
+.font-row::-webkit-scrollbar{display:none;}
+.font-pill{padding:5px 12px;border-radius:20px;font-size:.75rem;font-weight:600;background:var(--bg-card);border:1px solid var(--glass-border);white-space:nowrap;cursor:pointer;transition:all .2s;color:var(--text-secondary);flex-shrink:0;}
+.font-pill.sel,.font-pill:hover{border-color:var(--accent-cyan);color:var(--accent-cyan);background:rgba(0,240,255,.08);}
+.tagline-row{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;}
+.tagline-row::-webkit-scrollbar{display:none;}
+.tagline-pill{padding:5px 11px;border-radius:8px;font-size:.68rem;font-weight:500;background:var(--bg-card);border:1px solid var(--glass-border);white-space:nowrap;cursor:pointer;transition:all .2s;color:var(--text-secondary);flex-shrink:0;max-width:160px;overflow:hidden;text-overflow:ellipsis;}
+.tagline-pill.sel,.tagline-pill:hover{border-color:var(--accent-purple);color:var(--accent-purple);background:rgba(184,41,221,.08);}
+.upload-row{display:flex;gap:8px;margin-bottom:14px;}
+.upload-btn{flex:1;padding:9px;border-radius:10px;background:var(--bg-card);border:1px dashed rgba(255,255,255,.15);font-size:.72rem;color:var(--text-secondary);cursor:pointer;text-align:center;transition:all .2s;}
+.upload-btn:hover{border-color:var(--accent-cyan);color:var(--accent-cyan);}
+
+/* PLAN SELECTOR */
+.plan-row{display:flex;gap:7px;margin-bottom:14px;}
+.plan-chip{flex:1;border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s;border:1.5px solid var(--glass-border);background:var(--bg-card);position:relative;}
+.plan-chip.sel{border-color:var(--accent-cyan);background:rgba(0,240,255,.07);}
+.plan-chip:hover{border-color:var(--border-glow);}
+.plan-was{font-size:.58rem;color:var(--text-secondary);text-decoration:line-through;margin-bottom:1px;}
+.plan-free{font-size:.58rem;color:var(--accent-green);font-weight:700;margin-bottom:4px;}
+.plan-name{font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);}
+.plan-price{font-size:.95rem;font-weight:800;color:var(--accent-cyan);}
+.plan-sub{font-size:.58rem;color:var(--text-secondary);}
+.promo-row{display:flex;gap:8px;margin-bottom:12px;}
+.promo-input{flex:1;background:var(--bg-card);border:1px solid var(--glass-border);border-radius:10px;padding:10px 14px;font-size:.85rem;color:var(--text-primary);outline:none;transition:border-color .2s;}
+.promo-input:focus{border-color:var(--accent-cyan);}
+.promo-input::placeholder{color:var(--text-secondary);}
+
+/* ══ SCREEN 3: CONFIRM ════════════════════════════ */
+#screen-confirm{background:var(--bg-primary);align-items:center;justify-content:center;padding:32px 24px;}
+.confirm-card{width:100%;max-width:380px;background:var(--bg-card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(0,240,255,.2);border-radius:24px;padding:28px;position:relative;overflow:hidden;}
+.confirm-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent-cyan),transparent);}
+.confirm-title{font-size:1.2rem;font-weight:800;margin-bottom:6px;}
+.confirm-sub{font-size:.78rem;color:var(--text-secondary);margin-bottom:24px;}
+.confirm-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--glass-border);}
+.confirm-row:last-of-type{border-bottom:none;}
+.confirm-row-label{font-size:.8rem;color:var(--text-secondary);}
+.confirm-row-value{font-size:.85rem;font-weight:700;}
+.confirm-row-value.strike{text-decoration:line-through;color:var(--text-secondary);font-weight:400;}
+.confirm-row-value.free{color:var(--accent-green);}
+.confirm-row-value.price{color:var(--accent-cyan);font-size:1.1rem;}
+.confirm-total{background:rgba(0,240,255,.06);border-radius:12px;padding:16px;margin:16px 0;display:flex;justify-content:space-between;align-items:center;}
+.confirm-total-label{font-size:.82rem;font-weight:700;}
+.confirm-total-amount{font-size:1.4rem;font-weight:800;color:var(--accent-cyan);}
+.confirm-total-sub{font-size:.68rem;color:var(--text-secondary);}
+.confirm-btns{display:flex;flex-direction:column;gap:10px;margin-top:20px;}
+.confirm-back{font-size:.78rem;color:var(--text-secondary);text-align:center;cursor:pointer;margin-top:4px;}
+.confirm-back:hover{color:var(--text-primary);}
+
+/* ══ SCREEN 4: DASHBOARD ══════════════════════════ */
+#screen-dashboard{background:var(--bg-primary);}
+.dash-topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 12px;flex-shrink:0;background:linear-gradient(to bottom,var(--bg-primary) 75%,transparent);z-index:5;position:relative;}
+.dash-greeting{font-size:.72rem;color:var(--text-secondary);}
+.dash-bizname{font-size:1.2rem;font-weight:800;line-height:1.1;}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:var(--bg-card);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:1rem;cursor:pointer;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:all .2s;}
+.icon-btn:hover{border-color:var(--border-glow);box-shadow:0 0 14px rgba(0,240,255,.15);}
+.icon-btn:active{transform:scale(.9);}
+.scroll{flex:1;overflow-y:auto;padding:0 16px 90px;scrollbar-width:none;}
+.scroll::-webkit-scrollbar{display:none;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* HERO CARD */
+.hero-card{background:linear-gradient(135deg,rgba(0,240,255,.07),rgba(184,41,221,.1));border:1px solid rgba(0,240,255,.18);border-radius:20px;padding:20px;margin-bottom:12px;position:relative;overflow:hidden;}
+.hero-card::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top right,rgba(0,240,255,.05),transparent 60%);pointer-events:none;}
+.hero-status{display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-green);margin-bottom:10px;}
+.hero-biz{font-size:1.4rem;font-weight:800;line-height:1.2;margin-bottom:3px;}
+.hero-domain{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--accent-cyan);margin-bottom:16px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.hero-domain:hover{text-shadow:0 0 10px var(--accent-cyan);}
+.hero-btns{display:flex;gap:8px;}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+.stat-tile{background:var(--bg-card);border:1px solid var(--glass-border);border-radius:14px;padding:14px 10px;text-align:center;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:all .3s;}
+.stat-tile:hover{border-color:var(--border-glow);}
+.stat-num{font-size:1.5rem;font-weight:800;line-height:1;}
+.stat-lbl{font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-top:4px;}
+.stat-cyan  {color:var(--accent-cyan);text-shadow:0 0 14px rgba(0,240,255,.5);}
+.stat-purple{color:var(--accent-purple);text-shadow:0 0 14px rgba(184,41,221,.5);}
+.stat-green {color:var(--accent-green);text-shadow:0 0 14px rgba(0,255,136,.5);}
+.stat-magenta{color:var(--accent-magenta);text-shadow:0 0 14px rgba(255,0,160,.5);}
+
+/* QUICK ACTIONS */
+.quick-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.quick-tile{background:var(--bg-card);border:1px solid var(--glass-border);border-radius:14px;padding:16px 14px;cursor:pointer;transition:all .3s;display:flex;flex-direction:column;gap:5px;position:relative;}
+.quick-tile:hover{border-color:var(--border-glow);transform:translateY(-2px);}
+.quick-tile:active{transform:scale(.97);}
+.quick-icon{font-size:1.3rem;}
+.quick-name{font-size:.82rem;font-weight:700;}
+.quick-sub{font-size:.67rem;color:var(--text-secondary);line-height:1.3;}
+
+/* UPGRADE TILES */
+.upgrade-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.upgrade-tile{border-radius:16px;padding:16px 14px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;}
+.upgrade-tile:active{transform:scale(.97);}
+.u-std{background:linear-gradient(135deg,rgba(184,41,221,.12),rgba(0,240,255,.07));border:1px solid rgba(184,41,221,.22);}
+.u-prem{background:linear-gradient(135deg,rgba(255,0,160,.12),rgba(184,41,221,.07));border:1px solid rgba(255,0,160,.22);}
+.u-plan{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;}
+.u-price{font-size:1.4rem;font-weight:800;}
+.u-per{font-size:.65rem;color:var(--text-secondary);}
+.u-delta{font-size:.68rem;font-weight:700;margin-top:6px;color:var(--accent-green);}
+.u-features{margin-top:8px;}
+.u-feat{font-size:.63rem;color:var(--text-secondary);margin-bottom:3px;display:flex;align-items:center;gap:4px;}
+.u-feat::before{content:'✓';color:var(--accent-cyan);font-size:.58rem;}
+
+/* REFERRAL */
+.ref-code-box{background:rgba(0,240,255,.05);border:1px dashed rgba(0,240,255,.25);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;}
+.ref-code{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:500;color:var(--accent-cyan);letter-spacing:.12em;}
+.copy-btn{padding:6px 14px;border-radius:6px;background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.2);font-size:.75rem;font-weight:700;color:var(--accent-cyan);cursor:pointer;transition:all .2s;}
+.copy-btn:active{transform:scale(.92);background:rgba(0,240,255,.25);}
+.ref-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
+.ref-stat{background:var(--bg-card);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--glass-border);}
+.ref-stat-num{font-size:1.2rem;font-weight:800;color:var(--accent-purple);}
+.ref-stat-lbl{font-size:.6rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em;}
+
+/* REVISION */
+.rev-row{padding:11px 0;border-bottom:1px solid var(--glass-border);display:flex;align-items:flex-start;gap:12px;}
+.rev-row:last-child{border-bottom:none;}
+.rev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.rev-dot.done{background:var(--accent-green);box-shadow:0 0 6px var(--accent-green);}
+.rev-dot.pending{background:var(--accent-cyan);box-shadow:0 0 6px var(--accent-cyan);animation:pulse 1.5s infinite;}
+.rev-content{flex:1;}
+.rev-text{font-size:.83rem;font-weight:500;margin-bottom:2px;}
+.rev-date{font-size:.66rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;}
+.rev-counter{display:flex;align-items:center;justify-content:space-between;background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.15);border-radius:12px;padding:14px;margin-bottom:14px;}
+.rev-count-num{font-size:1.6rem;font-weight:800;color:var(--accent-cyan);}
+.rev-count-of{font-size:.82rem;color:var(--text-secondary);}
+.rev-count-lbl{font-size:.68rem;color:var(--text-secondary);margin-bottom:4px;}
+
+/* CHART */
+.chart-mock{margin:12px 0;padding:14px;background:var(--bg-card);border-radius:14px;border:1px solid var(--glass-border);}
+.chart-bars{display:flex;align-items:flex-end;gap:5px;height:76px;margin-top:8px;}
+.bar{flex:1;border-radius:4px 4px 0 0;background:linear-gradient(to top,var(--accent-purple),var(--accent-cyan));opacity:.7;transition:opacity .2s,height .6s cubic-bezier(.4,0,.2,1);}
+.bar:hover{opacity:1;}
+.chart-labels{display:flex;justify-content:space-between;margin-top:6px;}
+.chart-lbl{font-size:.58rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;}
+
+/* EMAIL */
+.email-shortcut{background:var(--bg-card);border:1px solid var(--glass-border);border-radius:16px;padding:18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .3s;}
+.email-shortcut:hover{border-color:var(--border-glow);transform:translateY(-2px);}
+.email-shortcut:active{transform:scale(.98);}
+.email-icon-wrap{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(184,41,221,.15));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+.email-address{font-size:.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent-cyan);}
+.email-label{font-size:.68rem;color:var(--text-secondary);margin-top:2px;}
+
+/* INSTALL BANNER */
+.install-banner{background:linear-gradient(135deg,rgba(0,240,255,.07),rgba(184,41,221,.09));border:1px solid rgba(0,240,255,.18);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.install-icon{font-size:1.4rem;flex-shrink:0;}
+.install-text{flex:1;}
+.install-title{font-size:.82rem;font-weight:700;margin-bottom:2px;}
+.install-sub{font-size:.67rem;color:var(--text-secondary);line-height:1.4;}
+.install-close{font-size:.9rem;color:var(--text-secondary);cursor:pointer;padding:4px;}
+
+/* BOTTOM NAV */
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;height:72px;padding:0 8px 8px;background:rgba(10,10,15,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--glass-border);display:flex;align-items:center;justify-content:space-around;z-index:10;}
+.theme-light .bottom-nav{background:rgba(240,242,255,.94);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:10px;transition:all .2s;color:var(--text-secondary);font-size:.58rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;}
+.nav-item .nav-icon{font-size:1.2rem;transition:filter .2s;}
+.nav-item.active{color:var(--accent-cyan);}
+.nav-item.active .nav-icon{filter:drop-shadow(0 0 5px var(--accent-cyan));}
+.nav-item:active{transform:scale(.9);}
+/* PLAN FEATURE POPOVER */
+.plan-pop{
+  position:fixed;
+  background:rgba(8,8,22,0.97);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid rgba(0,240,255,.22);
+  border-radius:16px;padding:14px 16px;
+  opacity:0;transform:translateY(8px);pointer-events:none;
+  transition:opacity .2s cubic-bezier(.4,0,.2,1),transform .2s cubic-bezier(.4,0,.2,1);
+  z-index:200;
 }
-@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-.building-title{font-family:var(--font-display);font-size:28px;font-weight:800;margin-bottom:8px;}
-.building-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:36px;}
-
-.building-steps{display:flex;flex-direction:column;gap:8px;text-align:left;}
-.building-step{
-  display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);
-  padding:10px 14px;background:var(--surface);border:1px solid var(--border);
-  border-radius:8px;transition:all 0.4s;
-}
-.building-step.done{color:var(--white);border-color:rgba(0,201,122,0.3);background:rgba(0,201,122,0.04);}
-.building-step.active{color:var(--orange);border-color:rgba(255,85,0,0.3);background:rgba(255,85,0,0.04);}
-.step-dot{width:8px;height:8px;border-radius:50%;background:var(--muted2);flex-shrink:0;transition:background 0.4s;}
-.building-step.done .step-dot{background:var(--green);}
-.building-step.active .step-dot{background:var(--orange);animation:pulse 1s ease infinite;}
-.step-check{display:none;font-size:12px;margin-left:auto;color:var(--green);}
-.building-step.done .step-check{display:block;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
-
-/* ─────────────────────────────────────────────────────────
-   STATE 3 — PREVIEW (iframe + page tabs + bottom bar + drawer)
-   ─────────────────────────────────────────────────────── */
-#state-preview{position:fixed;inset:0;}
-.preview-iframe-wrap{position:absolute;top:40px;left:0;right:0;bottom:56px;}
-.preview-iframe{width:100%;height:100%;border:none;display:block;}
-
-/* Page switcher tabs */
-.page-tabs{position:absolute;top:0;left:0;right:0;z-index:105;display:flex;overflow-x:auto;scrollbar-width:none;background:rgba(13,13,13,0.94);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.07);}
-.page-tabs::-webkit-scrollbar{display:none;}
-.page-tab{flex:1;min-width:68px;padding:11px 10px;font-size:11px;font-weight:700;letter-spacing:0.5px;background:transparent;color:var(--muted);border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all 0.15s;font-family:var(--font-body);}
-.page-tab.active{color:var(--orange);border-bottom-color:var(--orange);}
-.page-tab:hover:not(.active){color:var(--white);}
-.page-tab.premium-tab::after{content:'★';font-size:8px;color:var(--gold);margin-left:3px;vertical-align:super;}
-
-/* Bottom action bar */
-.preview-bottom-bar{
-  position:absolute;bottom:0;left:0;right:0;z-index:110;
-  height:56px;background:rgba(13,13,13,0.96);backdrop-filter:blur(14px);
-  border-top:1px solid rgba(255,255,255,0.08);
-  display:flex;align-items:center;gap:10px;padding:0 16px;
-}
-.bottom-tweak-btn{
-  display:flex;align-items:center;gap:6px;padding:10px 16px;border-radius:8px;
-  background:var(--surface2);border:1px solid var(--border);color:var(--white);
-  font-size:13px;font-weight:600;transition:all 0.15s;white-space:nowrap;flex-shrink:0;
-}
-.bottom-tweak-btn:hover{border-color:var(--orange);color:var(--orange);}
-.bottom-dashboard-btn{display:flex;align-items:center;gap:5px;padding:10px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--white);font-size:12px;font-weight:600;transition:all 0.15s;white-space:nowrap;flex-shrink:0;font-family:var(--font-body);cursor:pointer;}
-.bottom-dashboard-btn:hover{border-color:var(--blue);color:var(--blue);}
-.bottom-live-btn{
-  flex:1;padding:10px 16px;border-radius:8px;background:var(--orange);color:#fff;
-  font-size:14px;font-weight:700;text-align:center;transition:all 0.15s;
-}
-.bottom-live-btn:hover{background:var(--orange2);}
-.bottom-live-btn:active{transform:scale(0.98);}
-
-/* Drawer */
-.tweak-drawer{
-  position:absolute;bottom:calc(-1 * (75vh - 56px));left:0;right:0;
-  height:calc(75vh - 56px);z-index:120;
-  background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;
-  display:flex;flex-direction:column;
-  transition:bottom 0.35s cubic-bezier(0.34,1.56,0.64,1);
-  box-shadow:0 -8px 32px rgba(0,0,0,0.5);
-}
-.tweak-drawer.open{bottom:56px;}
-.drawer-handle-bar{display:flex;justify-content:center;padding:12px 0 4px;cursor:pointer;flex-shrink:0;}
-.drawer-handle{width:40px;height:4px;border-radius:2px;background:var(--muted2);}
-.drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.drawer-title{font-family:var(--font-display);font-size:16px;font-weight:800;}
-.drawer-close{background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:32px;height:32px;border-radius:8px;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
-.drawer-close:hover{color:var(--white);border-color:var(--muted);}
-.drawer-body{flex:1;overflow-y:auto;padding:16px 18px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
-.drawer-body::-webkit-scrollbar{width:4px;}
-.drawer-body::-webkit-scrollbar-track{background:transparent;}
-.drawer-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.drawer-section{margin-bottom:22px;}
-.drawer-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
-
-/* Palette swatches */
-.swatch-row{display:flex;gap:8px;}
-.swatch{flex:1;height:44px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all 0.15s;position:relative;overflow:hidden;}
-.swatch.active{border-color:var(--white);transform:scale(1.04);}
-.swatch:not(.active):hover{border-color:rgba(255,255,255,0.3);}
-.swatch-name{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:9px;font-weight:700;letter-spacing:0.5px;color:rgba(255,255,255,0.9);text-shadow:0 1px 3px rgba(0,0,0,0.6);}
-
-/* Font options */
-.font-row{display:flex;gap:8px;}
-.font-opt{flex:1;padding:10px 6px;border-radius:8px;text-align:center;background:var(--surface2);border:2px solid var(--border);cursor:pointer;transition:all 0.15s;}
-.font-opt.active{border-color:var(--orange);background:rgba(255,85,0,0.07);}
-.font-opt:not(.active):hover{border-color:var(--muted);}
-.font-opt-name{font-size:14px;font-weight:700;margin-bottom:2px;}
-.font-opt-style{font-size:9px;color:var(--muted);}
-
-/* Photo strip */
-.photo-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
-.photo-strip::-webkit-scrollbar{display:none;}
-.photo-thumb{width:68px;height:48px;border-radius:6px;object-fit:cover;flex-shrink:0;border:2px solid transparent;cursor:pointer;transition:all 0.15s;}
-.photo-thumb.active{border-color:var(--orange);transform:scale(1.06);}
-.photo-thumb:not(.active):hover{border-color:rgba(255,85,0,0.5);}
-
-/* Taglines */
-.tagline-opts{display:flex;flex-direction:column;gap:6px;}
-.tagline-opt{padding:9px 12px;border-radius:8px;font-size:12px;line-height:1.4;background:var(--surface2);border:2px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--muted);}
-.tagline-opt.active{border-color:var(--orange);background:rgba(255,85,0,0.07);color:var(--white);}
-.tagline-opt:not(.active):hover{border-color:var(--muted);color:var(--white);}
-
-/* Photo upload */
-.photo-upload-row{margin-top:8px;}
-.photo-upload-btn{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border:2px dashed var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);transition:all 0.15s;width:100%;}
-.photo-upload-btn:hover{border-color:var(--orange);color:var(--white);}
-
-/* Gallery upload grid (drawer) */
-.gallery-upload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px;}
-.gallery-slot{aspect-ratio:4/3;border-radius:7px;background:var(--surface2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:18px;color:var(--muted);transition:border-color 0.15s;}
-.gallery-slot:hover{border-color:var(--orange);}
-.gallery-slot img{width:100%;height:100%;object-fit:cover;}
-.gallery-slot.uploaded{border-style:solid;border-color:var(--green);}
-
-/* Revert button */
-.revert-btn{width:100%;padding:10px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;transition:all 0.15s;font-family:var(--font-body);cursor:pointer;}
-.revert-btn:hover{color:var(--white);border-color:var(--muted);}
-
-/* Logo upload */
-.logo-upload-btn{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:2px dashed var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all 0.15s;width:100%;}
-.logo-upload-btn:hover{border-color:var(--orange);color:var(--white);}
-.logo-preview-img{width:32px;height:32px;object-fit:contain;border-radius:4px;}
-
-/* Patching overlay */
-.patch-overlay{position:absolute;inset:0;background:rgba(13,13,13,0.5);display:flex;align-items:center;justify-content:center;z-index:99;opacity:0;pointer-events:none;transition:opacity 0.2s;}
-.patch-overlay.show{opacity:1;pointer-events:all;}
-.patch-ring{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin 0.9s linear infinite;}
-
-/* Drawer footer */
-.drawer-footer{padding:14px 18px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:8px;background:var(--surface);}
-.go-live-btn{width:100%;padding:14px;border-radius:10px;background:var(--orange);color:#fff;font-size:15px;font-weight:700;text-align:center;transition:all 0.15s;}
-.go-live-btn:hover{background:var(--orange2);}
-.go-live-btn:active{transform:scale(0.98);}
-.go-live-price{font-size:11px;opacity:0.8;display:block;margin-top:2px;font-weight:400;}
-.not-interested-btn{width:100%;padding:10px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:13px;transition:all 0.15s;}
-.not-interested-btn:hover{color:var(--red);border-color:rgba(255,59,48,0.3);}
-.promo-section{padding:12px 20px 4px;text-align:center;}
-.promo-toggle{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;padding:4px;}
-.promo-toggle:hover{color:var(--white);}
-.promo-input-wrap{display:none;gap:8px;margin-top:8px;padding:0 4px;}
-.promo-input-wrap input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--white);font-size:13px;font-family:var(--font-mono);}
-.promo-input-wrap button{background:var(--orange);border:none;border-radius:8px;padding:10px 16px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
-.promo-applied{display:none;font-size:12px;color:#00c97a;padding:6px 0 2px;font-weight:600;letter-spacing:0.02em;}
-.go-live-btn.promo-active{background:linear-gradient(135deg,#00c97a,#00a660)!important;}
-
-
-@media(max-width:640px){
-  .preview-bottom-bar{padding:0 12px;}
-  .bottom-tweak-btn{padding:10px 12px;font-size:12px;}
-}
-
-/* ─────────────────────────────────────────────────────────
-   STATE 4 — MANAGE
-   ─────────────────────────────────────────────────────── */
-#state-manage.active{padding:52px 0 48px;}
-.manage-wrap{max-width:540px;margin:0 auto;padding:24px 20px;}
-
-.manage-hero{background:linear-gradient(135deg,rgba(255,85,0,0.08),rgba(255,85,0,0.02));border:1px solid rgba(255,85,0,0.2);border-radius:14px;padding:20px;margin-bottom:20px;}
-.manage-domain{font-family:var(--font-mono);font-size:12px;color:var(--orange);margin-bottom:6px;}
-.manage-biz{font-family:var(--font-display);font-size:26px;font-weight:800;line-height:1.1;margin-bottom:6px;}
-.manage-package-badge{display:inline-block;font-family:var(--font-mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:5px;margin-bottom:12px;}
-.manage-package-badge.express{background:rgba(74,158,255,0.15);color:var(--blue);border:1px solid rgba(74,158,255,0.3);}
-.manage-package-badge.standard{background:rgba(255,85,0,0.15);color:var(--orange);border:1px solid rgba(255,85,0,0.3);}
-.manage-package-badge.premium{background:rgba(255,215,0,0.15);color:var(--gold);border:1px solid rgba(255,215,0,0.3);}
-.manage-stats{display:flex;gap:8px;flex-wrap:wrap;}
-.m-stat{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;flex:1;min-width:80px;text-align:center;}
-.m-stat-val{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--orange);}
-.m-stat-lbl{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase;}
-
-.manage-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;}
-.manage-section-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;user-select:none;}
-.manage-section-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;}
-.manage-section-ico{font-size:18px;}
-.manage-section-chevron{font-size:12px;color:var(--muted);transition:transform 0.2s;}
-.manage-section.open .manage-section-chevron{transform:rotate(180deg);}
-.manage-section-body{display:none;padding:0 18px 18px;}
-.manage-section.open .manage-section-body{display:block;}
-
-.manage-cta-row{display:flex;gap:10px;margin-top:12px;}
-.btn-manage{padding:12px 16px;border-radius:9px;font-size:13px;font-weight:600;transition:all 0.15s;text-align:center;cursor:pointer;font-family:var(--font-body);border:none;}
-.btn-manage.primary{background:var(--orange);color:#fff;flex:1;}
-.btn-manage.primary:hover{background:var(--orange2);}
-.btn-manage.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--white);flex:1;}
-.btn-manage.secondary:hover{border-color:var(--muted);}
-
-.rev-counter{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;}
-.rev-bar{flex:1;height:4px;background:var(--border);border-radius:2px;margin:0 12px;overflow:hidden;}
-.rev-fill{height:100%;background:var(--orange);border-radius:2px;transition:width 0.3s;}
-.rev-label{font-size:12px;font-family:var(--font-mono);}
-
-.photo-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
-.photo-slot{aspect-ratio:4/3;border-radius:8px;background:var(--surface2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color 0.15s;}
-.photo-slot:hover{border-color:var(--orange);}
-.photo-slot img{width:100%;height:100%;object-fit:cover;}
-.photo-slot-add{font-size:20px;color:var(--muted);}
-
-.referral-card{background:linear-gradient(135deg,rgba(0,201,122,0.08),rgba(0,201,122,0.02));border:1px solid rgba(0,201,122,0.2);border-radius:10px;padding:14px;margin-bottom:12px;}
-.referral-link{font-family:var(--font-mono);font-size:12px;color:var(--green);word-break:break-all;margin-bottom:8px;}
-.referral-stats{display:flex;gap:12px;font-size:12px;color:var(--muted);}
-.referral-stats strong{color:var(--white);}
-
-.upgrade-card{background:linear-gradient(135deg,rgba(74,158,255,0.08),rgba(74,158,255,0.02));border:1px solid rgba(74,158,255,0.2);border-radius:10px;padding:14px;margin-bottom:10px;}
-.upgrade-card .upgrade-delta{font-family:var(--font-display);font-size:30px;font-weight:800;color:var(--blue);}
-.upgrade-card .upgrade-to{font-size:12px;color:var(--muted);margin:4px 0 12px;}
-.upgrade-card .upgrade-to strong{color:var(--white);font-weight:600;}
-.upgrade-card.premium-card{background:linear-gradient(135deg,rgba(255,215,0,0.08),rgba(255,215,0,0.02));border-color:rgba(255,215,0,0.25);}
-.upgrade-card.premium-card .upgrade-delta{color:var(--gold);}
-
-.email-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;}
-.email-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
-.email-row{font-family:var(--font-mono);font-size:13px;color:var(--white);padding:6px 10px;background:var(--bg);border-radius:6px;}
-.email-row-muted{color:var(--muted);font-style:italic;}
-
-/* Revision overlay */
-.rev-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);display:none;align-items:flex-end;}
-.rev-overlay.open{display:flex;}
-.rev-sheet{width:100%;background:var(--surface);border-radius:18px 18px 0 0;border-top:1px solid var(--border);padding:24px 20px 40px;max-height:90vh;overflow-y:auto;}
-.rev-sheet-title{font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:8px;}
-.rev-sheet-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
-.form-field{margin-bottom:14px;}
-.form-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;font-weight:500;}
-.form-textarea{width:100%;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--white);font-size:14px;resize:none;transition:border-color 0.15s;font-family:var(--font-body);}
-.form-textarea:focus{border-color:var(--orange);}
-
-.chip-row{display:flex;flex-wrap:wrap;gap:7px;}
-.chip{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:all 0.15s;}
-.chip.active{background:rgba(255,85,0,0.1);border-color:var(--orange);color:var(--orange);}
-
-/* Paid revision confirmation modal */
-.paid-rev-overlay{position:fixed;inset:0;z-index:350;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;padding:20px;}
-.paid-rev-overlay.open{display:flex;}
-.paid-rev-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 24px;max-width:380px;width:100%;text-align:center;}
-.paid-rev-icon{font-size:40px;margin-bottom:14px;}
-.paid-rev-title{font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:8px;}
-.paid-rev-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px;}
-.paid-rev-price{font-family:var(--font-display);font-size:36px;font-weight:800;color:var(--orange);margin-bottom:6px;}
-.paid-rev-price-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:22px;}
-.paid-rev-actions{display:flex;flex-direction:column;gap:8px;}
-
-/* Toast */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:14px;font-weight:500;z-index:500;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;pointer-events:none;}
-.toast.show{transform:translateX(-50%) translateY(0);}
-.toast.success{border-color:rgba(0,201,122,0.4);color:var(--green);}
-.toast.error{border-color:rgba(255,59,48,0.4);color:var(--red);}
-
-/* Loading screen */
-.loading-screen{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
-.loading-ring{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin 0.9s linear infinite;}
-.loading-label{font-size:13px;color:var(--muted);font-family:var(--font-mono);}
-
-/* Pre-live overlay */
-.prelive-overlay{position:fixed;inset:0;z-index:250;background:rgba(13,13,13,0.92);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:24px;}
-.prelive-card{text-align:center;max-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 28px;}
-
-/* Analytics */
-.analytics-row{display:flex;gap:8px;margin-bottom:12px;}
-.analytics-card{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
-.analytics-val{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--orange);}
-.analytics-lbl{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;}
-
-/* Locked section */
-.locked-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;color:var(--muted);font-size:13px;}
-.lock-icon{font-size:24px;margin-bottom:8px;}
-.lock-lbl{font-weight:600;color:var(--white);margin-bottom:6px;font-size:14px;}
-
-/* Leaderboard */
-.lb-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
-.lb-pos{font-family:var(--font-mono);font-weight:700;color:var(--orange);width:24px;text-align:center;flex-shrink:0;}
-.lb-name{flex:1;color:var(--white);}
-.lb-count{font-family:var(--font-mono);font-size:12px;color:var(--muted);}
-.lb-you{color:var(--green)!important;font-weight:700;}
+.plan-pop.visible{opacity:1;transform:translateY(0);}
+.plan-pop-title{font-size:.75rem;font-weight:800;color:var(--accent-cyan);margin-bottom:9px;letter-spacing:.04em;}
+.plan-pop-feat{font-size:.7rem;color:var(--text-secondary);margin-bottom:5px;display:flex;align-items:center;gap:7px;line-height:1.3;}
+.plan-pop-feat::before{content:'✓';color:var(--accent-green);font-weight:700;font-size:.65rem;flex-shrink:0;}
+.plan-chip.peeking{border-color:rgba(0,240,255,.45)!important;background:rgba(0,240,255,.1)!important;transform:scale(1.03);}
 </style>
 </head>
 <body>
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="toast-container" id="toastContainer"></div>
+<div id="planPop" class="plan-pop"></div>
 
-<div class="topbar" id="mainTopbar">
-  <div class="topbar-brand">website<span>hub</span></div>
-  <div class="topbar-tag" id="topbar-tag">preview</div>
+<!-- ══ SCREEN 1: BUILD ══════════════════════════════ -->
+<div class="screen active" id="screen-build">
+  <div class="build-logo">WEBSITE HUB</div>
+  <div class="rings-wrap">
+    <div class="ring ring1"></div>
+    <div class="ring ring2"></div>
+    <div class="ring ring3"></div>
+    <div class="ring-icon" id="buildEmoji">🔍</div>
+  </div>
+  <div class="build-step-text" id="buildStepText">Analysing your business...</div>
+  <div class="build-step-sub" id="buildStepSub">industry: flooring & tiles // region: ZA</div>
+  <div class="step-nodes" id="stepNodes">
+    <div class="step-node active"></div>
+    <div class="step-node"></div>
+    <div class="step-node"></div>
+    <div class="step-node"></div>
+    <div class="step-node"></div>
+  </div>
+  <button class="build-demo-skip" onclick="skipBuild()">skip demo →</button>
 </div>
 
-
-<div id="expiryBanner" style="display:none;position:fixed;top:52px;left:0;right:0;z-index:199;background:linear-gradient(90deg,#ff5500,#ff7733);color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:600;">
-  ⏰ Your preview expires in <span id="expiryDays">—</span> days. <a href="#" onclick="handleGoLive();return false;" style="color:#fff;text-decoration:underline;font-weight:700;">Go live now →</a>
-</div>
-<div class="loading-screen" id="loadingScreen">
-  <div class="loading-ring"></div>
-  <div class="loading-label">Loading...</div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<!-- ══════════════════════════════════════════════════════
-     STATE 2 — BUILDING
-     ══════════════════════════════════════════════════════ -->
-<div class="state" id="state-building">
-  <div class="building-wrap">
-    <div class="building-logo">website<span>hub</span></div>
-    <div class="building-ring-wrap">
-      <div class="building-ring"></div>
-      <div class="building-ring-inner"></div>
+<!-- ══ SCREEN 2: PREVIEW ════════════════════════════ -->
+<div class="screen" id="screen-preview">
+  <div class="preview-topbar">
+    <div>
+      <div class="preview-biz">Zululand Flooring</div>
+      <div class="preview-domain">zululand-flooring.co.za</div>
     </div>
-    <div class="building-status" id="buildStatus">Analysing your business...</div>
-    <div class="building-title">Building your site</div>
-    <div class="building-sub">We're putting it together now.<br>This takes about 2 minutes — don't close this tab.</div>
-    <div class="building-steps">
-      <div class="building-step active" id="bs1"><div class="step-dot"></div>Analysing your business<span class="step-check">✓</span></div>
-      <div class="building-step" id="bs2"><div class="step-dot"></div>Choosing your design<span class="step-check">✓</span></div>
-      <div class="building-step" id="bs3"><div class="step-dot"></div>Writing your content<span class="step-check">✓</span></div>
-      <div class="building-step" id="bs4"><div class="step-dot"></div>Adding your photos<span class="step-check">✓</span></div>
-      <div class="building-step" id="bs5"><div class="step-dot"></div>Final touches<span class="step-check">✓</span></div>
-    </div>
+    <span class="pkg-badge pkg-standard" id="previewPkgBadge">Standard</span>
   </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════
-     STATE 3 — PREVIEW
-     ══════════════════════════════════════════════════════ -->
-<div class="state" id="state-preview">
-  <div class="page-tabs" id="pageTabs">
-    <button class="page-tab active" data-page="index">Home</button>
-    <button class="page-tab" data-page="services" id="servicesTab">Services</button>
-    <button class="page-tab" data-page="about" id="aboutTab">About</button>
-    <button class="page-tab" data-page="contact" id="contactTab">Contact</button>
-    <button class="page-tab premium-tab" data-page="gallery" id="galleryTab" style="display:none">Gallery</button>
-  </div>
-
-  <div class="preview-iframe-wrap">
-    <iframe class="preview-iframe" id="previewFrame" src="about:blank" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation-by-user-activation"></iframe>
-  </div>
-
-  <div class="patch-overlay" id="patchOverlay">
-    <div class="patch-ring"></div>
-  </div>
-
-  <div class="preview-bottom-bar">
-    <button class="bottom-tweak-btn" onclick="toggleDrawer()">✏️ Tweak it</button>
-    <button class="bottom-dashboard-btn" onclick="openDashboard()">📊 Dashboard</button>
-    <button class="bottom-live-btn" onclick="handleGoLive()">🚀 Go Live — <span id="ctaPrice">R—/mo</span></button>
-  </div>
-
-  <div class="tweak-drawer" id="tweakDrawer">
-    <div class="drawer-handle-bar" onclick="toggleDrawer()">
-      <div class="drawer-handle"></div>
-    </div>
-    <div class="drawer-header">
-      <div class="drawer-title">Customise your site</div>
-      <button class="drawer-close" onclick="toggleDrawer()">✕</button>
-    </div>
-
-    <div class="drawer-body">
-      <div class="drawer-section">
-        <div class="drawer-label">Palette</div>
-        <div class="swatch-row" id="paletteRow"></div>
+  <div class="preview-frame">
+    <div class="preview-site-mock">
+      <div class="mock-hero" id="mockHero">
+        <div class="mock-logo">ZULULAND FLOORING</div>
+        <div class="mock-headline" id="mockHeadline">Premium Floors.<br>Built to Last.</div>
+        <div class="mock-sub" id="mockTagline">Professional installation across KwaZulu-Natal. Free quotes, no obligation.</div>
+        <div class="mock-cta">Get a Free Quote</div>
       </div>
-
-      <div class="drawer-section">
-        <div class="drawer-label">Font</div>
-        <div class="font-row" id="fontRow"></div>
-      </div>
-
-      <div class="drawer-section">
-        <div class="drawer-label">Hero photo</div>
-        <div class="photo-strip" id="photoStrip"></div>
-        <div class="photo-upload-row">
-          <label class="photo-upload-btn">
-            📷 Upload your own photo
-            <input type="file" accept="image/*" style="display:none;" onchange="uploadHeroPhoto(this)">
-          </label>
+      <div class="mock-section">
+        <div class="mock-section-title">OUR SERVICES</div>
+        <div class="mock-cards-row">
+          <div class="mock-card-sm"><div class="mock-card-icon">🪵</div><div class="mock-card-text">Hardwood & Laminate</div></div>
+          <div class="mock-card-sm"><div class="mock-card-icon">🏠</div><div class="mock-card-text">Tile & Vinyl Fitting</div></div>
+          <div class="mock-card-sm"><div class="mock-card-icon">✨</div><div class="mock-card-text">Floor Restoration</div></div>
+          <div class="mock-card-sm"><div class="mock-card-icon">📐</div><div class="mock-card-text">Commercial Projects</div></div>
         </div>
       </div>
-
-      <div class="drawer-section" id="drawerGallerySection">
-        <div class="drawer-label">Gallery photos <span style="font-size:9px;color:var(--muted);font-weight:400;letter-spacing:0;">(Premium feature)</span></div>
-        <div class="gallery-upload-grid" id="galleryUploadGrid">
-          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 0)"></label>
-          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 1)"></label>
-          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 2)"></label>
-          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 3)"></label>
-          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 4)"></label>
-          <label class="gallery-slot"><span>+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadGalleryPhoto(this, 5)"></label>
-        </div>
-      </div>
-
-      <div class="drawer-section">
-        <div class="drawer-label">Tagline</div>
-        <div class="tagline-opts" id="taglineOpts"></div>
-      </div>
-
-      <div class="drawer-section">
-        <div class="drawer-label">Logo</div>
-        <label class="logo-upload-btn" id="logoBtn">
-          <span id="logoIcon">📁</span>
-          <span id="logoLabel">Upload your logo (PNG or JPG)</span>
-          <input type="file" id="logoInput" accept="image/*" style="display:none;" onchange="handleLogo(this)">
-        </label>
-      </div>
-
-      <div class="drawer-section">
-        <button class="revert-btn" onclick="handleRevert()">↩ Revert to original build</button>
-      </div>
-      <div style="height:8px;"></div>
     </div>
+  </div>
+  <div class="preview-panel">
+    <!-- COLOUR -->
+    <div class="tweak-label">Colour</div>
+    <div class="palette-row">
+      <div class="palette-dot sel" style="background:linear-gradient(135deg,#0d0d1a,#1a0d2e)" onclick="pickPalette(this,'dark')"></div>
+      <div class="palette-dot" style="background:linear-gradient(135deg,#0a1628,#1a3a5c)" onclick="pickPalette(this,'ocean')"></div>
+      <div class="palette-dot" style="background:linear-gradient(135deg,#1a0a0a,#3a1010)" onclick="pickPalette(this,'ember')"></div>
+      <div class="palette-dot" style="background:linear-gradient(135deg,#f0f0e8,#d8d4c8)" onclick="pickPalette(this,'stone')"></div>
+    </div>
+    <!-- FONT -->
+    <div class="tweak-label">Font</div>
+    <div class="font-row">
+      <div class="font-pill sel" onclick="pickFont(this,'Inter','Inter')">Modern</div>
+      <div class="font-pill" onclick="pickFont(this,'Georgia','Georgia')">Classic</div>
+      <div class="font-pill" onclick="pickFont(this,'JetBrains Mono','JetBrains Mono')">Technical</div>
+    </div>
+    <!-- TAGLINE -->
+    <div class="tweak-label">Tagline</div>
+    <div class="tagline-row">
+      <div class="tagline-pill sel" onclick="pickTagline(this,'Professional installation across KwaZulu-Natal.')">Professional & Local</div>
+      <div class="tagline-pill" onclick="pickTagline(this,'Quality floors, guaranteed workmanship.')">Quality Focus</div>
+      <div class="tagline-pill" onclick="pickTagline(this,'Trusted by 200+ homeowners in Zululand.')">Social Proof</div>
+    </div>
+    <!-- UPLOADS -->
+    <div class="upload-row">
+      <div class="upload-btn" onclick="showToast('Logo upload — coming in production','info')">📎 Upload Logo</div>
+      <div class="upload-btn" onclick="showToast('Hero photo upload — coming in production','info')">🖼️ Hero Photo</div>
+    </div>
+    <!-- PLAN -->
+    <div class="tweak-label">Choose Plan</div>
+    <div class="plan-row" id="planRow">
+      <div class="plan-chip" data-plan="express" onclick="pickPlan(this,'Express','699','5000','express')">
+        <div class="plan-was">R5 000</div>
+        <div class="plan-free">FREE BUILD</div>
+        <div class="plan-name">Express</div>
+        <div class="plan-price">R699</div>
+        <div class="plan-sub">/mo</div>
+      </div>
+      <div class="plan-chip sel" data-plan="standard" onclick="pickPlan(this,'Standard','999','7000','standard')">
+        <div class="plan-was">R7 000</div>
+        <div class="plan-free">FREE BUILD</div>
+        <div class="plan-name">Standard</div>
+        <div class="plan-price">R999</div>
+        <div class="plan-sub">/mo</div>
+      </div>
+      <div class="plan-chip" data-plan="premium" onclick="pickPlan(this,'Premium','1499','9000','premium')">
+        <div class="plan-was">R9 000</div>
+        <div class="plan-free">FREE BUILD</div>
+        <div class="plan-name">Premium</div>
+        <div class="plan-price">R1 499</div>
+        <div class="plan-sub">/mo</div>
+      </div>
+    </div>
+    <!-- PROMO -->
+    <div class="promo-row">
+      <input class="promo-input" type="text" placeholder="Promo code (optional)" id="promoInput">
+      <button class="btn btn-ghost btn-sm" onclick="applyPromo()">Apply</button>
+    </div>
+    <button class="btn btn-primary btn-full" id="goLiveBtn" onclick="goToConfirm()">
+      <span class="btn-text">🚀 Go Live — R999/mo</span>
+    </button>
+  </div>
+</div>
 
-    <div class="drawer-footer">
-      <button class="go-live-btn" onclick="handleGoLive()">
-        🚀 Go Live
-        <span class="go-live-price" id="drawerGoLivePrice">R—/month — no setup fee</span>
+<!-- ══ SCREEN 3: CONFIRM ════════════════════════════ -->
+<div class="screen" id="screen-confirm">
+  <div class="confirm-card">
+    <div class="confirm-title">Confirm Your Plan</div>
+    <div class="confirm-sub">Review your order before payment</div>
+    <div class="confirm-row">
+      <span class="confirm-row-label">Plan</span>
+      <span class="confirm-row-value" id="confirmPlan">Standard</span>
+    </div>
+    <div class="confirm-row">
+      <span class="confirm-row-label">Build fee</span>
+      <div style="text-align:right;">
+        <div class="confirm-row-value strike" id="confirmBuildFee">R7 000</div>
+        <div class="confirm-row-value free">FREE — limited offer</div>
+      </div>
+    </div>
+    <div class="confirm-row">
+      <span class="confirm-row-label">Domain</span>
+      <span class="confirm-row-value free">Included</span>
+    </div>
+    <div class="confirm-row">
+      <span class="confirm-row-label">Hosting</span>
+      <span class="confirm-row-value free">Included</span>
+    </div>
+    <div class="confirm-row">
+      <span class="confirm-row-label">Email account</span>
+      <span class="confirm-row-value" id="confirmEmail">1 account</span>
+    </div>
+    <div class="confirm-total">
+      <div>
+        <div class="confirm-total-label">Monthly retainer</div>
+        <div class="confirm-total-sub">Cancel anytime · No lock-in</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="confirm-total-amount" id="confirmPrice">R999</div>
+        <div class="confirm-total-sub">/month</div>
+      </div>
+    </div>
+    <div class="confirm-btns">
+      <button class="btn btn-primary btn-full" id="confirmPayBtn" onclick="processPayment(this)">
+        <span class="btn-text" id="confirmBtnText">💳 Confirm & Pay — R999/mo</span>
       </button>
-      <button class="not-interested-btn" onclick="handleNotInterested()">Not interested</button>
-      <div class="promo-section" id="promoSection">
-        <button class="promo-toggle" onclick="togglePromoField()">Have a promo code?</button>
-        <div class="promo-input-wrap" id="promoInputWrap">
-          <input type="text" id="promoInput" placeholder="Enter code" autocomplete="off" autocorrect="off" autocapitalize="characters" maxlength="32">
-          <button onclick="applyPromoCode()">Apply</button>
-        </div>
-        <div class="promo-applied" id="promoApplied">✅ Promo applied — Go Live is on us</div>
-      </div>
     </div>
+    <div class="confirm-back" onclick="transitionTo('preview')">← Change plan</div>
   </div>
 </div>
 
-<!-- Pre-live overlay -->
-<div class="prelive-overlay" id="preLiveOverlay">
-  <div class="prelive-card">
-    <div style="font-size:48px;margin-bottom:16px;">🚀</div>
-    <div style="font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:12px;">Your dashboard is ready</div>
-    <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px;">Your full management panel unlocks the moment you go live. Tap below when you're ready.</div>
-    <button class="btn-manage primary" onclick="handleGoLive();document.getElementById('preLiveOverlay').style.display='none';" style="width:100%;">Go live now</button>
-    <button class="btn-manage secondary" onclick="document.getElementById('preLiveOverlay').style.display='none';" style="width:100%;margin-top:8px;">Maybe later</button>
+<!-- ══ SCREEN 4: DASHBOARD ══════════════════════════ -->
+<div class="screen" id="screen-dashboard">
+  <div class="dash-topbar">
+    <div>
+      <div class="dash-greeting">Good morning, Pierre 👋</div>
+      <div class="dash-bizname" id="dashBizName">Zululand Flooring</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <div class="icon-btn" onclick="toggleTheme()">☀️</div>
+      <div class="icon-btn" onclick="showToast('Settings coming soon','info')">⚙️</div>
+    </div>
   </div>
-</div>
+  <div class="scroll" id="dashScroll">
 
-<!-- ══════════════════════════════════════════════════════
-     STATE 4 — MANAGE PANEL
-     ══════════════════════════════════════════════════════ -->
-<div class="state" id="state-manage">
-  <div class="manage-wrap">
-
-    <div class="manage-hero">
-      <div class="manage-domain" id="manageDomain">—</div>
-      <div class="manage-biz" id="manageBiz">—</div>
-      <div class="manage-package-badge" id="managePackageBadge">—</div>
-      <div class="manage-stats">
-        <div class="m-stat"><div class="m-stat-val" id="mDays">—</div><div class="m-stat-lbl">Days to invoice</div></div>
-        <div class="m-stat"><div class="m-stat-val" id="mRevisions">—</div><div class="m-stat-lbl">Revisions left</div></div>
-        <div class="m-stat"><div class="m-stat-val" id="mRetainer">—</div><div class="m-stat-lbl">Per month</div></div>
-      </div>
-    </div>
-
-    <!-- Site status -->
-    <div class="manage-section open" id="sec-status">
-      <div class="manage-section-head" onclick="toggleSection('sec-status')">
-        <div class="manage-section-title"><span class="manage-section-ico">🌐</span>Site status</div>
-        <div class="manage-section-chevron">▼</div>
-      </div>
-      <div class="manage-section-body">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Your site is live at:</div>
-        <a id="manageLiveUrl" href="#" target="_blank" style="font-family:var(--font-mono);font-size:14px;color:var(--green);word-break:break-all;">—</a>
-        <div style="margin-top:12px;font-size:12px;color:var(--muted);">Next invoice: <strong id="manageNextInvoice" style="color:var(--white);">—</strong></div>
-      </div>
-    </div>
-
-    <!-- Revisions -->
-    <div class="manage-section" id="sec-revision">
-      <div class="manage-section-head" onclick="toggleSection('sec-revision')">
-        <div class="manage-section-title"><span class="manage-section-ico">✏️</span>Request a revision</div>
-        <div class="manage-section-chevron">▼</div>
-      </div>
-      <div class="manage-section-body">
-        <div class="rev-counter">
-          <div class="rev-label" id="revCounterLabel">—</div>
-          <div class="rev-bar"><div class="rev-fill" id="revFill" style="width:0%"></div></div>
-          <div class="rev-label" id="revCounterRight">—</div>
+    <!-- TAB HOME -->
+    <div class="tab-panel active" id="tab-home">
+      <div class="install-banner" id="installBanner">
+        <div class="install-icon">📲</div>
+        <div class="install-text">
+          <div class="install-title">Add to Home Screen</div>
+          <div class="install-sub">Tap Share → Add to Home Screen for instant app access</div>
         </div>
-        <div id="revPaidNotice" style="display:none;font-size:12px;color:var(--muted);margin-bottom:12px;">Extra revisions cost <strong id="revPaidCost" style="color:var(--white);">R500</strong> each.</div>
-        <button class="btn-manage primary" onclick="openRevisionSheet()" style="width:100%;">Open revision panel →</button>
+        <div class="install-close" onclick="this.closest('.install-banner').style.display='none'">✕</div>
+      </div>
+      <div class="hero-card">
+        <div class="hero-status"><div class="status-dot"></div>Live <span class="pkg-badge" id="heroPkgBadge" style="margin-left:6px;">Standard</span></div>
+        <div class="hero-biz" id="heroBizName">Zululand Flooring</div>
+        <div class="hero-domain" id="heroDomain" onclick="showToast('Opening zululand-flooring.co.za...','success')">zululand-flooring.co.za ↗</div>
+        <div class="hero-btns">
+          <button class="btn btn-primary btn-sm" onclick="showToast('Opening your website...','success');switchTab('site')">🌐 View Site</button>
+          <button class="btn btn-outline btn-sm" onclick="switchTab('revisions')">✏️ Revisions</button>
+        </div>
+      </div>
+      <div class="section-label">This Month</div>
+      <div class="stat-grid" id="statGrid"></div>
+      <div class="section-label">Quick Actions</div>
+      <div class="quick-row" id="quickRow"></div>
+      <div class="section-label">Upgrade Your Plan</div>
+      <div class="upgrade-row" id="upgradeRow"></div>
+      <div class="section-label">Add-Ons</div>
+      <div class="card" style="margin-bottom:12px;padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div><div style="font-weight:700;font-size:.88rem;">Extra Email Account</div><div style="font-size:.7rem;color:var(--text-secondary);margin-top:2px;">Add a second inbox to your domain</div></div>
+          <div style="font-size:.95rem;font-weight:800;color:var(--accent-cyan);">R200<span style="font-size:.65rem;color:var(--text-secondary)">/mo</span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-weight:700;font-size:.88rem;">Extra Page</div><div style="font-size:.7rem;color:var(--text-secondary);margin-top:2px;">Blog, portfolio, booking — your choice</div></div>
+          <div style="font-size:.95rem;font-weight:800;color:var(--accent-cyan);">R500<span style="font-size:.65rem;color:var(--text-secondary)">/mo</span></div>
+        </div>
       </div>
     </div>
 
-    <!-- Photos / Gallery (tier-gated) -->
-    <div class="manage-section" id="sec-photos">
-      <div class="manage-section-head" onclick="toggleSection('sec-photos')">
-        <div class="manage-section-title"><span class="manage-section-ico">📸</span>Photos</div>
-        <div class="manage-section-chevron">▼</div>
-      </div>
-      <div class="manage-section-body">
-        <div id="galleryUnlocked" style="display:none;">
-          <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Upload photos to your gallery. They'll appear on your site within minutes.</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;"><strong id="galleryPhotoCount" style="color:var(--white);">0</strong> of <strong id="galleryMaxPhotos" style="color:var(--white);">—</strong> photos used</div>
-          <div class="photo-slots" id="photoSlots">
-            <label class="photo-slot"><span class="photo-slot-add">+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadManagePhoto(this)"></label>
-            <label class="photo-slot"><span class="photo-slot-add">+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadManagePhoto(this)"></label>
-            <label class="photo-slot"><span class="photo-slot-add">+</span><input type="file" accept="image/*" style="display:none;" onchange="uploadManagePhoto(this)"></label>
+    <!-- TAB SITE -->
+    <div class="tab-panel" id="tab-site">
+      <div class="section-label">Your Live Website</div>
+      <div class="card" style="margin-bottom:12px;padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div>
+            <div style="font-weight:700;cursor:pointer;color:var(--accent-cyan);font-family:'JetBrains Mono',monospace;font-size:.82rem;" onclick="showToast('Opening website...','success')" id="siteDomainLink">zululand-flooring.co.za ↗</div>
+            <div style="font-size:.68rem;color:var(--accent-green);margin-top:3px;display:flex;align-items:center;gap:5px;"><div class="status-dot" style="width:6px;height:6px;"></div>Live since 12 May 2025</div>
           </div>
-          <div style="font-size:11px;color:var(--muted2);margin-top:10px;">You can also email photos to <strong style="color:var(--muted);">updates@websitehub.co.za</strong> with subject <strong style="color:var(--muted);">wh-yourslug</strong></div>
+          <button class="btn btn-outline btn-sm" onclick="showToast('Opening website...','success')">Open ↗</button>
         </div>
-        <div id="galleryLocked" class="locked-section" style="display:none;">
-          <div class="lock-icon">🔒</div>
-          <div class="lock-lbl">Premium feature</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;" id="galleryLockedBody">Showcase your work with a photo gallery — updated by WhatsApp or email anytime.</div>
-          <button class="btn-manage primary" onclick="handleUpgradeTo('Premium')" style="width:100%;">Upgrade to Premium →</button>
+        <div class="prog-track"><div class="prog-fill" style="width:68%"></div></div>
+        <div style="font-size:.67rem;color:var(--text-secondary);">Profile strength: 68% — add photos to improve</div>
+      </div>
+      <div class="section-label">Traffic This Week</div>
+      <div class="chart-mock">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:.82rem;font-weight:700;">Page Views</div>
+          <div style="font-size:.7rem;color:var(--accent-cyan);font-family:'JetBrains Mono',monospace;">+14% vs last week</div>
         </div>
+        <div class="chart-bars" id="chartBars"></div>
+        <div class="chart-labels" id="chartLabels"></div>
+      </div>
+      <div class="section-label">Top Pages</div>
+      <div class="card" style="padding:16px;margin-bottom:12px;">
+        <div class="rev-row"><div class="rev-dot done"></div><div class="rev-content"><div class="rev-text">Home</div><div class="rev-date">142 views</div></div><div style="font-size:.78rem;font-weight:700;color:var(--accent-cyan);">58%</div></div>
+        <div class="rev-row"><div class="rev-dot done"></div><div class="rev-content"><div class="rev-text">Services</div><div class="rev-date">67 views</div></div><div style="font-size:.78rem;font-weight:700;color:var(--accent-cyan);">27%</div></div>
+        <div class="rev-row" style="border-bottom:none;"><div class="rev-dot done"></div><div class="rev-content"><div class="rev-text">Contact</div><div class="rev-date">38 views</div></div><div style="font-size:.78rem;font-weight:700;color:var(--accent-cyan);">15%</div></div>
       </div>
     </div>
 
-    <!-- Email (tier-aware) -->
-    <div class="manage-section" id="sec-email">
-      <div class="manage-section-head" onclick="toggleSection('sec-email')">
-        <div class="manage-section-title"><span class="manage-section-ico">📧</span>Email accounts</div>
-        <div class="manage-section-chevron">▼</div>
-      </div>
-      <div class="manage-section-body">
-        <div id="emailUnlocked" style="display:none;">
-          <div class="email-card">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Your business email address<span id="emailMultiple" style="display:none;">es</span>:</div>
-            <div class="email-list" id="emailList"></div>
-            <div id="emailAddonOffer" style="display:none;font-size:12px;color:var(--muted);">Want a second mailbox? <a href="#" onclick="event.preventDefault();handleEmailAddon();" style="color:var(--orange);text-decoration:underline;">Add extra email for R<span id="emailAddonCost">200</span>/mo</a></div>
-          </div>
+    <!-- TAB EMAIL -->
+    <div class="tab-panel" id="tab-email">
+      <div class="section-label">Your Email Accounts</div>
+      <div id="emailAccounts"></div>
+      <div class="section-label">Send Photos via Email</div>
+      <div class="card" style="padding:16px;margin-bottom:12px;">
+        <div style="font-size:.85rem;font-weight:700;margin-bottom:7px;">📸 Update Your Site by Email</div>
+        <div style="font-size:.73rem;color:var(--text-secondary);line-height:1.6;margin-bottom:12px;">Attach photos to an email and we'll add them to your site automatically.</div>
+        <div style="background:rgba(0,240,255,.06);border:1px dashed rgba(0,240,255,.2);border-radius:10px;padding:12px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:.73rem;color:var(--accent-cyan);">updates@websitehub.co.za</div>
+          <div style="font-size:.66rem;color:var(--text-secondary);margin-top:4px;">Subject: wh-zululand-flooring</div>
         </div>
-        <div id="emailLocked" class="locked-section" style="display:none;">
-          <div class="lock-icon">🔒</div>
-          <div class="lock-lbl">Not included on Express</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Get a professional email address (info@yourdomain.co.za) when you upgrade.</div>
-          <button class="btn-manage primary" onclick="handleUpgradeTo('Standard')" style="width:100%;">Upgrade to Standard →</button>
-        </div>
+        <button class="btn btn-ghost btn-sm btn-full" style="margin-top:10px;" onclick="showToast('Mailto link copied!','success')">Copy mailto link</button>
       </div>
     </div>
 
-    <!-- Referral (tier-gated) -->
-    <div class="manage-section" id="sec-referral">
-      <div class="manage-section-head" onclick="toggleSection('sec-referral')">
-        <div class="manage-section-title"><span class="manage-section-ico">👥</span>Referral Programme</div>
-        <div class="manage-section-chevron">▼</div>
+    <!-- TAB REVISIONS -->
+    <div class="tab-panel" id="tab-revisions">
+      <div class="section-label">Revision Allowance</div>
+      <div class="rev-counter" id="revCounter"></div>
+      <button class="btn btn-primary btn-full" style="margin-bottom:20px;" onclick="showToast('Opening revision form...','success')">
+        <span class="btn-text">✏️ Submit a Revision</span>
+      </button>
+      <div class="section-label">Recent Revisions</div>
+      <div class="card" style="padding:16px;margin-bottom:12px;">
+        <div class="rev-row"><div class="rev-dot done"></div><div class="rev-content"><div class="rev-text">Update hero headline</div><div class="rev-date">2025-05-10 · done in 4h</div></div></div>
+        <div class="rev-row"><div class="rev-dot done"></div><div class="rev-content"><div class="rev-text">Change contact number</div><div class="rev-date">2025-04-28 · done in 2h</div></div></div>
+        <div class="rev-row" style="border-bottom:none;"><div class="rev-dot pending"></div><div class="rev-content"><div class="rev-text">Add epoxy flooring service</div><div class="rev-date">2025-05-14 · in progress</div></div></div>
       </div>
-      <div class="manage-section-body">
-        <div id="referralUnlocked" style="display:none;">
-          <div class="referral-card">
-            <div class="referral-link" id="referralLinkText">—</div>
-            <div class="referral-stats">
-              <span>Sent this month: <strong id="refSent">—</strong></span>
-              <span>Conversions: <strong id="refConversions">—</strong></span>
-            </div>
-            <div class="referral-stats" style="margin-top:4px;">
-              <span>Leaderboard: <strong id="refPosition">—</strong></span>
-              <span>Free months: <strong id="refReward">—</strong></span>
-            </div>
-          </div>
-          <div class="manage-cta-row">
-            <button class="btn-manage primary" id="copyRefBtn">Copy link</button>
-            <button class="btn-manage secondary" id="shareRefBtn">Share on WhatsApp</button>
-          </div>
-        </div>
-        <div id="referralLocked" class="locked-section" style="display:none;">
-          <div class="lock-icon">🔒</div>
-          <div class="lock-lbl">Standard / Premium feature</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Earn a free month for every client you refer.</div>
-          <button class="btn-manage primary" onclick="handleUpgradeTo('Standard')" style="width:100%;">Upgrade →</button>
-        </div>
-      </div>
+      <div id="paidRevSection"></div>
     </div>
 
-    <!-- Analytics (tier-gated) -->
-    <div class="manage-section" id="sec-analytics">
-      <div class="manage-section-head" onclick="toggleSection('sec-analytics')">
-        <div class="manage-section-title"><span class="manage-section-ico">📊</span>Analytics</div>
-        <div class="manage-section-chevron">▼</div>
-      </div>
-      <div class="manage-section-body">
-        <div id="analyticsUnlocked" style="display:none;">
-          <div class="analytics-row">
-            <div class="analytics-card"><div class="analytics-val" id="aViews">—</div><div class="analytics-lbl">Views this month</div></div>
-            <div class="analytics-card"><div class="analytics-val" id="aLast">—</div><div class="analytics-lbl">Last month</div></div>
-          </div>
-          <div style="font-size:12px;color:var(--muted);">Most visited page: <strong id="aTopPage" style="color:var(--white);">—</strong></div>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px;">WhatsApp taps this month: <strong id="aWaTaps" style="color:var(--white);">—</strong></div>
-          <div style="font-size:11px;color:var(--muted2);margin-top:8px;">Views sourced from site server logs. Updated daily.</div>
+    <!-- TAB ACCOUNT -->
+    <div class="tab-panel" id="tab-account">
+      <div class="section-label">Referral Programme</div>
+      <div id="referralSection"></div>
+      <div class="section-label">Current Plan</div>
+      <div class="card" style="margin-bottom:12px;padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <span class="pkg-badge" id="accountPkgBadge">Standard</span>
+          <div style="font-size:1.1rem;font-weight:800;" id="accountPrice">R999<span style="font-size:.7rem;color:var(--text-secondary)">/mo</span></div>
         </div>
-        <div id="analyticsLocked" class="locked-section" style="display:none;">
-          <div class="lock-icon">🔒</div>
-          <div class="lock-lbl">Standard / Premium feature</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">See how many people visit your site and which pages they look at.</div>
-          <button class="btn-manage primary" onclick="handleUpgradeTo('Standard')" style="width:100%;">Upgrade →</button>
-        </div>
+        <div class="rev-row" style="padding:7px 0;"><div class="rev-dot done"></div><div class="rev-content"><div class="rev-text" style="font-size:.78rem;">Next billing: 12 June 2025</div></div></div>
+        <div class="rev-row" style="padding:7px 0;"><div class="rev-dot done"></div><div class="rev-content"><div class="rev-text" style="font-size:.78rem;">Domain: included</div></div></div>
+        <div class="rev-row" style="padding:7px 0;border-bottom:none;" id="accountEmailRow"><div class="rev-dot done"></div><div class="rev-content"><div class="rev-text" style="font-size:.78rem;">Email: info@zululand-flooring.co.za</div></div></div>
+        <button class="btn btn-ghost btn-sm btn-full" style="margin-top:12px;" onclick="showToast('Viewing latest invoice','info')">📄 View Invoice</button>
       </div>
-    </div>
-
-    <!-- Leaderboard -->
-    <div class="manage-section" id="sec-leaderboard">
-      <div class="manage-section-head" onclick="toggleSection('sec-leaderboard')">
-        <div class="manage-section-title"><span class="manage-section-ico">🏆</span>Leaderboard</div>
-        <div class="manage-section-chevron">▼</div>
-      </div>
-      <div class="manage-section-body">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Top referrers this month — top spot wins 3 free months.</div>
-        <div id="leaderboardList"></div>
-        <div id="leaderboardLocked" class="locked-section" style="display:none;">
-          <div class="lock-icon">🔒</div>
-          <div class="lock-lbl">Standard / Premium feature</div>
-          <div style="font-size:12px;color:var(--muted);">Upgrade to join the referral leaderboard.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Upgrade offers (one card per available upgrade) -->
-    <div class="manage-section" id="sec-upgrades" style="display:none;">
-      <div class="manage-section-head" onclick="toggleSection('sec-upgrades')">
-        <div class="manage-section-title"><span class="manage-section-ico">⭐</span>Upgrade your plan</div>
-        <div class="manage-section-chevron">▼</div>
-      </div>
-      <div class="manage-section-body" id="upgradeOffersBody">
-        <!-- upgrade cards injected here -->
+      <div class="section-label">Danger Zone</div>
+      <div class="card" style="margin-bottom:12px;padding:16px;">
+        <div style="font-size:.82rem;font-weight:700;margin-bottom:6px;">Cancel Subscription</div>
+        <div style="font-size:.72rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">Your site stays live until end of billing period. You can reactivate any time.</div>
+        <button class="btn btn-sm" style="border:1px solid rgba(255,50,80,.3);color:#ff3350;background:rgba(255,50,80,.08);" onclick="showToast('Please contact support to cancel','error')">Cancel Subscription</button>
       </div>
     </div>
 
   </div>
-</div>
-
-<!-- Revision sheet -->
-<div class="rev-overlay" id="revOverlay">
-  <div class="rev-sheet">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <div class="rev-sheet-title">Revision request</div>
-      <button onclick="closeRevisionSheet()" style="background:none;font-size:20px;color:var(--muted);">✕</button>
-    </div>
-    <div class="rev-sheet-sub" id="revSheetSub">Tell us what to change.</div>
-    <div class="form-field">
-      <label class="form-label">Colour palette (optional)</label>
-      <div class="chip-row" id="revPaletteChips"></div>
-    </div>
-    <div class="form-field">
-      <label class="form-label">Font (optional)</label>
-      <div class="chip-row" id="revFontChips"></div>
-    </div>
-    <div class="form-field">
-      <label class="form-label">Tagline (optional)</label>
-      <div class="chip-row" id="revTaglineChips"></div>
-    </div>
-    <div class="form-field">
-      <label class="form-label">Special instructions (2–3 sentences max)</label>
-      <textarea class="form-textarea" id="revSpecials" rows="3" maxlength="400" placeholder="e.g. Please update our services list to include pool cleaning."></textarea>
-    </div>
-    <button class="btn btn-primary" id="revSubmitBtn" style="margin-top:8px;width:100%;padding:14px;border-radius:10px;font-size:15px;font-weight:600;background:var(--orange);color:#fff;border:none;" onclick="submitRevision()">Submit revision</button>
-  </div>
-</div>
-
-<!-- Paid revision confirmation overlay -->
-<div class="paid-rev-overlay" id="paidRevOverlay">
-  <div class="paid-rev-card">
-    <div class="paid-rev-icon">💳</div>
-    <div class="paid-rev-title">Extra revision</div>
-    <div class="paid-rev-sub" id="paidRevSub">You've used your free revisions for this month. This revision is R<span id="paidRevPriceInline">500</span>.</div>
-    <div class="paid-rev-price" id="paidRevPrice">R500</div>
-    <div class="paid-rev-price-lbl">One-time payment</div>
-    <div class="paid-rev-actions">
-      <button class="btn-manage primary" id="paidRevPayBtn">Pay & submit revision</button>
-      <button class="btn-manage secondary" onclick="closePaidRevOverlay()">Cancel</button>
-    </div>
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="switchTab('home')"><span class="nav-icon">🏠</span>Home</div>
+    <div class="nav-item" id="nav-site" onclick="switchTab('site')"><span class="nav-icon">🌐</span>Site</div>
+    <div class="nav-item" id="nav-email" onclick="switchTab('email')"><span class="nav-icon">📧</span>Email</div>
+    <div class="nav-item" id="nav-revisions" onclick="switchTab('revisions')"><span class="nav-icon">✏️</span>Revise</div>
+    <div class="nav-item" id="nav-account" onclick="switchTab('account')"><span class="nav-icon">👤</span>Account</div>
   </div>
 </div>
 
 <script>
-// ────────────────────────────────────────────────────────────
-// CONFIG — worker URLs by responsibility
-// ────────────────────────────────────────────────────────────
-const WORKER_BUILD      = 'https://wh-build.pierreduplessis6912.workers.dev';
-const WORKER_PATCH      = 'https://wh-patch.pierreduplessis6912.workers.dev';
-const WORKER_LAUNCH     = 'https://wh-launch.pierreduplessis6912.workers.dev';
-const WORKER_REACTIVATE = 'https://wh-reactivate.pierreduplessis6912.workers.dev';
+/* ── STATE ───────────────────────────────────────── */
+const PLANS = {
+  express:  { name:'Express',  price:'699',  priceNum:699,  buildFee:'R5 000', revisions:1, emails:0, gallery:false, referral:false, analytics:false },
+  standard: { name:'Standard', price:'999',  priceNum:999,  buildFee:'R7 000', revisions:2, emails:1, gallery:false, referral:true,  analytics:true  },
+  premium:  { name:'Premium',  price:'1 499',priceNum:1499, buildFee:'R9 000', revisions:99,emails:2, gallery:true,  referral:true,  analytics:true  },
+};
+let selectedPlan    = PLANS.standard;
+let selectedPlanKey = 'standard';
+let promoApplied = false;
 
-// Backward-compat aliases — old code referenced WORKER (build) and WORKER2 (patch)
-const WORKER  = WORKER_BUILD;
-const WORKER2 = WORKER_PATCH;
+/* ── PLAN FEATURE DATA ───────────────────────────── */
+const PLAN_FEATURES = {
+  express:  { label:'Express — R699/mo',  feats:['5-page website','Free .co.za domain','Hosting included','Mobile optimised','WhatsApp support','1 free revision/mo'] },
+  standard: { label:'Standard — R999/mo', feats:['Everything in Express','Branded email address','Analytics dashboard','Referral programme','2 free revisions/mo','Social media links'] },
+  premium:  { label:'Premium — R1 499/mo',feats:['Everything in Standard','30-photo gallery','2 email accounts','Unlimited revisions','Google Business Profile','Priority builds'] },
+};
 
-const PREVIEW_DOMAIN = 'preview.websitehub.co.za';
-
-// ── PALETTES + FONTS + TAGLINES ──────────────────────────
-const PALETTES = [
-  { id:'bold-modern',        name:'Bold',  colors:['#1a1a2e','#ff5500','#f0ede8'] },
-  { id:'warm-welcoming',     name:'Warm',  colors:['#C8724F','#8B4513','#F5EBE0'] },
-  { id:'clean-professional', name:'Clean', colors:['#1A3A5C','#2E86AB','#F8F9FA'] },
+/* ── BUILD ANIMATION ─────────────────────────────── */
+const buildSteps = [
+  {text:'Analysing your business...',   sub:'industry: flooring & tiles // region: ZA', icon:'🔍'},
+  {text:'Crafting your content...',      sub:'generating copy + headlines',              icon:'✍️'},
+  {text:'Designing your layout...',      sub:'applying colour palette & fonts',          icon:'🎨'},
+  {text:'Building your pages...',        sub:'index, services, about, contact',          icon:'⚙️'},
+  {text:'Almost ready...',               sub:'running quality check',                    icon:'✅'},
 ];
+let buildStep = 0;
+const buildInterval = setInterval(() => {
+  if (buildStep >= buildSteps.length - 1) { clearInterval(buildInterval); setTimeout(() => transitionTo('preview'), 1400); return; }
+  buildStep++;
+  const s = buildSteps[buildStep];
+  const t = document.getElementById('buildStepText');
+  t.style.opacity = 0;
+  setTimeout(() => {
+    t.textContent = s.text;
+    document.getElementById('buildStepSub').textContent = s.sub;
+    document.getElementById('buildEmoji').textContent = s.icon;
+    t.style.opacity = 1;
+  }, 200);
+  document.querySelectorAll('.step-node').forEach((n,i) => {
+    n.classList.remove('active','done');
+    if (i < buildStep) n.classList.add('done');
+    if (i === buildStep) n.classList.add('active');
+  });
+}, 2800);
 
-const FONT_IMPORTS = {
-  syne:     'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap',
-  playfair: 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&display=swap',
-  mono:     'https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap',
+function skipBuild() { clearInterval(buildInterval); transitionTo('preview'); }
+
+/* ── TRANSITIONS ─────────────────────────────────── */
+function transitionTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'site') buildChart();
+}
+
+/* ── TWEAK FUNCTIONS ─────────────────────────────── */
+const palettes = {
+  dark:  'linear-gradient(135deg,#0d0d1a,#1a0d2e)',
+  ocean: 'linear-gradient(135deg,#0a1628,#1a3a5c)',
+  ember: 'linear-gradient(135deg,#1a0a0a,#3a1010)',
+  stone: 'linear-gradient(135deg,#f0f0e8,#d8d4c8)',
 };
-const FONT_STACKS = {
-  syne:     "'Syne', sans-serif",
-  playfair: "'Playfair Display', serif",
-  mono:     "'DM Mono', monospace",
-};
-const FONTS = [
-  { id:'syne',     name:'Syne',     style:'Display / Sans' },
-  { id:'playfair', name:'Playfair', style:'Serif / Elegant' },
-  { id:'mono',     name:'Mono',     style:'Tech / Modern' },
-];
+function pickPalette(el, key) {
+  document.querySelectorAll('.palette-dot').forEach(d => d.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('mockHero').style.background = palettes[key];
+  showToast('Colour updated', 'success');
+}
+function pickFont(el, label, font) {
+  document.querySelectorAll('.font-pill').forEach(p => p.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('mockHeadline').style.fontFamily = font;
+  showToast('Font: ' + label, 'success');
+}
+function pickTagline(el, text) {
+  document.querySelectorAll('.tagline-pill').forEach(p => p.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('mockTagline').textContent = text;
+  showToast('Tagline updated', 'success');
+}
 
-const TAGLINES_BY_INDUSTRY = {
-  restaurant:   ['Real food. Real people.','Made fresh, every day.','Your table is waiting.'],
-  plumbing:     ['We arrive on time.','Fixed right, first time.','No call-out drama.'],
-  cleaning:     ['Spotless every time.','Clean spaces, clear minds.','We take the mess off your hands.'],
-  construction: ['Built to last.','Quality work, on time.','From foundation to finish.'],
-  bakery:       ['Fresh from our oven.','Baked with love, every day.','Real bread. Real flavour.'],
-  default:      ['Built for your community.','Serving you with pride.','Quality you can trust.'],
-};
+/* ── PLAN SELECTION ──────────────────────────────── */
+function pickPlan(el, name, price, buildFee, key) {
+  document.querySelectorAll('.plan-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedPlan    = PLANS[key];
+  selectedPlanKey = key;
+  const p = selectedPlan;
+  document.getElementById('goLiveBtn').querySelector('.btn-text').textContent = `🚀 Go Live — R${p.price}/mo`;
+  const badges = { express:'pkg-express', standard:'pkg-standard', premium:'pkg-premium' };
+  document.getElementById('previewPkgBadge').className = 'pkg-badge ' + badges[key];
+  document.getElementById('previewPkgBadge').textContent = p.name;
+  showToast(p.name + ' selected', 'info');
+}
 
-// ── APP STATE ────────────────────────────────────────────
-const appState = {
-  mode:           null,
-  sessionToken:   null,
-  slug:           null,
-  airtableId:     null,
-  manageToken:    null,
-  industry:       'default',
-  heroPhotos:     [],
-  taglines:       null,
-  retainer:       0,
-  package:        'Standard',
-  pkgKey:         'standard',
-  pages:          ['index','services','about','contact'],
-  choices:        { palette:null, font:null, photo:null, tagline:null, logo_url:null },
-  drawerOpen:     false,
-  buildPollTimer: null,
-  previewBaseUrl: null,
-  businessName:   null,
-  manageData:     null,
-  pendingPaidRevision: null, // { paymentLink, payload }
-};
+/* ── PROMO ───────────────────────────────────────── */
+function applyPromo() {
+  const v = document.getElementById('promoInput').value.trim().toUpperCase();
+  if (v === 'LAUNCH50') { promoApplied = true; showToast('50% off first month applied!', 'success'); }
+  else if (v) showToast('Invalid promo code', 'error');
+  else showToast('Enter a promo code first', 'info');
+}
 
-// ────────────────────────────────────────────────────────────
-// ENTRY POINT
-// ────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
-  const path = location.pathname.replace(/^\//, '');
+/* ── CONFIRM SCREEN ──────────────────────────────── */
+function goToConfirm() {
+  const p = selectedPlan;
+  document.getElementById('confirmPlan').textContent = p.name;
+  document.getElementById('confirmBuildFee').textContent = p.buildFee;
+  document.getElementById('confirmPrice').textContent = 'R' + p.price;
+  document.getElementById('confirmEmail').textContent = p.emails === 0 ? 'Not included' : p.emails === 1 ? '1 account' : '2 accounts';
+  document.getElementById('confirmBtnText').textContent = `💳 Confirm & Pay — R${p.price}/mo`;
+  transitionTo('confirm');
+}
 
-  if (path.startsWith('build/')) {
-    // Direct build link — straight to building screen, polls /build-status
-    appState.mode         = 'inbound';
-    appState.sessionToken = path.replace('build/', '');
-    hide('loadingScreen');
-    startBuildPolling();
+/* ── PAYMENT — via launch-worker /go-live-link ───── */
+async function processPayment(btn) {
+  if (btn.classList.contains('loading')) return;
+  btn.classList.add('loading');
+  btn.querySelector('.btn-text').textContent = 'Preparing payment...';
 
-  } else if (path.startsWith('manage/')) {
-    appState.mode        = 'manage';
-    appState.manageToken = path.replace('manage/', '');
-    document.getElementById('topbar-tag').textContent = 'manage';
-    loadManagePanel();
+  const p        = selectedPlan;
+  const token    = (window.location.pathname.match(/\/manage\/([^/?#]+)/) || [])[1] || '';
+  const retainer = promoApplied ? 0 : p.priceNum;
 
-  } else if (path) {
-    // Outbound preview link — /{slug}
-    appState.mode = 'outbound';
-    appState.slug = path.split('/')[0];
-    document.getElementById('topbar-tag').textContent = 'preview';
-    // Kick off the iframe load IMMEDIATELY — don't wait for /preview-meta.
-    // The meta call is just for tier-aware tabs, retainer price, hero photo
-    // options. None of that needs to block the iframe content from showing.
-    // When meta resolves it patches the price, tabs, and drawer in place.
-    loadPreview(appState.slug);
-    fetchPreviewMeta(appState.slug).catch(e => console.warn('preview-meta failed:', e));
-
-  } else {
-    hide('loadingScreen');
-    document.body.innerHTML = `<div style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0d0d0d;color:#f0ede8;text-align:center;"><div><div style="font-size:24px;font-weight:800;margin-bottom:8px;">Website Hub</div><div style="color:#666;font-size:14px;">Client preview portal</div></div></div>`;
+  try {
+    const res = await fetch('https://wh-launch.pierreduplessis6912.workers.dev/go-live-link', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        package:  selectedPlanKey,
+        retainer,
+      }),
+    });
+    const data = await res.json();
+    if (!data.url) throw new Error(data.error || 'No payment URL returned');
+    btn.querySelector('.btn-text').textContent = promoApplied ? 'Activating free month...' : 'Redirecting to PayFast...';
+    setTimeout(() => { window.location.href = data.url; }, 400);
+  } catch (err) {
+    btn.classList.remove('loading');
+    btn.querySelector('.btn-text').textContent = `💳 Confirm & Pay — R${p.price}/mo`;
+    showToast('Payment error: ' + err.message, 'error');
   }
+}
+
+/* ── PLAN FEATURE POPOVER ────────────────────────── */
+let planPopVisible = false;
+let planTouchTimer = null;
+
+function showPlanPop(key) {
+  const pop  = document.getElementById('planPop');
+  const row  = document.getElementById('planRow');
+  const rect = row.getBoundingClientRect();
+  const data = PLAN_FEATURES[key];
+  pop.style.left     = rect.left + 'px';
+  pop.style.width    = rect.width + 'px';
+  pop.style.bottom   = (window.innerHeight - rect.top + 8) + 'px';
+  pop.style.top      = 'auto';
+  pop.style.maxHeight = (rect.top - 16) + 'px';
+  pop.innerHTML = `<div class="plan-pop-title">${data.label}</div>${data.feats.map(f=>`<div class="plan-pop-feat">${f}</div>`).join('')}`;
+  pop.classList.add('visible');
+  planPopVisible = true;
+}
+
+function hidePlanPop() {
+  document.getElementById('planPop').classList.remove('visible');
+  planPopVisible = false;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.plan-chip').forEach(chip => {
+    const key = chip.dataset.plan;
+    chip.addEventListener('mouseenter', () => showPlanPop(key));
+    chip.addEventListener('mouseleave', hidePlanPop);
+    chip.addEventListener('touchstart', () => {
+      planTouchTimer = setTimeout(() => { chip.classList.add('peeking'); showPlanPop(key); }, 250);
+    }, { passive:true });
+    chip.addEventListener('touchend', () => {
+      clearTimeout(planTouchTimer);
+      if (planPopVisible) { hidePlanPop(); chip.classList.remove('peeking'); }
+    });
+    chip.addEventListener('touchcancel', () => {
+      clearTimeout(planTouchTimer); hidePlanPop(); chip.classList.remove('peeking');
+    });
+  });
 });
 
-// ────────────────────────────────────────────────────────────
-// HELPERS
-// ────────────────────────────────────────────────────────────
-function showState(name) {
-  document.querySelectorAll('.state').forEach(el => el.classList.remove('active'));
-  const el = document.getElementById(`state-${name}`);
-  if (el) el.classList.add('active');
-  hide('loadingScreen');
-  const topbar = document.getElementById('mainTopbar');
-  if (topbar) topbar.style.display = name === 'preview' ? 'none' : '';
-
-  // Double-watermark fix — if iframe already has wh-preview-bar (outbound watermark),
-  // hide the SPA's bottom bar to avoid two CTAs stacked
-  if (name === 'preview') {
-    setTimeout(() => {
-      try {
-        const iframe = document.getElementById('previewFrame');
-        const iDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
-        if (iDoc && iDoc.getElementById('wh-preview-bar')) {
-          const bar = document.querySelector('.preview-bottom-bar');
-          if (bar) bar.style.display = 'none';
-        }
-      } catch(e) { /* cross-origin guard — ignore */ }
-    }, 1500);
-  }
-}
-
-function show(id){ const el=document.getElementById(id); if(el) el.style.display=''; }
-function hide(id){ const el=document.getElementById(id); if(el) el.style.display='none'; }
-
-function toast(msg, type='') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast show ${type}`;
-  setTimeout(() => el.classList.remove('show'), 2800);
-}
-
-function pkgKeyOf(pkg) {
-  const k = String(pkg || '').toLowerCase().trim();
-  if (k === 'express')  return 'express';
-  if (k === 'premium')  return 'premium';
-  return 'standard';
-}
-
-function priceLabelOf(retainer) {
-  return `R${retainer}/mo`;
-}
-
-// ────────────────────────────────────────────────────────────
-// BUILD POLLING (state-building)
-// ────────────────────────────────────────────────────────────
-const STEP_IDS = ['bs1','bs2','bs3','bs4','bs5'];
-const BUILD_MESSAGES = [
-  'Analysing your business...',
-  'Choosing your design...',
-  'Writing your content...',
-  'Adding your photos...',
-  'Putting on the finishing touches...',
-];
-
-function startBuildPolling() {
-  showState('building');
-  let msgIndex = 0;
-
-  const stepInterval = setInterval(() => {
-    if (msgIndex < STEP_IDS.length - 1) {
-      const prev = document.getElementById(STEP_IDS[msgIndex]);
-      if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
-      msgIndex++;
-      const curr = document.getElementById(STEP_IDS[msgIndex]);
-      if (curr) curr.classList.add('active');
-      const statusEl = document.getElementById('buildStatus');
-      if (statusEl) {
-        statusEl.style.animation = 'none';
-        void statusEl.offsetHeight;
-        statusEl.style.animation = '';
-        statusEl.textContent = BUILD_MESSAGES[msgIndex];
-      }
-    }
-  }, 22000);
-
-  const pollInterval = setInterval(async () => {
-    try {
-      const res  = await fetch(`${WORKER_BUILD}/build-status?token=${appState.sessionToken}`);
-      const data = await res.json();
-
-      if (data.status === 'ready') {
-        clearInterval(pollInterval);
-        clearInterval(stepInterval);
-        appState.slug = data.slug;
-        STEP_IDS.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) { el.classList.remove('active'); el.classList.add('done'); }
-        });
-        const statusEl = document.getElementById('buildStatus');
-        if (statusEl) statusEl.textContent = 'Your site is ready! 🎉';
-        setTimeout(async () => {
-          await fetchPreviewMeta(data.slug);
-          loadPreview(data.slug);
-        }, 900);
-
-      } else if (data.status === 'error') {
-        clearInterval(pollInterval);
-        clearInterval(stepInterval);
-        toast('Build failed — our team has been alerted', 'error');
-        const statusEl2 = document.getElementById('buildStatus');
-        if (statusEl2) statusEl2.textContent = 'Something went wrong — our team has been alerted.';
-      }
-    } catch(e) { /* ignore transient errors */ }
-  }, 3000);
-
-  setTimeout(() => {
-    const statusEl3 = document.getElementById('buildStatus');
-    if (statusEl3 && !appState.slug) {
-      statusEl3.textContent = 'Still building — complex sites take a little longer. Hang tight...';
-    }
-  }, 150000);
-}
-
-// ────────────────────────────────────────────────────────────
-// PREVIEW META — fetches tier info + hero photos + taglines
-// ────────────────────────────────────────────────────────────
-async function fetchPreviewMeta(slug) {
-  try {
-    const res  = await fetch(`${WORKER_BUILD}/preview-meta?slug=${encodeURIComponent(slug)}`);
-    if (!res.ok) return;
-    const data = await res.json();
-
-    appState.airtableId   = data.airtableId;
-    appState.industry     = (data.industry || 'default').toLowerCase();
-    appState.retainer     = data.retainer != null ? data.retainer : 999;
-    appState.package      = data.package || 'Standard';
-    appState.pkgKey       = pkgKeyOf(appState.package);
-    appState.heroPhotos   = data.heroPhotos || [];
-    appState.taglines     = data.taglines  || null;
-    appState.businessName = data.businessName || '';
-    // Show upsell teaser
-    const upsellTeaser = document.getElementById('upsellTeaser');
-    if (upsellTeaser && appState.pkgKey !== 'premium') {
-      upsellTeaser.style.display = '';
-      if (appState.pkgKey === 'express') {
-        document.getElementById('upsellText').textContent = 'Upgrade to Standard for R150/mo more';
-        document.getElementById('upsellFeatures').innerHTML = '✓ Services, About & Contact pages<br>✓ Custom email<br>✓ Referral programme<br>✓ Site analytics';
-        document.getElementById('upsellBtn').textContent = 'Upgrade to Standard →';
-        document.getElementById('upsellBtn').onclick = () => handleUpgradeTo('Standard');
-      } else if (appState.pkgKey === 'standard') {
-        document.getElementById('upsellText').textContent = 'Upgrade to Premium for R150/mo more';
-        document.getElementById('upsellFeatures').innerHTML = '✓ Photo gallery<br>✓ 2 email accounts<br>✓ Unlimited revisions<br>✓ Priority support';
-        document.getElementById('upsellBtn').textContent = 'Upgrade to Premium →';
-        document.getElementById('upsellBtn').onclick = () => handleUpgradeTo('Premium');
-      }
-    }
-    // Show expiry banner
-    const expiryBanner = document.getElementById('expiryBanner');
-    if (expiryBanner && data.expiryDays) {
-      expiryBanner.style.display = '';
-      document.getElementById('expiryDays').textContent = data.expiryDays;
-    }
-
-    // Tier-aware pages array
-    if (appState.pkgKey === 'express') {
-      appState.pages = ['index'];
-    } else if (appState.pkgKey === 'standard') {
-      appState.pages = ['index','services','about','contact'];
-    } else {
-      appState.pages = ['index','services','about','contact','gallery'];
-    }
-
-    // Update price displays
-    const lbl = priceLabelOf(appState.retainer);
-    document.querySelectorAll('#ctaPrice').forEach(el => el.textContent = lbl);
-    document.querySelectorAll('#drawerGoLivePrice').forEach(el => el.textContent = `${lbl} — no setup fee`);
-
-  } catch(e) { console.warn('fetchPreviewMeta failed:', e); }
-}
-
-// ────────────────────────────────────────────────────────────
-// PREVIEW LOAD (state-preview)
-// ────────────────────────────────────────────────────────────
-function loadPreview(slug) {
-  showState('preview');
-
-  const baseUrl = `https://${PREVIEW_DOMAIN}/${slug}`;
-  appState.previewBaseUrl = baseUrl;
-
-  const iframe = document.getElementById('previewFrame');
-  iframe.src   = baseUrl + '/raw/?page=' + (appState.currentPage || 'index');
-
-  // Show/hide tabs based on tier
-  const pkgKey = appState.pkgKey;
-  const showTab = (id, visible) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = visible ? '' : 'none';
-  };
-  showTab('servicesTab', pkgKey !== 'express');
-  showTab('aboutTab',    pkgKey !== 'express');
-  showTab('contactTab',  pkgKey !== 'express');
-  showTab('galleryTab',  pkgKey === 'premium');
-
-  // Hide drawer gallery section for non-Premium
-  const drawerGallery = document.getElementById('drawerGallerySection');
-  if (drawerGallery) drawerGallery.style.display = pkgKey === 'premium' ? '' : 'none';
-
-  // Wire page tabs — tabs must load the /raw/ endpoint (plain site HTML for
-  // the iframe). Hitting base + '/' + page would re-load the SPA recursively
-  // inside the iframe, since build-worker now serves the SPA at /{slug}/*.
-  document.querySelectorAll('.page-tab').forEach(btn => {
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    newBtn.addEventListener('click', function() {
-      document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      const page = this.dataset.page;
-      appState.currentPage = page;
-      const base = appState.previewBaseUrl || baseUrl;
-      document.getElementById('previewFrame').src = base + '/raw/?page=' + page + '&_=' + Date.now();
-    });
-  });
-
-  buildDrawerPanel();
-  iframe.addEventListener('load', () => {}, { once: true });
-}
-
-// ────────────────────────────────────────────────────────────
-// DRAWER (tweak)
-// ────────────────────────────────────────────────────────────
-function toggleDrawer() {
-  appState.drawerOpen = !appState.drawerOpen;
-  document.getElementById('tweakDrawer').classList.toggle('open', appState.drawerOpen);
-}
-
-function buildDrawerPanel() {
-  // Palette swatches
-  const paletteRow = document.getElementById('paletteRow');
-  if (paletteRow) {
-    paletteRow.innerHTML = '';
-    PALETTES.forEach(p => {
-      const sw = document.createElement('div');
-      sw.className = 'swatch' + (appState.choices.palette === p.id ? ' active' : '');
-      sw.style.background = `linear-gradient(135deg, ${p.colors[0]} 0%, ${p.colors[1]} 100%)`;
-      const lbl = document.createElement('div');
-      lbl.className = 'swatch-name';
-      lbl.textContent = p.name;
-      sw.appendChild(lbl);
-      sw.onclick = () => choosePalette(p.id, sw);
-      paletteRow.appendChild(sw);
-    });
-  }
-
-  // Font options
-  const fontRow = document.getElementById('fontRow');
-  if (fontRow) {
-    fontRow.innerHTML = '';
-    FONTS.forEach(f => {
-      const el = document.createElement('div');
-      el.className = 'font-opt' + (appState.choices.font === f.id ? ' active' : '');
-      el.innerHTML = `<div class="font-opt-name" style="font-family:${FONT_STACKS[f.id]};">${f.name}</div><div class="font-opt-style">${f.style}</div>`;
-      el.onclick = () => chooseFont(f.id, el);
-      fontRow.appendChild(el);
-    });
-  }
-
-  // Hero photos
-  const strip = document.getElementById('photoStrip');
-  if (strip) {
-    strip.innerHTML = '';
-    const photos = (appState.heroPhotos && appState.heroPhotos.length > 0)
-      ? appState.heroPhotos
-      : [
-          'https://images.unsplash.com/photo-1497366216548-37526070297c?w=140&q=70',
-          'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=140&q=70',
-          'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=140&q=70',
-          'https://images.unsplash.com/photo-1556742031-c6961e8560b0?w=140&q=70',
-          'https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?w=140&q=70',
-        ];
-    photos.forEach((url, i) => {
-      const img = document.createElement('img');
-      img.className = 'photo-thumb' + (appState.choices.photo === url ? ' active' : '');
-      img.src = url;
-      img.alt = `Photo ${i+1}`;
-      img.onclick = () => choosePhoto(url, img);
-      strip.appendChild(img);
-    });
-  }
-
-  // Taglines
-  const taglineEl = document.getElementById('taglineOpts');
-  if (taglineEl) {
-    taglineEl.innerHTML = '';
-    const ind = (appState.industry || 'default').toLowerCase();
-    const taglines = appState.taglines || TAGLINES_BY_INDUSTRY[ind] || TAGLINES_BY_INDUSTRY.default;
-    taglines.forEach(t => {
-      const el = document.createElement('div');
-      el.className = 'tagline-opt' + (appState.choices.tagline === t ? ' active' : '');
-      el.textContent = `"${t}"`;
-      el.onclick = () => chooseTagline(t, el);
-      taglineEl.appendChild(el);
-    });
-  }
-
-  buildRevisionChips();
-}
-
-// ────────────────────────────────────────────────────────────
-// LIVE IFRAME DOM MANIPULATION
-// ────────────────────────────────────────────────────────────
-function getIframeDoc() {
-  try {
-    const frame = document.getElementById('previewFrame');
-    const doc = frame.contentDocument || frame.contentWindow?.document;
-    return doc && doc.body ? doc : null;
-  } catch(e) { return null; }
-}
-
-function injectStyle(doc, id, css) {
-  let el = doc.getElementById(id);
-  if (!el) {
-    el = doc.createElement('style');
-    el.id = id;
-    (doc.head || doc.body).appendChild(el);
-  }
-  el.textContent = css;
-}
-
-function applyPaletteToFrame(palette) {
-  const doc = getIframeDoc();
-  if (!doc) return false;
-
-  const p = PALETTES.find(x => x.id === palette);
-  if (!p) return false;
-
-  injectStyle(doc, 'wh-palette-override', `
-    :root { --primary: ${p.colors[1]} !important; --accent: ${p.colors[1]} !important; --acc: ${p.colors[1]} !important; --hero-bg: ${p.colors[0]} !important; --bg: ${p.colors[0]} !important; }
-    a { color: ${p.colors[1]} !important; }
-    button, .btn, [class*="btn"] { background-color: ${p.colors[1]} !important; color: #fff !important; }
-    header, nav, .hero, [class*="hero"], [class*="header"] { background-color: ${p.colors[0]} !important; }
-  `);
-  return true;
-}
-
-function applyFontToFrame(fontId) {
-  const doc = getIframeDoc();
-  if (!doc) return false;
-  const stack = FONT_STACKS[fontId];
-  const importUrl = FONT_IMPORTS[fontId];
-  if (!stack) return false;
-
-  const linkId = `wh-font-link-${fontId}`;
-  if (!doc.getElementById(linkId)) {
-    const link = doc.createElement('link');
-    link.id = linkId; link.rel = 'stylesheet'; link.href = importUrl;
-    (doc.head || doc.body).appendChild(link);
-  }
-  injectStyle(doc, 'wh-font-override',
-    `body, h1, h2, h3, h4, p, span, div, button, a, li { font-family: ${stack} !important; }`);
-  return true;
-}
-
-function applyPhotoToFrame(url) {
-  const doc = getIframeDoc();
-  if (!doc) return false;
-
-  const imgs = Array.from(doc.querySelectorAll('img, [style*="background-image"]'));
-  let heroImg = null, heroEl = null;
-  for (const img of imgs) {
-    if (img.tagName === 'IMG') {
-      if (img.className?.toLowerCase().includes('hero') || img.id?.toLowerCase().includes('hero')) {
-        heroImg = img; break;
-      }
-      if (!heroImg && img.getBoundingClientRect().width > 200) heroImg = img;
-    } else {
-      if (img.className?.toLowerCase().includes('hero') || img.id?.toLowerCase().includes('hero')) {
-        heroEl = img; break;
-      }
-    }
-  }
-  if (heroImg) { heroImg.src = url.replace('w=140','w=1200').replace('q=70','q=85'); return true; }
-  if (heroEl)  { heroEl.style.backgroundImage = `url('${url.replace('w=140','w=1200')}')`; return true; }
-  return false;
-}
-
-function applyTaglineToFrame(text) {
-  const doc = getIframeDoc();
-  if (!doc) return false;
-  const headings = Array.from(doc.querySelectorAll('h1, h2'));
-  for (const h of headings) {
-    if (h.getBoundingClientRect().top < window.innerHeight * 0.6) {
-      if (!h.dataset.whOriginal) h.dataset.whOriginal = h.textContent;
-      h.textContent = text;
-      return true;
-    }
-  }
-  return false;
-}
-
-// ────────────────────────────────────────────────────────────
-// CHOICE HANDLERS
-// ────────────────────────────────────────────────────────────
-function choosePalette(id, el) {
-  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
-  el.classList.add('active');
-  appState.choices.palette = id;
-  const applied = applyPaletteToFrame(id);
-  if (!applied) patchAndReload({ palette: id });
-  saveChoices();
-}
-
-function chooseFont(id, el) {
-  document.querySelectorAll('.font-opt').forEach(f => f.classList.remove('active'));
-  el.classList.add('active');
-  appState.choices.font = id;
-  const applied = applyFontToFrame(id);
-  if (!applied) patchAndReload({ font: id });
-  saveChoices();
-}
-
-function choosePhoto(url, el) {
-  document.querySelectorAll('.photo-thumb').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  appState.choices.photo = url;
-  applyPhotoToFrame(url);
-  saveChoices();
-}
-
-function chooseTagline(text, el) {
-  document.querySelectorAll('.tagline-opt').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  appState.choices.tagline = text;
-  applyTaglineToFrame(text);
-  saveChoices();
-}
-
-// ────────────────────────────────────────────────────────────
-// PATCH + RELOAD — routed to PATCH-WORKER per battle plan §11
-// ────────────────────────────────────────────────────────────
-async function patchAndReload(patch) {
-  if (!appState.slug || !appState.airtableId) return;
-  const overlay = document.getElementById('patchOverlay');
-  if (overlay) overlay.classList.add('show');
-
-  try {
-    await fetch(`${WORKER_PATCH}/patch-preview`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ airtableId: appState.airtableId, slug: appState.slug, patch }),
-    });
-    const iframe = document.getElementById('previewFrame');
-    iframe.addEventListener('load', () => {
-      if (overlay) overlay.classList.remove('show');
-      // Re-apply other in-memory choices after reload
-      if (appState.choices.font)    applyFontToFrame(appState.choices.font);
-      if (appState.choices.photo)   applyPhotoToFrame(appState.choices.photo);
-      if (appState.choices.tagline) applyTaglineToFrame(appState.choices.tagline);
-    }, { once: true });
-    iframe.src = `https://${PREVIEW_DOMAIN}/${appState.slug}/raw/?page=${appState.currentPage || 'index'}&_=${Date.now()}`;
-  } catch(e) {
-    if (overlay) overlay.classList.remove('show');
-    toast('Could not apply change — try again', 'error');
-  }
-}
-
-// ────────────────────────────────────────────────────────────
-// PHOTO UPLOADS (drawer + manage panel)
-// ────────────────────────────────────────────────────────────
-async function uploadHeroPhoto(input) {
-  if (!input.files[0]) return;
-  toast('Uploading hero photo...');
-  try {
-    const formData = new FormData();
-    formData.append('airtableId', appState.airtableId || appState.slug);
-    formData.append('slug',       appState.slug);
-    formData.append('file_0',     input.files[0]);
-    const res  = await fetch(`${WORKER_PATCH}/upload-assets`, { method:'POST', body:formData });
-    const data = await res.json();
-    if (!res.ok) { toast(data.error || 'Upload failed', 'error'); return; }
-    const url = data.url || URL.createObjectURL(input.files[0]);
-    applyPhotoToFrame(url);
-    toast('Hero photo updated ✅', 'success');
-  } catch(e) { toast('Upload failed — try again', 'error'); }
-}
-
-async function uploadGalleryPhoto(input, index) {
-  if (!input.files[0]) return;
-  const slot = input.closest('.gallery-slot');
-  toast('Uploading gallery photo...');
-  try {
-    const formData = new FormData();
-    formData.append('airtableId', appState.airtableId || appState.slug);
-    formData.append('slug',       appState.slug);
-    formData.append('file_0',     input.files[0]);
-    const res  = await fetch(`${WORKER_PATCH}/upload-assets`, { method:'POST', body:formData });
-    const data = await res.json();
-    if (!res.ok) {
-      // Upgrade nudge if available
-      if (data.upgradeAvailable && data.upgradeDelta) {
-        toast(`${data.error} — upgrade for R${data.upgradeDelta}/mo more`, 'error');
-      } else {
-        toast(data.error || 'Upload failed', 'error');
-      }
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (slot) {
-        slot.innerHTML = `<img src="${e.target.result}" alt="Gallery photo ${index+1}">`;
-        slot.classList.add('uploaded');
-      }
-    };
-    reader.readAsDataURL(input.files[0]);
-    toast(`Gallery photo ${index+1} uploaded ✅`, 'success');
-  } catch(e) { toast('Upload failed — try again', 'error'); }
-}
-
-async function uploadManagePhoto(input) {
-  if (!input.files[0]) return;
-  if (!appState.airtableId || !appState.slug) { toast('Cannot upload — manage token not loaded', 'error'); return; }
-  toast('Uploading photo...');
-  try {
-    const formData = new FormData();
-    formData.append('airtableId', appState.airtableId);
-    formData.append('slug',       appState.slug);
-    formData.append('file_0',     input.files[0]);
-    const res  = await fetch(`${WORKER_PATCH}/upload-assets`, { method:'POST', body:formData });
-    const data = await res.json();
-    if (!res.ok) {
-      if (data.upgradeAvailable && data.upgradeDelta) {
-        toast(`${data.error} — upgrade R${data.upgradeDelta}/mo`, 'error');
-      } else {
-        toast(data.error || 'Upload failed', 'error');
-      }
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const slot = input.closest('.photo-slot');
-      if (slot) slot.innerHTML = `<img src="${e.target.result}" alt="Uploaded photo">`;
-    };
-    reader.readAsDataURL(input.files[0]);
-    toast('Photo uploaded ✅', 'success');
-  } catch(e) { toast('Upload failed — try again', 'error'); }
-}
-
-// ────────────────────────────────────────────────────────────
-// REVERT, LOGO, CHOICES SAVE
-// ────────────────────────────────────────────────────────────
-async function handleRevert() {
-  if (!appState.slug) return;
-  if (!confirm('Revert all changes and restore your original site? This cannot be undone.')) return;
-  toast('Reverting...');
-  try {
-    const res = await fetch(`${WORKER_BUILD}/preview-revert`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ slug: appState.slug }),
-    });
-    if (!res.ok) { toast('Could not revert — try again', 'error'); return; }
-    const iframe = document.getElementById('previewFrame');
-    // Must hit /raw/ — bare /{slug} now serves the SPA shell, which would
-    // re-load this whole app recursively inside the iframe.
-    iframe.src = `https://${PREVIEW_DOMAIN}/${appState.slug}/raw/?page=${appState.currentPage || 'index'}&_=${Date.now()}`;
-    toast('Reverted to original ✅', 'success');
-  } catch(e) { toast('Could not revert — try again', 'error'); }
-}
-
-async function handleLogo(input) {
-  if (!input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const dataUrl = e.target.result;
-    appState.choices.logo_url = dataUrl;
-    const btn = document.getElementById('logoBtn');
-    if (btn) btn.innerHTML = `<img class="logo-preview-img" src="${dataUrl}" alt="Logo"> <span>Logo uploaded ✓</span>`;
-    await saveChoices();
-    toast('Logo saved ✅', 'success');
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-
-async function saveChoices() {
-  if (!appState.slug) return;
-  try {
-    await fetch(`${WORKER_BUILD}/preview-choices`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ slug: appState.slug, ...appState.choices }),
-    });
-  } catch(e) { /* non-fatal */ }
-}
-
-// ────────────────────────────────────────────────────────────
-// GO LIVE — routes through PayFast via shared link builder
-// PayFast URL is constructed server-side via buildPayFastLink for
-// proper sandbox/production routing. Here we hit a thin endpoint
-// that returns the URL, or build it client-side using known retainer.
-// ────────────────────────────────────────────────────────────
-async function handleGoLive() {
-  const id = appState.airtableId;
-  if (!id) { toast('Loading...'); return; }
-
-  // Promo code bypass — skip PayFast entirely, go straight to go-live pipeline
-  if (appState.promoCode) { return handlePromoCheckout(); }
-
-  // Fix B: Server-side PayFast link generation — includes signature + sandbox mode
-  try {
-    toast('Preparing checkout...');
-    const res = await fetch(`${WORKER_LAUNCH}/go-live-link`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        airtableId: id,
-        slug:       appState.slug,
-        package:    appState.package || 'Standard',
-        retainer:   appState.retainer || 999,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.url) {
-      toast(data.error || 'Could not generate checkout link. Please try again.');
-      return;
-    }
-    const payWindow = window.open(data.url, '_blank');
-    if (!payWindow) {
-      window.location.href = data.url;
-    } else {
-      toast('Complete payment in the new tab ✅');
-    }
-  } catch (e) {
-    toast('Network error. Please check your connection and try again.');
-  }
-}
-
-// ────────────────────────────────────────────────────────────
-// PROMO CODE — bypass PayFast and go straight to go-live
-// ────────────────────────────────────────────────────────────
-function togglePromoField() {
-  const wrap = document.getElementById('promoInputWrap');
-  const showing = wrap.style.display === 'flex';
-  wrap.style.display = showing ? 'none' : 'flex';
-  if (!showing) document.getElementById('promoInput').focus();
-}
-
-function applyPromoCode() {
-  const code = (document.getElementById('promoInput').value || '').trim();
-  if (!code) { toast('Enter your promo code'); return; }
-  appState.promoCode = code;
-  document.getElementById('promoInputWrap').style.display = 'none';
-  document.getElementById('promoApplied').style.display   = 'block';
-  // Update button to signal free activation
-  const btn = document.querySelector('.go-live-btn');
-  if (btn) btn.classList.add('promo-active');
-  const priceEl = document.getElementById('drawerGoLivePrice');
-  if (priceEl) priceEl.textContent = 'FREE — promo applied';
-  const ctaEl = document.getElementById('ctaPrice');
-  if (ctaEl) ctaEl.textContent = 'FREE';
-  toast('Promo code saved ✅ Tap Go Live to activate');
-}
-
-async function handlePromoCheckout() {
-  const id = appState.airtableId;
-  if (!id) { toast('Loading...'); return; }
-  toast('Activating your site...');
-  try {
-    const res = await fetch(`${WORKER_LAUNCH}/promo-checkout`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        airtableId: id,
-        slug:       appState.slug,
-        promoCode:  appState.promoCode,
-        package:    appState.package  || 'Standard',
-        retainer:   appState.retainer || 999,
-        choices:    appState.choices  || {},
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      if (res.status === 403) {
-        // Invalid code — reset state
-        appState.promoCode = null;
-        document.getElementById('promoApplied').style.display   = 'none';
-        document.getElementById('promoInputWrap').style.display = 'flex';
-        document.querySelector('.go-live-btn')?.classList.remove('promo-active');
-        const priceEl = document.getElementById('drawerGoLivePrice');
-        if (priceEl) priceEl.textContent = `R${appState.retainer || 999}/month — no setup fee`;
-        toast('Invalid promo code ❌ Please check and try again');
-        return;
-      }
-      toast(data.error || 'Something went wrong. Try again.');
-      return;
-    }
-    toast('🚀 Site activated! Domain provisioning underway...');
-    setTimeout(() => toast(`Live at ${data.domain} — manage link coming via WhatsApp`), 3500);
-  } catch (e) {
-    console.error('promo-checkout error:', e);
-    toast('Network error — please try again');
-  }
-}
-
-function handleNotInterested() {
-  if (!appState.slug) return;
-  const phone = appState.businessName ? '' : ''; // phone resolved server-side
-  window.location.href = `${WORKER_REACTIVATE}/not-interested?slug=${encodeURIComponent(appState.slug)}`;
-}
-
-function openDashboard() {
-  if (appState.manageToken) {
-    window.location.href = `https://${PREVIEW_DOMAIN}/manage/${appState.manageToken}`;
-  } else {
-    const overlay = document.getElementById('preLiveOverlay');
-    if (overlay) overlay.style.display = 'flex';
-  }
-}
-
-// ────────────────────────────────────────────────────────────
-// MANAGE PANEL — tier-gated rendering
-// ────────────────────────────────────────────────────────────
-async function loadManagePanel() {
-  show('loadingScreen');
-  try {
-    const res  = await fetch(`${WORKER_PATCH}/manage-panel?token=${appState.manageToken}`);
-    const data = await res.json();
-
-    if (!res.ok) {
-      hide('loadingScreen');
-      document.getElementById('manageBiz').textContent = 'Access denied';
-      showState('manage');
-      return;
-    }
-
-    appState.manageData = data;
-    appState.airtableId = data.airtableId;
-    appState.slug       = data.slug;
-    appState.package    = data.package || 'Standard';
-    appState.pkgKey     = pkgKeyOf(data.package);
-    appState.retainer   = data.retainer || 999;
-    appState.businessName = data.businessName;
-
-    // ── Header
-    document.getElementById('manageDomain').textContent = data.domain || '—';
-    document.getElementById('manageBiz').textContent    = data.businessName || '—';
-
-    const badge = document.getElementById('managePackageBadge');
-    badge.textContent = data.package || 'Standard';
-    badge.className = 'manage-package-badge ' + appState.pkgKey;
-
-    document.getElementById('mDays').textContent     = data.daysUntilInvoice ?? '—';
-    document.getElementById('mRetainer').textContent = `R${data.retainer || 0}`;
-
-    // Revisions stat — show ∞ for premium, free remaining otherwise
-    const revUsed  = data.revisions?.used  ?? 0;
-    const revLimit = data.revisions?.limit;  // null for premium
-    const isPrem   = appState.pkgKey === 'premium';
-
-    document.getElementById('mRevisions').textContent = isPrem ? '∞' : String(Math.max(0, (revLimit ?? 0) - revUsed));
-
-    // ── Status section
-    document.getElementById('manageLiveUrl').textContent     = data.liveUrl || '—';
-    document.getElementById('manageLiveUrl').href            = data.liveUrl || '#';
-    document.getElementById('manageNextInvoice').textContent = data.nextInvoiceDate || '—';
-
-    // ── Revisions section
-    if (isPrem) {
-      document.getElementById('revCounterLabel').textContent = 'Unlimited';
-      document.getElementById('revCounterRight').textContent = 'Premium';
-      document.getElementById('revFill').style.width = '0%';
-      document.getElementById('revPaidNotice').style.display = 'none';
-    } else {
-      const limit = revLimit || (appState.pkgKey === 'express' ? 1 : 2);
-      document.getElementById('revCounterLabel').textContent = `${revUsed}/${limit} used`;
-      document.getElementById('revCounterRight').textContent = `${Math.max(0, limit - revUsed)} remaining`;
-      document.getElementById('revFill').style.width = `${Math.min(100, (revUsed/limit)*100)}%`;
-      // Show paid-revision notice when at or over limit
-      const noticeEl = document.getElementById('revPaidNotice');
-      if (revUsed >= limit) {
-        noticeEl.style.display = 'block';
-        document.getElementById('revPaidCost').textContent = `R${data.revisions?.paidCost ?? 500}`;
-      } else {
-        noticeEl.style.display = 'none';
-      }
-    }
-
-    // ── Gallery section
-    const gallery = data.gallery;
-    if (gallery && gallery.enabled) {
-      document.getElementById('galleryUnlocked').style.display = '';
-      document.getElementById('galleryLocked').style.display   = 'none';
-      document.getElementById('galleryPhotoCount').textContent = String(gallery.photoCount || 0);
-      document.getElementById('galleryMaxPhotos').textContent  = String(gallery.maxPhotos  || 0);
-    } else {
-      document.getElementById('galleryUnlocked').style.display = 'none';
-      document.getElementById('galleryLocked').style.display   = '';
-      // Customise the locked body per current tier
-      const lockedBody = document.getElementById('galleryLockedBody');
-      if (appState.pkgKey === 'express') {
-        lockedBody.textContent = 'Photo gallery is included with Standard and Premium. Upgrade to add photos.';
-      }
-    }
-
-    // ── Email section
-    const email = data.email || { included: 0, addonAvailable: false, addonCost: 0 };
-    if (email.included > 0) {
-      document.getElementById('emailUnlocked').style.display = '';
-      document.getElementById('emailLocked').style.display   = 'none';
-      const domain  = (data.domain || '').replace(/\.co\.za$/, '.co.za');
-      const accounts = ['info'];
-      if (email.included >= 2) accounts.push('hello');
-      const listEl = document.getElementById('emailList');
-      listEl.innerHTML = accounts.map(local =>
-        `<div class="email-row">${local}@${domain}</div>`
-      ).join('');
-      if (email.included > 1) document.getElementById('emailMultiple').style.display = '';
-      if (email.addonAvailable) {
-        document.getElementById('emailAddonOffer').style.display = '';
-        document.getElementById('emailAddonCost').textContent = String(email.addonCost);
-      }
-    } else {
-      document.getElementById('emailUnlocked').style.display = 'none';
-      document.getElementById('emailLocked').style.display   = '';
-    }
-
-    // ── Referral section
-    const referral = data.referral;
-    if (referral && referral.enabled) {
-      document.getElementById('referralUnlocked').style.display = '';
-      document.getElementById('referralLocked').style.display   = 'none';
-      const link = referral.link || `https://websitehub.co.za?ref=${data.slug}`;
-      document.getElementById('referralLinkText').textContent = link;
-      document.getElementById('refSent').textContent        = String(referral.sent || 0);
-      document.getElementById('refConversions').textContent = String(referral.conversions || 0);
-      document.getElementById('refReward').textContent      = String(referral.rewardMonths || 0);
-      // Position fetched from /referral-stats endpoint
-      fetchReferralPosition(data.slug);
-
-      document.getElementById('copyRefBtn').onclick  = () => navigator.clipboard?.writeText(link).then(() => toast('Link copied! 📋'));
-      document.getElementById('shareRefBtn').onclick = () => window.open(`https://wa.me/?text=${encodeURIComponent('Check out Website Hub — they built my business website: ' + link)}`);
-    } else {
-      document.getElementById('referralUnlocked').style.display = 'none';
-      document.getElementById('referralLocked').style.display   = '';
-    }
-
-    // ── Analytics section
-    const analytics = data.analytics;
-    if (analytics && analytics.enabled) {
-      document.getElementById('analyticsUnlocked').style.display = '';
-      document.getElementById('analyticsLocked').style.display   = 'none';
-      fetchAnalytics(analytics.slug || data.slug);
-    } else {
-      document.getElementById('analyticsUnlocked').style.display = 'none';
-      document.getElementById('analyticsLocked').style.display   = '';
-    }
-
-    // ── Leaderboard (Standard + Premium)
-    if (appState.pkgKey === 'express') {
-      document.getElementById('leaderboardLocked').style.display = '';
-      document.getElementById('leaderboardList').style.display   = 'none';
-    } else {
-      document.getElementById('leaderboardLocked').style.display = 'none';
-      document.getElementById('leaderboardList').style.display   = '';
-      fetchLeaderboard(data.slug);
-    }
-
-    // ── Upgrade offers (one card per available)
-    const upgradeOffers = data.upgradeOffers || [];
-    if (upgradeOffers.length > 0) {
-      document.getElementById('sec-upgrades').style.display = '';
-      renderUpgradeOffers(upgradeOffers);
-    } else {
-      document.getElementById('sec-upgrades').style.display = 'none';
-    }
-
-    buildRevisionChips();
-    showState('manage');
-
-  } catch(e) {
-    hide('loadingScreen');
-    showState('manage');
-    toast('Could not load manage panel', 'error');
-    console.warn('loadManagePanel error:', e);
-  }
-}
-
-function renderUpgradeOffers(offers) {
-  const body = document.getElementById('upgradeOffersBody');
-  body.innerHTML = '';
-  offers.forEach(offer => {
-    const isPrem = offer.to === 'Premium';
-    const features = isPrem
-      ? '• Photo gallery (WhatsApp updates)<br>• 2 email accounts<br>• Unlimited revisions<br>• Site analytics<br>• Referral programme'
-      : '• Services/About/Contact pages<br>• Email account at your domain<br>• 2 free revisions/month<br>• Site analytics<br>• Referral programme';
-
-    const card = document.createElement('div');
-    card.className = 'upgrade-card' + (isPrem ? ' premium-card' : '');
-    card.innerHTML = `
-      <div class="upgrade-delta">+R${offer.delta}</div>
-      <div class="upgrade-to">per month — upgrade to <strong>${offer.to}</strong></div>
-      <div style="font-size:12px;color:var(--white);line-height:1.7;margin-bottom:14px;">${features}</div>
-      <button class="btn-manage primary" style="width:100%;">Upgrade to ${offer.to} →</button>
-    `;
-    card.querySelector('button').onclick = () => handleUpgradeTo(offer.to);
-    body.appendChild(card);
-  });
-}
-
-function toggleSection(id) {
-  document.getElementById(id).classList.toggle('open');
-}
-
-// ────────────────────────────────────────────────────────────
-// REVISION SHEET + PAID REVISION FLOW
-// ────────────────────────────────────────────────────────────
-function buildRevisionChips() {
-  const pc = document.getElementById('revPaletteChips');
-  if (pc) {
-    pc.innerHTML = '';
-    PALETTES.forEach(p => {
-      const el = document.createElement('div');
-      el.className = 'chip';
-      el.textContent = p.name;
-      el.onclick = () => { pc.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); el.dataset.val = p.id; };
-      pc.appendChild(el);
-    });
-  }
-  const fc = document.getElementById('revFontChips');
-  if (fc) {
-    fc.innerHTML = '';
-    FONTS.forEach(f => {
-      const el = document.createElement('div');
-      el.className = 'chip';
-      el.textContent = f.name;
-      el.onclick = () => { fc.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); el.dataset.val = f.id; };
-      fc.appendChild(el);
-    });
-  }
-  const tc = document.getElementById('revTaglineChips');
-  if (tc) {
-    tc.innerHTML = '';
-    const ind = (appState.industry || 'default').toLowerCase();
-    const taglines = appState.taglines || TAGLINES_BY_INDUSTRY[ind] || TAGLINES_BY_INDUSTRY.default;
-    taglines.forEach(t => {
-      const el = document.createElement('div');
-      el.className = 'chip';
-      el.textContent = `"${t}"`;
-      el.onclick = () => { tc.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); el.dataset.val = t; };
-      tc.appendChild(el);
-    });
-  }
-}
-
-function openRevisionSheet() {
-  // Update subtitle based on remaining free revisions
-  const data = appState.manageData;
-  const subEl = document.getElementById('revSheetSub');
-  if (data?.revisions) {
-    const used = data.revisions.used || 0;
-    const limit = data.revisions.limit;
-    if (limit === null) {
-      subEl.textContent = 'Tell us what to change — unlimited revisions on Premium.';
-    } else if (used >= limit) {
-      subEl.textContent = `Free revisions used (${used}/${limit}). This one is R${data.revisions.paidCost || 500}.`;
-    } else {
-      subEl.textContent = `${limit - used} of ${limit} free revisions remaining this month.`;
-    }
-  }
-  document.getElementById('revOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeRevisionSheet() {
-  document.getElementById('revOverlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-async function submitRevision() {
-  const palette  = document.querySelector('#revPaletteChips .chip.active')?.dataset.val || null;
-  const font     = document.querySelector('#revFontChips .chip.active')?.dataset.val    || null;
-  const tagline  = document.querySelector('#revTaglineChips .chip.active')?.dataset.val || null;
-  const specials = document.getElementById('revSpecials')?.value?.trim() || '';
-
-  if (!palette && !font && !tagline && !specials) { toast('Make at least one selection', 'error'); return; }
-
-  const btn = document.getElementById('revSubmitBtn');
-  if (btn) { btn.textContent = 'Submitting...'; btn.disabled = true; }
-
-  const payload = { token: appState.manageToken, palette, font, tagline, specials };
-
-  try {
-    const res  = await fetch(`${WORKER_PATCH}/submit-revision`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload),
-    });
-    const data = await res.json();
-
-    if (res.status === 402 && data.error === 'revision_payment_required') {
-      // Paid revision flow — close sheet, show payment confirmation
-      closeRevisionSheet();
-      appState.pendingPaidRevision = {
-        paymentLink:   data.paymentLink,
-        revisionToken: data.revisionToken,
-        paidCost:      data.paidCost,
-      };
-      showPaidRevOverlay(data.paidCost, data.paymentLink);
-      return;
-    }
-
-    if (!res.ok) {
-      toast(data.error || 'Something went wrong', 'error');
-    } else {
-      closeRevisionSheet();
-      toast('Revision submitted — live in ~10 minutes ✅', 'success');
-      // Update local counter + UI
-      if (typeof data.used === 'number') {
-        const limit = data.limit;
-        appState.manageData.revisions.used = data.used;
-        if (limit === null) {
-          document.getElementById('revCounterLabel').textContent = 'Unlimited';
-          document.getElementById('revCounterRight').textContent = 'Premium';
-        } else {
-          document.getElementById('revCounterLabel').textContent = `${data.used}/${limit} used`;
-          document.getElementById('revCounterRight').textContent = `${Math.max(0, limit - data.used)} remaining`;
-          document.getElementById('revFill').style.width = `${Math.min(100, (data.used/limit)*100)}%`;
-          document.getElementById('mRevisions').textContent = String(Math.max(0, limit - data.used));
-          // Show paid notice if just hit limit
-          if (data.used >= limit) {
-            const noticeEl = document.getElementById('revPaidNotice');
-            noticeEl.style.display = 'block';
-          }
-        }
-      }
-    }
-  } catch(e) {
-    toast('Could not submit — try again', 'error');
-  } finally {
-    if (btn) { btn.textContent = 'Submit revision'; btn.disabled = false; }
-  }
-}
-
-function showPaidRevOverlay(cost, paymentLink) {
-  document.getElementById('paidRevPrice').textContent = `R${cost}`;
-  document.getElementById('paidRevPriceInline').textContent = String(cost);
-  document.getElementById('paidRevPayBtn').onclick = () => {
-    window.location.href = paymentLink;
-  };
-  document.getElementById('paidRevOverlay').classList.add('open');
-}
-
-function closePaidRevOverlay() {
-  document.getElementById('paidRevOverlay').classList.remove('open');
-  appState.pendingPaidRevision = null;
-}
-
-// ────────────────────────────────────────────────────────────
-// ANALYTICS + REFERRAL + LEADERBOARD FETCHES
-// ────────────────────────────────────────────────────────────
-async function fetchAnalytics(slug) {
-  if (!slug) return;
-  try {
-    const res  = await fetch(`${WORKER_BUILD}/analytics?slug=${encodeURIComponent(slug)}`);
-    const data = await res.json();
-    document.getElementById('aViews').textContent   = data.views_this_month ?? '—';
-    document.getElementById('aLast').textContent    = data.views_last_month  ?? '—';
-    document.getElementById('aTopPage').textContent = data.top_page          || 'Home';
-    document.getElementById('aWaTaps').textContent  = data.whatsapp_taps ?? '—';
-  } catch(e) { /* non-fatal */ }
-}
-
-async function fetchReferralPosition(slug) {
-  if (!slug) return;
-  try {
-    const res  = await fetch(`${WORKER_BUILD}/referral-stats?slug=${encodeURIComponent(slug)}`);
-    const data = await res.json();
-    document.getElementById('refPosition').textContent = data.position ? `#${data.position}` : '—';
-  } catch(e) { /* non-fatal */ }
-}
-
-async function fetchLeaderboard(mySlug) {
-  const list = document.getElementById('leaderboardList');
-  if (!list) return;
-  try {
-    const res  = await fetch(`${WORKER_BUILD}/leaderboard`);
-    const data = await res.json();
-    if (!data.length) {
-      list.innerHTML = '<div style="font-size:13px;color:var(--muted);">No referrals yet this month — be the first!</div>';
-      return;
-    }
-    list.innerHTML = data.map(row => {
-      const isMe = mySlug && row.slug.startsWith(mySlug.slice(0, 3));
-      const medal = row.position === 1 ? '🥇' : row.position === 2 ? '🥈' : row.position === 3 ? '🥉' : row.position;
-      return `<div class="lb-row">
-        <div class="lb-pos">${medal}</div>
-        <div class="lb-name ${isMe ? 'lb-you' : ''}">${isMe ? 'You' : row.slug}</div>
-        <div class="lb-count">${row.referrals} referral${row.referrals !== 1 ? 's' : ''}</div>
+/* ── RENDER DASHBOARD ────────────────────────────── */
+function renderDashboard() {
+  const p = selectedPlan;
+  const key = Object.keys(PLANS).find(k => PLANS[k] === p);
+  const badges = { express:'pkg-express', standard:'pkg-standard', premium:'pkg-premium' };
+  const badgeClass = badges[key];
+
+  // Update hero
+  document.getElementById('heroPkgBadge').className = 'pkg-badge ' + badgeClass;
+  document.getElementById('heroPkgBadge').textContent = p.name;
+  document.getElementById('accountPkgBadge').className = 'pkg-badge ' + badgeClass;
+  document.getElementById('accountPkgBadge').textContent = p.name;
+  document.getElementById('accountPrice').innerHTML = `R${p.price}<span style="font-size:.7rem;color:var(--text-secondary)">/mo</span>`;
+
+  // Stats
+  const statGrid = document.getElementById('statGrid');
+  statGrid.innerHTML = `
+    <div class="stat-tile"><div class="stat-num stat-cyan">247</div><div class="stat-lbl">Visits</div></div>
+    <div class="stat-tile"><div class="stat-num stat-purple">38</div><div class="stat-lbl">WA Taps</div></div>
+    ${p.analytics ? `<div class="stat-tile"><div class="stat-num stat-green">12</div><div class="stat-lbl">Referrals</div></div>`
+    : `<div class="stat-tile locked" onclick="showUpgradeNudge('analytics')"><div class="stat-num stat-green">—</div><div class="stat-lbl">Referrals</div><div class="lock-badge">🔒</div></div>`}
+  `;
+
+  // Quick actions
+  const quickRow = document.getElementById('quickRow');
+  quickRow.innerHTML = `
+    <div class="quick-tile" onclick="switchTab('email')"><div class="quick-icon">📧</div><div class="quick-name">Email</div><div class="quick-sub">${p.emails > 0 ? 'info@zululand-flooring.co.za' : 'Not on Express'}</div>${p.emails === 0 ? '<div class="lock-badge">🔒</div>' : ''}</div>
+    <div class="quick-tile" onclick="switchTab('revisions')"><div class="quick-icon">✏️</div><div class="quick-name">Revisions</div><div class="quick-sub">${p.revisions === 99 ? 'Unlimited' : p.revisions + ' free/month'}</div></div>
+    ${p.gallery ? `<div class="quick-tile" onclick="showToast('Gallery — upload photos to your site','info')"><div class="quick-icon">🖼️</div><div class="quick-name">Gallery</div><div class="quick-sub">Up to 30 photos</div></div>`
+    : `<div class="quick-tile locked" onclick="showUpgradeNudge('gallery')"><div class="quick-icon">🖼️</div><div class="quick-name">Gallery</div><div class="quick-sub">Add photos to your site</div><div class="lock-badge">🔒 Prem</div></div>`}
+    ${p.referral ? `<div class="quick-tile" onclick="switchTab('account')"><div class="quick-icon">🎁</div><div class="quick-name">Referrals</div><div class="quick-sub">Earn free months</div></div>`
+    : `<div class="quick-tile locked" onclick="showUpgradeNudge('referral')"><div class="quick-icon">🎁</div><div class="quick-name">Referrals</div><div class="quick-sub">You're missing income here</div><div class="lock-badge">🔒 Std+</div></div>`}
+  `;
+
+  // Upgrade cards — only show what's above current plan
+  const upgradeRow = document.getElementById('upgradeRow');
+  if (key === 'premium') {
+    upgradeRow.innerHTML = `<div style="grid-column:1/-1;font-size:.78rem;color:var(--text-secondary);padding:12px 0;">You're on our top plan. 🎉</div>`;
+  } else if (key === 'standard') {
+    upgradeRow.innerHTML = `
+      <div class="upgrade-tile u-prem" style="grid-column:1/-1;" onclick="showToast('Upgrade to Premium — contact us','info')">
+        <div class="u-plan">Premium</div><div class="u-price">R1 499<span class="u-per">/mo</span></div>
+        <div class="u-delta">+R500/mo from Standard</div>
+        <div class="u-features"><div class="u-feat">30-photo gallery</div><div class="u-feat">2 email accounts</div><div class="u-feat">Unlimited revisions</div><div class="u-feat">Priority builds</div></div>
       </div>`;
-    }).join('');
-  } catch(e) {
-    list.innerHTML = '<div style="font-size:12px;color:var(--muted);">Could not load leaderboard.</div>';
+  } else {
+    upgradeRow.innerHTML = `
+      <div class="upgrade-tile u-std" onclick="showToast('Upgrade to Standard — contact us','info')">
+        <div class="u-plan">Standard</div><div class="u-price">R999<span class="u-per">/mo</span></div>
+        <div class="u-delta">+R300/mo from Express</div>
+        <div class="u-features"><div class="u-feat">Email account</div><div class="u-feat">Referral income</div><div class="u-feat">Analytics</div><div class="u-feat">2 revisions/mo</div></div>
+      </div>
+      <div class="upgrade-tile u-prem" onclick="showToast('Upgrade to Premium — contact us','info')">
+        <div class="u-plan">Premium</div><div class="u-price">R1 499<span class="u-per">/mo</span></div>
+        <div class="u-delta">+R800/mo from Express</div>
+        <div class="u-features"><div class="u-feat">30-photo gallery</div><div class="u-feat">2 email accounts</div><div class="u-feat">Unlimited revisions</div></div>
+      </div>`;
   }
-}
 
-// ────────────────────────────────────────────────────────────
-// UPGRADE — routes through launch-worker /upgrade endpoint
-// Launch-worker calculates the correct delta and returns a PayFast link
-// with custom_str2 = 'upgrade:{key}' for proper webhook routing.
-// ────────────────────────────────────────────────────────────
-async function handleUpgradeTo(target) {
-  if (!appState.airtableId) { toast('Loading...'); return; }
-  if (!target) target = 'Premium';
-
-  toast('Preparing upgrade...');
-  try {
-    const res  = await fetch(`${WORKER_LAUNCH}/upgrade`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ airtableId: appState.airtableId, target }),
-    });
-    const data = await res.json();
-    if (!res.ok) { toast(data.error || 'Could not start upgrade', 'error'); return; }
-    if (data.paymentLink) {
-      window.location.href = data.paymentLink;
+  // Email tab
+  const emailAccounts = document.getElementById('emailAccounts');
+  if (p.emails === 0) {
+    emailAccounts.innerHTML = `
+      <div class="card" style="padding:16px;margin-bottom:12px;">
+        <div style="font-size:.85rem;font-weight:700;margin-bottom:6px;">📧 No Email Account</div>
+        <div style="font-size:.73rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">Express plan doesn't include a branded email address. Upgrade to Standard to get info@yourdomain.co.za</div>
+        <div style="font-size:.75rem;color:var(--accent-magenta);font-weight:700;">Upgrade to Standard — +R300/mo → includes email</div>
+      </div>`;
+  } else {
+    let html = `<div class="email-shortcut" onclick="showToast('Opening inbox...','success')"><div class="email-icon-wrap">📬</div><div style="flex:1"><div class="email-address">info@zululand-flooring.co.za</div><div class="email-label">Primary inbox · Zoho Mail</div></div><div style="color:var(--text-secondary)">→</div></div>`;
+    if (p.emails === 1) {
+      html += `<div class="email-shortcut locked" onclick="showUpgradeNudge('second-email')"><div class="email-icon-wrap" style="opacity:.4">📬</div><div style="flex:1"><div class="email-address" style="color:var(--text-secondary)">hello@zululand-flooring.co.za</div><div class="email-label">Add second inbox · Premium only</div><div style="font-size:.68rem;color:var(--accent-magenta);margin-top:3px;">+R200/mo or upgrade to Premium</div></div><div class="lock-badge" style="position:relative;top:auto;right:auto;">🔒</div></div>`;
+    } else {
+      html += `<div class="email-shortcut" onclick="showToast('Opening hello inbox...','success')"><div class="email-icon-wrap">📬</div><div style="flex:1"><div class="email-address">hello@zululand-flooring.co.za</div><div class="email-label">Secondary inbox · Zoho Mail</div></div><div style="color:var(--text-secondary)">→</div></div>`;
     }
-  } catch(e) {
-    toast('Could not start upgrade — try again', 'error');
+    emailAccounts.innerHTML = html;
+  }
+
+  // Revision counter
+  const revCount = p.revisions === 99 ? '∞' : '1';
+  const revOf = p.revisions === 99 ? '' : `/ ${p.revisions} this month`;
+  document.getElementById('revCounter').innerHTML = `
+    <div><div class="rev-count-lbl">Free Revisions Remaining</div><div><span class="rev-count-num">${revCount}</span> <span class="rev-count-of">${revOf}</span></div></div>
+    <div style="width:52px;height:52px;border-radius:50%;background:rgba(0,240,255,.08);border:2px solid rgba(0,240,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">✏️</div>
+  `;
+
+  // Paid revision
+  document.getElementById('paidRevSection').innerHTML = p.revisions !== 99 ? `
+    <div class="section-label">Need More?</div>
+    <div class="card" style="padding:16px;margin-bottom:12px;">
+      <div style="font-size:.85rem;font-weight:700;margin-bottom:5px;">Paid Revision — R150</div>
+      <div style="font-size:.72rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">Submit an extra revision outside your monthly allowance.</div>
+      <button class="btn btn-outline btn-sm" onclick="showToast('Paid revision flow loading...','info')">Submit Paid Revision — R150</button>
+    </div>` : '';
+
+  // Referral section
+  const referralSection = document.getElementById('referralSection');
+  if (!p.referral) {
+    referralSection.innerHTML = `
+      <div class="card" style="padding:16px;margin-bottom:12px;border-color:rgba(255,0,160,.2);">
+        <div style="font-size:.88rem;font-weight:700;margin-bottom:6px;">🎁 Referral Programme</div>
+        <div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">Refer a business and earn 1 free month when they go live. This feature is unlocked on Standard and Premium plans.</div>
+        <div style="font-size:.75rem;color:var(--accent-magenta);font-weight:700;margin-bottom:12px;">⚠️ You're leaving free months on the table.</div>
+        <button class="btn btn-sm" style="background:rgba(255,0,160,.1);border:1px solid rgba(255,0,160,.3);color:var(--accent-magenta);" onclick="showToast('Upgrade to Standard to unlock referrals','info')">Upgrade to unlock — +R300/mo</button>
+      </div>`;
+  } else {
+    referralSection.innerHTML = `
+      <div class="card" style="margin-bottom:12px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-size:.88rem;font-weight:700;">Your Referral Code</div>
+          <span class="pkg-badge ${badgeClass}">${p.name} ✓</span>
+        </div>
+        <div style="font-size:.73rem;color:var(--text-secondary);margin-bottom:10px;line-height:1.5;">Refer a business. When they go live you earn 1 free month. Vests after 30 days.</div>
+        <div class="ref-code-box"><div class="ref-code">ZUL-3829</div><button class="copy-btn" onclick="copyRef()">Copy</button></div>
+        <div class="ref-stats">
+          <div class="ref-stat"><div class="ref-stat-num">3</div><div class="ref-stat-lbl">Sent</div></div>
+          <div class="ref-stat"><div class="ref-stat-num">1</div><div class="ref-stat-lbl">Live</div></div>
+          <div class="ref-stat"><div class="ref-stat-num">0</div><div class="ref-stat-lbl">Vested</div></div>
+        </div>
+        <div style="font-size:.7rem;color:var(--text-secondary);margin-top:10px;padding:10px;background:rgba(184,41,221,.06);border-radius:8px;line-height:1.5;">⏳ 1 referral vests in 18 days — <span style="color:var(--accent-cyan);">1 free month coming</span></div>
+      </div>`;
   }
 }
 
-function handleEmailAddon() {
-  // Extra email account — Premium only, R200/mo recurring addon.
-  // For now, route through upgrade endpoint with target='email-addon';
-  // launch-worker can recognise this string and build the right PayFast link.
-  // Until launch-worker supports it explicitly, show a WhatsApp prompt.
-  toast('We\'ll WhatsApp you to set up the extra email.');
-  // Could optionally call a worker endpoint here; for MVP a manual touch is fine.
+/* ── TABS ────────────────────────────────────────── */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab).classList.add('active');
+  document.getElementById('dashScroll').scrollTop = 0;
+  if (tab === 'site') buildChart();
 }
+
+/* ── CHART ───────────────────────────────────────── */
+function buildChart() {
+  const bars = document.getElementById('chartBars');
+  const labels = document.getElementById('chartLabels');
+  if (!bars) return;
+  const days = ['M','T','W','T','F','S','S'];
+  const vals = [28,42,35,61,48,30,22];
+  const max = Math.max(...vals);
+  bars.innerHTML = ''; labels.innerHTML = '';
+  vals.forEach((v, i) => {
+    const b = document.createElement('div');
+    b.className = 'bar'; b.style.height = '0%';
+    bars.appendChild(b);
+    setTimeout(() => { b.style.height = (v/max*100) + '%'; }, i * 80);
+    const l = document.createElement('div');
+    l.className = 'chart-lbl'; l.textContent = days[i];
+    labels.appendChild(l);
+  });
+}
+
+/* ── THEME ───────────────────────────────────────── */
+function toggleTheme() {
+  document.body.classList.toggle('theme-light');
+  const isLight = document.body.classList.contains('theme-light');
+  document.querySelector('[onclick="toggleTheme()"]').textContent = isLight ? '🌙' : '☀️';
+  showToast(isLight ? 'Light mode' : 'Dark mode', 'info');
+}
+
+/* ── REFERRAL COPY ───────────────────────────────── */
+function copyRef() {
+  if (navigator.clipboard) navigator.clipboard.writeText('ZUL-3829');
+  showToast('Referral code copied!', 'success');
+}
+
+/* ── UPGRADE NUDGE ───────────────────────────────── */
+function showUpgradeNudge(feature) {
+  const msgs = {
+    analytics:    'Analytics unlock on Standard & Premium.',
+    gallery:      'Photo gallery is a Premium feature.',
+    referral:     'Referrals unlock on Standard. You could be earning free months.',
+    'second-email':'Add a second inbox for R200/mo, or upgrade to Premium.',
+  };
+  showToast(msgs[feature] || 'Upgrade to unlock this feature', 'info');
+}
+
+/* ── TOAST ───────────────────────────────────────── */
+function showToast(msg, type = 'info') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  const icons = { success:'✓', error:'✕', info:'ℹ' };
+  t.innerHTML = `<div class="toast-icon">${icons[type]||'ℹ'}</div><div>${msg}</div>`;
+  c.appendChild(t);
+  setTimeout(() => { t.classList.add('hiding'); setTimeout(() => t.remove(), 400); }, 3200);
+}
+
+/* ── RIPPLE ──────────────────────────────────────── */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn');
+  if (!btn) return;
+  const r = document.createElement('span');
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+  r.classList.add('ripple');
+  btn.appendChild(r);
+  setTimeout(() => r.remove(), 600);
+});
 </script>
 </body>
 </html>
