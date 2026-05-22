@@ -108,6 +108,19 @@ export const WIN_BACK_TRIGGER_DAYS = 90;
 // Prospect cooldown after final "not interested" follow-up.
 export const PROSPECT_COOLDOWN_DAYS = 60;
 
+// ── KV_KEYS registry ──────────────────────────────────────────────────────────
+export const KV_KEYS = {
+  INTAKE_HTML:        'app:intake-experience',
+  CLIENT_SITE:        (slug)        => `site:${slug}`,
+  CLIENT_META:        (slug)        => `meta:${slug}`,
+  OPTOUT:             (phone)       => `optout:${phone}`,
+  PROSPECT_STATE:     (phone)       => `prospect_state:${phone}`,
+  TEMPLATE_HOME:      'template:home',
+  TEMPLATE_SUSPENDED: 'template:suspended',
+  TEMPLATE_CANCELLED: 'template:cancelled',
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ────────────────────────────────────────────────────────────
 // TEST_MODE
 // ────────────────────────────────────────────────────────────
@@ -708,7 +721,8 @@ export async function callClaudeInternal(systemPrompt, messages, env, options = 
     throw new Error('Empty response received from Anthropic');
   }
   await logEvent(env, 'shared', 'claude_api', 'success');
-  return fullText;
+  const stripped = fullText.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  return stripped || fullText;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -1207,20 +1221,14 @@ export async function createZohoCreditNote(args, env) {
  * @returns {{ id: string, slug: string }}
  */
 export async function createClient(env, fields) {
-  const id   = crypto.randomUUID();
-  const slug = slugify(fields.business_name);
-
-  const allFields = { ...fields, id, slug };
-  const cols = Object.keys(allFields).join(', ');
-  const vals = Object.keys(allFields).map(() => '?').join(', ');
-
-  await env.DB.prepare(
-    `INSERT INTO clients (${cols}) VALUES (${vals})`
-  ).bind(...Object.values(allFields)).run();
-
+  const id = crypto.randomUUID();
+  let slug = slugify(fields.business_name);
+  const exists = await env.DB.prepare('SELECT id FROM clients WHERE slug = ? LIMIT 1').bind(slug).first().catch(() => null);
+  if (exists) slug = slug + '-' + Date.now().toString(36).slice(-4);
+  const svc = typeof fields.services === 'string' ? fields.services : JSON.stringify(fields.services || []);
+  await env.DB.prepare(`INSERT INTO clients (id,slug,business_name,client_name,phone,email,industry,area,vibe,services,primary_cta,target_audience,about,differentiator,testimonial,instagram,facebook,tiktok,referral_code_used,status,source,package,retainer) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,slug,fields.business_name||'',fields.client_name||'',fields.phone||'',fields.email||'',fields.industry||'',fields.area||'',fields.vibe||'bold_confident',svc,fields.primary_cta||'whatsapp_us',fields.target_audience||'everyone',fields.about||'',fields.differentiator||'',fields.testimonial||'',fields.instagram||'',fields.facebook||'',fields.tiktok||'',fields.referral_code_used||'',fields.status||'lead',fields.source||'website',fields.package||'standard',fields.retainer||999).run();
   return { id, slug };
 }
-
 export async function getClientById(env, id) {
   return await env.DB.prepare(
     `SELECT * FROM clients WHERE id = ?`
