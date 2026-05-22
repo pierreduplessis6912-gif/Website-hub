@@ -46,7 +46,7 @@ export const SEND_WINDOW = Object.freeze({
 // All other workers import this; no other file may redefine pricing.
 export const PRICING = Object.freeze({
   express:  { build: 0, retainer:  699 },
-  standard: { build: 0, retainer:  999 },
+  standard: { build: 0, retainer:  0 },
   premium:  { build: 0, retainer: 1499 },
   upgrade: {
     expressToStandard: 300,  // 999 - 699
