@@ -108,6 +108,19 @@ export const WIN_BACK_TRIGGER_DAYS = 90;
 // Prospect cooldown after final "not interested" follow-up.
 export const PROSPECT_COOLDOWN_DAYS = 60;
 
+// ── KV_KEYS registry ──────────────────────────────────────────────────────────
+export const KV_KEYS = {
+  INTAKE_HTML:        'app:intake-experience',
+  CLIENT_SITE:        (slug)        => `site:${slug}`,
+  CLIENT_META:        (slug)        => `meta:${slug}`,
+  OPTOUT:             (phone)       => `optout:${phone}`,
+  PROSPECT_STATE:     (phone)       => `prospect_state:${phone}`,
+  TEMPLATE_HOME:      'template:home',
+  TEMPLATE_SUSPENDED: 'template:suspended',
+  TEMPLATE_CANCELLED: 'template:cancelled',
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ────────────────────────────────────────────────────────────
 // TEST_MODE
 // ────────────────────────────────────────────────────────────
