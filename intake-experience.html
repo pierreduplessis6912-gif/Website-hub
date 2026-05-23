@@ -656,7 +656,7 @@ select {
         <input class="field-input" id="c1-phone" type="tel" placeholder="e.g. 082 123 4567" autocomplete="tel">
       </div>
     </div>
-    <button class="next-btn" id="next-1" onclick="advanceCard(1)">Continue →</button>
+    <button class="next-btn enabled" id="next-1" onclick="advanceCard(1)">Continue →</button>
   </div>
 
   <!-- CARD 2 -->
@@ -953,12 +953,13 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCard3Listeners();
   setupKeyboardHandling();
   initMode2();
+  checkCard1();
 
-  // Patch 5: offer state recovery if saved state exists
-  if (!new URLSearchParams(location.search).get('id')) {
-    const saved = loadSavedState();
-    if (saved) offerRecovery(saved);
-  }
+  // Patch 5: disabled for beta
+  // if (!new URLSearchParams(location.search).get('id')) {
+  //   const saved = loadSavedState();
+  //   if (saved) offerRecovery(saved);
+  // }
 });
 
 // ── MODE 2 ─────────────────────────────────────────────────
@@ -1037,7 +1038,10 @@ function setupCard1Listeners() {
 }
 
 function checkCard1() {
-  const ok = state.biz.length > 1 && state.name.length > 1 && state.phone.length >= 10;
+  const biz   = document.getElementById('c1-biz').value.trim();
+  const name  = document.getElementById('c1-name').value.trim();
+  const phone = document.getElementById('c1-phone').value.replace(/\D/g,'');
+  const ok = biz.length > 1 && name.length > 1 && phone.length >= 10;
   toggleNext('next-1', ok);
 }
 

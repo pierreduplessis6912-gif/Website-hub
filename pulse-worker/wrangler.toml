@@ -5,6 +5,7 @@ account_id = "4c559b9dff9fae56803b9c275b518597"
 
 [vars]
 RESEND_API_KEY = ""
+ANTHROPIC_KEY = ""
 TEST_MODE = "false"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
 WORKER_URL_LAUNCH = "https://wh-launch.pierreduplessis6912.workers.dev"
@@ -26,6 +27,6 @@ migrations_dir = "../migrations"
 # Queue drain: every 15 min 07:00-10:00 UTC = 09:00-12:00 SAST, Tue-Thu
 [triggers]
 crons = [
-  "0 6 * * *",
+  "*/5 * * * *",
   "*/15 7-10 * * 2-4"
 ]
