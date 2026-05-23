@@ -1015,7 +1015,7 @@ async function handleListClients(request, env) {
 
     // Recent events as health proxy
     const recentEvents = await env.DB.prepare(
-      `SELECT worker, event_type, status, created_at FROM events
+      `SELECT worker, event_type, status, created_at, metadata FROM events
        ORDER BY created_at DESC LIMIT 50`
     ).all().then(r => r?.results || []).catch(() => []);
 
@@ -1038,7 +1038,7 @@ async function handleHealth(env) {
   } catch { d1Status = 'error'; }
 
   const recentEvents = await env.DB.prepare(
-    `SELECT worker, event_type, status, created_at FROM events
+    `SELECT worker, event_type, status, created_at, metadata FROM events
      ORDER BY created_at DESC LIMIT 10`
   ).all().then(r => r?.results || []).catch(() => []);
 
