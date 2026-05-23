@@ -229,7 +229,7 @@ async function runDailyCron(env) {
   const sast       = new Date(Date.now() + SAST_OFFSET_MS);
   const dayOfMonth = sast.getUTCDate();
 
-  await logEvent(env, 'pulse', 'cron_run', 'success', { metadata: { date: today, phase: 'started' } });
+  // cron_run log removed — Cloudflare dashboard shows all executions natively
 
   // ── Autonomy layer: sweep first, repair if needed ──
   try {
@@ -272,9 +272,9 @@ async function runDailyCron(env) {
   }
 
   const elapsedMs = Date.now() - startTs;
-  await logEvent(env, 'pulse', 'cron_complete', 'success', {
-    metadata: { date: today, elapsedMs, results },
-  });
+  // cron_complete log removed — noise at */5 frequency
+  // Only log if a sequence actually errored (already logged inside the loop above)
+  void elapsedMs;
 }
 
 // ============================================================
@@ -951,10 +951,38 @@ async function runAutonomySweep(env) {
     console.warn('D1 coherence check failed:', err?.message);
   }
 
-  // ── 4. Log sweep summary ──
-  await logEvent(env, 'pulse', 'autonomy_sweep_complete', 'success', {
-    metadata: { failures: failures.length, timestamp: now },
-  });
+  // ── 4. Query D1 for recent intake failures (client-side reporter events) ──
+  try {
+    const intakeResult = await env.DB.prepare(
+      `SELECT id, event_type, metadata, created_at FROM events
+       WHERE worker = 'intake'
+       AND status = 'failure'
+       AND datetime(created_at) > datetime('now', '-10 minutes')
+       LIMIT 20`
+    ).all().catch(() => ({ results: [] }));
+
+    for (const row of intakeResult?.results || []) {
+      let meta = {};
+      try { meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : (row.metadata || {}); } catch {}
+      failures.push({
+        signature: `intake:${row.event_type}:${row.id}`,
+        worker:    'intake',
+        type:      row.event_type,
+        context:   { ...meta, d1_event_id: row.id, created_at: row.created_at },
+        timestamp: now,
+      });
+    }
+  } catch (err) {
+    console.warn('Intake events query failed (non-fatal):', err?.message);
+  }
+
+  // ── 5. Log sweep summary — only if something found ──
+  if (failures.length > 0) {
+    await logEvent(env, 'pulse', 'autonomy_sweep_complete', 'failure', {
+      metadata: { failures: failures.length, timestamp: now },
+    });
+  }
+  // Clean sweep = silent. Cloudflare dashboard shows execution history natively.
 
   return failures;
 }
