@@ -139,6 +139,7 @@ async function handleBootstrapIntake(request, env) {
     if (path === '/analytics')           return handleAnalytics(request, url, env);
     if (path === '/referral-stats')      return handleReferralStats(request, url, env);
     if (path === '/leaderboard')         return handleLeaderboard(request, env);
+    if (path === '/log-error')             return handleLogError(request, env);
     if (path === '/admin/purge-test-data') return handleAdminPurge(request, env);
     if (path === '/claude')              return handleClaude(request, env);
     if (path.startsWith('/dropbox'))     return handleDropbox(request, url, env, ctx);

@@ -1691,5 +1691,86 @@ function slugify(s) {
 }
 </script>
 
+
+  <!-- Autonomy error reporter — surfaces JS failures to D1 -->
+  <script>
+    (function() {
+      const LOG_URL = 'https://preview.websitehub.co.za/log-error';
+
+      function reportError(error_type, context, card) {
+        fetch(LOG_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            error_type: error_type,
+            context:    context,
+            card:       card,
+            url:        window.location.href,
+          }),
+        }).catch(function() {}); // never block the UI
+      }
+
+      // Button-gate detector
+      // Fires if card 1 button is still disabled 3 seconds after any input field changes
+      function watchButtonGate() {
+        var fields   = document.querySelectorAll('#card-1 input, #card-1 select, #card-1 textarea');
+        var btn      = document.querySelector('#card-1 .next-btn, #card-1 button[type="button"], #card-1 .btn-next');
+        if (!fields.length) return;
+
+        var timer = null;
+
+        function checkGate() {
+          clearTimeout(timer);
+          timer = setTimeout(function() {
+            // If any field has a value but button is still disabled — report it
+            var anyFilled = false;
+            fields.forEach(function(f) { if (f.value && f.value.trim()) anyFilled = true; });
+            if (anyFilled && btn && (btn.disabled || btn.classList.contains('disabled'))) {
+              reportError('button_gate_failed', 'card1_button_disabled_after_fill', 1);
+            }
+          }, 3000);
+        }
+
+        fields.forEach(function(f) {
+          f.addEventListener('input', checkGate);
+          f.addEventListener('change', checkGate);
+        });
+      }
+
+      // Card navigation detector
+      // Fires if card 1 exits but card 2 never becomes visible after 4 seconds
+      function watchCardNavigation() {
+        var card1 = document.getElementById('card-1');
+        var card2 = document.getElementById('card-2');
+        if (!card1 || !card2) return;
+
+        var observer = new MutationObserver(function() {
+          var c1Hidden = card1.classList.contains('hidden') || card1.style.display === 'none';
+          if (c1Hidden) {
+            setTimeout(function() {
+              var c2Visible = !card2.classList.contains('hidden') && card2.style.display !== 'none';
+              if (!c2Visible) {
+                reportError('card_navigation_failed', 'card2_never_rendered_after_card1_exit', 1);
+              }
+            }, 4000);
+          }
+        });
+
+        observer.observe(card1, { attributes: true, attributeFilter: ['class', 'style'] });
+      }
+
+      // Init on DOM ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          watchButtonGate();
+          watchCardNavigation();
+        });
+      } else {
+        watchButtonGate();
+        watchCardNavigation();
+      }
+    })();
+  </script>
+
 </body>
 </html>
