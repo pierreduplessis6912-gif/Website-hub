@@ -60,6 +60,8 @@ select.field-input option{background:#12121a;color:#e8e8f0}
     <div class="field">
       <label class="field-label">WhatsApp number</label>
       <input class="field-input" id="phone" type="tel" placeholder="e.g. 082 123 4567">
+      <label class="field-label" style="margin-top:14px;">EMAIL ADDRESS</label>
+      <input class="field-input" id="email" type="email" placeholder="e.g. you@gmail.com" autocomplete="email">
     </div>
     <div class="field">
       <label class="field-label">Area</label>
@@ -145,6 +147,7 @@ async function submitForm() {
   const biz   = document.getElementById('biz').value.trim();
   const name  = document.getElementById('name').value.trim();
   const phone = document.getElementById('phone').value.trim();
+  const email = document.getElementById('email').value.trim();
   const area  = document.getElementById('area').value.trim();
   const ind   = document.getElementById('industry').value;
   const dom   = document.getElementById('domain').value.trim();
@@ -167,6 +170,7 @@ async function submitForm() {
         business_name: biz,
         client_name:   name,
         phone:         normalisePhone(phone),
+        email:         email,
         area:          area,
         industry:      ind || 'Other',
         package:       'standard',
