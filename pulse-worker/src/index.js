@@ -117,11 +117,12 @@ async function handleHealth(env) {
   catch { d1Status = 'error'; }
 
   return jsonResponse({
-    ok:       true,
-    worker:   'pulse-worker',
-    time:     new Date().toISOString(),
-    testMode: isTestMode(env),
-    d1:       d1Status,
+    ok:           true,
+    worker:       'pulse-worker',
+    time:         new Date().toISOString(),
+    testMode:     isTestMode(env),
+    d1:           d1Status,
+    anthropicKey: !!env.ANTHROPIC_KEY,
   });
 }
 
