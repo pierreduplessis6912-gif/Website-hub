@@ -5,7 +5,7 @@ account_id = "4c559b9dff9fae56803b9c275b518597"
 
 [vars]
 RESEND_API_KEY = ""
-ANTHROPIC_KEY = "${{ secrets.ANTHROPIC_KEY }}"
+ANTHROPIC_KEY = "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"
 
 TEST_MODE = "false"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
