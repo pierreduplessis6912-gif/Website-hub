@@ -264,6 +264,11 @@ async function servePreview(url, env) {
   const segment = rawPath.split('/')[0];
 
   // Serve the SPA for app entry points
+  if (segment === 'experience') {
+    const html = await env.SITES.get('app:intake-experience');
+    if (html) return htmlResponse(html, 200);
+    return htmlResponse('Phase 3 not bootstrapped', 404);
+  }
   if (!rawPath || segment === 'verify' || segment === 'manage' || segment === 'build') {
     const appHtml = await env.SITES.get('app:preview-manage');
     if (appHtml) return htmlResponse(appHtml, 200);
@@ -508,6 +513,7 @@ async function handleIntake(request, env, ctx) {
 
   await env.SITES.put(`build_status:${token}`, JSON.stringify({ status: 'building', slug }), { expirationTtl: 3600 });
 
+  await env.SITES.put(`build_status:${token}`, JSON.stringify({ status: 'building', slug }));
   await env.BUILD_QUEUE.send({ clientId, paymentId: null, isOutbound: false, buildToken: token });
 
   await sendWhatsApp(clientFields.phone,
