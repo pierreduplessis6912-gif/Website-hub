@@ -141,6 +141,7 @@ async function handleBootstrapIntake(request, env) {
     if (path === '/leaderboard')         return handleLeaderboard(request, env);
     if (path === '/log-error')             return handleLogError(request, env);
     if (path === '/admin/purge-test-data') return handleAdminPurge(request, env);
+    if (path === '/admin/reset-clients')   return handleResetClients(request, env);
     if (path === '/claude')              return handleClaude(request, env);
     if (path.startsWith('/dropbox'))     return handleDropbox(request, url, env, ctx);
 
@@ -1151,6 +1152,18 @@ async function handleLeaderboard(request, env) {
 }
 
 // ============================================================
+// ROUTE: /admin/reset-clients
+async function handleResetClients(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+  const result = await env.DB.prepare('DELETE FROM clients').run();
+  await env.DB.prepare('DELETE FROM events').run();
+  await env.DB.prepare('DELETE FROM builds').run();
+  await env.DB.prepare('DELETE FROM messages').run();
+  await logEvent(env, 'build', 'admin_reset_clients', 'success', { metadata: { deleted: result.changes } });
+  return jsonResponse({ success: true, message: 'clients, events, builds, messages cleared' });
+}
+
 // ROUTE: /admin/purge-test-data
 // ============================================================
 
