@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>Website Hub — Get Your Website</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#0a0a0f;color:#e8e8f0;font-family:'Inter',sans-serif}
+body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 60% 50% at 20% 20%,rgba(0,240,255,0.06) 0%,transparent 60%),radial-gradient(ellipse 50% 60% at 80% 80%,rgba(184,41,221,0.07) 0%,transparent 60%);pointer-events:none}
+body::after{content:'';position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+.wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px}
+.logo{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;background:linear-gradient(135deg,#00f0ff,#b829dd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:32px;letter-spacing:2px}
+.card{width:100%;max-width:420px;background:rgba(20,20,35,0.7);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:32px 24px}
+.card-title{font-size:24px;font-weight:800;line-height:1.2;margin-bottom:6px;letter-spacing:-0.4px}
+.card-sub{font-size:14px;color:#8b8b9e;margin-bottom:28px;line-height:1.5}
+.field{margin-bottom:16px}
+.field-label{font-size:10px;color:#8b8b9e;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;font-family:'JetBrains Mono',monospace}
+.field-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:13px 16px;font-size:16px;color:#e8e8f0;font-family:'Inter',sans-serif;transition:border-color 200ms,background 200ms}
+.field-input:focus{outline:none;border-color:rgba(0,240,255,0.4);background:rgba(0,240,255,0.04)}
+.field-input::placeholder{color:rgba(255,255,255,0.18)}
+select.field-input{cursor:pointer}
+select.field-input option{background:#12121a;color:#e8e8f0}
+.domain-wrap{margin-bottom:24px}
+.domain-row{display:flex;gap:8px;align-items:center}
+.domain-input-wrap{flex:1;position:relative}
+.domain-suffix{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px;color:#8b8b9e;font-family:'JetBrains Mono',monospace;pointer-events:none}
+.domain-btn{background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.2);border-radius:12px;padding:13px 16px;font-size:13px;font-weight:600;color:#00f0ff;cursor:pointer;white-space:nowrap;transition:all 150ms;font-family:'Inter',sans-serif}
+.domain-btn:active{background:rgba(0,240,255,0.15)}
+.domain-result{margin-top:10px;padding:10px 14px;border-radius:10px;font-size:13px;font-family:'JetBrains Mono',monospace;display:none}
+.domain-result.available{background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);color:#00ff88}
+.domain-result.taken{background:rgba(255,0,100,0.08);border:1px solid rgba(255,0,100,0.2);color:#ff6688}
+.domain-result.checking{background:rgba(0,240,255,0.06);border:1px solid rgba(0,240,255,0.15);color:#8b8b9e}
+.submit-btn{width:100%;padding:16px;background:linear-gradient(135deg,#00f0ff,#b829dd);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 150ms,transform 120ms;letter-spacing:0.2px;font-family:'Inter',sans-serif;margin-top:8px}
+.submit-btn:active{transform:scale(0.98)}
+.submit-btn:disabled{opacity:0.4;cursor:not-allowed}
+.footer{margin-top:20px;font-size:12px;color:#8b8b9e;text-align:center;line-height:1.6}
+.spinner{display:none;width:20px;height:20px;border:2px solid rgba(255,255,255,0.1);border-top-color:#00f0ff;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">⚡ WEBSITE HUB</div>
+  <div class="card">
+    <div class="card-title">Get your business online</div>
+    <div class="card-sub">Fill in the basics — we'll build your site and send you the link.</div>
+
+    <div class="field">
+      <label class="field-label">Business name</label>
+      <input class="field-input" id="biz" type="text" placeholder="e.g. Zululand Flooring" autocomplete="off" autocapitalize="words">
+    </div>
+    <div class="field">
+      <label class="field-label">Your name</label>
+      <input class="field-input" id="name" type="text" placeholder="e.g. Thabo" autocomplete="off" autocapitalize="words">
+    </div>
+    <div class="field">
+      <label class="field-label">WhatsApp number</label>
+      <input class="field-input" id="phone" type="tel" placeholder="e.g. 082 123 4567">
+    </div>
+    <div class="field">
+      <label class="field-label">Area</label>
+      <input class="field-input" id="area" type="text" placeholder="e.g. Richards Bay, KZN" autocomplete="off">
+    </div>
+    <div class="field">
+      <label class="field-label">Industry</label>
+      <select class="field-input" id="industry">
+        <option value="">Select your industry</option>
+        <option>Plumbing</option>
+        <option>Electrical</option>
+        <option>Construction</option>
+        <option>Cleaning</option>
+        <option>Beauty &amp; Salon</option>
+        <option>Health &amp; Wellness</option>
+        <option>Food &amp; Restaurant</option>
+        <option>Retail</option>
+        <option>Legal</option>
+        <option>Accounting</option>
+        <option>Automotive</option>
+        <option>Real Estate</option>
+        <option>Faith &amp; Community</option>
+        <option>Tech &amp; IT</option>
+        <option>Flooring</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <div class="domain-wrap">
+      <label class="field-label">Check your domain</label>
+      <div class="domain-row">
+        <div class="domain-input-wrap">
+          <input class="field-input" id="domain" type="text" placeholder="zululandflooring" autocomplete="off" style="padding-right:60px">
+          <span class="domain-suffix">.co.za</span>
+        </div>
+        <button class="domain-btn" onclick="checkDomain()">Check</button>
+      </div>
+      <div class="domain-result" id="domain-result"></div>
+    </div>
+
+    <button class="submit-btn" id="submit-btn">Build my website →</button>
+    <div class="spinner" id="spinner"></div>
+  </div>
+  <div class="footer">We'll WhatsApp you the moment your site is ready.<br>Usually under 2 minutes.</div>
+</div>
+<script>
+// Auto-fill domain from business name
+document.getElementById('biz').addEventListener('input', function() {
+  const slug = this.value.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,30);
+  document.getElementById('domain').value = slug;
+  document.getElementById('domain-result').style.display = 'none';
+});
+
+async function checkDomain() {
+  const name = document.getElementById('domain').value.trim();
+  if (!name) return;
+  const result = document.getElementById('domain-result');
+  result.className = 'domain-result checking';
+  result.textContent = 'Checking availability...';
+  result.style.display = 'block';
+  try {
+    const res  = await fetch(`/domain-check?name=${encodeURIComponent(name + '.co.za')}`);
+    const data = await res.json();
+    if (data.available) {
+      result.className = 'domain-result available';
+      result.textContent = '✓ ' + name + '.co.za is available!';
+    } else {
+      result.className = 'domain-result taken';
+      result.textContent = '✗ ' + name + '.co.za is taken.';
+    }
+  } catch(e) {
+    result.className = 'domain-result taken';
+    result.textContent = 'Could not check — continue anyway.';
+  }
+}
+
+function normalisePhone(v) {
+  const d = v.replace(/\D/g,'');
+  return d.startsWith('27') ? d : d.replace(/^0/,'27');
+}
+
+async function submitForm() {
+  const biz   = document.getElementById('biz').value.trim();
+  const name  = document.getElementById('name').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const area  = document.getElementById('area').value.trim();
+  const ind   = document.getElementById('industry').value;
+  const dom   = document.getElementById('domain').value.trim();
+
+  if (!biz || !phone) {
+    alert('Please enter your business name and WhatsApp number.');
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  const spinner = document.getElementById('spinner');
+  btn.style.display = 'none';
+  spinner.style.display = 'block';
+
+  try {
+    const res = await fetch('/intake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        business_name: biz,
+        client_name:   name,
+        phone:         normalisePhone(phone),
+        area:          area,
+        industry:      ind || 'Other',
+        package:       'standard',
+        retainer:      0,
+        domain_requested: dom ? dom + '.co.za' : '',
+      })
+    });
+    const data = await res.json();
+    const dest = data.redirectUrl || data.redirect;
+    if (dest) {
+      window.location.href = dest;
+    } else {
+      spinner.style.display = 'none';
+      btn.style.display = 'block';
+      alert('Submitted! We will WhatsApp you shortly.');
+    }
+  } catch(e) {
+    spinner.style.display = 'none';
+    btn.style.display = 'block';
+    alert('Something went wrong. Please try again.');
+  }
+}
+document.getElementById('submit-btn').addEventListener('click', submitForm);
+</script>
+</body>
+</html>

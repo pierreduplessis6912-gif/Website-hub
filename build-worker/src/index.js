@@ -508,6 +508,7 @@ async function handleIntake(request, env, ctx) {
 
   await env.SITES.put(`build_status:${token}`, JSON.stringify({ status: 'building', slug }), { expirationTtl: 3600 });
 
+  await env.SITES.put(`build_status:${token}`, JSON.stringify({ status: 'building', slug }));
   await env.BUILD_QUEUE.send({ clientId, paymentId: null, isOutbound: false, buildToken: token });
 
   await sendWhatsApp(clientFields.phone,

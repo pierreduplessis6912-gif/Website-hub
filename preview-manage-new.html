@@ -666,6 +666,35 @@ const PLAN_FEATURES = {
 };
 
 /* ── BUILD ANIMATION ─────────────────────────────── */
+/* ── TOKEN + BUILD STATUS POLLING ────────────────── */
+const pageToken = (window.location.pathname.match(/\/manage\/([^/?#]+)/) || [])[1] || '';
+let buildReady = false;
+let builtSlug  = '';
+
+async function pollBuildStatus() {
+  if (!pageToken) return;
+  try {
+    const res  = await fetch('/build-status?token=' + pageToken);
+    const data = await res.json();
+    if (data.status === 'ready') {
+      buildReady = true;
+      builtSlug  = data.slug || '';
+      // If animation already finished (not on build screen), go to Phase 3 now
+      const bs = document.getElementById('screen-build');
+      if (bs && !bs.classList.contains('active')) launchPhase3();
+    } else if (data.status !== 'error') {
+      setTimeout(pollBuildStatus, 3000);
+    }
+  } catch(e) { setTimeout(pollBuildStatus, 4000); }
+}
+
+function launchPhase3() {
+  window.location.href = '/experience/' + pageToken
+    + (builtSlug ? '?slug=' + encodeURIComponent(builtSlug) : '');
+}
+
+if (pageToken) setTimeout(pollBuildStatus, 2000);
+
 const buildSteps = [
   {text:'Analysing your business...',   sub:'industry: flooring & tiles // region: ZA', icon:'🔍'},
   {text:'Crafting your content...',      sub:'generating copy + headlines',              icon:'✍️'},
@@ -675,7 +704,14 @@ const buildSteps = [
 ];
 let buildStep = 0;
 const buildInterval = setInterval(() => {
-  if (buildStep >= buildSteps.length - 1) { clearInterval(buildInterval); setTimeout(() => transitionTo('preview'), 1400); return; }
+  if (buildStep >= buildSteps.length - 1) {
+    clearInterval(buildInterval);
+    setTimeout(() => {
+      if (buildReady) { launchPhase3(); }
+      else { transitionTo('preview'); /* hold on mock preview — pollBuildStatus calls launchPhase3 when ready */ }
+    }, 1400);
+    return;
+  }
   buildStep++;
   const s = buildSteps[buildStep];
   const t = document.getElementById('buildStepText');
@@ -783,9 +819,9 @@ async function processPayment(btn) {
       }),
     });
     const data = await res.json();
-    if (!data.url) throw new Error(data.error || 'No payment URL returned');
+    data.url = data.url || data.previewUrl; if (!data.url) throw new Error(data.error || 'No preview URL returned');
     btn.querySelector('.btn-text').textContent = promoApplied ? 'Activating free month...' : 'Redirecting to PayFast...';
-    setTimeout(() => { window.location.href = data.url; }, 400);
+    setTimeout(() => { window.location.href = data.url || data.previewUrl; }, 400);
   } catch (err) {
     btn.classList.remove('loading');
     btn.querySelector('.btn-text').textContent = `💳 Confirm & Pay — R${p.price}/mo`;
