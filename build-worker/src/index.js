@@ -1014,8 +1014,8 @@ async function handleListClients(request, env) {
   try {
     const result = await env.DB.prepare(
       `SELECT id, business_name, slug, package, status, retainer, go_live_date,
-              next_invoice_date, domain, phone, channel, created_at
-       FROM clients ORDER BY created_at DESC LIMIT 200`
+          next_invoice_date, domain, phone, channel, created_at, manage_token
+    FROM clients ORDER BY created_at DESC LIMIT 200`
     ).all();
 
     const clients = result?.results || [];
