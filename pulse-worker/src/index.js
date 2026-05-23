@@ -1093,20 +1093,38 @@ Respond ONLY with a JSON object. No preamble. No markdown. Example:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model:      'claude-sonnet-4-20250514',
+  let claudeStatusCode = 0;
+  let claudeRawResponse = '';
+        model:      'claude-3-5-sonnet-20241022',
         max_tokens: 1000,
         messages:   [{ role: 'user', content: prompt }],
       }),
     });
 
-    const apiData = await apiRes.json();
+    claudeStatusCode = apiRes.status;
+    const rawText = await apiRes.text();
+    claudeRawResponse = rawText.slice(0, 2000);
+    
+    if (!apiRes.ok) {
+      throw new Error(`Claude API returned HTTP ${claudeStatusCode}: ${rawText.slice(0, 500)}`);
+    }
+    
+    const apiData = JSON.parse(rawText);
     const text    = apiData?.content?.[0]?.text || '';
     const clean   = text.replace(/```json|```/g, '').trim();
     decision      = JSON.parse(clean);
   } catch (err) {
     console.warn('Claude API call failed:', err?.message);
+    console.warn('Claude raw response (first 1000 chars):', claudeRawResponse);
+    console.warn('Claude HTTP status:', claudeStatusCode);
+    
     await logEvent(env, 'pulse', 'autonomy_claude_error', 'failure', {
-      metadata: { signature: failure.signature, error: err.message },
+      metadata: { 
+        signature: failure.signature, 
+        error: err.message,
+        claude_status: claudeStatusCode,
+        claude_raw: claudeRawResponse.slice(0, 500),
+      },
     });
     return;
   }
