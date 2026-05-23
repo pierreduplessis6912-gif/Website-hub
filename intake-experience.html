@@ -1711,22 +1711,24 @@ function slugify(s) {
       }
 
       // Button-gate detector
-      // Fires if card 1 button is still disabled 3 seconds after any input field changes
+      // Card 1 button is id="next-1" class="next-btn"
+      // Enabled state = has class "enabled". Disabled = no "enabled" class.
       function watchButtonGate() {
-        var fields   = document.querySelectorAll('#card-1 input, #card-1 select, #card-1 textarea');
-        var btn      = document.querySelector('#card-1 .next-btn, #card-1 button[type="button"], #card-1 .btn-next');
-        if (!fields.length) return;
+        var fields = document.querySelectorAll('#card-1 input, #card-1 select, #card-1 textarea');
+        var btn    = document.getElementById('next-1');
+        if (!fields.length || !btn) return;
 
         var timer = null;
 
         function checkGate() {
           clearTimeout(timer);
           timer = setTimeout(function() {
-            // If any field has a value but button is still disabled — report it
             var anyFilled = false;
             fields.forEach(function(f) { if (f.value && f.value.trim()) anyFilled = true; });
-            if (anyFilled && btn && (btn.disabled || btn.classList.contains('disabled'))) {
-              reportError('button_gate_failed', 'card1_button_disabled_after_fill', 1);
+            // Disabled = does NOT have "enabled" class
+            var isDisabled = !btn.classList.contains('enabled');
+            if (anyFilled && isDisabled) {
+              reportError('button_gate_failed', 'card1_next1_missing_enabled_class_after_fill', 1);
             }
           }, 3000);
         }
