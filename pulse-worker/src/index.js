@@ -331,6 +331,34 @@ async function sendDunningMessage(client, stage, daysLate, env) {
   }
 
   await queueScheduledMessage(client.id, client.phone, body, env, { respectDayOfWeek: true });
+
+  if (client.email) {
+    const dunningSubjects = {
+      reminder: `Payment due today — ${client.business_name}`,
+      nudge:    `Payment ${daysLate} days late — ${client.business_name}`,
+      firm:     `Urgent: ${client.business_name} site at risk`,
+    };
+    const dunningPreheaders = {
+      reminder: `Your R${tier.retainer} subscription is due — pay now to stay live.`,
+      nudge:    `${daysLate} days overdue — please settle to avoid suspension.`,
+      firm:     `${daysLate} days past due — site suspends in 7 days without payment.`,
+    };
+    await sendEmail({
+      to: client.email,
+      subject: dunningSubjects[stage.label] || `Payment overdue — ${client.business_name}`,
+      touchpoint: stage.stage,
+      clientSlug: client.slug,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#c00">${dunningPreheaders[stage.label] || 'Payment required'}</h2>
+        <p>Hi ${name},</p>
+        <p>${body.replace(/
+/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>')}</p>
+        <p style="margin:24px 0"><a href="${payLink}" style="background:#c00;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Pay Now — R${tier.retainer}</a></p>
+        <p style="color:#888;font-size:12px">— Website Hub</p>
+      </div>`,
+    }, env).catch(() => {});
+  }
+
   await logEvent(env, 'pulse', stage.stage, 'success', {
     clientId: client.id, metadata: { business: client.business_name, daysLate },
   });
@@ -442,6 +470,29 @@ async function sendPostGoLiveMessage(client, day, env) {
 
   if (body) {
     await queueScheduledMessage(client.id, client.phone, body, env, { respectDayOfWeek: true });
+
+    if (client.email) {
+      const postLiveSubjects = {
+        1:  `How is ${client.business_name} going? 👋`,
+        7:  `One week live — ${client.business_name}`,
+        30: `One month live — ${client.business_name}`,
+      };
+      await sendEmail({
+        to: client.email,
+        subject: postLiveSubjects[day] || `Check in — ${client.business_name}`,
+        touchpoint: `post_live_d${day}`,
+        clientSlug: client.slug,
+        html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+          <h2 style="color:#111">${postLiveSubjects[day]}</h2>
+          <p>Hi ${name},</p>
+          <p>${body.replace(/
+/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>')}</p>
+          ${manageUrl ? `<p style="margin:24px 0"><a href="${manageUrl}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Manage My Site</a></p>` : ''}
+          <p style="color:#888;font-size:12px">— Website Hub</p>
+        </div>`,
+      }, env).catch(() => {});
+    }
+
     await logEvent(env, 'pulse', `post_live_d${day}`, 'success', {
       clientId: client.id, metadata: { business: client.business_name },
     });
@@ -477,6 +528,24 @@ async function runWinBackCron(env) {
       const body = `Hi ${name} — Pierre here from Website Hub. 👋\n\nJust checking in — hope business is going well.\n\nIf you ever want to get your website back up, it's easy:\n${reactivateUrl || 'reply to this message'}\n\nNo rebuild fee if you come back within a year. Just your normal subscription.\n\nTake care.\n— Pierre, Website Hub`;
 
       await queueScheduledMessage(client.id, client.phone, body, env, { respectDayOfWeek: true });
+
+      if (client.email) {
+        await sendEmail({
+          to: client.email,
+          subject: `We'd love to have ${client.business_name} back`,
+          touchpoint: TP.WIN_BACK,
+          clientSlug: client.slug,
+          html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+            <h2 style="color:#111">Still here if you need us 👋</h2>
+            <p>Hi ${name},</p>
+            <p>${body.replace(/
+/g, '<br>')}</p>
+            ${reactivateUrl ? `<p style="margin:24px 0"><a href="${reactivateUrl}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Reactivate My Site</a></p>` : ''}
+            <p style="color:#888;font-size:12px">— Pierre, Website Hub</p>
+          </div>`,
+        }, env).catch(() => {});
+      }
+
       await logMessage(env, client.id, TP.WIN_BACK, client.channel || 'whatsapp');
       await logEvent(env, 'pulse', 'win_back_d90', 'success', {
         clientId: client.id, metadata: { business: client.business_name },
@@ -608,9 +677,25 @@ async function runReferralVesting(env) {
 
       // Notify referrer
       const referrerName = (referrer.client_name || '').split(' ')[0] || 'there';
-      await queueScheduledMessage(referrer.id, referrer.phone,
-        `🎉 ${referrerName}! You just earned a free month thanks to your referral.\n\nYour next invoice will be R0 — credited as a thank you for sending *${row.referred_business}* our way.\n\nKeep them coming!\n— Website Hub`,
-        env, { respectDayOfWeek: true });
+      const referralMsg = `🎉 ${referrerName}! You just earned a free month thanks to your referral.\n\nYour next invoice will be R0 — credited as a thank you for sending *${row.referred_business}* our way.\n\nKeep them coming!\n— Website Hub`;
+      await queueScheduledMessage(referrer.id, referrer.phone, referralMsg, env, { respectDayOfWeek: true });
+
+      if (referrer.email) {
+        await sendEmail({
+          to: referrer.email,
+          subject: `You earned a free month — ${row.referred_business} went live 🎉`,
+          touchpoint: TP.REFERRAL_VESTING,
+          clientSlug: referrer.slug,
+          html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+            <h2 style="color:#111">Free month earned 🎉</h2>
+            <p>Hi ${referrerName},</p>
+            <p>Your referral <strong>${row.referred_business}</strong> just went live on Website Hub.</p>
+            <p>Your next invoice will be <strong>R0</strong> — a free month credited as a thank you.</p>
+            <p>Keep referring and keep earning!</p>
+            <p style="color:#888;font-size:12px">— Website Hub</p>
+          </div>`,
+        }, env).catch(() => {});
+      }
 
       await logMessage(env, referrer.id, TP.REFERRAL_VESTING, referrer.channel || 'whatsapp');
 
