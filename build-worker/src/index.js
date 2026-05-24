@@ -539,6 +539,20 @@ async function handleIntake(request, env, ctx) {
     `🔨 Hi ${name}! We're building your *${clientFields.business_name}* website right now.\n\nWe'll send you the link the moment it's ready — usually about 2 minutes. Sit tight!\n\n_Watch it build: ${buildUrl}_\n— Website Hub`,
     env);
 
+  await sendEmail({
+    to: clientFields.email,
+    subject: `Your ${clientFields.business_name} website is being built ✓`,
+    touchpoint: 'intake_confirmation',
+    clientSlug: slug,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+      <h2 style="color:#111">Building your website now 🔨</h2>
+      <p>Hi ${name},</p>
+      <p>We've received your details for <strong>${clientFields.business_name}</strong> and the build has started. You'll get a link to your preview the moment it's ready — usually about 2 minutes.</p>
+      <p style="margin:24px 0"><a href="${buildUrl}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Watch Your Build</a></p>
+      <p style="color:#888;font-size:12px">— Website Hub</p>
+    </div>`,
+  }, env).catch(() => {});
+
   await sendWhatsApp(env.WH_PHONE,
     `🆕 INBOUND LEAD: ${clientFields.business_name}\nPackage: ${pkg}\nClient: ${clientFields.client_name}\nReferral: ${clientFields.referral_code_used || 'None'}\nID: ${clientId}\nBuild: ${buildUrl}`,
     env, { skipTestRedirect: true });
@@ -1637,6 +1651,26 @@ async function sendInboundPreviewMessage(client, previewUrl, domain, clientId, e
     `🎉 Hi ${name}! Your *${client.business_name}* website is ready!\n\n👀 See it here:\n${previewUrl}\n\nTap *Go Live* on the page to publish it. ⚡\n\n🌐 Your site will be live at *${domain}*\n\nWant changes? Just reply here.\n— Website Hub`,
     env);
   await logMessage(env, clientId, 'build_complete', 'whatsapp');
+
+  const inbName = (client.client_name || '').split(' ')[0] || 'there';
+  const manageUrl = `https://preview.websitehub.co.za/manage/${client.manage_token}`;
+  await sendEmail({
+    to: client.email,
+    subject: `Your ${client.business_name} website preview is ready 👀`,
+    touchpoint: 'preview_ready',
+    clientSlug: client.slug,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+      <h2 style="color:#111">Your preview is live 🎉</h2>
+      <p>Hi ${inbName},</p>
+      <p>Your <strong>${client.business_name}</strong> website preview is ready. Click below to see it — and when you're happy, tap <strong>Go Live</strong> to publish it.</p>
+      <p style="margin:24px 0">
+        <a href="${previewUrl}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">View My Preview</a>
+      </p>
+      <p>Your site will go live at <strong>${domain}</strong> once activated.</p>
+      <p>Want changes? Just reply to this email or message us on WhatsApp.</p>
+      <p style="color:#888;font-size:12px">— Website Hub · <a href="${manageUrl}" style="color:#888">Manage my site</a></p>
+    </div>`,
+  }, env).catch(() => {});
 }
 
 async function sendOutboundPreviewMessage(client, previewUrl, domain, clientId, env) {
@@ -1668,6 +1702,27 @@ Write only the message. No labels. No intro. No explanation.`;
       env);
   }
   await logMessage(env, clientId, 'prospect_initial', 'whatsapp');
+
+  if (client.email) {
+    const outbName = (client.client_name || '').split(' ')[0] || 'there';
+    const tier = PRICING[packageKey(client.package || 'standard')];
+    await sendEmail({
+      to: client.email,
+      subject: `We built ${client.business_name} a free website preview`,
+      touchpoint: 'prospect_preview',
+      clientSlug: client.slug,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#111">Your free website is ready 🌐</h2>
+        <p>Hi ${outbName},</p>
+        <p>Our team built <strong>${client.business_name}</strong> in ${client.area || 'South Africa'} a free website preview — no obligation, no catch.</p>
+        <p style="margin:24px 0">
+          <a href="${previewUrl}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">See My Free Preview</a>
+        </p>
+        <p>If you love it, go live for just <strong>R${tier?.retainer || 699}/month</strong>.</p>
+        <p style="color:#888;font-size:12px">— Website Hub · <a href="mailto:hello@websitehub.co.za" style="color:#888">Unsubscribe</a></p>
+      </div>`,
+    }, env).catch(() => {});
+  }
 }
 
 // ============================================================
