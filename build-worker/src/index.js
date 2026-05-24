@@ -98,6 +98,15 @@ const INDUSTRY_VIBE_MAP = {
 // EXPORT
 // ────────────────────────────────────────────────────────────
 
+async function handleBootstrapStart(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+  const html = await request.text();
+  if (!html || html.length < 100) return jsonResponse({ error: 'Empty body' }, 400);
+  await env.SITES.put('app:start-v2', html);
+  return jsonResponse({ success: true, size: html.length });
+}
+
 export default {
 
   async fetch(request, env, ctx) {
@@ -127,14 +136,6 @@ async function handleBootstrapIntake(request, env) {
   if (!html || !html.includes('<!DOCTYPE'))
     return Response.json({ error: 'Invalid HTML — must be a full DOCTYPE document' }, { status: 400 });
   await env.SITES.put('app:intake-experience', html);
-async function handleBootstrapStart(request, env) {
-  if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
-  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
-  const html = await request.text();
-  if (!html || html.length < 100) return jsonResponse({ error: 'Empty body' }, 400);
-  await env.SITES.put('app:start-v2', html);
-  return jsonResponse({ success: true, size: html.length });
-}
   return Response.json({ success: true, size: html.length });
 }
     if (path === '/trigger-build')       return handleTriggerBuild(request, env, ctx);
