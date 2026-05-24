@@ -931,9 +931,7 @@ async function handlePreviewRevert(request, env) {
 // ROUTE: /check-domain + /domain-check
 // ============================================================
 
-  } // end if(false)
-}
-async function handleCheckDomain(url, env) {
+  async function handleCheckDomain(url, env) {
   const domain = url.searchParams.get('domain')?.toLowerCase().trim();
   if (!domain) return jsonResponse({ error: 'Missing domain' }, 400);
 
