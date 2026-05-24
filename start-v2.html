@@ -2,198 +2,364 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0a0a0f">
-<title>Website Hub — Get Your Website</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>Website Hub — Claim Your Domain</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;background:#0a0a0f;color:#e8e8f0;font-family:'Inter',sans-serif}
-body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 60% 50% at 20% 20%,rgba(0,240,255,0.06) 0%,transparent 60%),radial-gradient(ellipse 50% 60% at 80% 80%,rgba(184,41,221,0.07) 0%,transparent 60%);pointer-events:none}
-body::after{content:'';position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
-.wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px}
-.logo{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;background:linear-gradient(135deg,#00f0ff,#b829dd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:32px;letter-spacing:2px}
-.card{width:100%;max-width:420px;background:rgba(20,20,35,0.7);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:32px 24px}
-.card-title{font-size:24px;font-weight:800;line-height:1.2;margin-bottom:6px;letter-spacing:-0.4px}
-.card-sub{font-size:14px;color:#8b8b9e;margin-bottom:28px;line-height:1.5}
-.field{margin-bottom:16px}
-.field-label{font-size:10px;color:#8b8b9e;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;font-family:'JetBrains Mono',monospace}
-.field-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:13px 16px;font-size:16px;color:#e8e8f0;font-family:'Inter',sans-serif;transition:border-color 200ms,background 200ms}
-.field-input:focus{outline:none;border-color:rgba(0,240,255,0.4);background:rgba(0,240,255,0.04)}
-.field-input::placeholder{color:rgba(255,255,255,0.18)}
-select.field-input{cursor:pointer}
-select.field-input option{background:#12121a;color:#e8e8f0}
-.domain-wrap{margin-bottom:24px}
-.domain-row{display:flex;gap:8px;align-items:center}
-.domain-input-wrap{flex:1;position:relative}
-.domain-suffix{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px;color:#8b8b9e;font-family:'JetBrains Mono',monospace;pointer-events:none}
-.domain-btn{background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.2);border-radius:12px;padding:13px 16px;font-size:13px;font-weight:600;color:#00f0ff;cursor:pointer;white-space:nowrap;transition:all 150ms;font-family:'Inter',sans-serif}
-.domain-btn:active{background:rgba(0,240,255,0.15)}
-.domain-result{margin-top:10px;padding:10px 14px;border-radius:10px;font-size:13px;font-family:'JetBrains Mono',monospace;display:none}
-.domain-result.available{background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);color:#00ff88}
-.domain-result.taken{background:rgba(255,0,100,0.08);border:1px solid rgba(255,0,100,0.2);color:#ff6688}
-.domain-result.checking{background:rgba(0,240,255,0.06);border:1px solid rgba(0,240,255,0.15);color:#8b8b9e}
-.submit-btn{width:100%;padding:16px;background:linear-gradient(135deg,#00f0ff,#b829dd);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 150ms,transform 120ms;letter-spacing:0.2px;font-family:'Inter',sans-serif;margin-top:8px}
-.submit-btn:active{transform:scale(0.98)}
-.submit-btn:disabled{opacity:0.4;cursor:not-allowed}
-.footer{margin-top:20px;font-size:12px;color:#8b8b9e;text-align:center;line-height:1.6}
-.spinner{display:none;width:20px;height:20px;border:2px solid rgba(255,255,255,0.1);border-top-color:#00f0ff;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto}
-@keyframes spin{to{transform:rotate(360deg)}}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0d0d0d;--surface:#161616;--surface2:#1e1e1e;--border:#2a2a2a;
+  --white:#f0ede8;--muted:#666;--muted2:#444;
+  --cyan:#00f0ff;--magenta:#b829dd;--green:#00c97a;--red:#ff3b30;
+  --font-display:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'DM Mono',monospace;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--white);font-family:var(--font-body);overflow-x:hidden;}
+button{font-family:var(--font-body);cursor:pointer;border:none;background:none;color:inherit;}
+input{font-family:var(--font-body);outline:none;}
+
+/* ── LAYOUT ─────────────────────────────────────────────── */
+.page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px 60px;}
+
+/* ── BRAND ──────────────────────────────────────────────── */
+.brand{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.5px;margin-bottom:48px;}
+.brand span{color:var(--cyan);}
+
+/* ── HERO HEADLINE ──────────────────────────────────────── */
+.hero-head{font-family:var(--font-display);font-size:clamp(28px,8vw,40px);font-weight:800;line-height:1.1;text-align:center;margin-bottom:8px;letter-spacing:-1px;}
+.hero-sub{font-size:15px;color:var(--muted);text-align:center;margin-bottom:36px;line-height:1.6;}
+
+/* ── DOMAIN CHECK BLOCK ─────────────────────────────────── */
+.check-wrap{width:100%;max-width:440px;}
+
+.biz-field{
+  width:100%;padding:16px 18px;font-size:18px;font-weight:500;
+  background:var(--surface);border:2px solid var(--border);border-radius:14px;
+  color:var(--white);transition:border-color 0.2s;
+  font-family:var(--font-display);
+}
+.biz-field:focus{border-color:var(--cyan);}
+.biz-field::placeholder{color:var(--muted2);}
+
+.domain-preview{
+  display:flex;align-items:center;gap:8px;padding:12px 18px;
+  font-family:var(--font-mono);font-size:14px;color:var(--muted);
+  min-height:44px;transition:color 0.2s;
+}
+.domain-preview .dot{width:6px;height:6px;border-radius:50%;background:var(--muted2);flex-shrink:0;}
+
+.check-btn{
+  width:100%;padding:15px;border-radius:12px;margin-top:4px;
+  border:2px solid var(--cyan);color:var(--cyan);
+  font-size:15px;font-weight:700;letter-spacing:0.2px;
+  transition:all 0.18s;
+}
+.check-btn:active{background:rgba(0,240,255,0.08);}
+.check-btn:disabled{opacity:0.4;pointer-events:none;}
+.check-btn.loading{opacity:0.6;pointer-events:none;}
+
+/* ── RESULT ─────────────────────────────────────────────── */
+.result{
+  margin-top:20px;padding:20px;border-radius:14px;
+  display:none;animation:slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.result.available{background:rgba(0,201,122,0.06);border:2px solid rgba(0,201,122,0.3);}
+.result.taken{background:rgba(255,59,48,0.06);border:2px solid rgba(255,59,48,0.2);}
+
+.result-icon{font-size:32px;margin-bottom:10px;display:block;text-align:center;}
+.result-domain{font-family:var(--font-mono);font-size:15px;font-weight:500;text-align:center;margin-bottom:4px;word-break:break-all;}
+.result-available .result-domain{color:var(--green);}
+.result-taken .result-domain{color:var(--red);}
+.result-label{font-size:13px;text-align:center;margin-bottom:0;}
+.result.available .result-label{color:var(--green);}
+.result.taken .result-label{color:var(--muted);}
+
+/* Suggestions (when taken) */
+.suggestions{margin-top:14px;display:flex;flex-direction:column;gap:6px;}
+.suggestion-pill{
+  padding:10px 14px;border-radius:10px;background:var(--surface);
+  border:1.5px solid var(--border);font-family:var(--font-mono);font-size:13px;
+  color:var(--muted);text-align:left;cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.suggestion-pill:active{border-color:var(--cyan);color:var(--cyan);}
+.suggestion-pill .pill-pick{font-size:11px;color:var(--cyan);font-family:var(--font-body);font-weight:600;}
+
+/* ── DETAILS FORM (slides in after availability confirmed) ── */
+.details-form{
+  width:100%;max-width:440px;margin-top:20px;
+  display:none;animation:slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.details-form.show{display:block;}
+.field-group{margin-bottom:12px;}
+.field-label{display:block;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--font-mono);}
+.field-input{
+  width:100%;padding:13px 16px;background:var(--surface);
+  border:2px solid var(--border);border-radius:12px;
+  color:var(--white);font-size:15px;transition:border-color 0.2s;
+}
+.field-input:focus{border-color:rgba(0,240,255,0.4);background:rgba(0,240,255,0.02);}
+.field-input::placeholder{color:var(--muted2);}
+
+.claim-btn{
+  display:block;width:100%;padding:16px;margin-top:8px;border-radius:14px;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  color:#000;font-size:16px;font-weight:800;text-align:center;
+  transition:opacity 0.15s;letter-spacing:-0.2px;
+}
+.claim-btn:active{opacity:0.85;}
+.claim-btn:disabled{opacity:0.5;pointer-events:none;}
+.claim-sub{text-align:center;font-size:12px;color:var(--muted);margin-top:10px;font-family:var(--font-mono);}
+
+/* ── SPINNER ────────────────────────────────────────────── */
+.spinner{
+  display:inline-block;width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:6px;
+  border:2px solid rgba(0,240,255,0.3);border-top-color:var(--cyan);
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="logo">⚡ WEBSITE HUB</div>
-  <div class="card">
-    <div class="card-title">Get your business online</div>
-    <div class="card-sub">Fill in the basics — we'll build your site and send you the link.</div>
+<div class="page">
 
-    <div class="field">
-      <label class="field-label">Business name</label>
-      <input class="field-input" id="biz" type="text" placeholder="e.g. Zululand Flooring" autocomplete="off" autocapitalize="words">
-    </div>
-    <div class="field">
-      <label class="field-label">Your name</label>
-      <input class="field-input" id="name" type="text" placeholder="e.g. Thabo" autocomplete="off" autocapitalize="words">
-    </div>
-    <div class="field">
-      <label class="field-label">WhatsApp number</label>
-      <input class="field-input" id="phone" type="tel" placeholder="e.g. 082 123 4567">
-      <label class="field-label" style="margin-top:14px;">EMAIL ADDRESS</label>
-      <input class="field-input" id="email" type="email" placeholder="e.g. you@gmail.com" autocomplete="email">
-    </div>
-    <div class="field">
-      <label class="field-label">Area</label>
-      <input class="field-input" id="area" type="text" placeholder="e.g. Richards Bay, KZN" autocomplete="off">
-    </div>
-    <div class="field">
-      <label class="field-label">Industry</label>
-      <select class="field-input" id="industry">
-        <option value="">Select your industry</option>
-        <option>Plumbing</option>
-        <option>Electrical</option>
-        <option>Construction</option>
-        <option>Cleaning</option>
-        <option>Beauty &amp; Salon</option>
-        <option>Health &amp; Wellness</option>
-        <option>Food &amp; Restaurant</option>
-        <option>Retail</option>
-        <option>Legal</option>
-        <option>Accounting</option>
-        <option>Automotive</option>
-        <option>Real Estate</option>
-        <option>Faith &amp; Community</option>
-        <option>Tech &amp; IT</option>
-        <option>Flooring</option>
-        <option>Other</option>
-      </select>
+  <div class="brand">Website<span>Hub</span></div>
+
+  <div class="hero-head">Your business.<br>Your domain.</div>
+  <div class="hero-sub">Check if your .co.za domain is available.<br>We'll build your site for free.</div>
+
+  <!-- ── STEP 1: DOMAIN CHECK ──────────────────────────── -->
+  <div class="check-wrap">
+
+    <input class="biz-field" id="bizInput" type="text"
+           placeholder="e.g. Zululand Flooring"
+           autocomplete="off" autocapitalize="words"
+           oninput="onBizInput()" maxlength="60">
+
+    <div class="domain-preview" id="domainPreview">
+      <span class="dot"></span>
+      <span id="domainPreviewText">your-business.co.za</span>
     </div>
 
-    <div class="domain-wrap">
-      <label class="field-label">Check your domain</label>
-      <div class="domain-row">
-        <div class="domain-input-wrap">
-          <input class="field-input" id="domain" type="text" placeholder="zululandflooring" autocomplete="off" style="padding-right:60px">
-          <span class="domain-suffix">.co.za</span>
-        </div>
-        <button class="domain-btn" onclick="checkDomain()">Check</button>
-      </div>
-      <div class="domain-result" id="domain-result"></div>
+    <button class="check-btn" id="checkBtn" onclick="checkDomain()" disabled>
+      Check availability →
+    </button>
+
+    <!-- Result block -->
+    <div class="result" id="resultBlock">
+      <span class="result-icon" id="resultIcon"></span>
+      <div class="result-domain" id="resultDomain"></div>
+      <div class="result-label" id="resultLabel"></div>
+      <div class="suggestions" id="suggestionsWrap"></div>
     </div>
 
-    <button class="submit-btn" id="submit-btn">Build my website →</button>
-    <div class="spinner" id="spinner"></div>
   </div>
-  <div class="footer">We'll WhatsApp you the moment your site is ready.<br>Usually under 2 minutes.</div>
-</div>
-<script>
-// Auto-fill domain from business name
-document.getElementById('biz').addEventListener('input', function() {
-  const slug = this.value.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,30);
-  document.getElementById('domain').value = slug;
-  document.getElementById('domain-result').style.display = 'none';
-});
 
-async function checkDomain() {
-  const name = document.getElementById('domain').value.trim();
-  if (!name) return;
-  const result = document.getElementById('domain-result');
-  result.className = 'domain-result checking';
-  result.textContent = 'Checking availability...';
-  result.style.display = 'block';
+  <!-- ── STEP 2: DETAILS (revealed after availability confirmed) ── -->
+  <div class="details-form" id="detailsForm">
+
+    <div class="field-group">
+      <label class="field-label">YOUR NAME</label>
+      <input class="field-input" id="nameInput" type="text" placeholder="e.g. Thabo" autocomplete="name" autocapitalize="words">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">WHATSAPP NUMBER</label>
+      <input class="field-input" id="phoneInput" type="tel" placeholder="e.g. 082 123 4567" autocomplete="tel">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">EMAIL ADDRESS</label>
+      <input class="field-input" id="emailInput" type="email" placeholder="e.g. you@gmail.com" autocomplete="email">
+    </div>
+
+    <button class="claim-btn" id="claimBtn" onclick="submitIntake()">
+      Claim it &amp; build my site →
+    </button>
+    <div class="claim-sub">Free build · No credit card · No commitment</div>
+
+  </div>
+
+</div>
+
+<script>
+/* ── CONFIG ──────────────────────────────────────────── */
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+function normalisePhone(v) {
+  var d = v.replace(/\D/g,'');
+  if (d.startsWith('0')) d = '27' + d.slice(1);
+  if (!d.startsWith('27')) d = '27' + d;
+  return '+' + d;
+}
+
+var S = { biz:'', slug:'', domain:'', confirmed:false };
+
+/* ── BIZ INPUT ───────────────────────────────────────── */
+function onBizInput() {
+  var val  = document.getElementById('bizInput').value.trim();
+  var slug = slugify(val);
+  S.biz    = val;
+  S.slug   = slug;
+  S.domain = slug ? slug + '.co.za' : '';
+  S.confirmed = false;
+
+  var previewText = document.getElementById('domainPreviewText');
+  var checkBtn    = document.getElementById('checkBtn');
+  var dotEl       = document.querySelector('.domain-preview .dot');
+
+  if (slug) {
+    previewText.textContent = slug + '.co.za';
+    previewText.style.color = 'var(--white)';
+    dotEl.style.background  = 'var(--cyan)';
+    checkBtn.disabled = false;
+  } else {
+    previewText.textContent = 'your-business.co.za';
+    previewText.style.color = 'var(--muted)';
+    dotEl.style.background  = 'var(--muted2)';
+    checkBtn.disabled = true;
+  }
+
+  // Reset result and details form
+  document.getElementById('resultBlock').style.display  = 'none';
+  document.getElementById('detailsForm').classList.remove('show');
+}
+
+/* ── DOMAIN CHECK ────────────────────────────────────── */
+async function checkDomain(overrideDomain) {
+  var domain = overrideDomain || S.domain;
+  if (!domain) return;
+
+  var btn = document.getElementById('checkBtn');
+  btn.classList.add('loading');
+  btn.innerHTML = '<span class="spinner"></span>Checking...';
+
   try {
-    const res  = await fetch(`/domain-check?name=${encodeURIComponent(name + '.co.za')}`);
-    const data = await res.json();
-    if (data.available) {
-      result.className = 'domain-result available';
-      result.textContent = '✓ ' + name + '.co.za is available!';
-    } else {
-      result.className = 'domain-result taken';
-      result.textContent = '✗ ' + name + '.co.za is taken.';
-    }
+    var r    = await fetch('/domain-check?name=' + encodeURIComponent(domain));
+    var data = await r.json();
+    showResult(data, domain);
   } catch(e) {
-    result.className = 'domain-result taken';
-    result.textContent = 'Could not check — continue anyway.';
+    showResult({ available: null, domain: domain }, domain);
+  } finally {
+    btn.classList.remove('loading');
+    btn.textContent = 'Check again →';
+    btn.disabled = false;
   }
 }
 
-function normalisePhone(v) {
-  const d = v.replace(/\D/g,'');
-  return d.startsWith('27') ? d : d.replace(/^0/,'27');
+function showResult(data, domain) {
+  var block  = document.getElementById('resultBlock');
+  var icon   = document.getElementById('resultIcon');
+  var domEl  = document.getElementById('resultDomain');
+  var label  = document.getElementById('resultLabel');
+  var suggs  = document.getElementById('suggestionsWrap');
+
+  block.style.display = 'block';
+  block.className     = 'result';
+  domEl.textContent   = domain;
+  suggs.innerHTML     = '';
+
+  if (data.available === true) {
+    block.classList.add('available');
+    icon.textContent  = '✅';
+    label.textContent = 'Available — this domain is yours to claim';
+
+    // Lock in slug from confirmed domain
+    S.domain    = domain;
+    S.slug      = domain.replace('.co.za','');
+    S.confirmed = true;
+
+    // Reveal details form
+    setTimeout(function() {
+      document.getElementById('detailsForm').classList.add('show');
+      document.getElementById('nameInput').focus();
+    }, 400);
+
+  } else if (data.available === false) {
+    block.classList.add('taken');
+    icon.textContent  = '❌';
+    label.textContent = 'That domain is already taken. Try one of these:';
+
+    // Show suggestions
+    var suggestions = data.suggestions || data.alternatives || [];
+    if (suggestions.length) {
+      suggestions.slice(0,3).forEach(function(s) {
+        var d   = typeof s === 'string' ? s : s.domain;
+        var btn = document.createElement('button');
+        btn.className = 'suggestion-pill';
+        btn.innerHTML = '<span>' + d + '</span><span class="pill-pick">Use this →</span>';
+        btn.onclick   = function() { useSuggestion(d); };
+        suggs.appendChild(btn);
+      });
+    }
+  } else {
+    block.classList.add('taken');
+    icon.textContent  = '⚠️';
+    label.textContent = 'Could not check — tap to try again';
+  }
 }
 
-async function submitForm() {
-  const biz   = document.getElementById('biz').value.trim();
-  const name  = document.getElementById('name').value.trim();
-  const phone = document.getElementById('phone').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const area  = document.getElementById('area').value.trim();
-  const ind   = document.getElementById('industry').value;
-  const dom   = document.getElementById('domain').value.trim();
+function useSuggestion(domain) {
+  S.domain = domain;
+  S.slug   = domain.replace('.co.za','');
+  document.getElementById('domainPreviewText').textContent = domain;
+  checkDomain(domain);
+}
 
-  if (!biz || !phone) {
-    alert('Please enter your business name and WhatsApp number.');
+/* ── SUBMIT INTAKE ───────────────────────────────────── */
+async function submitIntake() {
+  if (!S.confirmed) return;
+
+  var name  = document.getElementById('nameInput').value.trim();
+  var phone = document.getElementById('phoneInput').value.trim();
+  var email = document.getElementById('emailInput').value.trim();
+
+  if (!name || !phone) {
+    document.getElementById('nameInput').style.borderColor  = name  ? '' : 'var(--red)';
+    document.getElementById('phoneInput').style.borderColor = phone ? '' : 'var(--red)';
     return;
   }
 
-  const btn = document.getElementById('submit-btn');
-  const spinner = document.getElementById('spinner');
-  btn.style.display = 'none';
-  spinner.style.display = 'block';
+  var btn = document.getElementById('claimBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Building your site...';
 
   try {
-    const res = await fetch('/intake', {
-      method: 'POST',
+    var r = await fetch('/intake', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        business_name: biz,
-        client_name:   name,
-        phone:         normalisePhone(phone),
-        email:         email,
-        area:          area,
-        industry:      ind || 'Other',
-        package:       'standard',
-        retainer:      0,
-        domain_requested: dom ? dom + '.co.za' : '',
-      })
+        business_name:    S.biz,
+        client_name:      name,
+        phone:            normalisePhone(phone),
+        email:            email,
+        domain_requested: S.domain,
+        slug_requested:   S.slug,
+        package:          'standard',
+        retainer:         0,
+        source:           'website',
+      }),
     });
-    const data = await res.json();
-    const dest = data.redirectUrl || data.redirect;
+    var data = await r.json();
+    var dest = data.redirectUrl || data.redirect;
     if (dest) {
       window.location.href = dest;
     } else {
-      spinner.style.display = 'none';
-      btn.style.display = 'block';
-      alert('Submitted! We will WhatsApp you shortly.');
+      btn.disabled    = false;
+      btn.textContent = data.error || 'Something went wrong — try again';
     }
   } catch(e) {
-    spinner.style.display = 'none';
-    btn.style.display = 'block';
-    alert('Something went wrong. Please try again.');
+    btn.disabled    = false;
+    btn.textContent = 'Something went wrong — try again';
   }
 }
-document.getElementById('submit-btn').addEventListener('click', submitForm);
+
+/* ── ENTER KEY ───────────────────────────────────────── */
+document.getElementById('bizInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !document.getElementById('checkBtn').disabled) checkDomain();
+});
 </script>
 </body>
 </html>

@@ -118,6 +118,7 @@ export default {
     if (path === '/bootstrap-preview-app') return handleBootstrapPreviewApp(request, env);
     if (path === '/bootstrap-templates') return handleBootstrapTemplates(request, env);
     if (path === '/bootstrap-intake')    return handleBootstrapIntake(request, env);
+  if (path === '/bootstrap-start')      return handleBootstrapStart(request, env);
 
 async function handleBootstrapIntake(request, env) {
   if (request.method !== 'POST') return Response.json({ error: 'POST only' }, { status: 405 });
@@ -126,6 +127,14 @@ async function handleBootstrapIntake(request, env) {
   if (!html || !html.includes('<!DOCTYPE'))
     return Response.json({ error: 'Invalid HTML — must be a full DOCTYPE document' }, { status: 400 });
   await env.SITES.put('app:intake-experience', html);
+async function handleBootstrapStart(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+  const html = await request.text();
+  if (!html || html.length < 100) return jsonResponse({ error: 'Empty body' }, 400);
+  await env.SITES.put('app:start-v2', html);
+  return jsonResponse({ success: true, size: html.length });
+}
   return Response.json({ success: true, size: html.length });
 }
     if (path === '/trigger-build')       return handleTriggerBuild(request, env, ctx);
@@ -2304,8 +2313,8 @@ export { removeWatermark, addFooterCredit };
 
 async function handleStart(request, url, env) {
   if (request.method === "POST") return handleIntake(request, env, null);
-  let html = await env.SITES.get('app:intake-experience');
-  if (!html) return new Response('Intake form not loaded. POST HTML to /bootstrap-intake.', { status: 503 });
+  let html = await env.SITES.get('app:start-v2');
+  if (!html) return new Response('Start form not loaded. POST HTML to /bootstrap-start.', { status: 503 });
   html = html.replace('__TURNSTILE_SITE_KEY__', env.TURNSTILE_SITE_KEY || '');
   const clientId = url.searchParams.get('id');
   let intakeDataJson = 'null';
