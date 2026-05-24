@@ -73,7 +73,9 @@ const MAX_IMAGES     = 12;
 const PREVIEW_DOMAIN = 'preview.websitehub.co.za';
 const WORKER_DOMAIN  = 'wh-build.pierreduplessis6912.workers.dev';
 
-const PASS_1_MAX_TOKENS = 3500; // Voice extraction JSON
+const PASS_1_MAX_TOKENS = 1500; // Brand intelligence — voice, mood, brief
+const PASS_2_MAX_TOKENS = 3500; // Content generation — all template tokens
+const PASS_3_MAX_TOKENS = 2000; // Quality review — refine and tighten
 
 // Industry → vibe mapping (Layer 1 template selection)
 const INDUSTRY_VIBE_MAP = {
@@ -1465,32 +1467,71 @@ async function triggerBuildInternal(clientId, paymentId, env, isOutbound = false
 
   await logEvent(env, 'build', 'build_started', 'success', { clientId, metadata: { business: client.business_name, pkg, archetype } });
 
-  // ── LAYER 2: Voice extraction (Claude Pass 1) ─────────────
+  // ── LAYER 2: Three-pass Claude pipeline ───────────────────
+  // Pass 1 — Brand Intelligence (~1500 tokens, fast)
+  // Pass 2 — Content Generation (~3500 tokens, all tokens)
+  // Pass 3 — Quality Review    (~2000 tokens, refine)
   let voiceProfile;
   const buildStart = Date.now();
+  const industryBrief = getIndustryBrief(client.industry || '');
 
+  // ── PASS 1: Brand Intelligence ─────────────────────────────
+  let brandBrief;
   try {
     const p1Raw = await callClaudeInternal(
-      buildPass1SystemPrompt(archetype),
-      [{ role: 'user', content: buildPass1UserPrompt(client, archetype) }],
+      buildPass1SystemPrompt(archetype, industryBrief),
+      [{ role: 'user', content: buildPass1UserPrompt(client, archetype, industryBrief) }],
       env,
       { maxTokens: PASS_1_MAX_TOKENS },
     );
-    const cleaned = p1Raw.replace(/```json|```/g, '').trim();
-    voiceProfile  = JSON.parse(cleaned);
-
-    // Store voice profile in D1
-    await updateClient(env, clientId, { voice_profile: JSON.stringify(voiceProfile) });
-    await updateBuild(env, buildId, {
-      voice_profile:    JSON.stringify(voiceProfile),
-      unsplash_queries: JSON.stringify(voiceProfile.unsplash_queries || []),
-    });
-
-    await env.SITES.put(`content:${slug}`, JSON.stringify(voiceProfile), { expirationTtl: 60 * 60 * 24 * 35 });
+    brandBrief = JSON.parse(p1Raw.replace(/```json|```/g, '').trim());
+    await logEvent(env, 'build', 'pass1_complete', 'success', { clientId, metadata: { archetype } });
   } catch (e) {
     await updateBuild(env, buildId, { status: 'failed', error: e.message });
-    throw new Error(`Voice extraction (Pass 1) failed: ${e.message}`);
+    throw new Error(`Pass 1 (Brand Intelligence) failed: ${e.message}`);
   }
+
+  // ── PASS 2: Content Generation ─────────────────────────────
+  let contentTokens;
+  try {
+    const p2Raw = await callClaudeInternal(
+      buildPass2SystemPrompt(archetype, industryBrief),
+      [{ role: 'user', content: buildPass2UserPrompt(client, archetype, brandBrief, pkg) }],
+      env,
+      { maxTokens: PASS_2_MAX_TOKENS },
+    );
+    contentTokens = JSON.parse(p2Raw.replace(/```json|```/g, '').trim());
+    await logEvent(env, 'build', 'pass2_complete', 'success', { clientId, metadata: { archetype } });
+  } catch (e) {
+    await updateBuild(env, buildId, { status: 'failed', error: e.message });
+    throw new Error(`Pass 2 (Content Generation) failed: ${e.message}`);
+  }
+
+  // ── PASS 3: Quality Review ─────────────────────────────────
+  try {
+    const p3Raw = await callClaudeInternal(
+      buildPass3SystemPrompt(archetype, industryBrief),
+      [{ role: 'user', content: buildPass3UserPrompt(client, archetype, contentTokens) }],
+      env,
+      { maxTokens: PASS_3_MAX_TOKENS },
+    );
+    const refined = JSON.parse(p3Raw.replace(/```json|```/g, '').trim());
+    // Merge refined tokens over content tokens — refined wins on any key it touches
+    voiceProfile = { ...contentTokens, ...refined, unsplash_queries: contentTokens.unsplash_queries };
+    await logEvent(env, 'build', 'pass3_complete', 'success', { clientId, metadata: { archetype } });
+  } catch (e) {
+    // Pass 3 failure is non-fatal — fall back to Pass 2 output
+    console.warn('Pass 3 (Quality Review) failed — using Pass 2 output:', e.message);
+    voiceProfile = contentTokens;
+  }
+
+  // Store final voice profile
+  await updateClient(env, clientId, { voice_profile: JSON.stringify(voiceProfile) });
+  await updateBuild(env, buildId, {
+    voice_profile:    JSON.stringify(voiceProfile),
+    unsplash_queries: JSON.stringify(voiceProfile.unsplash_queries || []),
+  });
+  await env.SITES.put(`content:${slug}`, JSON.stringify(voiceProfile), { expirationTtl: 60 * 60 * 24 * 35 });
 
   // ── PHOTO PULLING ─────────────────────────────────────────
   // Check D1 library first; hit Unsplash only if fewer than 3 cached results.
@@ -1911,25 +1952,416 @@ async function fetchGooglePlacesProspects(province, industry, limit, env) {
 // BUILD PROMPTS — Pass 1 voice extraction
 // ============================================================
 
-function buildPass1SystemPrompt(archetype) {
+function buildPass1SystemPrompt(archetype, brief) {
   const archetypeContext = {
-    emergency: 'emergency trades business (plumber/electrician/locksmith/AC/security). Someone is stressed, something is broken, they need help NOW. Be urgent, confident, and reassuring.',
-    trust:     'professional services business (lawyer/accountant/doctor/dentist/financial advisor). Client is handing over a serious problem — they need to feel SAFE. Be authoritative, calm, and credentialed.',
-    experience: 'experience-based business (restaurant/salon/spa/barber/hotel). Client is buying a feeling, not just a service. Make them imagine being there — warm, sensory, aspirational.',
-    local:     'local community business (hardware/pharmacy/butcher/grocer/creche). Beat chains on trust and relationship. Community beats convenience — personal, neighbourhood-feel, owner-forward.',
-    results:   'results-driven business (panel beater/landscaper/renovator/personal trainer/photographer). Show the work and let it sell itself — transformation narrative, outcome-focused, bold.',
+    emergency:  'emergency trades business. Someone is stressed, something is broken — they need help NOW. Be urgent, confident, reassuring. Speed and reliability above all.',
+    trust:      'professional services business. Client is handing over a serious problem — they need to feel completely SAFE. Authoritative, calm, credentialed, never salesy.',
+    experience: 'experience-based business. The client is buying a feeling, not just a service. Make them imagine being there — sensory, warm, aspirational.',
+    local:      'local community business. Beat chains on trust and relationship. Personal, neighbourhood-feel, owner-forward. Community is the product.',
+    results:    'results-driven business. Show the work and let it sell itself. Transformation narrative, outcome-focused, bold proof points.',
   }[archetype] || 'South African small business';
 
-  return `You are a South African brand strategist building website content for a ${archetypeContext}
+  return `You are a senior South African brand strategist. Your job is to extract a brand intelligence brief for a ${archetypeContext}
+
+INDUSTRY CREATIVE BRIEF:
+Mood: ${brief.mood}
+Copy style: ${brief.copyStyle}
+Vibe words: ${brief.vibeWords.join(', ')}
+Trust signals: ${brief.trustSignals.join(', ')}
+Emotional register: ${brief.emotionalRegister}
+
+YOUR JOB — Output a brand brief JSON with these exact fields:
+{
+  "voice": "2-3 sentences describing this specific business's personality and tone",
+  "headline_direction": "what the hero headline should communicate — the core promise",
+  "tagline": "short punchy brand tagline — max 6 words",
+  "differentiator": "what genuinely sets them apart in their area",
+  "trust_signals": ["signal1", "signal2", "signal3", "signal4"],
+  "vibe_words": ["word1", "word2", "word3", "word4"],
+  "emotional_hook": "the emotional need this business solves for the customer",
+  "copy_notes": "specific guidance on tone, language, what to avoid",
+  "unsplash_queries": {
+    "hero": "specific editorial search query",
+    "about": "specific editorial search query",
+    "services": "specific editorial search query"
+  }
+}
+
+OUTPUT RULES:
+→ Output ONLY valid JSON. No preamble, no backticks, no markdown.
+→ Be specific to this business and area — never generic.
+→ South African voice throughout — warm, direct, no corporate jargon.
+→ Never use: "passionate", "dedicated", "committed", "excellence", "solution".`;
+}
+
+function buildPass1UserPrompt(client, archetype, brief) {
+  const bizName  = client.business_name || '';
+  const industry = client.industry      || '';
+  const area     = client.area          || '';
+  const about    = client.about         || '';
+  const services = typeof client.services === 'string'
+    ? (() => { try { return JSON.parse(client.services).join(', '); } catch { return client.services; } })()
+    : (Array.isArray(client.services) ? client.services.join(', ') : '');
+  const vibe = client.vibe || '';
+
+  return `Business name: ${bizName}
+Industry: ${industry}
+Area: ${area}
+Vibe chosen: ${vibe || 'not specified'}
+About (client's own words): ${about || 'not provided'}
+Services: ${services || 'not provided'}
+
+Build the brand brief for this specific business. Be concrete and local.`;
+}
+
+function buildPass2SystemPrompt(archetype, brief) {
+  return `You are a South African website copywriter. You have been given a brand brief and must populate every content token for a ${archetype} archetype website.
+
+BRAND BRIEF CONTEXT:
+Mood: ${brief.mood}
+Copy style: ${brief.copyStyle}
+Vibe words: ${brief.vibeWords.join(', ')}
+Trust signals: ${brief.trustSignals.join(', ')}
+Emotional register: ${brief.emotionalRegister}
 
 OUTPUT RULES — non-negotiable:
 → Output ONLY valid JSON. Start with { and end with }. No preamble, no backticks, no markdown.
-→ All copy must be warm, confident, specifically South African — not corporate, not American.
-→ Headlines must be short, punchy, memorable — built around the actual business story.
-→ NEVER use Lorem Ipsum, AI-sounding language, or generic stock phrases.
-→ Fill EVERY field — never leave a field as null or empty string unless it genuinely does not apply.
-→ All phone tokens must be omitted from JSON — phone is injected separately from the database.
-→ Include an "unsplash_queries" object with editorial search queries for: hero, about, services slots.`;
+→ Every field must be populated — no empty strings, no nulls unless field genuinely does not apply.
+→ Headlines: short, punchy, specific — built around the actual business story.
+→ Copy: warm, direct, South African — not corporate, not American.
+→ NEVER use: "passionate", "dedicated", "committed to excellence", "solution", "journey", "leverage".
+→ Phone tokens must NOT appear in JSON — phone is injected from the database.
+→ Make every word earn its place. If it sounds like AI wrote it, rewrite it.`;
+}
+
+function buildPass2UserPrompt(client, archetype, brandBrief, pkg) {
+  const bizName  = client.business_name || '';
+  const industry = client.industry      || '';
+  const area     = client.area          || '';
+  const about    = client.about         || '';
+  const services = typeof client.services === 'string'
+    ? (() => { try { return JSON.parse(client.services).join(', '); } catch { return client.services; } })()
+    : (Array.isArray(client.services) ? client.services.join(', ') : '');
+
+  const pages = {
+    express:  ['index only'],
+    standard: ['index', 'services', 'about', 'contact'],
+    premium:  ['index', 'services', 'about', 'contact', 'gallery'],
+  }[pkg] || ['index', 'services', 'about', 'contact'];
+
+  const schemas = {
+    emergency: `{
+  "page_title": "${bizName} | Emergency ${industry} | ${area}",
+  "og_title": "${bizName} | ${area}'s Trusted ${industry}",
+  "og_description": "one sentence — specific, urgent, local",
+  "hero_badge": "location + trust line, max 8 words",
+  "hero_h1_line1": "the problem or question — punchy",
+  "hero_h1_line2": "the solution line",
+  "hero_h1_line3": "the proof or speed promise",
+  "hero_accent_word": "one word from line2 or line3 to highlight",
+  "hero_copy": "2 sentences — business story, warm, specific to ${area}",
+  "cta_primary": "urgent WhatsApp CTA e.g. Get Emergency Help",
+  "cta_secondary": "call CTA e.g. Call Now",
+  "stat1_num": "e.g. 15+", "stat1_lbl": "Years in ${area}",
+  "stat2_num": "e.g. 24/7", "stat2_lbl": "Emergency Response",
+  "stat3_num": "e.g. 100%", "stat3_lbl": "Workmanship Guaranteed",
+  "services_section_tag": "e.g. What We Fix",
+  "services_h2": "e.g. Our Services",
+  "services": [
+    {"icon": "emoji", "name": "service", "desc": "one sentence specific to ${industry} in ${area}"},
+    {"icon": "emoji", "name": "service", "desc": "one sentence"},
+    {"icon": "emoji", "name": "service", "desc": "one sentence"},
+    {"icon": "emoji", "name": "service", "desc": "one sentence"},
+    {"icon": "emoji", "name": "service", "desc": "one sentence"}
+  ],
+  "about_section_tag": "e.g. Our Story",
+  "about_headline": "specific e.g. 15 Years Keeping ${area} Running",
+  "about_pull_quote": "one memorable line capturing their brand promise",
+  "about_p1": "paragraph — their story and why they started",
+  "about_p2": "paragraph — what makes them different in ${area}",
+  "owner_name": "infer from business name or use Owner",
+  "trust_point1": "${brandBrief.trust_signals[0] || 'Licensed & Insured'}",
+  "trust_point2": "${brandBrief.trust_signals[1] || '24/7 Emergency'}",
+  "trust_point3": "${brandBrief.trust_signals[2] || 'Upfront Quotes'}",
+  "contact_section_tag": "e.g. Get In Touch",
+  "contact_h2_line1": "e.g. Got a problem?",
+  "contact_h2_line2": "e.g. Let's sort it out.",
+  "contact_copy": "one line — warm, direct, specific to response time",
+  "hours_emergency": "e.g. 24/7 for emergencies",
+  "coverage_intro": "one sentence intro to coverage area",
+  "coverage_response_time": "e.g. 30–60 minutes",
+  "coverage_areas": ["${area}", "nearby area", "nearby area", "nearby area", "nearby area", "nearby area"],
+  "unsplash_queries": {
+    "hero": "${brandBrief.unsplash_queries?.hero || industry + ' professional south africa action'}",
+    "about": "${brandBrief.unsplash_queries?.about || industry + ' team south africa'}",
+    "services": "${brandBrief.unsplash_queries?.services || industry + ' work detail south africa'}"
+  }
+}`,
+
+    trust: `{
+  "page_title": "${bizName} | ${industry} | ${area}",
+  "og_title": "${bizName} | Trusted ${industry} in ${area}",
+  "og_description": "one sentence — authority, area, reassurance",
+  "hero_badge": "credential + area e.g. Admitted Attorneys · ${area}",
+  "hero_h1_line1": "what they protect or resolve",
+  "hero_h1_line2": "the emotional promise",
+  "hero_h1_line3": "the credibility anchor",
+  "hero_accent_word": "one word to highlight",
+  "hero_copy": "2 sentences — specific, calm, authoritative",
+  "cta_primary": "e.g. Book a Consultation",
+  "cta_secondary": "e.g. Our Practice Areas",
+  "profession": "e.g. Attorney | Accountant | Doctor",
+  "founding_year": "infer or use plausible year",
+  "credential1": "e.g. Law Society of SA", "credential2": "e.g. 20+ Years Experience",
+  "credential3": "e.g. 500+ Matters", "credential4": "e.g. Free Consultation",
+  "about_philosophy": "one sentence — their professional philosophy",
+  "owner_name": "inferred from business name",
+  "owner_title": "e.g. Managing Attorney | Senior Partner",
+  "trust_point1": "${brandBrief.trust_signals[0] || 'Registered Professional'}",
+  "trust_point2": "${brandBrief.trust_signals[1] || 'Years of Experience'}",
+  "trust_point3": "${brandBrief.trust_signals[2] || 'Free Consultation'}",
+  "trust_point4": "${brandBrief.trust_signals[3] || 'Confidential'}",
+  "services_section_tag": "e.g. Our Practice Areas",
+  "services_h2": "e.g. How We Can Help",
+  "services": [
+    {"icon": "emoji", "name": "area", "desc": "one sentence", "outcome": "client outcome"},
+    {"icon": "emoji", "name": "area", "desc": "one sentence", "outcome": "client outcome"},
+    {"icon": "emoji", "name": "area", "desc": "one sentence", "outcome": "client outcome"},
+    {"icon": "emoji", "name": "area", "desc": "one sentence", "outcome": "client outcome"},
+    {"icon": "emoji", "name": "area", "desc": "one sentence", "outcome": "client outcome"},
+    {"icon": "emoji", "name": "area", "desc": "one sentence", "outcome": "client outcome"}
+  ],
+  "process_step1_title": "e.g. Initial Consultation", "process_step1_desc": "one sentence",
+  "process_step2_title": "e.g. We Review Your Matter", "process_step2_desc": "one sentence",
+  "process_step3_title": "e.g. We Act on Your Behalf", "process_step3_desc": "one sentence",
+  "about_section_tag": "e.g. Our Firm",
+  "about_headline": "specific — protecting ${area} since YEAR",
+  "about_pull_quote": "one memorable line about their approach",
+  "about_p1": "paragraph — founding story",
+  "about_p2": "paragraph — approach and values",
+  "about_p3": "paragraph — why clients choose them",
+  "testimonials": [
+    {"name": "Initial only e.g. T.M.", "quote": "authentic SA testimonial", "matter": "practice area"},
+    {"name": "Initial only", "quote": "authentic SA testimonial", "matter": "practice area"},
+    {"name": "Initial only", "quote": "authentic SA testimonial", "matter": "practice area"}
+  ],
+  "faqs": [
+    {"q": "relevant question", "a": "clear reassuring answer"},
+    {"q": "relevant question", "a": "clear answer"},
+    {"q": "relevant question", "a": "clear answer"},
+    {"q": "relevant question", "a": "clear answer"}
+  ],
+  "contact_section_tag": "e.g. Book a Consultation",
+  "contact_h2_line1": "e.g. Let's Discuss",
+  "contact_h2_line2": "e.g. Your Matter",
+  "contact_copy": "one line — reassuring and professional",
+  "address_line1": "${area}, South Africa",
+  "unsplash_queries": {
+    "hero": "${brandBrief.unsplash_queries?.hero || industry + ' professional office south africa'}",
+    "about": "${brandBrief.unsplash_queries?.about || industry + ' team meeting south africa'}",
+    "services": "${brandBrief.unsplash_queries?.services || industry + ' consultation south africa'}"
+  }
+}`,
+
+    experience: `{
+  "page_title": "${bizName} | ${industry} | ${area}",
+  "og_title": "${bizName} — ${industry} in ${area}",
+  "og_description": "one sentence — sensory, aspirational, specific",
+  "tagline": "${brandBrief.tagline || 'short brand tagline'}",
+  "business_type": "e.g. hair salon | restaurant | spa",
+  "hero_h1_line1": "experiential first line",
+  "hero_h1_line2": "sensory or mood line",
+  "hero_h1_line3": "invitation or promise",
+  "hero_copy": "2 sentences — make them imagine being there",
+  "hero_mood_line": "atmospheric one-liner — sets the scene",
+  "cta_primary": "e.g. Book Your Appointment",
+  "cta_secondary": "e.g. See Our Work",
+  "vibe1": "${brandBrief.vibe_words[0] || 'Relaxing'}",
+  "vibe2": "${brandBrief.vibe_words[1] || 'Luxurious'}",
+  "vibe3": "${brandBrief.vibe_words[2] || 'Personal'}",
+  "vibe4": "${brandBrief.vibe_words[3] || 'Transformative'}",
+  "years_open": "e.g. 8", "team_size": "e.g. 6",
+  "owner_name": "inferred from business name",
+  "owner_title": "e.g. Head Stylist & Owner",
+  "offerings_section_tag": "e.g. What We Offer",
+  "offerings_h2": "e.g. Designed for You",
+  "offerings": [
+    {"name": "offering", "desc": "one sentence", "price": "e.g. From R350", "duration": "e.g. 45 min"},
+    {"name": "offering", "desc": "one sentence", "price": "e.g. From R550", "duration": "e.g. 90 min"},
+    {"name": "offering", "desc": "one sentence", "price": "e.g. From R280", "duration": "e.g. 30 min"},
+    {"name": "offering", "desc": "one sentence", "price": "e.g. From R450", "duration": "e.g. 60 min"},
+    {"name": "offering", "desc": "one sentence", "price": "e.g. From R650", "duration": "e.g. 2 hrs"},
+    {"name": "offering", "desc": "one sentence", "price": "e.g. From R180", "duration": "e.g. 20 min"}
+  ],
+  "about_section_tag": "e.g. Our Story",
+  "about_headline": "warm personal headline",
+  "about_pull_quote": "one memorable line",
+  "about_p1": "paragraph — origin story",
+  "about_p2": "paragraph — experience and atmosphere",
+  "contact_section_tag": "e.g. Reserve Your Spot",
+  "contact_h2_line1": "e.g. Ready to Book?",
+  "contact_h2_line2": "e.g. We'd Love to See You",
+  "contact_copy": "one line — warm, inviting",
+  "address_line1": "${area}, South Africa",
+  "unsplash_queries": {
+    "hero": "${brandBrief.unsplash_queries?.hero || industry + ' interior ambiance south africa'}",
+    "about": "${brandBrief.unsplash_queries?.about || industry + ' owner staff south africa'}",
+    "services": "${brandBrief.unsplash_queries?.services || industry + ' detail product south africa'}"
+  }
+}`,
+
+    local: `{
+  "page_title": "${bizName} | ${area}'s Trusted ${industry}",
+  "og_title": "${bizName} — Serving ${area} Since Day One",
+  "og_description": "one sentence — community, trust, local",
+  "hero_h1_line1": "community-first headline",
+  "hero_h1_line2": "the local advantage",
+  "hero_h1_line3": "the relationship promise",
+  "hero_copy": "2 sentences — neighbourhood feel, personal, owner-forward",
+  "cta_primary": "e.g. Visit Us Today",
+  "cta_secondary": "e.g. Call the Shop",
+  "since_year": "e.g. 2004",
+  "owner_name": "inferred from business name",
+  "about_tagline": "one neighbourhood phrase",
+  "services_section_tag": "e.g. What We Stock",
+  "services_h2": "e.g. Everything You Need",
+  "services": [
+    {"icon": "emoji", "name": "product/service", "desc": "one sentence"},
+    {"icon": "emoji", "name": "product/service", "desc": "one sentence"},
+    {"icon": "emoji", "name": "product/service", "desc": "one sentence"},
+    {"icon": "emoji", "name": "product/service", "desc": "one sentence"},
+    {"icon": "emoji", "name": "product/service", "desc": "one sentence"},
+    {"icon": "emoji", "name": "product/service", "desc": "one sentence"}
+  ],
+  "badges": ["Family Owned", "${area} Born", "Open 7 Days", "Cash & Card"],
+  "about_section_tag": "e.g. Our Story",
+  "about_headline": "community headline",
+  "about_pull_quote": "one line capturing neighbourhood spirit",
+  "about_p1": "paragraph — founding story",
+  "about_p2": "paragraph — community connection",
+  "testimonials": [
+    {"name": "SA name", "quote": "neighbourhood customer testimonial"},
+    {"name": "SA name", "quote": "loyal customer testimonial"},
+    {"name": "SA name", "quote": "local testimonial"}
+  ],
+  "contact_section_tag": "e.g. Come See Us",
+  "contact_h2_line1": "e.g. We're Right Here",
+  "contact_h2_line2": "e.g. In ${area}",
+  "contact_copy": "one line — warm and accessible",
+  "address_line1": "${area}, South Africa",
+  "unsplash_queries": {
+    "hero": "${brandBrief.unsplash_queries?.hero || industry + ' shop storefront south africa local'}",
+    "about": "${brandBrief.unsplash_queries?.about || industry + ' owner community south africa'}",
+    "services": "${brandBrief.unsplash_queries?.services || industry + ' products shelves south africa'}"
+  }
+}`,
+
+    results: `{
+  "page_title": "${bizName} | ${industry} | ${area}",
+  "og_title": "${bizName} — Results That Speak For Themselves",
+  "og_description": "one sentence — outcome-focused, bold, specific",
+  "hero_h1_line1": "transformation or outcome headline",
+  "hero_h1_line2": "the quality promise",
+  "hero_h1_line3": "the proof statement",
+  "hero_copy": "2 sentences — show results, let work sell itself",
+  "cta_primary": "e.g. See Our Work",
+  "cta_secondary": "e.g. Get a Free Quote",
+  "proof_stat1_num": "e.g. 500+", "proof_stat1_lbl": "Projects Completed",
+  "proof_stat2_num": "e.g. 12+",  "proof_stat2_lbl": "Years Experience",
+  "proof_stat3_num": "e.g. 98%",  "proof_stat3_lbl": "Client Satisfaction",
+  "proof_stat4_num": "e.g. 0",    "proof_stat4_lbl": "Comebacks",
+  "owner_name": "inferred from business name",
+  "services_section_tag": "e.g. What We Do",
+  "services_h2": "e.g. Our Work",
+  "services": [
+    {"icon": "emoji", "name": "service", "desc": "one sentence", "result": "client outcome"},
+    {"icon": "emoji", "name": "service", "desc": "one sentence", "result": "client outcome"},
+    {"icon": "emoji", "name": "service", "desc": "one sentence", "result": "client outcome"},
+    {"icon": "emoji", "name": "service", "desc": "one sentence", "result": "client outcome"},
+    {"icon": "emoji", "name": "service", "desc": "one sentence", "result": "client outcome"},
+    {"icon": "emoji", "name": "service", "desc": "one sentence", "result": "client outcome"}
+  ],
+  "about_section_tag": "e.g. The Work Speaks",
+  "about_headline": "results-focused headline",
+  "about_pull_quote": "one memorable line about quality",
+  "about_p1": "paragraph — origin and expertise",
+  "about_p2": "paragraph — process and standards",
+  "about_p3": "paragraph — why trusted in ${area}",
+  "about_proof_statement": "bold proof e.g. 500+ projects. Zero comebacks.",
+  "testimonials": [
+    {"name": "SA name", "quote": "results testimonial", "result": "e.g. Done in 3 days, perfect finish"},
+    {"name": "SA name", "quote": "results testimonial", "result": "client result"},
+    {"name": "SA name", "quote": "results testimonial", "result": "client result"}
+  ],
+  "case_studies": [
+    {"client": "e.g. Family in ${area}", "challenge": "the problem", "solution": "what was done", "timeframe": "e.g. 5 days", "results": ["result 1", "result 2", "result 3"]},
+    {"client": "e.g. Local business", "challenge": "the problem", "solution": "what was done", "timeframe": "e.g. 3 days", "results": ["result 1", "result 2", "result 3"]}
+  ],
+  "contact_section_tag": "e.g. Get a Free Quote",
+  "contact_h2_line1": "e.g. Ready to See Results?",
+  "contact_h2_line2": "e.g. Let's Talk",
+  "contact_copy": "one line — confident, direct",
+  "address_line1": "${area}, South Africa",
+  "unsplash_queries": {
+    "hero": "${brandBrief.unsplash_queries?.hero || industry + ' work result south africa before after'}",
+    "about": "${brandBrief.unsplash_queries?.about || industry + ' team professional south africa'}",
+    "services": "${brandBrief.unsplash_queries?.services || industry + ' finished work quality south africa'}"
+  }
+}`,
+  };
+
+  const schema = schemas[archetype] || schemas.results;
+  const area   = client.area          || 'South Africa';
+  const about  = client.about         || '';
+  const services = typeof client.services === 'string'
+    ? (() => { try { return JSON.parse(client.services).join(', '); } catch { return client.services; } })()
+    : (Array.isArray(client.services) ? client.services.join(', ') : '');
+
+  return `BRAND BRIEF:
+Voice: ${brandBrief.voice}
+Headline direction: ${brandBrief.headline_direction}
+Differentiator: ${brandBrief.differentiator}
+Emotional hook: ${brandBrief.emotional_hook}
+Copy notes: ${brandBrief.copy_notes}
+
+CLIENT DATA:
+Business: ${client.business_name}
+Industry: ${client.industry}
+Area: ${area}
+About: ${about || 'not provided'}
+Services: ${services || 'not provided'}
+Package: ${pkg} — pages needed: ${pages.join(', ')}
+
+Populate every field in this JSON schema. Be specific, local, South African:
+${schema}`;
+}
+
+function buildPass3SystemPrompt(archetype, brief) {
+  return `You are a ruthless South African brand editor. A junior copywriter has populated website content tokens. Your job is to review and refine — catch anything generic, weak, or AI-sounding and replace it with something real and specific.
+
+INDUSTRY STANDARD:
+Mood: ${brief.mood}
+Emotional register: ${brief.emotionalRegister}
+Copy style: ${brief.copyStyle}
+
+YOUR JOB:
+→ Review every field in the JSON provided
+→ Replace any generic, weak, or AI-sounding copy with something specific and punchy
+→ Ensure headlines are SHORT and memorable — if any headline is more than 6 words, tighten it
+→ Ensure South African voice throughout — real, warm, direct
+→ Output the COMPLETE refined JSON — every field, not just the ones you changed
+
+OUTPUT RULES:
+→ Output ONLY valid JSON. No preamble, no backticks, no markdown.
+→ Keep unsplash_queries exactly as provided — do not change them.
+→ Never use: "passionate", "dedicated", "committed", "excellence", "solution", "journey", "leverage", "innovative".`;
+}
+
+function buildPass3UserPrompt(client, archetype, contentTokens) {
+  return `Business: ${client.business_name} | Industry: ${client.industry} | Area: ${client.area || 'South Africa'}
+
+Review and refine this content. Replace anything generic or weak. Keep what is already strong:
+${JSON.stringify(contentTokens, null, 2)}`;
 }
 
 function buildPass1UserPrompt(client, archetype) {
