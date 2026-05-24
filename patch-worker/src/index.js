@@ -846,6 +846,24 @@ async function processRevision(client, payload, env, opts = {}) {
     env,
   );
 
+  if (client.email) {
+    await sendEmail({
+      to: client.email,
+      subject: paid
+        ? `Revision payment confirmed — ${client.business_name}`
+        : `Revision received — ${client.business_name}`,
+      touchpoint: paid ? 'paid_revision_confirmed' : 'revision_submitted',
+      clientSlug: client.slug,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#111">${paid ? 'Revision payment confirmed 👍' : 'Revision received 👍'}</h2>
+        <p>Hi ${name},</p>
+        <p>Your revision for <strong>${client.business_name}</strong> is in — we'll have it live within 10 minutes.${paid ? ' Thank you for the payment!' : ''}</p>
+        <p style="margin:24px 0"><a href="https://preview.websitehub.co.za/manage/${client.manage_token}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">View My Preview</a></p>
+        <p style="color:#888;font-size:12px">— Website Hub</p>
+      </div>`,
+    }, env).catch(() => {});
+  }
+
   await sendWhatsApp(env.WH_PHONE,
     `✏️ REVISION${paid ? ` (PAID R${PRICING.addons.revision})` : ''}: ${client.business_name}\nClient: ${client.id}`,
     env, { skipTestRedirect: true },
