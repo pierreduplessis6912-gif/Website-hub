@@ -1511,17 +1511,23 @@ export async function vestReferral(env, referredClientId, creditAmount) {
  */
 export function detectArchetype(industry) {
   const key = (industry || '').toLowerCase().replace(/[^a-z\s]/g, '');
-  if (/plumb|electr|locksmith|ac repair|hvac|geyser|security|pest|tow truck|handyman|appli/.test(key))
+  // Emergency trades — someone needs help NOW
+  if (/plumb|electr|locksmith|hvac|geyser|security|pest|tow truck|handyman|appliance|repair|drainage|roofing|waterproof/.test(key))
     return 'emergency';
-  if (/lawyer|attorney|account|doctor|dentist|physio|financial|architect|consult|audit|tax|notary/.test(key))
+  // Trust professions — handing over a serious problem
+  if (/lawyer|attorney|account|doctor|dentist|physio|financial|architect|consult|audit|tax|notary|insurance|mortgage|broker|therapist|psycholog|optom/.test(key))
     return 'trust';
-  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty/.test(key))
+  // Experience businesses — buying a feeling
+  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|tattoo|piercing|catering|events|wedding plan|guest house|lodge/.test(key))
     return 'experience';
-  if (/hardware|pharmacy|butcher|grocer|creche|dry clean|laundry|florist|nursery|pet shop|bottle store/.test(key))
+  // Local community — beat chains on relationship
+  if (/hardware|pharmacy|butcher|grocer|creche|dry clean|laundry|florist|nursery|pet shop|bottle store|supermarket|spaza|tuck shop|stationery|fabric|sewing|alterations/.test(key))
     return 'local';
-  if (/panel|landscap|renovat|contractor|painter|tiler|designer|trainer|gym|fitness|photog|wedding photo/.test(key))
+  // Results driven — show the work
+  if (/panel|landscap|renovat|contractor|painter|tiler|designer|trainer|gym|fitness|photog|wedding photo|floor|carpet|paving|ceiling|partiti|signage|print|wrap|brand/.test(key))
     return 'results';
-  return 'emergency';
+  // Sensible default — most unknown trades show results better than emergency
+  return 'results';
 }
 
 /**
