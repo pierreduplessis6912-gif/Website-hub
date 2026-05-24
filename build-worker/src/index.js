@@ -986,6 +986,60 @@ async function handleDomainCheck(url, env) {
     return jsonResponse({ domain, available: null, error: e.message });
   }
   // --- OLD DIRECT IMPLEMENTATION BELOW (replaced) ---
+}
+async function handleCheckDomain(url, env) {
+  const domain = url.searchParams.get('domain')?.toLowerCase().trim();
+  if (!domain) return jsonResponse({ error: 'Missing domain' }, 400);
+
+  const slug = domain.replace(/\.co\.za$/, '');
+
+  if (env.REGISTERDOMAIN_API_KEY) {
+    try {
+      const res = await fetch(
+        `https://api.registerdomain.co.za/v2/domain/check?domain=${encodeURIComponent(domain)}&apikey=${env.REGISTERDOMAIN_API_KEY}`,
+        { headers: { 'Accept': 'application/json' } },
+      );
+      if (res.ok) {
+        const data      = await res.json();
+        const available = data.available === true || data.status === 'available';
+        const alternatives = available ? [] : [`${slug}-pta.co.za`, `${slug}-sa.co.za`, `${slug}online.co.za`];
+        return jsonResponse({ available, domain, alternatives });
+      }
+    } catch { /* fall through to WHOIS */ }
+  }
+
+  const result = await checkDomainAvailabilityWhois(domain);
+  return jsonResponse({ ...result, alternatives: result.available === false
+    ? [`${slug}-pta.co.za`, `${slug}-sa.co.za`, `${slug}online.co.za`]
+    : [], fallback: true });
+}
+
+async function handleDomainCheck(url, env) {
+  const name = url.searchParams.get('name') || '';
+  const sld  = name.replace(/\.co\.za$/i,'').replace(/[^a-z0-9-]/gi,'-').toLowerCase().replace(/^-+|-+$/g,'');
+  if (!sld) return jsonResponse({ error: 'Invalid domain name' }, 400);
+  const domain = sld + '.co.za';
+  const secret = env.DOMAIN_PROXY_SECRET || '';
+  try {
+    const res  = await fetch('https://websitehub.co.za/domain-proxy.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': secret },
+      body: JSON.stringify({ action: 'CheckAvailability', sld, tld: 'co.za' }),
+    });
+    const data = await res.json();
+    const available = data.available === true || data.result === 'available' || data.status === 'available';
+    const taken     = data.available === false || data.result === 'taken' || data.result === 'registered';
+    const suggestions = available || taken ? [] : [];
+    if (taken) {
+      const alts = [sld+'-sa', sld+'-za', 'my-'+sld];
+      return jsonResponse({ domain, available: false, suggestions: alts });
+    }
+    if (available) return jsonResponse({ domain, available: true, suggestions: [] });
+    return jsonResponse({ domain, available: null, raw: data });
+  } catch(e) {
+    return jsonResponse({ domain, available: null, error: e.message });
+  }
+  // --- OLD DIRECT IMPLEMENTATION BELOW (replaced) ---
   if (false) {
   const name = url.searchParams.get('name');
   if (!name) return jsonResponse({ error: 'Missing name parameter' }, 400);
