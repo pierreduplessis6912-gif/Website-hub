@@ -157,6 +157,27 @@ async function handleCancelSite(request, env, ctx) {
   }
   await sendWhatsApp(client.phone, clientMsg, env);
 
+  if (client.email) {
+    const cancelSubjects = {
+      archive: `${client.business_name} has been paused`,
+      file:    `${client.business_name} has been cancelled`,
+      domain:  `${client.business_name} cancelled — domain released`,
+    };
+    await sendEmail({
+      to: client.email,
+      subject: cancelSubjects[option] || `${client.business_name} — cancellation confirmed`,
+      touchpoint: 'cancellation_confirmed',
+      clientSlug: client.slug,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#111">Cancellation confirmed</h2>
+        <p>Hi ${name},</p>
+        <p>${clientMsg.replace(/
+/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>')}</p>
+        <p style="color:#888;font-size:12px">— Pierre, Website Hub</p>
+      </div>`,
+    }, env).catch(() => {});
+  }
+
   await sendWhatsApp(env.WH_PHONE,
     `🛑 CANCELLED: ${client.business_name}\nOption: ${option}\nReason: ${reason || '(none)'}\nDomain: ${domain}\nClient: ${clientId}\nWin-back in ${WIN_BACK_TRIGGER_DAYS} days.`,
     env, { skipTestRedirect: true });
@@ -278,6 +299,22 @@ async function reactivateInternal(client, env) {
     await sendWhatsApp(client.phone,
       `✅ Welcome back, ${name}! *${client.business_name}* is live again at https://${domain}\n\n— Pierre, Website Hub`,
       env);
+
+    if (client.email) {
+      await sendEmail({
+        to: client.email,
+        subject: `Welcome back — ${client.business_name} is live again ✓`,
+        touchpoint: 'reactivated_archive',
+        clientSlug: client.slug,
+        html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+          <h2 style="color:#111">You're back online ✅</h2>
+          <p>Hi ${name},</p>
+          <p><strong>${client.business_name}</strong> is live again at <a href="https://${domain}">${domain}</a>. Great to have you back.</p>
+          <p style="margin:24px 0"><a href="https://${domain}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Visit My Site</a></p>
+          <p style="color:#888;font-size:12px">— Pierre, Website Hub</p>
+        </div>`,
+      }, env).catch(() => {});
+    }
   } else {
     // File/domain path: live KV was deleted — queue a fresh rebuild
     await updateClient(env, client.id, {
@@ -292,6 +329,21 @@ async function reactivateInternal(client, env) {
     await sendWhatsApp(client.phone,
       `🎉 Welcome back, ${name}! We're rebuilding *${client.business_name}* now — you'll have a fresh preview in about 10 minutes.\n\n— Pierre, Website Hub`,
       env);
+
+    if (client.email) {
+      await sendEmail({
+        to: client.email,
+        subject: `Welcome back — rebuilding ${client.business_name} now`,
+        touchpoint: 'reactivated_rebuild',
+        clientSlug: client.slug,
+        html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+          <h2 style="color:#111">Welcome back! 🎉</h2>
+          <p>Hi ${name},</p>
+          <p>We're rebuilding <strong>${client.business_name}</strong> right now. You'll have a fresh preview in about 10 minutes.</p>
+          <p style="color:#888;font-size:12px">— Pierre, Website Hub</p>
+        </div>`,
+      }, env).catch(() => {});
+    }
   }
 
   await sendWhatsApp(env.WH_PHONE,
@@ -649,6 +701,22 @@ async function handleProspectOptIn(phone, text, prospect, env) {
     `Brilliant ${clientName} 👋 We're building your free website preview right now — you'll have the link in about 2 minutes. Sit tight!\n\n— Website Hub`,
     env);
 
+  const prospectClient = clientId ? await getClientById(env, clientId).catch(() => null) : null;
+  if (prospectClient?.email) {
+    await sendEmail({
+      to: prospectClient.email,
+      subject: `Building your free ${prospectClient.business_name} website now`,
+      touchpoint: 'prospect_opted_in',
+      clientSlug: prospectClient.slug,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#111">Building your preview now 🔨</h2>
+        <p>Hi ${clientName},</p>
+        <p>We're building your free <strong>${prospectClient.business_name}</strong> website preview right now. You'll have the link in about 2 minutes.</p>
+        <p style="color:#888;font-size:12px">— Website Hub</p>
+      </div>`,
+    }, env).catch(() => {});
+  }
+
   await sendWhatsApp(env.WH_PHONE,
     `✅ PROSPECT OPTED IN: "${clientName}" (+${phone})\nClient: ${clientId || 'creation failed'}\nBuild queued.`,
     env, { skipTestRedirect: true });
@@ -763,6 +831,21 @@ async function handleCancelIntent(client, text, env) {
   await sendWhatsApp(client.phone,
     `Hi ${name} — got your cancellation message. Pierre will WhatsApp you back within the hour to sort it. — Website Hub`,
     env);
+
+  if (client.email) {
+    await sendEmail({
+      to: client.email,
+      subject: `We got your cancellation request — ${client.business_name}`,
+      touchpoint: 'cancel_intent',
+      clientSlug: client.slug,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#111">Cancellation request received</h2>
+        <p>Hi ${name},</p>
+        <p>We've received your cancellation request for <strong>${client.business_name}</strong>. Pierre will be in touch within the hour to sort everything out.</p>
+        <p style="color:#888;font-size:12px">— Website Hub</p>
+      </div>`,
+    }, env).catch(() => {});
+  }
 
   await logEvent(env, 'reactivate', 'cancel_intent', 'success', {
     clientId: client.id, metadata: { snippet: text.slice(0, 100) },
