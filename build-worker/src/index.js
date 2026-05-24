@@ -128,6 +128,7 @@ export default {
     if (path === '/preview-meta')        return handlePreviewMeta(request, url, env);
     if (path === '/bootstrap-preview-app') return handleBootstrapPreviewApp(request, env);
     if (path === '/bootstrap-templates') return handleBootstrapTemplates(request, env);
+    if (path === '/intake-preview')      return handleIntakePreview(request, env);
     if (path === '/bootstrap-intake')    return handleBootstrapIntake(request, env);
   if (path === '/bootstrap-start') {
     try {
@@ -716,6 +717,79 @@ async function handlePreviewMeta(request, url, env) {
 }
 
 // ============================================================
+// ============================================================
+// ROUTE: /intake-preview — lightweight Claude call for live intake preview
+// Fires after card 3, 5, 6 to generate real copy for the live preview DOM
+// No auth required — rate limited by Turnstile on submit
+// ============================================================
+async function handleIntakePreview(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
+
+  const { biz, industry, area, vibe, services, card } = body;
+  if (!biz || !industry || !area) return jsonResponse({ error: 'Missing required fields: biz, industry, area' }, 400);
+
+  const archetype    = detectArchetype(industry);
+  const industryBrief = getIndustryBrief(industry);
+
+  const servicesList = Array.isArray(services) ? services.slice(0, 6).join(', ') : (services || '');
+  const vibeLabel    = vibe || 'bold_confident';
+
+  const system = `You are a South African brand copywriter. Generate punchy, specific website preview copy for a ${archetype} archetype business.
+
+Industry mood: ${industryBrief.mood}
+Copy style: ${industryBrief.copyStyle}
+Emotional register: ${industryBrief.emotionalRegister}
+
+OUTPUT RULES:
+→ Output ONLY valid JSON. No preamble, no backticks.
+→ South African voice — warm, direct, never corporate.
+→ Specific to the business and area — never generic.
+→ Headlines max 6 words each.
+→ Never use: "passionate", "dedicated", "excellence", "solution".`;
+
+  const prompt = `Business: ${biz}
+Industry: ${industry}
+Area: ${area}
+Vibe: ${vibeLabel}
+Services: ${servicesList || 'not yet provided'}
+Card reached: ${card || 3}
+
+Generate preview copy:
+{
+  "headline": "punchy 4-6 word hero headline",
+  "headline_line2": "second line — the promise or proof",
+  "tagline": "brand tagline max 6 words",
+  "hero_copy": "one warm sentence — specific to ${area}",
+  "cta": "WhatsApp CTA button text e.g. Get a Free Quote",
+  "vibe_words": ["word1", "word2", "word3", "word4"],
+  "services_preview": ["service chip 1", "service chip 2", "service chip 3", "service chip 4", "service chip 5", "service chip 6"]
+}`;
+
+  try {
+    const raw = await callClaudeInternal(system, [{ role: 'user', content: prompt }], env, { maxTokens: 600 });
+    const preview = JSON.parse(raw.replace(/```json|```/g, '').trim());
+
+    // Store brand brief in KV against slug if provided (for build pipeline to reuse)
+    const slug = body.slug;
+    if (slug) {
+      await env.SITES.put(`intake_brief:${slug}`, JSON.stringify({
+        archetype,
+        industry_brief: industryBrief,
+        preview,
+        biz, industry, area, vibe, services: servicesList,
+        generated_at: Date.now(),
+      }), { expirationTtl: 60 * 60 * 6 }); // 6 hour TTL — intake session window
+    }
+
+    return jsonResponse({ success: true, archetype, preview });
+  } catch (e) {
+    return jsonResponse({ error: 'Preview generation failed', detail: e.message }, 500);
+  }
+}
+
 // ROUTE: /bootstrap-templates
 // ============================================================
 

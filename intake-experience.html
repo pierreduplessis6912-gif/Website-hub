@@ -158,6 +158,36 @@ body::after {
 }
 
 /* Preview services strip */
+/* Claude preview loading state */
+.preview-site.preview-loading {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+.preview-site.preview-loading::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  animation: previewPulse 1s infinite;
+}
+@keyframes previewPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.3; transform: scale(0.6); }
+}
+
+/* Preview sub copy */
+.preview-sub {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.55);
+  margin: 6px 16px 0;
+  line-height: 1.4;
+  transition: color 300ms ease;
+}
+
 .preview-services {
   padding: 12px 18px;
   background: rgba(18,18,26,0.9);
@@ -866,6 +896,8 @@ const state = {
   tiktok:      '',
   turnstileToken: '',
   mode2ClientId: null,
+  brandBrief:    null, // Set by Claude /intake-preview calls — passed with submission
+  previewSlug:   null, // Set when slug is known (mode 2)
 };
 
 // Pre-existing client data (Mode 2)
@@ -1349,13 +1381,15 @@ function fireCompletionReward(cardNum) {
     case 1: // Biz name → headline flashes
       setTimeout(() => { flashLive('[data-live="headline"]'); textPop('[data-live="nav-name"]'); }, 80);
       break;
-    case 3: // Area → area badge flashes
+    case 3: // Area → fire Claude with biz+industry+area
       setTimeout(() => flashLive('[data-live="area-badge"]'), 80);
+      setTimeout(() => fireClaudePreview(3), 400); // Let animation settle first
       break;
-    case 4: // Vibe → whole preview pulses
+    case 4: // Vibe → whole preview pulses + re-fire Claude with vibe
       setTimeout(() => flashLive('.preview-site'), 80);
+      setTimeout(() => fireClaudePreview(4), 400);
       break;
-    case 5: // Services → strip animates
+    case 5: // Services → strip animates + re-fire Claude with services
       setTimeout(() => {
         flashLive('[data-live="services-strip"]');
         document.querySelectorAll('.preview-service-chip').forEach((c, i) => {
@@ -1363,10 +1397,98 @@ function fireCompletionReward(cardNum) {
           c.style.animationDelay = `${i * 50}ms`;
         });
       }, 80);
+      setTimeout(() => fireClaudePreview(5), 400);
+      break;
+    case 6: // Differentiators → final enrichment pass
+      setTimeout(() => fireClaudePreview(6), 400);
       break;
     case 7: // CTA btn flashes after brand uploaded
       setTimeout(() => textPop('[data-live="cta-btn"]'), 80);
       break;
+  }
+}
+
+// ── CLAUDE LIVE PREVIEW ──────────────────────────────────────
+let previewCallInFlight = false;
+
+async function fireClaudePreview(card) {
+  if (previewCallInFlight) return;
+  if (!state.biz || !state.industry || !state.area) return;
+
+  previewCallInFlight = true;
+
+  // Show subtle loading indicator on preview
+  const previewSite = document.querySelector('.preview-site');
+  if (previewSite) previewSite.classList.add('preview-loading');
+
+  try {
+    const payload = {
+      biz:      state.biz,
+      industry: state.industry,
+      area:     state.area,
+      vibe:     state.vibe || 'bold_confident',
+      services: state.services,
+      card,
+      slug:     state.previewSlug || null,
+    };
+
+    const res  = await fetch('/intake-preview', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.success || !data.preview) return;
+
+    // Store for submission
+    state.brandBrief = data.preview;
+
+    const p = data.preview;
+
+    // Update headline
+    const h1 = document.querySelector('[data-live="headline"]');
+    if (h1 && p.headline) {
+      h1.innerHTML = `${escHtml(p.headline)}<br><span>${escHtml(p.headline_line2 || '')}</span>`;
+      flashLive('[data-live="headline"]');
+    }
+
+    // Update nav name (stays as biz name — don't overwrite)
+
+    // Update tagline / sub copy
+    const sub = document.querySelector('.preview-sub');
+    if (sub && p.hero_copy) {
+      sub.innerHTML = escHtml(p.hero_copy);
+      flashLive('.preview-sub');
+    }
+
+    // Update CTA buttons
+    if (p.cta) {
+      const btns = document.querySelectorAll('[data-live="cta"], [data-live="cta-btn"]');
+      btns.forEach(b => { b.textContent = p.cta; });
+      textPop('[data-live="cta-btn"]');
+    }
+
+    // Update services strip with Claude-generated chips
+    if (p.services_preview && p.services_preview.length) {
+      const strip = document.querySelector('[data-live="services-strip"]');
+      if (strip) {
+        strip.innerHTML = '';
+        p.services_preview.slice(0, 6).forEach((s, i) => {
+          const chip = document.createElement('div');
+          chip.className = 'preview-service-chip new';
+          chip.style.animationDelay = `${i * 50}ms`;
+          chip.textContent = s;
+          strip.appendChild(chip);
+        });
+        flashLive('[data-live="services-strip"]');
+      }
+    }
+
+  } catch (e) {
+    console.warn('Claude preview call failed (non-fatal):', e.message);
+  } finally {
+    previewCallInFlight = false;
+    if (previewSite) previewSite.classList.remove('preview-loading');
   }
 }
 
@@ -1587,6 +1709,7 @@ async function postIntake() {
     retainer:         state.retainer,
     'cf-turnstile-response': state.turnstileToken,
     ...(state.mode2ClientId ? { existingClientId: state.mode2ClientId } : {}),
+    ...(state.brandBrief    ? { brand_brief: state.brandBrief }         : {}),
   };
 
   try {
