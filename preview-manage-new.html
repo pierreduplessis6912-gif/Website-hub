@@ -330,6 +330,9 @@ input{font-family:inherit;}
 .plan-pop-feat{font-size:.7rem;color:var(--text-secondary);margin-bottom:5px;display:flex;align-items:center;gap:7px;line-height:1.3;}
 .plan-pop-feat::before{content:'✓';color:var(--accent-green);font-weight:700;font-size:.65rem;flex-shrink:0;}
 .plan-chip.peeking{border-color:rgba(0,240,255,.45)!important;background:rgba(0,240,255,.1)!important;transform:scale(1.03);}
+.view-site-btn{width:100%;padding:12px;border-radius:10px;background:transparent;border:2px solid #00f0ff;color:#00f0ff;font-size:14px;font-weight:700;text-align:center;transition:all 0.18s;margin-bottom:8px;font-family:var(--font-body);cursor:pointer;display:block;}
+.view-site-btn:active{background:rgba(0,240,255,0.08);}
+.view-site-btn.busy{opacity:0.5;pointer-events:none;}
 </style>
 </head>
 <body>
@@ -446,7 +449,8 @@ input{font-family:inherit;}
       <input class="promo-input" type="text" placeholder="Promo code (optional)" id="promoInput">
       <button class="btn btn-ghost btn-sm" onclick="applyPromo()">Apply</button>
     </div>
-    <button class="btn btn-primary btn-full" id="goLiveBtn" onclick="goToConfirm()">
+    <button class="view-site-btn" id="viewSiteBtn" onclick="viewActualSite()">👁 View your actual site →</button>
+      <button class="btn btn-primary btn-full" id="goLiveBtn" onclick="goToConfirm()">
       <span class="btn-text">🚀 Go Live — R999/mo</span>
     </button>
   </div>
@@ -666,35 +670,6 @@ const PLAN_FEATURES = {
 };
 
 /* ── BUILD ANIMATION ─────────────────────────────── */
-/* ── TOKEN + BUILD STATUS POLLING ────────────────── */
-const pageToken = (window.location.pathname.match(/\/manage\/([^/?#]+)/) || [])[1] || '';
-let buildReady = false;
-let builtSlug  = '';
-
-async function pollBuildStatus() {
-  if (!pageToken) return;
-  try {
-    const res  = await fetch('/build-status?token=' + pageToken);
-    const data = await res.json();
-    if (data.status === 'ready') {
-      buildReady = true;
-      builtSlug  = data.slug || '';
-      // If animation already finished (not on build screen), go to Phase 3 now
-      const bs = document.getElementById('screen-build');
-      if (bs && !bs.classList.contains('active')) launchPhase3();
-    } else if (data.status !== 'error') {
-      setTimeout(pollBuildStatus, 3000);
-    }
-  } catch(e) { setTimeout(pollBuildStatus, 4000); }
-}
-
-function launchPhase3() {
-  window.location.href = '/experience/' + pageToken
-    + (builtSlug ? '?slug=' + encodeURIComponent(builtSlug) : '');
-}
-
-if (pageToken) setTimeout(pollBuildStatus, 2000);
-
 const buildSteps = [
   {text:'Analysing your business...',   sub:'industry: flooring & tiles // region: ZA', icon:'🔍'},
   {text:'Crafting your content...',      sub:'generating copy + headlines',              icon:'✍️'},
@@ -704,14 +679,7 @@ const buildSteps = [
 ];
 let buildStep = 0;
 const buildInterval = setInterval(() => {
-  if (buildStep >= buildSteps.length - 1) {
-    clearInterval(buildInterval);
-    setTimeout(() => {
-      if (buildReady) { launchPhase3(); }
-      else { transitionTo('preview'); /* hold on mock preview — pollBuildStatus calls launchPhase3 when ready */ }
-    }, 1400);
-    return;
-  }
+  if (buildStep >= buildSteps.length - 1) { clearInterval(buildInterval); setTimeout(() => transitionTo('preview'), 1400); return; }
   buildStep++;
   const s = buildSteps[buildStep];
   const t = document.getElementById('buildStepText');
@@ -788,6 +756,22 @@ function applyPromo() {
 }
 
 /* ── CONFIRM SCREEN ──────────────────────────────── */
+async function viewActualSite() {
+  var btn = document.getElementById('viewSiteBtn');
+  btn.classList.add('busy');
+  btn.textContent = 'Loading...';
+  var tok = (window.location.pathname.match(/\/manage\/([^/?#]+)/) || [])[1] || '';
+  if (tok) {
+    try {
+      var r = await fetch('/build-status?token=' + tok);
+      var d = await r.json();
+      if (d.status === 'ready' && d.slug) { window.location.href = '/experience/' + d.slug; return; }
+    } catch(e) {}
+  }
+  btn.classList.remove('busy');
+  btn.textContent = 'Still building — try in a moment';
+  setTimeout(function(){ btn.textContent = '👁 View your actual site →'; }, 3000);
+}
 function goToConfirm() {
   const p = selectedPlan;
   document.getElementById('confirmPlan').textContent = p.name;
@@ -819,9 +803,9 @@ async function processPayment(btn) {
       }),
     });
     const data = await res.json();
-    data.url = data.url || data.previewUrl; if (!data.url) throw new Error(data.error || 'No preview URL returned');
+    if (!data.url) throw new Error(data.error || 'No payment URL returned');
     btn.querySelector('.btn-text').textContent = promoApplied ? 'Activating free month...' : 'Redirecting to PayFast...';
-    setTimeout(() => { window.location.href = data.url || data.previewUrl; }, 400);
+    setTimeout(() => { window.location.href = data.url; }, 400);
   } catch (err) {
     btn.classList.remove('loading');
     btn.querySelector('.btn-text').textContent = `💳 Confirm & Pay — R${p.price}/mo`;

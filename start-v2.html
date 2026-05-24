@@ -237,7 +237,7 @@ async function checkDomain(overrideDomain) {
   btn.innerHTML = '<span class="spinner"></span>Checking...';
 
   try {
-    var r    = await fetch('/domain-check?name=' + encodeURIComponent(domain));
+    var r    = await fetch('/domain-check?name=' + encodeURIComponent(domain.replace(/\.co\.za$/,'')));
     var data = await r.json();
     showResult(data, domain);
   } catch(e) {
@@ -284,6 +284,10 @@ function showResult(data, domain) {
 
     // Show suggestions
     var suggestions = data.suggestions || data.alternatives || [];
+  if (!suggestions.length && data.available === false) {
+    var sld = domain.replace(/\.co\.za$/,'');
+    suggestions = [sld+'-sa', sld+'-za', 'my-'+sld];
+  }
     if (suggestions.length) {
       suggestions.slice(0,3).forEach(function(s) {
         var d   = typeof s === 'string' ? s : s.domain;
