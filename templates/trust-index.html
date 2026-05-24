@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{business_name}} - {{page_title}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html" class="active">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="contact.html" class="nav-btn">Book a Consultation</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <span class="badge">{{hero_badge}}</span>
+        <h1>
+          {{hero_h1_line1}}<br>
+          {{hero_h1_line2}}<br>
+          <span class="accent">{{hero_accent_word}}</span> {{hero_h1_line3}}
+        </h1>
+        <p>{{hero_copy}}</p>
+        <div class="hero-buttons">
+          <a href="contact.html" class="btn btn-primary">{{cta_primary}}</a>
+          <a href="services.html" class="btn btn-outline">{{cta_secondary}}</a>
+        </div>
+      </div>
+      <div class="hero-img">
+        <img src="https://images.unsplash.com/photo-1575505586569-646b2ca898fc?auto=format&fit=crop&w=1400&q=80" alt="{{business_name}} Consultation">
+      </div>
+    </div>
+  </header>
+
+  <div class="credentials-bar">
+    <div class="container cred-flex">
+      <div class="cred-item">{{credential1}}</div>
+      <div class="cred-item">{{credential2}}</div>
+      <div class="cred-item">{{credential3}}</div>
+      <div class="cred-item">{{credential4}}</div>
+    </div>
+  </div>
+
+  <section class="services-overview bg-white">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">{{services_section_tag}}</span>
+        <h2>{{services_h2}}</h2>
+      </div>
+      
+      <div class="grid-3">
+        <div class="service-card">
+          <span class="service-icon">{{service1_icon}}</span>
+          <h3>{{service1_name}}</h3>
+          <p>{{service1_desc}}</p>
+          <div class="service-outcome">{{service1_outcome}}</div>
+        </div>
+        <div class="service-card">
+          <span class="service-icon">{{service2_icon}}</span>
+          <h3>{{service2_name}}</h3>
+          <p>{{service2_desc}}</p>
+          <div class="service-outcome">{{service2_outcome}}</div>
+        </div>
+        <div class="service-card">
+          <span class="service-icon">{{service3_icon}}</span>
+          <h3>{{service3_name}}</h3>
+          <p>{{service3_desc}}</p>
+          <div class="service-outcome">{{service3_outcome}}</div>
+        </div>
+        <div class="service-card">
+          <span class="service-icon">{{service4_icon}}</span>
+          <h3>{{service4_name}}</h3>
+          <p>{{service4_desc}}</p>
+          <div class="service-outcome">{{service4_outcome}}</div>
+        </div>
+        <div class="service-card">
+          <span class="service-icon">{{service5_icon}}</span>
+          <h3>{{service5_name}}</h3>
+          <p>{{service5_desc}}</p>
+          <div class="service-outcome">{{service5_outcome}}</div>
+        </div>
+        <div class="service-card">
+          <span class="service-icon">{{service6_icon}}</span>
+          <h3>{{service6_name}}</h3>
+          <p>{{service6_desc}}</p>
+          <div class="service-outcome">{{service6_outcome}}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="process-section bg-subtle">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">How We Work</span>
+        <h2>Our Process</h2>
+      </div>
+      <div class="process-grid">
+        <div class="process-step">
+          <h3>{{process_step1_title}}</h3>
+          <p>{{process_step1_desc}}</p>
+        </div>
+        <div class="process-step">
+          <h3>{{process_step2_title}}</h3>
+          <p>{{process_step2_desc}}</p>
+        </div>
+        <div class="process-step">
+          <h3>{{process_step3_title}}</h3>
+          <p>{{process_step3_desc}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="testimonials-section bg-white">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Client Feedback</span>
+        <h2>What Our Clients Say</h2>
+      </div>
+      <div class="grid-3">
+        <div class="testimonial-card">
+          <div class="test-quote">{{testimonial1_quote}}</div>
+          <div class="test-author">{{testimonial1_name}}</div>
+          <div class="test-matter">{{testimonial1_matter}}</div>
+        </div>
+        <div class="testimonial-card">
+          <div class="test-quote">{{testimonial2_quote}}</div>
+          <div class="test-author">{{testimonial2_name}}</div>
+          <div class="test-matter">{{testimonial2_matter}}</div>
+        </div>
+        <div class="testimonial-card">
+          <div class="test-quote">{{testimonial3_quote}}</div>
+          <div class="test-author">{{testimonial3_name}}</div>
+          <div class="test-matter">{{testimonial3_matter}}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="about-teaser bg-white" style="padding-top: 0;">
+    <div class="container grid-2">
+      <div>
+        <span class="section-tag">About Our Firm</span>
+        <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">{{about_headline}}</h2>
+        <div class="about-philosophy">{{about_philosophy}}</div>
+        <ul style="list-style: none; margin-bottom: 2.5rem;">
+          <li style="margin-bottom: 15px; font-weight: 700; color: var(--text-muted);">✓ {{trust_point1}}</li>
+          <li style="margin-bottom: 15px; font-weight: 700; color: var(--text-muted);">✓ {{trust_point2}}</li>
+        </ul>
+        <a href="about.html" class="btn-text">Meet Our Team &rarr;</a>
+      </div>
+      <div class="about-teaser-img">
+        <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32b7?auto=format&fit=crop&w=1400&q=80" alt="Our Office">
+      </div>
+    </div>
+  </section>
+
+  <section class="contact-panel">
+    <div class="container">
+      <span class="section-tag" style="color: var(--accent-color);">{{contact_section_tag}}</span>
+      <h2>{{contact_h2_line1}} <span class="accent" style="color: var(--accent-color);">{{contact_h2_line2}}</span></h2>
+      <p>{{contact_copy}}</p>
+      <a href="contact.html" class="btn btn-primary">{{cta_primary}}</a>
+      <div class="contact-fee">{{consultation_fee}}</div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px;">{{profession}} based in {{area}}. Est. {{founding_year}}.</p>
+          <div style="margin-top: 1rem; font-weight: 700;">{{credential1}}</div>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <a href="tel:{{phone}}">{{phone}}</a>
+          <p>{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <a href="index.html">Home</a>
+          <a href="services.html">Services</a>
+          <a href="about.html">About</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

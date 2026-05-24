@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{services_section_tag}} - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html" class="active">Services</a>
+        <a href="about.html">About & Proof</a>
+        <a href="results.html">Case Studies</a>
+        <a href="contact.html">Contact</a>
+        <a href="contact.html" class="btn nav-btn btn-primary" style="padding: 10px 24px; font-size: 0.9rem;">{{cta_primary}}</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short bg-dark">
+    <div class="container hero-content text-center" style="margin: 0 auto;">
+      <span class="badge">{{services_section_tag}}</span>
+      <h1 style="margin-bottom: 0;">{{services_h2}}</h1>
+    </div>
+  </header>
+
+  <div class="proof-strip" style="border-top: none;">
+    <div class="container proof-grid">
+      <div class="proof-item">
+        <div class="proof-num">{{proof_stat1_num}}</div>
+        <div class="proof-lbl">{{proof_stat1_lbl}}</div>
+      </div>
+      <div class="proof-item">
+        <div class="proof-num">{{proof_stat2_num}}</div>
+        <div class="proof-lbl">{{proof_stat2_lbl}}</div>
+      </div>
+      <div class="proof-item">
+        <div class="proof-num">{{proof_stat3_num}}</div>
+        <div class="proof-lbl">{{proof_stat3_lbl}}</div>
+      </div>
+      <div class="proof-item">
+        <div class="proof-num">{{proof_stat4_num}}</div>
+        <div class="proof-lbl">{{proof_stat4_lbl}}</div>
+      </div>
+    </div>
+  </div>
+
+  <section class="services-detail bg-light">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: services -->
+      <div class="service-section-row">
+        <div class="service-section-inner">
+          <div class="service-title-col">
+            <h2>{{service1_name}}</h2>
+            <div style="font-size: 3rem; margin-top: 1rem;">{{service1_icon}}</div>
+          </div>
+          <div class="service-desc-col">
+            <p>{{service1_desc}}</p>
+            <div class="service-desc-result">Typical client outcome: {{service1_result}}</div>
+            <a href="contact.html" class="btn btn-outline" style="border-color: var(--text-dark); color: var(--text-dark);">Book a Free Strategy Session</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-section-row">
+        <div class="service-section-inner">
+          <div class="service-title-col">
+            <h2>{{service2_name}}</h2>
+            <div style="font-size: 3rem; margin-top: 1rem;">{{service2_icon}}</div>
+          </div>
+          <div class="service-desc-col">
+            <p>{{service2_desc}}</p>
+            <div class="service-desc-result">Typical client outcome: {{service2_result}}</div>
+            <a href="contact.html" class="btn btn-outline" style="border-color: var(--text-dark); color: var(--text-dark);">Book a Free Strategy Session</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-section-row">
+        <div class="service-section-inner">
+          <div class="service-title-col">
+            <h2>{{service3_name}}</h2>
+            <div style="font-size: 3rem; margin-top: 1rem;">{{service3_icon}}</div>
+          </div>
+          <div class="service-desc-col">
+            <p>{{service3_desc}}</p>
+            <div class="service-desc-result">Typical client outcome: {{service3_result}}</div>
+            <a href="contact.html" class="btn btn-outline" style="border-color: var(--text-dark); color: var(--text-dark);">Book a Free Strategy Session</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="proof-strip inline-strip">
+        <h3 style="color: white; font-size: 1.8rem; margin-bottom: 1.5rem;">Still unsure? Our results speak for themselves.</h3>
+        <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+          <div>
+            <div style="font-size: 2.5rem; font-weight: 900; color: var(--accent-color);">{{proof_stat2_num}}</div>
+            <div style="color: var(--text-light-muted); font-weight: 600; text-transform: uppercase; font-size: 0.85rem;">{{proof_stat2_lbl}}</div>
+          </div>
+          <div>
+            <div style="font-size: 2.5rem; font-weight: 900; color: var(--accent-color);">{{proof_stat3_num}}</div>
+            <div style="color: var(--text-light-muted); font-weight: 600; text-transform: uppercase; font-size: 0.85rem;">{{proof_stat3_lbl}}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-section-row">
+        <div class="service-section-inner">
+          <div class="service-title-col">
+            <h2>{{service4_name}}</h2>
+            <div style="font-size: 3rem; margin-top: 1rem;">{{service4_icon}}</div>
+          </div>
+          <div class="service-desc-col">
+            <p>{{service4_desc}}</p>
+            <div class="service-desc-result">Typical client outcome: {{service4_result}}</div>
+            <a href="contact.html" class="btn btn-outline" style="border-color: var(--text-dark); color: var(--text-dark);">Book a Free Strategy Session</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-section-row">
+        <div class="service-section-inner">
+          <div class="service-title-col">
+            <h2>{{service5_name}}</h2>
+            <div style="font-size: 3rem; margin-top: 1rem;">{{service5_icon}}</div>
+          </div>
+          <div class="service-desc-col">
+            <p>{{service5_desc}}</p>
+            <div class="service-desc-result">Typical client outcome: {{service5_result}}</div>
+            <a href="contact.html" class="btn btn-outline" style="border-color: var(--text-dark); color: var(--text-dark);">Book a Free Strategy Session</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-section-row" style="border-bottom: none; padding-bottom: 0;">
+        <div class="service-section-inner">
+          <div class="service-title-col">
+            <h2>{{service6_name}}</h2>
+            <div style="font-size: 3rem; margin-top: 1rem;">{{service6_icon}}</div>
+          </div>
+          <div class="service-desc-col">
+            <p>{{service6_desc}}</p>
+            <div class="service-desc-result">Typical client outcome: {{service6_result}}</div>
+            <a href="contact.html" class="btn btn-outline" style="border-color: var(--text-dark); color: var(--text-dark);">Book a Free Strategy Session</a>
+          </div>
+        </div>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="qualifiers-section bg-dark">
+    <div class="container">
+      <div class="section-header text-center">
+        <span class="section-tag">Qualification</span>
+        <h2>Who This Is For</h2>
+      </div>
+      <div class="grid-2">
+        <div style="background-color: var(--border-dark); padding: 40px;">
+          <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem; color: #ffffff;">You're a fit if...</h3>
+          <ul class="qualifier-list">
+            <li>You have a proven service or product that delivers real value.</li>
+            <li>You can handle a 2-3x increase in lead volume without breaking.</li>
+            <li>You view marketing as a measurable investment, not an expense.</li>
+          </ul>
+        </div>
+        <div style="background-color: #1a1a1a; padding: 40px;">
+          <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem; color: #ffffff;">This isn't for you if...</h3>
+          <ul class="qualifier-list disqualifier-list">
+            <li>Your business is doing less than R500k in annual revenue.</li>
+            <li>You want to micromanage the execution and approve every single ad.</li>
+            <li>You are looking for "brand awareness" rather than measurable revenue.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="availability-cta">
+    <div class="container">
+      <span class="availability-note">{{availability_note}}</span>
+      <h2 style="font-size: 3.5rem; color: #ffffff; margin-bottom: 1.5rem;">Ready to hit those targets?</h2>
+      <a href="contact.html" class="btn btn-primary" style="font-size: 1.2rem; padding: 20px 40px;">{{cta_primary}}</a>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa" aria-label="Chat on WhatsApp">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px; margin-bottom: 1rem;">Performance-focused {{service_category}} in {{area}}.</p>
+          <div style="color: var(--accent-color); font-weight: 700;">{{response_commitment}}</div>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <a href="tel:{{phone}}">{{phone}}</a>
+          <p>{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div>
+          <h4>Pages</h4>
+          <a href="index.html">Home</a>
+          <a href="services.html">Services</a>
+          <a href="about.html">About & Proof</a>
+          <a href="results.html">Case Studies</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2024 {{business_name}}. All rights reserved.</div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

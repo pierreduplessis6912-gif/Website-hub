@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body class="bg-light">
+
+  <nav class="solid-nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">Our Story</a>
+        <a href="gallery.html" class="active">Gallery</a>
+        <a href="contact.html">Find Us</a>
+        <a href="contact.html" class="btn-text-link">Book Now</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short bg-dark">
+    <div class="hero-bg">
+      <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1400&q=80" alt="Gallery">
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="container text-center" style="position: relative; z-index: 1; margin-top: 80px;">
+      <span class="section-tag" style="margin-bottom: 1rem;">{{gallery_section_tag}}</span>
+      <h1 style="margin-bottom: 1rem; color: #fff;">{{gallery_h2}}</h1>
+      <p style="font-size: 1.25rem; font-weight: 300; color: rgba(245, 239, 230, 0.8);">{{gallery_intro}}</p>
+    </div>
+  </header>
+
+  <section class="gallery-main bg-light">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: gallery -->
+      <div class="gallery-grid">
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=600&q=80" alt="Gallery Work">
+          <div class="gallery-overlay">
+            <span class="gallery-brand">{{business_name}}</span>
+          </div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=600&q=80" alt="Gallery Work">
+          <div class="gallery-overlay">
+            <span class="gallery-brand">{{business_name}}</span>
+          </div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=600&q=80" alt="Gallery Work">
+          <div class="gallery-overlay">
+            <span class="gallery-brand">{{business_name}}</span>
+          </div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=600&q=80" alt="Gallery Work">
+          <div class="gallery-overlay">
+            <span class="gallery-brand">{{business_name}}</span>
+          </div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=600&q=80" alt="Gallery Work">
+          <div class="gallery-overlay">
+            <span class="gallery-brand">{{business_name}}</span>
+          </div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=600&q=80" alt="Gallery Work">
+          <div class="gallery-overlay">
+            <span class="gallery-brand">{{business_name}}</span>
+          </div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=600&q=80" alt="Gallery Work">
+          <div class="gallery-overlay">
+            <span class="gallery-brand">{{business_name}}</span>
+          </div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=600&q=80" alt="Gallery Work">
+          <div class="gallery-overlay">
+            <span class="gallery-brand">{{business_name}}</span>
+          </div>
+        </div>
+        <div class="gallery-item">
+          <img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80" alt="Gallery Work">
+          <div class="gallery-overlay">
+            <span class="gallery-brand">{{business_name}}</span>
+          </div>
+        </div>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="bg-dark-soft" style="text-align: center;">
+    <div class="container">
+      <h2 style="font-size: 3.5rem; font-style: italic; margin-bottom: 1.5rem;">Love what you see?</h2>
+      <p style="font-size: 1.25rem; font-weight: 300; margin-bottom: 3rem; color: rgba(245, 239, 230, 0.8);">Come experience it for yourself.</p>
+      <a href="https://wa.me/{{phone}}" class="btn btn-primary" style="margin-bottom: 40px;">Book Your Appointment</a>
+      
+      <div style="border-top: 1px solid rgba(245, 239, 230, 0.1); padding-top: 40px; margin-top: 40px;">
+        <p style="font-family: var(--font-display); font-size: 1.5rem; font-style: italic; color: var(--text-light); margin-bottom: 1rem;">Follow us for daily inspiration</p>
+        <a href="https://instagram.com" target="_blank" class="btn-text">@{{business_name}}</a>
+      </div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa" aria-label="Book on WhatsApp">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-brand">{{business_name}}</div>
+      <div class="footer-info">
+        <div>{{business_type}} in {{area}}</div>
+        <div>{{address_line1}}, {{address_line2}}</div>
+        <div><a href="https://instagram.com" target="_blank" style="color: var(--accent);">Instagram</a></div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

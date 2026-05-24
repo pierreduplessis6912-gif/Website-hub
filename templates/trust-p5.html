@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAQ - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="faq.html" class="active">FAQ</a>
+        <a href="contact.html" class="nav-btn">Book a Consultation</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short">
+    <div class="container hero-content text-center" style="margin: 0 auto;">
+      <span class="badge">{{profession}} &middot; {{area}}</span>
+      <h1>Frequently Asked Questions</h1>
+    </div>
+  </header>
+
+  <section class="faq-section bg-white" style="padding-top: 20px;">
+    <div class="container" style="max-width: 800px;">
+      <!-- WH_EXPRESS_INCLUDE: faq -->
+      <p style="text-align: center; color: var(--text-muted); font-size: 1.1rem; margin-bottom: 3rem;">{{faq_intro}}</p>
+
+      <div class="faq-container">
+        <div class="faq-item">
+          <input type="checkbox" id="faq1" class="faq-checkbox">
+          <label for="faq1" class="faq-label">{{faq1_q}}</label>
+          <div class="faq-content">
+            <p>{{faq1_a}}</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <input type="checkbox" id="faq2" class="faq-checkbox">
+          <label for="faq2" class="faq-label">{{faq2_q}}</label>
+          <div class="faq-content">
+            <p>{{faq2_a}}</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <input type="checkbox" id="faq3" class="faq-checkbox">
+          <label for="faq3" class="faq-label">{{faq3_q}}</label>
+          <div class="faq-content">
+            <p>{{faq3_a}}</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <input type="checkbox" id="faq4" class="faq-checkbox">
+          <label for="faq4" class="faq-label">{{faq4_q}}</label>
+          <div class="faq-content">
+            <p>{{faq4_a}}</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <input type="checkbox" id="faq5" class="faq-checkbox">
+          <label for="faq5" class="faq-label">{{faq5_q}}</label>
+          <div class="faq-content">
+            <p>{{faq5_a}}</p>
+          </div>
+        </div>
+
+        <div class="faq-item" style="border-bottom: none;">
+          <input type="checkbox" id="faq6" class="faq-checkbox">
+          <label for="faq6" class="faq-label">{{faq6_q}}</label>
+          <div class="faq-content">
+            <p>{{faq6_a}}</p>
+          </div>
+        </div>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="still-questions bg-subtle text-center">
+    <div class="container">
+      <div style="max-width: 600px; margin: 0 auto;">
+        <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Still have questions?</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">Every situation is different. Book a consultation and we'll give you answers specific to your matter.</p>
+        <a href="contact.html" class="btn btn-outline">Ask a Question</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="related-services bg-white">
+    <div class="container">
+      <div class="section-header text-center">
+        <h2>Areas of Practice</h2>
+      </div>
+      <div class="grid-3">
+        <div class="service-card" style="padding: 30px;">
+          <h3 style="font-size: 1.3rem;">{{service1_name}}</h3>
+          <p style="margin-bottom: 1rem; font-size: 0.95rem;">{{service1_desc}}</p>
+          <a href="services.html" class="btn-text">Learn More &rarr;</a>
+        </div>
+        <div class="service-card" style="padding: 30px;">
+          <h3 style="font-size: 1.3rem;">{{service2_name}}</h3>
+          <p style="margin-bottom: 1rem; font-size: 0.95rem;">{{service2_desc}}</p>
+          <a href="services.html" class="btn-text">Learn More &rarr;</a>
+        </div>
+        <div class="service-card" style="padding: 30px;">
+          <h3 style="font-size: 1.3rem;">{{service3_name}}</h3>
+          <p style="margin-bottom: 1rem; font-size: 0.95rem;">{{service3_desc}}</p>
+          <a href="services.html" class="btn-text">Learn More &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact-panel">
+    <div class="container">
+      <span class="section-tag" style="color: var(--accent-color);">{{contact_section_tag}}</span>
+      <h2>{{contact_h2_line1}} <span class="accent" style="color: var(--accent-color);">{{contact_h2_line2}}</span></h2>
+      <p>{{contact_copy}}</p>
+      <a href="contact.html" class="btn btn-primary">{{cta_primary}}</a>
+      <div class="contact-fee">{{consultation_fee}}</div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px;">{{profession}} based in {{area}}. Est. {{founding_year}}.</p>
+          <div style="margin-top: 1rem; font-weight: 700;">{{credential1}}</div>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <a href="tel:{{phone}}">{{phone}}</a>
+          <p>{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <a href="index.html">Home</a>
+          <a href="services.html">Services</a>
+          <a href="about.html">About</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

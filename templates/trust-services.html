@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Services - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html" class="active">Services</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="contact.html" class="nav-btn">Book a Consultation</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short">
+    <div class="container hero-content">
+      <span class="badge">{{services_section_tag}}</span>
+      <h1>{{services_h2}}</h1>
+    </div>
+  </header>
+
+  <div class="credentials-bar">
+    <div class="container cred-flex">
+      <div class="cred-item">{{credential1}}</div>
+      <div class="cred-item">{{credential2}}</div>
+      <div class="cred-item">{{credential3}}</div>
+      <div class="cred-item">{{credential4}}</div>
+    </div>
+  </div>
+
+  <section class="services-detail bg-white">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: services -->
+      <div class="service-row">
+        <div class="service-icon">{{service1_icon}}</div>
+        <div>
+          <h2>{{service1_name}}</h2>
+          <div class="service-row-desc">{{service1_desc}}</div>
+          <div class="service-row-outcome">{{service1_outcome}}</div>
+        </div>
+        <div>
+          <a href="contact.html" class="btn btn-outline" style="width: 100%;">Discuss This Matter</a>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="service-icon">{{service2_icon}}</div>
+        <div>
+          <h2>{{service2_name}}</h2>
+          <div class="service-row-desc">{{service2_desc}}</div>
+          <div class="service-row-outcome">{{service2_outcome}}</div>
+        </div>
+        <div>
+          <a href="contact.html" class="btn btn-outline" style="width: 100%;">Discuss This Matter</a>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="service-icon">{{service3_icon}}</div>
+        <div>
+          <h2>{{service3_name}}</h2>
+          <div class="service-row-desc">{{service3_desc}}</div>
+          <div class="service-row-outcome">{{service3_outcome}}</div>
+        </div>
+        <div>
+          <a href="contact.html" class="btn btn-outline" style="width: 100%;">Discuss This Matter</a>
+        </div>
+      </div>
+
+      <div style="background-color: var(--bg-subtle); padding: 40px; text-align: center; border-radius: 2px; margin: 40px 0;">
+        <h3 style="font-size: 1.5rem; margin-bottom: 10px;">Not sure which service applies to your situation?</h3>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Book a free initial call to discuss your matter confidentially.</p>
+        <a href="contact.html" class="btn btn-primary">Book an Initial Call</a>
+      </div>
+
+      <div class="service-row">
+        <div class="service-icon">{{service4_icon}}</div>
+        <div>
+          <h2>{{service4_name}}</h2>
+          <div class="service-row-desc">{{service4_desc}}</div>
+          <div class="service-row-outcome">{{service4_outcome}}</div>
+        </div>
+        <div>
+          <a href="contact.html" class="btn btn-outline" style="width: 100%;">Discuss This Matter</a>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="service-icon">{{service5_icon}}</div>
+        <div>
+          <h2>{{service5_name}}</h2>
+          <div class="service-row-desc">{{service5_desc}}</div>
+          <div class="service-row-outcome">{{service5_outcome}}</div>
+        </div>
+        <div>
+          <a href="contact.html" class="btn btn-outline" style="width: 100%;">Discuss This Matter</a>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="service-icon">{{service6_icon}}</div>
+        <div>
+          <h2>{{service6_name}}</h2>
+          <div class="service-row-desc">{{service6_desc}}</div>
+          <div class="service-row-outcome">{{service6_outcome}}</div>
+        </div>
+        <div>
+          <a href="contact.html" class="btn btn-outline" style="width: 100%;">Discuss This Matter</a>
+        </div>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="process-section bg-subtle">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">How We Work</span>
+        <h2>Our Process</h2>
+      </div>
+      <div class="process-grid">
+        <div class="process-step">
+          <h3>{{process_step1_title}}</h3>
+          <p>{{process_step1_desc}}</p>
+        </div>
+        <div class="process-step">
+          <h3>{{process_step2_title}}</h3>
+          <p>{{process_step2_desc}}</p>
+        </div>
+        <div class="process-step">
+          <h3>{{process_step3_title}}</h3>
+          <p>{{process_step3_desc}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact-panel">
+    <div class="container">
+      <span class="section-tag" style="color: var(--accent-color);">{{contact_section_tag}}</span>
+      <h2>{{contact_h2_line1}} <span class="accent" style="color: var(--accent-color);">{{contact_h2_line2}}</span></h2>
+      <p>{{contact_copy}}</p>
+      <a href="contact.html" class="btn btn-primary">{{cta_primary}}</a>
+      <div class="contact-fee">{{consultation_fee}}</div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px;">{{profession}} based in {{area}}. Est. {{founding_year}}.</p>
+          <div style="margin-top: 1rem; font-weight: 700;">{{credential1}}</div>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <a href="tel:{{phone}}">{{phone}}</a>
+          <p>{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <a href="index.html">Home</a>
+          <a href="services.html">Services</a>
+          <a href="about.html">About</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

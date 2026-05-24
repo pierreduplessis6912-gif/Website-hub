@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">About</a>
+        <a href="contact.html" class="active">Contact</a>
+        <a href="contact.html" class="nav-btn">Book a Consultation</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short">
+    <div class="container hero-content text-center" style="margin: 0 auto;">
+      <span class="badge">{{contact_section_tag}}</span>
+      <h1 style="margin-bottom: 1rem;">{{contact_h2_line1}} <span class="accent">{{contact_h2_line2}}</span></h1>
+      <p style="max-width: 600px; margin: 0 auto;">{{contact_copy}}</p>
+    </div>
+  </header>
+
+  <section class="contact-details bg-subtle" style="padding: 60px 0;">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: contact -->
+      <div class="grid-2">
+        <div class="contact-info-card">
+          <h3 style="font-size: 1.8rem; margin-bottom: 2rem;">Contact Details</h3>
+          
+          <div class="contact-info-item">
+            <h4>Address</h4>
+            <p>{{address_line1}}<br>{{address_line2}}</p>
+          </div>
+          
+          <div class="contact-info-item">
+            <h4>Phone & WhatsApp</h4>
+            <p><a href="tel:{{phone}}" style="color: var(--text-main); font-weight: 700;">{{phone}}</a></p>
+          </div>
+          
+          <div class="contact-info-item">
+            <h4>Consultation Hours</h4>
+            <p>{{hours_weekday}}<br>{{hours_saturday}}</p>
+          </div>
+          
+          <div class="contact-info-item" style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 2rem;">
+            <p style="font-weight: 700; color: var(--accent-color);">{{consultation_fee}}</p>
+          </div>
+        </div>
+        
+        <div class="contact-info-card" style="background-color: var(--text-main); color: var(--bg-white); border: none;">
+          <h3 style="font-size: 1.8rem; margin-bottom: 1.5rem; color: var(--bg-white);">Book via WhatsApp</h3>
+          <p style="color: #cbd5e1; margin-bottom: 2.5rem; line-height: 1.8;">Send us a brief message describing your matter and we will confirm your consultation time within one business day.</p>
+          <a href="https://wa.me/{{phone}}" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 18px;">Message on WhatsApp</a>
+          <p style="color: #94a3b8; font-size: 0.85rem; text-align: center; margin-top: 1.5rem; font-style: italic;">We ensure complete confidentiality.</p>
+        </div>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="what-to-expect bg-white">
+    <div class="container text-center">
+      <h2 style="font-size: 2.5rem; margin-bottom: 3rem;">What to Expect</h2>
+      <div class="grid-3 text-center">
+        <div>
+          <div style="font-size: 2.5rem; color: var(--accent-color); margin-bottom: 1rem;">🔒</div>
+          <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem;">Total Confidentiality</h4>
+          <p style="color: var(--text-muted);">Your consultation is entirely confidential from the moment you contact us.</p>
+        </div>
+        <div>
+          <div style="font-size: 2.5rem; color: var(--accent-color); margin-bottom: 1rem;">⚖️</div>
+          <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem;">Honest Assessment</h4>
+          <p style="color: var(--text-muted);">We'll give you a realistic, unfiltered view of your position and options.</p>
+        </div>
+        <div>
+          <div style="font-size: 2.5rem; color: var(--accent-color); margin-bottom: 1rem;">🛑</div>
+          <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem;">No Obligation</h4>
+          <p style="color: var(--text-muted);">There is no pressure or obligation to proceed after our initial meeting.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="location-section bg-subtle">
+    <div class="container text-center">
+      <span class="section-tag">Our Office</span>
+      <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Based in {{area}}</h2>
+      <div style="max-width: 600px; margin: 0 auto; background: var(--bg-white); padding: 40px; border: 1px solid var(--border-color); border-radius: 2px;">
+        <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem;">{{business_name}}</h4>
+        <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 1.5rem;">{{address_line1}}<br>{{address_line2}}</p>
+        <p style="font-size: 0.9rem; color: var(--text-muted); font-style: italic;">Ample secure parking available for clients.</p>
+      </div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px;">{{profession}} based in {{area}}. Est. {{founding_year}}.</p>
+          <div style="margin-top: 1rem; font-weight: 700;">{{credential1}}</div>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <a href="tel:{{phone}}">{{phone}}</a>
+          <p>{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <a href="index.html">Home</a>
+          <a href="services.html">Services</a>
+          <a href="about.html">About</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

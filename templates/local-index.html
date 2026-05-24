@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html" class="active">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">About</a>
+        <a href="gallery.html">Gallery</a>
+        <a href="contact.html">Contact</a>
+        <a href="https://wa.me/{{phone}}" class="btn nav-btn btn-primary" style="padding: 8px 20px;">WhatsApp Us</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero bg-texture">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <span class="badge">{{hero_badge}}</span>
+        <h1>
+          {{hero_h1_line1}}<br>
+          <span class="accent-word">{{hero_accent_word}}</span> {{hero_h1_line2}}<br>
+          {{hero_h1_line3}}
+        </h1>
+        <p>{{hero_copy}}</p>
+        <div class="hero-buttons">
+          <a href="https://wa.me/{{phone}}" class="btn btn-primary">{{cta_primary}}</a>
+          <a href="services.html" class="btn btn-outline">{{cta_secondary}}</a>
+        </div>
+      </div>
+      <div class="hero-img">
+        <img src="{{og_image}}" alt="{{business_name}}">
+      </div>
+    </div>
+  </header>
+
+  <div class="badge-strip">
+    <div class="container badge-flex">
+      <div class="community-badge">{{badge1}}</div>
+      <div class="community-badge">{{badge2}}</div>
+      <div class="community-badge">{{badge3}}</div>
+      <div class="community-badge">{{badge4}}</div>
+    </div>
+  </div>
+
+  <section class="services-overview bg-white">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">{{services_section_tag}}</span>
+        <h2>{{services_h2}}</h2>
+      </div>
+      
+      <div class="grid-3">
+        <div class="service-card">
+          <div class="card-icon">{{service1_icon}}</div>
+          <h3>{{service1_name}}</h3>
+          <p>{{service1_desc}}</p>
+          <div class="service-note">{{service1_note}}</div>
+        </div>
+        
+        <div class="service-card">
+          <div class="card-icon">{{service2_icon}}</div>
+          <h3>{{service2_name}}</h3>
+          <p>{{service2_desc}}</p>
+          <div class="service-note">{{service2_note}}</div>
+        </div>
+        
+        <div class="service-card">
+          <div class="card-icon">{{service3_icon}}</div>
+          <h3>{{service3_name}}</h3>
+          <p>{{service3_desc}}</p>
+          <div class="service-note">{{service3_note}}</div>
+        </div>
+        
+        <div class="service-card">
+          <div class="card-icon">{{service4_icon}}</div>
+          <h3>{{service4_name}}</h3>
+          <p>{{service4_desc}}</p>
+          <div class="service-note">{{service4_note}}</div>
+        </div>
+        
+        <div class="service-card">
+          <div class="card-icon">{{service5_icon}}</div>
+          <h3>{{service5_name}}</h3>
+          <p>{{service5_desc}}</p>
+          <div class="service-note">{{service5_note}}</div>
+        </div>
+        
+        <div class="service-card">
+          <div class="card-icon">{{service6_icon}}</div>
+          <h3>{{service6_name}}</h3>
+          <p>{{service6_desc}}</p>
+          <div class="service-note">{{service6_note}}</div>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 50px;">
+        <a href="services.html" class="btn-text" style="font-size: 1.2rem;">View our full offering &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="process-section bg-subtle">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">How It Works</span>
+        <h2>Simple & Easy</h2>
+      </div>
+      <div class="process-grid">
+        <div class="process-step">
+          <div class="process-number">1</div>
+          <h3>{{process_step1_title}}</h3>
+          <p>{{process_step1_desc}}</p>
+        </div>
+        <div class="process-step">
+          <div class="process-number">2</div>
+          <h3>{{process_step2_title}}</h3>
+          <p>{{process_step2_desc}}</p>
+        </div>
+        <div class="process-step">
+          <div class="process-number">3</div>
+          <h3>{{process_step3_title}}</h3>
+          <p>{{process_step3_desc}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="testimonials-section bg-white">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Word on the Street</span>
+        <h2>What Our Regulars Say</h2>
+      </div>
+      <div class="grid-3">
+        <div class="testimonial-card">
+          <p class="test-quote">{{testimonial1_quote}}</p>
+          <div class="test-author">
+            <div class="test-author-img">{{testimonial1_name_initial}}</div>
+            <div>
+              <div class="test-name">{{testimonial1_name}}</div>
+              <div class="test-context">{{testimonial1_context}}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card">
+          <p class="test-quote">{{testimonial2_quote}}</p>
+          <div class="test-author">
+            <div class="test-author-img">{{testimonial2_name_initial}}</div>
+            <div>
+              <div class="test-name">{{testimonial2_name}}</div>
+              <div class="test-context">{{testimonial2_context}}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card">
+          <p class="test-quote">{{testimonial3_quote}}</p>
+          <div class="test-author">
+            <div class="test-author-img">{{testimonial3_name_initial}}</div>
+            <div>
+              <div class="test-name">{{testimonial3_name}}</div>
+              <div class="test-context">{{testimonial3_context}}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="owner-section bg-card" style="padding: 100px 0;">
+    <div class="container grid-2" style="align-items: center;">
+      <div>
+        <img src="https://images.unsplash.com/photo-1574180045827-681f8a1a9622?auto=format&fit=crop&w=800&q=80" alt="{{owner_name}}" class="owner-img">
+      </div>
+      <div style="padding-left: 20px;">
+        <span class="section-tag">Behind the Business</span>
+        <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Hello from {{owner_name}}</h2>
+        <div class="pull-quote">
+          {{about_tagline}}
+        </div>
+        <p style="font-size: 1.2rem; color: var(--text-main); margin-bottom: 2rem; font-style: italic;">"{{about_pull_quote}}"</p>
+        
+        <ul style="list-style: none; margin-bottom: 2.5rem;">
+          <li style="margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 500;">
+            <span style="color: var(--accent-color);">✓</span> {{community_point1}}
+          </li>
+          <li style="margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 500;">
+            <span style="color: var(--accent-color);">✓</span> {{community_point2}}
+          </li>
+        </ul>
+        
+        <a href="about.html" class="btn-text" style="font-size: 1.1rem;">Read our full story &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact-cta" style="padding: 0;">
+    <div class="container">
+      <div class="cta-panel">
+        <span class="section-tag">Get in Touch</span>
+        <h2>{{contact_h2_line1}} <span style="color: var(--accent-color);">{{contact_h2_line2}}</span></h2>
+        <p>Pop in, phone, or WhatsApp — whatever works for you.</p>
+        <a href="https://wa.me/{{phone}}" class="btn btn-primary" style="font-size: 1.2rem; padding: 16px 36px;">Message on WhatsApp</a>
+        <p style="font-size: 0.95rem; margin-top: 1.5rem; color: var(--text-main); font-weight: 500;">{{delivery_note}}</p>
+      </div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa" aria-label="Chat on WhatsApp">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px; margin-bottom: 1rem;">Proudly serving {{area}} since {{since_year}}.</p>
+          <p>{{trade}}</p>
+        </div>
+        <div>
+          <h4>Contact & Visit</h4>
+          <p><a href="tel:{{phone}}" style="font-size: 1.1rem; color: white;">{{phone}}</a></p>
+          <p style="margin-top: 10px;">{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div>
+          <h4>Hours</h4>
+          <p>{{hours_weekday}}</p>
+          <p>{{hours_saturday}}</p>
+          <p>{{hours_sunday}}</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

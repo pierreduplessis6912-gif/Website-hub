@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">About & Proof</a>
+        <a href="results.html">Case Studies</a>
+        <a href="contact.html" class="active">Contact</a>
+        <a href="contact.html" class="btn nav-btn btn-primary" style="padding: 10px 24px; font-size: 0.9rem;">{{cta_primary}}</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short bg-dark">
+    <div class="container hero-content text-center" style="margin: 0 auto;">
+      <span class="badge">{{contact_section_tag}}</span>
+      <h1 style="margin-bottom: 1rem;">{{contact_h2_line1}}<br><span class="accent-word">{{contact_h2_line2}}</span></h1>
+      <p style="max-width: 700px; margin: 0 auto; font-size: 1.25rem;">{{contact_copy}}</p>
+    </div>
+  </header>
+
+  <section class="contact-main bg-light">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: contact -->
+      <div class="contact-grid">
+        <div>
+          <h2 style="font-size: 2.2rem; margin-bottom: 2rem;">What happens next?</h2>
+          <ul class="qualifier-list" style="margin-bottom: 3rem;">
+            <li style="color: var(--text-dark); border-color: var(--border-light); font-weight: 500;">A clear picture of your biggest growth lever</li>
+            <li style="color: var(--text-dark); border-color: var(--border-light); font-weight: 500;">A 90-day roadmap you can implement with or without us</li>
+            <li style="color: var(--text-dark); border-color: var(--border-light); font-weight: 500;">Honest feedback on whether we are the right fit</li>
+            <li style="color: var(--text-dark); border-color: var(--border-light); font-weight: 500;">No high-pressure sales tactics. Ever.</li>
+          </ul>
+          
+          <a href="https://wa.me/{{phone}}" class="btn btn-primary" style="font-size: 1.2rem; padding: 20px 40px; width: 100%; max-width: 400px;">Start WhatsApp Chat</a>
+        </div>
+        
+        <div class="contact-card">
+          <h3 style="font-size: 1.5rem; margin-bottom: 2rem;">Direct Contact</h3>
+          
+          <div class="contact-detail-item">
+            <h4>Location</h4>
+            <p>{{address_line1}}<br>{{address_line2}}</p>
+          </div>
+          
+          <div class="contact-detail-item">
+            <h4>Phone & WhatsApp</h4>
+            <p><a href="tel:{{phone}}" style="color: var(--accent-color); font-size: 1.25rem;">{{phone}}</a></p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">{{response_commitment}}</p>
+          </div>
+          
+          <div class="contact-detail-item" style="border-top: 1px solid var(--border-light); padding-top: 1.5rem; margin-bottom: 0;">
+            <h4>Operating Hours</h4>
+            <p style="font-size: 0.95rem; font-weight: 500;">{{hours_weekday}}</p>
+            <p style="font-size: 0.95rem; font-weight: 500;">{{hours_saturday}}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 60px;">
+        <span class="availability-note" style="margin-bottom: 0;">{{availability_note}}</span>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="risk-reversal bg-dark">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Risk Reversal</span>
+        <h2>Honest Answers</h2>
+      </div>
+      <div style="max-width: 900px;">
+        <div class="objection-row">
+          <div class="objection-q">"What if the strategy session doesn't give me anything useful?"</div>
+          <div class="objection-a">Then you've lost 45 minutes. We think that's a reasonable risk given the upside potential of a proven growth plan.</div>
+        </div>
+        <div class="objection-row">
+          <div class="objection-q">"Will you just try to sell me a retainer?"</div>
+          <div class="objection-a">No. We only pitch if we believe we can confidently hit your targets. If we can't, or if you're not ready, we'll tell you.</div>
+        </div>
+        <div class="objection-row">
+          <div class="objection-q">"Do I need to prepare anything?"</div>
+          <div class="objection-a">Just your current numbers (revenue, margins, lead volume) and an honest assessment of where you are stuck.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proof-strip" style="background-color: var(--bg-light); border-color: var(--border-light);">
+    <div class="container proof-grid">
+      <div class="proof-item" style="border-color: var(--border-light);">
+        <div class="proof-num">{{proof_stat1_num}}</div>
+        <div class="proof-lbl" style="color: var(--text-muted);">{{proof_stat1_lbl}}</div>
+      </div>
+      <div class="proof-item" style="border-color: var(--border-light);">
+        <div class="proof-num">{{proof_stat2_num}}</div>
+        <div class="proof-lbl" style="color: var(--text-muted);">{{proof_stat2_lbl}}</div>
+      </div>
+      <div class="proof-item" style="border-color: var(--border-light);">
+        <div class="proof-num">{{proof_stat3_num}}</div>
+        <div class="proof-lbl" style="color: var(--text-muted);">{{proof_stat3_lbl}}</div>
+      </div>
+      <div class="proof-item" style="border-color: var(--border-light);">
+        <div class="proof-num">{{proof_stat4_num}}</div>
+        <div class="proof-lbl" style="color: var(--text-muted);">{{proof_stat4_lbl}}</div>
+      </div>
+    </div>
+  </div>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa" aria-label="Chat on WhatsApp">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px; margin-bottom: 1rem;">Performance-focused {{service_category}} in {{area}}.</p>
+          <div style="color: var(--accent-color); font-weight: 700;">{{response_commitment}}</div>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <a href="tel:{{phone}}">{{phone}}</a>
+          <p>{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div>
+          <h4>Pages</h4>
+          <a href="index.html">Home</a>
+          <a href="services.html">Services</a>
+          <a href="about.html">About & Proof</a>
+          <a href="results.html">Case Studies</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2024 {{business_name}}. All rights reserved.</div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

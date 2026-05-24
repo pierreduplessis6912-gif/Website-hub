@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html" class="active">About</a>
+        <a href="gallery.html">Gallery</a>
+        <a href="contact.html">Contact</a>
+        <a href="https://wa.me/{{phone}}" class="btn nav-btn btn-primary" style="padding: 8px 20px;">WhatsApp Us</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short bg-texture">
+    <div class="container hero-content text-center" style="margin: 0 auto;">
+      <span class="badge">{{about_section_tag}}</span>
+      <h1 style="margin-bottom: 0;">{{about_headline}}</h1>
+      <p style="font-family: var(--font-heading); font-size: 1.8rem; color: var(--accent-color); font-style: italic; margin-top: 2rem;">
+        "{{about_pull_quote}}"
+      </p>
+    </div>
+  </header>
+
+  <section class="about-main bg-white">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: about -->
+      <div class="grid-2" style="align-items: center; margin-bottom: 4rem;">
+        <div>
+          <p style="font-size: 1.2rem; color: var(--text-main); margin-bottom: 1.5rem; line-height: 1.8;">{{about_p1}}</p>
+          <p style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.8;">{{about_p2}}</p>
+        </div>
+        <div>
+          <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=800&q=80" alt="{{owner_name}}" class="owner-img">
+        </div>
+      </div>
+
+      <div class="pull-quote" style="margin: 4rem 0; font-size: 2.5rem;">
+        {{about_tagline}}
+      </div>
+
+      <div class="badge-strip" style="background-color: var(--bg-card); border-radius: var(--radius-lg); padding: 30px;">
+        <div class="badge-flex" style="justify-content: center;">
+          <div class="community-badge">{{community_point1}}</div>
+          <div class="community-badge">{{community_point2}}</div>
+          <div class="community-badge">{{community_point3}}</div>
+          <div class="community-badge">{{community_point4}}</div>
+        </div>
+      </div>
+      <!-- WH_EXPRESS_END -->
+
+      <div style="margin-top: 4rem; max-width: 800px;">
+        <h3 style="font-size: 2rem; margin-bottom: 1.5rem;">The Rest of the Story</h3>
+        <p style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.8; margin-bottom: 1.5rem;">{{about_p3}}</p>
+        <p style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.8;">We believe in keeping things simple, honest, and rooted in the community. When you support us, you're not just buying a product or a service — you're keeping local craft alive right here in {{area}}.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="team-section bg-subtle">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Our People</span>
+        <h2>Meet the Team</h2>
+      </div>
+      <div class="grid-3">
+        <div class="service-card" style="text-align: center; padding: 40px 20px;">
+          <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" alt="{{owner_name}}" style="width: 150px; height: 150px; border-radius: 50%; margin: 0 auto 1.5rem auto; object-fit: cover; border: 4px solid var(--bg-white);">
+          <h3 style="margin-bottom: 0.25rem;">{{owner_name}}</h3>
+          <div style="color: var(--accent-color); font-weight: 600; font-size: 0.95rem; margin-bottom: 1rem;">{{owner_title}}</div>
+          <p style="font-size: 0.95rem;">"The vision behind it all."</p>
+        </div>
+        
+        <div class="service-card" style="text-align: center; padding: 40px 20px;">
+          <img src="https://images.unsplash.com/photo-1531123897727-8f129e1b28ce?auto=format&fit=crop&w=400&q=80" alt="{{staff_member2_name}}" style="width: 150px; height: 150px; border-radius: 50%; margin: 0 auto 1.5rem auto; object-fit: cover; border: 4px solid var(--bg-white);">
+          <h3 style="margin-bottom: 0.25rem;">{{staff_member2_name}}</h3>
+          <div style="color: var(--accent-color); font-weight: 600; font-size: 0.95rem; margin-bottom: 1rem;">{{staff_member2_role}}</div>
+          <p style="font-size: 0.95rem;">"Been with us since day one."</p>
+        </div>
+        
+        <div class="service-card" style="text-align: center; padding: 40px 20px;">
+          <img src="https://images.unsplash.com/photo-1506803682981-6e718a9dd3ee?auto=format&fit=crop&w=400&q=80" alt="{{staff_member3_name}}" style="width: 150px; height: 150px; border-radius: 50%; margin: 0 auto 1.5rem auto; object-fit: cover; border: 4px solid var(--bg-white);">
+          <h3 style="margin-bottom: 0.25rem;">{{staff_member3_name}}</h3>
+          <div style="color: var(--accent-color); font-weight: 600; font-size: 0.95rem; margin-bottom: 1rem;">{{staff_member3_role}}</div>
+          <p style="font-size: 0.95rem;">"Always comes with a smile."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="testimonials-section bg-white">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Word on the Street</span>
+        <h2>What Our Regulars Say</h2>
+      </div>
+      <div class="grid-3">
+        <div class="testimonial-card">
+          <p class="test-quote">{{testimonial1_quote}}</p>
+          <div class="test-author">
+            <div class="test-author-img">{{testimonial1_name_initial}}</div>
+            <div>
+              <div class="test-name">{{testimonial1_name}}</div>
+              <div class="test-context">{{testimonial1_context}}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card">
+          <p class="test-quote">{{testimonial2_quote}}</p>
+          <div class="test-author">
+            <div class="test-author-img">{{testimonial2_name_initial}}</div>
+            <div>
+              <div class="test-name">{{testimonial2_name}}</div>
+              <div class="test-context">{{testimonial2_context}}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card">
+          <p class="test-quote">{{testimonial3_quote}}</p>
+          <div class="test-author">
+            <div class="test-author-img">{{testimonial3_name_initial}}</div>
+            <div>
+              <div class="test-name">{{testimonial3_name}}</div>
+              <div class="test-context">{{testimonial3_context}}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact-cta" style="padding-top: 0;">
+    <div class="container">
+      <div class="cta-panel">
+        <span class="section-tag">Get in Touch</span>
+        <h2>{{contact_h2_line1}} <span style="color: var(--accent-color);">{{contact_h2_line2}}</span></h2>
+        <p>Pop in, phone, or WhatsApp — whatever works for you.</p>
+        <a href="https://wa.me/{{phone}}" class="btn btn-primary" style="font-size: 1.2rem; padding: 16px 36px;">Message on WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa" aria-label="Chat on WhatsApp">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px; margin-bottom: 1rem;">Proudly serving {{area}} since {{since_year}}.</p>
+          <p>{{trade}}</p>
+        </div>
+        <div>
+          <h4>Contact & Visit</h4>
+          <p><a href="tel:{{phone}}" style="font-size: 1.1rem; color: white;">{{phone}}</a></p>
+          <p style="margin-top: 10px;">{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div>
+          <h4>Hours</h4>
+          <p>{{hours_weekday}}</p>
+          <p>{{hours_saturday}}</p>
+          <p>{{hours_sunday}}</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
