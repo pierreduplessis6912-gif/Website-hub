@@ -127,7 +127,16 @@ export default {
     if (path === '/bootstrap-preview-app') return handleBootstrapPreviewApp(request, env);
     if (path === '/bootstrap-templates') return handleBootstrapTemplates(request, env);
     if (path === '/bootstrap-intake')    return handleBootstrapIntake(request, env);
-  if (path === '/bootstrap-start')      return handleBootstrapStart(request, env);
+  if (path === '/bootstrap-start') {
+    try {
+      if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+      if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
+      const html = await request.text();
+      if (!html || html.length < 100) return jsonResponse({ error: 'Empty body' }, 400);
+      await env.SITES.put('app:start-v2', html);
+      return jsonResponse({ success: true, size: html.length });
+    } catch(e) { return jsonResponse({ error: String(e), where: 'bootstrap-start' }, 500); }
+  }
 
 async function handleBootstrapIntake(request, env) {
   if (request.method !== 'POST') return Response.json({ error: 'POST only' }, { status: 405 });
