@@ -288,6 +288,20 @@ async function handleGoLivePayment(clientId, paymentId, amount, env, ctx) {
       `✅ Thanks ${name} — payment received for *${client.business_name}*.\n\nNext invoice: ${nextInvoice}\n— Website Hub`,
       env,
     );
+
+    await sendEmail({
+      to: client.email,
+      subject: `Payment received — ${client.business_name} ✓`,
+      touchpoint: 'retainer_paid',
+      clientSlug: client.slug,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#111">Payment confirmed ✅</h2>
+        <p>Hi ${name},</p>
+        <p>We've received your retainer payment for <strong>${client.business_name}</strong>.</p>
+        <p>Your next invoice is due: <strong>${nextInvoice}</strong></p>
+        <p style="color:#888;font-size:12px">— Website Hub</p>
+      </div>`,
+    }, env).catch(() => {});
     await sendWhatsApp(env.WH_PHONE,
       `💰 RETAINER PAID: ${client.business_name} (R${amount})\nNext invoice: ${nextInvoice}`,
       env, { skipTestRedirect: true },
@@ -391,6 +405,19 @@ async function handleUpgradePayment(clientId, customStr2, paymentId, amount, env
     `🎉 Upgrade confirmed, ${name}!\n\nOur team is rebuilding *${client.business_name}* with all ${newPkg} features. New version coming in about 10 minutes.\n\n— Website Hub`,
     env,
   );
+
+  await sendEmail({
+    to: client.email,
+    subject: `Upgrade confirmed — ${client.business_name} is being rebuilt`,
+    touchpoint: 'upgrade_confirmed',
+    clientSlug: client.slug,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+      <h2 style="color:#111">Upgrade confirmed 🎉</h2>
+      <p>Hi ${name},</p>
+      <p>Your upgrade for <strong>${client.business_name}</strong> to the <strong>${newPkg}</strong> plan is confirmed. We're rebuilding your site with all the new features now — it'll be ready in about 10 minutes.</p>
+      <p style="color:#888;font-size:12px">— Website Hub</p>
+    </div>`,
+  }, env).catch(() => {});
   await sendWhatsApp(env.WH_PHONE,
     `⬆️ UPGRADE: ${client.business_name}\n${upgradeKey} (R${expectedDelta})\nClient: ${clientId}`,
     env, { skipTestRedirect: true },
@@ -471,6 +498,20 @@ async function handleFailedPayment(clientId, customStr2, env) {
         `Hi ${name} — looks like the payment didn't go through. No problem — give it another try when you're ready, or reply if you'd like to chat.\n\n— Website Hub`,
         env,
       );
+
+      await sendEmail({
+        to: client?.email,
+        subject: `Payment unsuccessful — ${client?.business_name}`,
+        touchpoint: 'payment_failed',
+        clientSlug: client?.slug,
+        html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+          <h2 style="color:#111">Payment didn't go through</h2>
+          <p>Hi ${name},</p>
+          <p>Your payment for <strong>${client?.business_name}</strong> was unsuccessful. No problem — you can try again whenever you're ready.</p>
+          <p style="margin:24px 0"><a href="https://preview.websitehub.co.za/manage/${client?.manage_token}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Try Again</a></p>
+          <p style="color:#888;font-size:12px">— Website Hub</p>
+        </div>`,
+      }, env).catch(() => {});
     }
 
     await sendWhatsApp(env.WH_PHONE,
@@ -640,6 +681,25 @@ async function handleGoLiveInternal(clientId, client, env) {
   await sendWhatsApp(client.phone, goLiveMsg.trim(), env);
   await logMessage(env, clientId, 'go_live', 'whatsapp').catch(() => {});
 
+  const goLiveName = (client.client_name || '').split(' ')[0] || 'there';
+  await sendEmail({
+    to: client.email,
+    subject: `🎊 ${domain} is LIVE!`,
+    touchpoint: 'go_live',
+    clientSlug: client.slug,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+      <h2 style="color:#111">Your website is live! 🎊</h2>
+      <p>Hi ${goLiveName},</p>
+      <p><strong>${client.business_name}</strong> is now live on the internet at <a href="https://${domain}">${domain}</a>.</p>
+      <p>Your monthly retainer of <strong>R${tier.retainer}</strong> is active. Next invoice: <strong>${nextInvoice}</strong></p>
+      <p style="margin:24px 0">
+        <a href="https://${domain}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;margin-right:12px">Visit My Site</a>
+        <a href="${manageUrl}" style="color:#111;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;border:1px solid #111">My Dashboard</a>
+      </p>
+      <p style="color:#888;font-size:12px">— Website Hub</p>
+    </div>`,
+  }, env).catch(() => {});
+
   // ── 10. GBP creation (non-fatal) ────────────────────────────
   if (!isTestMode(env) && env.GOOGLE_REFRESH_TOKEN) {
     processGoogleProfile(clientId, client, env).catch(e => {
@@ -803,6 +863,21 @@ async function handleSuspendSite(request, env) {
     env,
   );
 
+  await sendEmail({
+    to: client.email,
+    subject: `${client.business_name} — site suspended`,
+    touchpoint: 'site_suspended',
+    clientSlug: client.slug,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+      <h2 style="color:#c00">Site suspended ⚠️</h2>
+      <p>Hi ${name},</p>
+      <p>Your <strong>${client.business_name}</strong> website has been temporarily suspended due to an outstanding payment of <strong>R${tier.retainer}</strong>.</p>
+      <p>Your data is safe — your site comes back online within minutes of payment.</p>
+      <p style="margin:24px 0"><a href="${payLink}" style="background:#c00;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Reinstate Now — R${tier.retainer}</a></p>
+      <p style="color:#888;font-size:12px">— Website Hub</p>
+    </div>`,
+  }, env).catch(() => {});
+
   await logEvent(env, 'launch', 'suspension', 'success', {
     clientId, metadata: { business: client.business_name, domain },
   });
@@ -845,6 +920,21 @@ async function reinstateInternal(client, env) {
     `✅ You're back! *${client.business_name}* is live again at https://${domain}\n\nThank you for your payment.\n— Website Hub`,
     env,
   );
+
+  const reinName = (client.client_name || '').split(' ')[0] || 'there';
+  await sendEmail({
+    to: client.email,
+    subject: `Welcome back — ${client.business_name} is live again ✓`,
+    touchpoint: 'reinstated',
+    clientSlug: client.slug,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+      <h2 style="color:#111">You're back online ✅</h2>
+      <p>Hi ${reinName},</p>
+      <p><strong>${client.business_name}</strong> is live again at <a href="https://${domain}">${domain}</a>. Thank you for your payment.</p>
+      <p style="margin:24px 0"><a href="https://${domain}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Visit My Site</a></p>
+      <p style="color:#888;font-size:12px">— Website Hub</p>
+    </div>`,
+  }, env).catch(() => {});
   await sendWhatsApp(env.WH_PHONE,
     `✅ REINSTATED: ${client.business_name}\nhttps://${domain}`,
     env, { skipTestRedirect: true },
@@ -903,6 +993,21 @@ async function handleUpgrade(request, env) {
     `Hi ${name} 👋 Ready to upgrade to *${toPkg}*?\n\nYou pay the R${delta} difference once. Then *R${targetTier.retainer}/month* from your next invoice.\n\n${toPkg} unlocks:\n${featureLines}\n\n💳 Upgrade — just R${delta}:\n${payLink}\n\n— Website Hub`,
     env,
   );
+
+  await sendEmail({
+    to: client.email,
+    subject: `Upgrade to ${toPkg} — R${delta} once-off`,
+    touchpoint: 'upgrade_link',
+    clientSlug: client.slug,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+      <h2 style="color:#111">Ready to upgrade? 👋</h2>
+      <p>Hi ${name},</p>
+      <p>Upgrade <strong>${client.business_name}</strong> to <strong>${toPkg}</strong> for just <strong>R${delta}</strong> once-off, then <strong>R${targetTier.retainer}/month</strong> from your next invoice.</p>
+      <p><strong>${toPkg} unlocks:</strong><br><span style="white-space:pre-line">${featureLines}</span></p>
+      <p style="margin:24px 0"><a href="${payLink}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Upgrade Now — R${delta}</a></p>
+      <p style="color:#888;font-size:12px">— Website Hub</p>
+    </div>`,
+  }, env).catch(() => {});
 
   await logEvent(env, 'launch', 'upgrade_link_sent', 'success', {
     clientId, metadata: { from: fromPkg, to: toPkg, delta },
@@ -1264,6 +1369,19 @@ async function processGoogleProfile(clientId, client, env) {
       `📍 Great news, ${name}! We found your *${bizName}* Google Business Profile and linked it to your new website.\n\nPeople searching for you on Google Maps will now be sent straight to your site. 🗺️\n\n— Website Hub`,
       env,
     );
+
+    await sendEmail({
+      to: client.email,
+      subject: `Google Business Profile linked — ${bizName}`,
+      touchpoint: 'gbp_linked',
+      clientSlug: client.slug,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#111">Google Business Profile linked 📍</h2>
+        <p>Hi ${name},</p>
+        <p>We found your <strong>${bizName}</strong> Google Business Profile and linked it to your new website. People searching for you on Google Maps will now land directly on your site.</p>
+        <p style="color:#888;font-size:12px">— Website Hub</p>
+      </div>`,
+    }, env).catch(() => {});
     await sendWhatsApp(env.WH_PHONE,
       `📍 GOOGLE PROFILE UPDATED: ${bizName}\nWebsite: https://${domain}`,
       env, { skipTestRedirect: true },
@@ -1307,6 +1425,22 @@ async function processGoogleProfile(clientId, client, env) {
       `📍 Hi ${name}! We've created your *${bizName}* Google Business Profile.\n\n*What happens next:*\nGoogle sends a postcard to your business address within 5–14 days. It has a PIN code.\n\nWhen it arrives, tap this link and enter the PIN:\nhttps://business.google.com/verify\n\nOnce verified, *${bizName}* appears on Google Maps. 🗺️\n\n— Website Hub`,
       env,
     );
+
+    await sendEmail({
+      to: client.email,
+      subject: `Google Business Profile created — ${bizName}`,
+      touchpoint: 'gbp_created',
+      clientSlug: client.slug,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#111">Google Business Profile created 📍</h2>
+        <p>Hi ${name},</p>
+        <p>We've created a Google Business Profile for <strong>${bizName}</strong>.</p>
+        <p><strong>What happens next:</strong><br>Google will send a postcard to your business address within 5–14 days with a PIN code.</p>
+        <p>When it arrives, click below and enter the PIN to verify — then <strong>${bizName}</strong> appears on Google Maps.</p>
+        <p style="margin:24px 0"><a href="https://business.google.com/verify" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Verify My Profile</a></p>
+        <p style="color:#888;font-size:12px">— Website Hub</p>
+      </div>`,
+    }, env).catch(() => {});
     await sendWhatsApp(env.WH_PHONE,
       `📍 GOOGLE PROFILE CREATED: ${bizName}\nWebsite: https://${domain}\nStatus: Awaiting postcard verification`,
       env, { skipTestRedirect: true },
