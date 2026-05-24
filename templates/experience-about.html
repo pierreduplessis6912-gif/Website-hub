@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{about_headline}} - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body class="bg-light">
+
+  <nav class="solid-nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html" class="active">Our Story</a>
+        <a href="gallery.html">Gallery</a>
+        <a href="contact.html">Find Us</a>
+        <a href="contact.html" class="btn-text-link">Book Now</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short">
+    <div class="hero-bg">
+      <img src="https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=1400&q=80" alt="Our Story">
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content text-center" style="margin: 0 auto;">
+      <div class="hero-mood">{{about_section_tag}}</div>
+      <h1>{{about_headline}}</h1>
+    </div>
+  </header>
+
+  <section class="about-main bg-light">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: about -->
+      <div class="pull-quote pull-quote-center">
+        "{{about_pull_quote}}"
+      </div>
+
+      <div class="intro-grid" style="margin-bottom: 60px;">
+        <div>
+          <p style="font-size: 1.25rem; font-weight: 300; margin-bottom: 2rem; color: var(--text-muted-dark); line-height: 1.8;">{{about_p1}}</p>
+        </div>
+        <div>
+          <img src="https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80" alt="{{owner_name}}" class="intro-img">
+        </div>
+      </div>
+      
+      <div style="max-width: 900px; margin: 0 auto;">
+        <p style="font-size: 1.25rem; font-weight: 300; color: var(--text-muted-dark); line-height: 1.8; text-align: center;">{{about_p2}}</p>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="stats-section bg-dark-soft" style="padding: 0;">
+    <div class="container">
+      <div class="stats-grid">
+        <div>
+          <div class="stat-num">{{years_open}}</div>
+          <div class="stat-lbl" style="color: rgba(245, 239, 230, 0.7);">Years Open</div>
+        </div>
+        <div>
+          <div class="stat-num">{{team_size}}</div>
+          <div class="stat-lbl" style="color: rgba(245, 239, 230, 0.7);">Creative Specialists</div>
+        </div>
+        <div>
+          <div class="stat-num">&infin;</div>
+          <div class="stat-lbl" style="color: rgba(245, 239, 230, 0.7);">Beautiful Moments</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="team-section bg-light">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">The Creatives</span>
+        <h2>Meet the Team</h2>
+      </div>
+      
+      <div class="owner-panel" style="background-color: var(--bg-light-soft); margin-bottom: 80px; color: var(--text-dark);">
+        <div>
+          <img src="https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80" alt="{{owner_name}}" class="owner-img">
+        </div>
+        <div>
+          <h3 style="font-size: 3.5rem; font-style: italic; margin-bottom: 1rem;">{{owner_name}}</h3>
+          <div style="font-family: var(--font-body); font-size: 0.9rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 2rem;">{{owner_title}}</div>
+          <p style="font-size: 1.25rem; font-weight: 300; color: var(--text-muted-dark);">The visionary behind the space. Dedicated to curating an experience that goes far beyond the mirror.</p>
+        </div>
+      </div>
+      
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-img-wrapper">
+            <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=600&q=80" alt="Team Member">
+          </div>
+          <h4 style="font-size: 1.5rem; font-style: italic; margin-bottom: 0.5rem;">Senior Stylist</h4>
+          <div style="font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);">Specialist</div>
+        </div>
+        <div class="team-card">
+          <div class="team-img-wrapper">
+            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80" alt="Team Member">
+          </div>
+          <h4 style="font-size: 1.5rem; font-style: italic; margin-bottom: 0.5rem;">Colour Director</h4>
+          <div style="font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);">Specialist</div>
+        </div>
+        <div class="team-card">
+          <div class="team-img-wrapper">
+            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=600&q=80" alt="Team Member">
+          </div>
+          <h4 style="font-size: 1.5rem; font-style: italic; margin-bottom: 0.5rem;">Style Director</h4>
+          <div style="font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);">Specialist</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="horizontal-strip bg-dark-soft">
+    <img src="https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=800&q=80" alt="Atmosphere" class="strip-img">
+    <img src="https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=800&q=80" alt="Atmosphere" class="strip-img">
+    <img src="https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80" alt="Atmosphere" class="strip-img">
+    <img src="https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=800&q=80" alt="Atmosphere" class="strip-img">
+  </div>
+
+  <section class="book-section bg-light">
+    <div class="container book-panel">
+      <span class="section-tag">{{contact_section_tag}}</span>
+      <h2>{{contact_h2_line1}}<br><em>{{contact_h2_line2}}</em></h2>
+      <p style="font-size: 1.25rem; font-weight: 300; margin-bottom: 3rem; color: var(--text-muted-dark);">{{contact_copy}}</p>
+      
+      <a href="https://wa.me/{{phone}}" class="btn btn-primary" style="margin-bottom: 3rem;">Book via WhatsApp</a>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa" aria-label="Book on WhatsApp">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-brand">{{business_name}}</div>
+      <div class="footer-info">
+        <div>{{business_type}} in {{area}}</div>
+        <div>{{address_line1}}, {{address_line2}}</div>
+        <div><a href="https://instagram.com" target="_blank" style="color: var(--accent);">Instagram</a></div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - {{business_name}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html" class="active">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="contact.html" class="nav-btn">Book a Consultation</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short">
+    <div class="container hero-content">
+      <span class="badge">{{about_section_tag}}</span>
+      <h1>{{about_headline}}</h1>
+      <div style="font-family: var(--font-heading); font-size: 2rem; font-style: italic; color: var(--accent-color); line-height: 1.4; margin-top: 2rem;">
+        "{{about_pull_quote}}"
+      </div>
+    </div>
+  </header>
+
+  <section class="about-main bg-white">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: about -->
+      <div class="grid-2" style="align-items: center; margin-bottom: 4rem;">
+        <div>
+          <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.8;">{{about_p1}}</p>
+          <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.8;">{{about_p2}}</p>
+        </div>
+        <div class="about-teaser-img">
+          <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32b7?auto=format&fit=crop&w=800&q=80" alt="{{business_name}} Office">
+        </div>
+      </div>
+
+      <div class="about-philosophy">
+        {{about_philosophy}}
+      </div>
+
+      <div class="cred-flex" style="background-color: var(--bg-subtle); padding: 30px; border-radius: 2px;">
+        <span class="cred-item">{{trust_point1}}</span>
+        <span class="cred-item">{{trust_point2}}</span>
+        <span class="cred-item">{{trust_point3}}</span>
+        <span class="cred-item">{{trust_point4}}</span>
+      </div>
+      <!-- WH_EXPRESS_END -->
+
+      <div style="margin-top: 4rem; max-width: 800px;">
+        <h3 style="font-size: 1.8rem; margin-bottom: 1rem;">Our Track Record</h3>
+        <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.8;">{{about_p3}}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="team-section bg-subtle">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Meet Our Team</span>
+        <h2>Our Professionals</h2>
+      </div>
+      <div class="grid-3">
+        <div class="team-card">
+          <div class="team-img">
+            <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=600&q=80" alt="{{owner_name}}">
+          </div>
+          <h3>{{owner_name}}</h3>
+          <div class="team-title">{{owner_title}}</div>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">Leading our practice with distinction and decades of specialized experience.</p>
+        </div>
+        <div class="team-card">
+          <div class="team-img">
+            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80" alt="{{team_member2_name}}">
+          </div>
+          <h3>{{team_member2_name}}</h3>
+          <div class="team-title">{{team_member2_title}}</div>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">Delivering meticulous attention to detail and dedicated client advocacy.</p>
+        </div>
+        <div class="team-card">
+          <div class="team-img">
+            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=600&q=80" alt="{{team_member3_name}}">
+          </div>
+          <h3>{{team_member3_name}}</h3>
+          <div class="team-title">{{team_member3_title}}</div>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">Providing thorough research and steadfast support across all practice areas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="credentials-section bg-white text-center">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Credentials & Associations</span>
+        <h2>Our Qualifications</h2>
+      </div>
+      <div class="cred-flex" style="justify-content: center; max-width: 800px; margin: 0 auto; padding: 40px; border: 1px solid var(--border-color);">
+        <div class="cred-item">{{credential1}}</div>
+        <div class="cred-item">{{credential2}}</div>
+        <div class="cred-item">{{credential3}}</div>
+        <div class="cred-item">{{credential4}}</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact-panel">
+    <div class="container">
+      <span class="section-tag" style="color: var(--accent-color);">{{contact_section_tag}}</span>
+      <h2>{{contact_h2_line1}} <span class="accent" style="color: var(--accent-color);">{{contact_h2_line2}}</span></h2>
+      <p>{{contact_copy}}</p>
+      <a href="contact.html" class="btn btn-primary">{{cta_primary}}</a>
+      <div class="contact-fee">{{consultation_fee}}</div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px;">{{profession}} based in {{area}}. Est. {{founding_year}}.</p>
+          <div style="margin-top: 1rem; font-weight: 700;">{{credential1}}</div>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <a href="tel:{{phone}}">{{phone}}</a>
+          <p>{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <a href="index.html">Home</a>
+          <a href="services.html">Services</a>
+          <a href="about.html">About</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

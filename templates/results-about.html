@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html" class="active">About & Proof</a>
+        <a href="results.html">Case Studies</a>
+        <a href="contact.html">Contact</a>
+        <a href="contact.html" class="btn nav-btn btn-primary" style="padding: 10px 24px; font-size: 0.9rem;">{{cta_primary}}</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short bg-dark">
+    <div class="container hero-content text-center" style="margin: 0 auto;">
+      <span class="badge">{{about_section_tag}}</span>
+      <h1 style="margin-bottom: 1.5rem;">{{about_headline}}</h1>
+      <div style="font-size: 1.5rem; color: #ffffff; font-weight: 600; max-width: 800px; margin: 0 auto;">{{about_proof_statement}}</div>
+    </div>
+  </header>
+
+  <section class="about-main bg-light" style="padding-top: 0;">
+    <!-- WH_EXPRESS_INCLUDE: about -->
+    <div class="proof-strip" style="margin-bottom: 80px; background-color: var(--bg-offwhite); border-color: var(--border-light);">
+      <div class="container proof-grid">
+        <div class="proof-item" style="border-color: var(--border-light);">
+          <div class="proof-num">{{proof_stat1_num}}</div>
+          <div class="proof-lbl" style="color: var(--text-muted);">{{proof_stat1_lbl}}</div>
+        </div>
+        <div class="proof-item" style="border-color: var(--border-light);">
+          <div class="proof-num">{{proof_stat2_num}}</div>
+          <div class="proof-lbl" style="color: var(--text-muted);">{{proof_stat2_lbl}}</div>
+        </div>
+        <div class="proof-item" style="border-color: var(--border-light);">
+          <div class="proof-num">{{proof_stat3_num}}</div>
+          <div class="proof-lbl" style="color: var(--text-muted);">{{proof_stat3_lbl}}</div>
+        </div>
+        <div class="proof-item" style="border-color: var(--border-light);">
+          <div class="proof-num">{{proof_stat4_num}}</div>
+          <div class="proof-lbl" style="color: var(--text-muted);">{{proof_stat4_lbl}}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="grid-2" style="align-items: center; margin-bottom: 60px;">
+        <div>
+          <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">The Methodology</h2>
+          <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 1.5rem;">{{about_p1}}</p>
+          <p style="font-size: 1.15rem; color: var(--text-dark); font-weight: 500;">{{about_p2}}</p>
+        </div>
+        <div>
+          <img src="https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=800&q=80" alt="{{owner_name}}" style="box-shadow: -20px 20px 0 var(--border-light);">
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "{{about_pull_quote}}"
+      </div>
+      
+      <div style="margin-top: 40px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+        <span style="font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.1em; color: var(--text-muted);">Leadership Credentials:</span>
+        <span class="team-pill" style="font-size: 0.85rem; padding: 6px 12px; margin: 0;">{{owner_credential1}}</span>
+        <span class="team-pill" style="font-size: 0.85rem; padding: 6px 12px; margin: 0;">{{owner_credential2}}</span>
+        <span class="team-pill" style="font-size: 0.85rem; padding: 6px 12px; margin: 0;">{{owner_credential3}}</span>
+      </div>
+    </div>
+    <!-- WH_EXPRESS_END -->
+  </section>
+
+  <section class="qualifiers-section bg-dark">
+    <div class="container">
+      <div class="grid-2">
+        <div>
+          <span class="section-tag">Qualification</span>
+          <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Who we are NOT for.</h2>
+          <div style="font-size: 4rem; color: var(--accent-color); margin-bottom: 1rem;">⚠️</div>
+        </div>
+        <div>
+          <p style="font-size: 1.25rem; color: var(--text-light); line-height: 1.8;">{{about_p3}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="team-section bg-light">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">The Execution Unit</span>
+        <h2>Meet the Team</h2>
+      </div>
+      <div class="grid-3">
+        <div class="team-card">
+          <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=600&q=80" alt="{{owner_name}}" class="team-img">
+          <div class="team-info">
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.25rem;">{{owner_name}}</h3>
+            <div style="color: var(--accent-color); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 1rem;">{{owner_title}}</div>
+            <div>
+              <span class="team-pill">{{owner_credential1}}</span>
+              <span class="team-pill">{{owner_credential2}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="team-card">
+          <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80" alt="{{team_member2_name}}" class="team-img">
+          <div class="team-info">
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.25rem;">{{team_member2_name}}</h3>
+            <div style="color: var(--accent-color); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 1rem;">{{team_member2_title}}</div>
+            <div>
+              <span class="team-pill">Strategy Execution</span>
+              <span class="team-pill">Analytics</span>
+            </div>
+          </div>
+        </div>
+        <div class="team-card">
+          <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=600&q=80" alt="{{team_member3_name}}" class="team-img">
+          <div class="team-info">
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.25rem;">{{team_member3_name}}</h3>
+            <div style="color: var(--accent-color); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 1rem;">{{team_member3_title}}</div>
+            <div>
+              <span class="team-pill">Technical Implementation</span>
+              <span class="team-pill">Data Architecture</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mini-case-studies bg-offwhite">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Track Record</span>
+        <h2>Recent Wins</h2>
+      </div>
+      <div class="grid-3">
+        <div class="test-card" style="background-color: var(--bg-light);">
+          <h4 style="font-size: 1.1rem; margin-bottom: 1rem;">{{case1_client}}</h4>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; flex-grow: 1;"><strong>Challenge:</strong> {{case1_challenge}}</p>
+          <div style="border-top: 1px solid var(--border-light); padding-top: 1rem;">
+            <div style="color: var(--accent-color); font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem;">{{case1_result1}}</div>
+            <div style="color: var(--accent-color); font-weight: 700; font-size: 0.95rem;">{{case1_result2}}</div>
+          </div>
+        </div>
+        <div class="test-card" style="background-color: var(--bg-light);">
+          <h4 style="font-size: 1.1rem; margin-bottom: 1rem;">{{case2_client}}</h4>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; flex-grow: 1;"><strong>Challenge:</strong> {{case2_challenge}}</p>
+          <div style="border-top: 1px solid var(--border-light); padding-top: 1rem;">
+            <div style="color: var(--accent-color); font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem;">{{case2_result1}}</div>
+            <div style="color: var(--accent-color); font-weight: 700; font-size: 0.95rem;">{{case2_result2}}</div>
+          </div>
+        </div>
+        <div class="test-card" style="background-color: var(--bg-light);">
+          <h4 style="font-size: 1.1rem; margin-bottom: 1rem;">{{case3_client}}</h4>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; flex-grow: 1;"><strong>Challenge:</strong> {{case3_challenge}}</p>
+          <div style="border-top: 1px solid var(--border-light); padding-top: 1rem;">
+            <div style="color: var(--accent-color); font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem;">{{case3_result1}}</div>
+            <div style="color: var(--accent-color); font-weight: 700; font-size: 0.95rem;">{{case3_result2}}</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 40px; text-align: center;">
+        <a href="results.html" class="btn btn-outline" style="border-color: var(--text-dark); color: var(--text-dark);">View Full Case Studies</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="availability-cta">
+    <div class="container">
+      <span class="availability-note">{{availability_note}}</span>
+      <h2 style="font-size: 3.5rem; color: #ffffff; margin-bottom: 1.5rem;">Ready to hit those targets?</h2>
+      <a href="contact.html" class="btn btn-primary" style="font-size: 1.2rem; padding: 20px 40px;">{{cta_primary}}</a>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa" aria-label="Chat on WhatsApp">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px; margin-bottom: 1rem;">Performance-focused {{service_category}} in {{area}}.</p>
+          <div style="color: var(--accent-color); font-weight: 700;">{{response_commitment}}</div>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <a href="tel:{{phone}}">{{phone}}</a>
+          <p>{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div>
+          <h4>Pages</h4>
+          <a href="index.html">Home</a>
+          <a href="services.html">Services</a>
+          <a href="about.html">About & Proof</a>
+          <a href="results.html">Case Studies</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2024 {{business_name}}. All rights reserved.</div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}}</title>
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <!--WH_CSS_INJECT-->
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">{{business_name}}</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="about.html">About</a>
+        <a href="gallery.html">Gallery</a>
+        <a href="contact.html" class="active">Contact</a>
+        <a href="https://wa.me/{{phone}}" class="btn nav-btn btn-primary" style="padding: 8px 20px;">WhatsApp Us</a>
+      </div>
+      <button class="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero hero-short bg-texture">
+    <div class="container hero-content text-center" style="margin: 0 auto;">
+      <span class="badge">{{contact_section_tag}}</span>
+      <h1 style="margin-bottom: 1rem;">{{contact_h2_line1}} <span style="color: var(--accent-color); font-style: italic;">{{contact_h2_line2}}</span></h1>
+      <p style="margin: 0 auto;">{{contact_copy}}</p>
+    </div>
+  </header>
+
+  <section class="contact-details bg-white">
+    <div class="container">
+      <!-- WH_EXPRESS_INCLUDE: contact -->
+      <div class="grid-2">
+        <div class="contact-card">
+          <div style="font-size: 2.5rem; margin-bottom: 1rem;">📍</div>
+          <h3>Find Us</h3>
+          
+          <div class="contact-item">
+            <h4>Address</h4>
+            <p>{{address_line1}}<br>{{address_line2}}</p>
+          </div>
+          
+          <div class="contact-item">
+            <h4>Phone & WhatsApp</h4>
+            <p><a href="tel:{{phone}}" style="color: var(--text-main); font-weight: 700; font-size: 1.25rem;">{{phone}}</a></p>
+          </div>
+          
+          <div class="contact-item" style="border-top: 1px dashed var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
+            <p style="color: var(--accent-color); font-weight: 600;">{{delivery_note}}</p>
+          </div>
+        </div>
+        
+        <div class="contact-card" style="background-color: var(--bg-card);">
+          <div style="font-size: 2.5rem; margin-bottom: 1rem;">⏰</div>
+          <h3>Opening Hours</h3>
+          
+          <table class="hours-table">
+            <tr>
+              <td>Monday - Friday</td>
+              <td>{{hours_weekday}}</td>
+            </tr>
+            <tr>
+              <td>Saturday</td>
+              <td>{{hours_saturday}}</td>
+            </tr>
+            <tr>
+              <td class="hours-closed">Sunday</td>
+              <td class="hours-closed">{{hours_sunday}}</td>
+            </tr>
+          </table>
+          
+          <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border-color); font-style: italic; color: var(--text-muted); font-size: 0.95rem;">
+            * Closed on public holidays unless otherwise stated on our WhatsApp status.
+          </div>
+        </div>
+      </div>
+      
+      <div class="cta-panel" style="margin-top: 40px; margin-bottom: 0;">
+        <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Message us directly. We reply fast.</h2>
+        <p>Save our number to your contacts or just tap the button below.</p>
+        <a href="https://wa.me/{{phone}}" class="btn btn-primary" style="font-size: 1.2rem; padding: 16px 36px; margin-top: 1rem;">Start WhatsApp Chat</a>
+      </div>
+      <!-- WH_EXPRESS_END -->
+    </div>
+  </section>
+
+  <section class="directions-section bg-subtle">
+    <div class="container grid-2" style="align-items: center;">
+      <div>
+        <span class="section-tag">Getting Here</span>
+        <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Look out for our sign</h2>
+        <p style="font-size: 1.15rem; color: var(--text-muted); margin-bottom: 1.5rem;">We're located at <strong>{{address_line1}}, {{address_line2}}</strong>.</p>
+        <p style="font-size: 1.15rem; color: var(--text-muted); margin-bottom: 2rem;">If you get lost, just drop us a WhatsApp or give us a quick call. We're happy to give you directions from wherever you are in {{area}}.</p>
+        <div style="background-color: var(--bg-white); padding: 25px; border-radius: var(--radius-md); border-left: 4px solid var(--accent-color);">
+          <h4 style="margin-bottom: 0.5rem; color: var(--accent-color);">Delivery Information</h4>
+          <p style="font-weight: 500;">{{delivery_note}}</p>
+        </div>
+      </div>
+      <div>
+        <img src="https://images.unsplash.com/photo-1555529771-835f59fc5efe?auto=format&fit=crop&w=800&q=80" alt="Our Storefront" style="border-radius: var(--radius-lg); box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+      </div>
+    </div>
+  </section>
+
+  <a href="https://wa.me/{{phone}}" class="fab-wa" aria-label="Chat on WhatsApp">💬</a>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">{{business_name}}</div>
+          <p style="max-width: 300px; margin-bottom: 1rem;">Proudly serving {{area}} since {{since_year}}.</p>
+          <p>{{trade}}</p>
+        </div>
+        <div>
+          <h4>Contact & Visit</h4>
+          <p><a href="tel:{{phone}}" style="font-size: 1.1rem; color: white;">{{phone}}</a></p>
+          <p style="margin-top: 10px;">{{address_line1}}<br>{{address_line2}}</p>
+        </div>
+        <div>
+          <h4>Hours</h4>
+          <p>{{hours_weekday}}</p>
+          <p>{{hours_saturday}}</p>
+          <p>{{hours_sunday}}</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2024 {{business_name}}. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
