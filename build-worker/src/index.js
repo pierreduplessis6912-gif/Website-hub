@@ -2834,7 +2834,6 @@ async function extractImagesFromZip(buffer) {
   );
 }
 
-export { removeWatermark, addFooterCredit };
 
 async function handleStart(request, url, env) {
   if (request.method === "POST") return handleIntake(request, env, null);
