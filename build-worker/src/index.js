@@ -121,7 +121,7 @@ export default {
     const path = url.pathname;
     if (path === '/start')               return handleStart(request, url, env);
     if (path === '/health')              return handleHealth(env);
-    if (path === '/intake' || path === '/formspree-webhook') return handleIntake(request, env, ctx);
+    if (path === '/intake' || path === '/formspree-webhook') { try { return await handleIntake(request, env, ctx); } catch(e) { return Response.json({ error: e.message, where: e.stack?.split('\n')[1] }, {status:500}); } }
     if (path === '/build-status')        return handleBuildStatus(request, url, env);
     if (path === '/verify-pin')          return handleVerifyPin(request, env, ctx);
     if (path === '/preview-choices')     return handlePreviewChoices(request, env);
@@ -183,7 +183,7 @@ async function handleBootstrapIntake(request, env) {
 
     if (path === '/dropbox')                return handleDropbox(request, url, env, ctx);
     if (path === '/claude')                 return handleClaude(request, env);
-    if (path === '/intake')                 return handleIntake(request, env, ctx);
+    if (path === '/intake') { try { return await handleIntake(request, env, ctx); } catch(e) { return Response.json({ error: e.message, where: e.stack?.split('\n')[1] }, {status:500}); } }
     if (path === '/formspree-webhook')      return handleIntake(request, env, ctx); // legacy alias
     if (path === '/verify-pin')             return handleVerifyPin(request, env, ctx);
     if (path === '/build-status')           return handleBuildStatus(request, url, env);
