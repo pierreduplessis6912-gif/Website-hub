@@ -53,7 +53,7 @@ import {
   slugify, escapeHtml, uint8ArrayToBase64, getMime,
   safeInflate, currentMonthKey, todayDateString,
   resolveClaudeModel, callClaudeInternal,
-  sendWhatsApp, queueScheduledMessage, normaliseSaPhone,
+  sendWhatsApp, queueScheduledMessage, normaliseSaPhone, sendEmail,
   logEvent, getFlag,
   detectArchetype, fetchTemplates, tokenReplace, buildExpressPage,
   createClient, getClientById, getClientBySlug, getClientByDomain, updateClient, queryClients,
