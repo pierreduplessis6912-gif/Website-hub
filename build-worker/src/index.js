@@ -940,7 +940,11 @@ async function handlePreviewRevert(request, env) {
 // ============================================================
 
   async function handleCheckDomain(url, env) {
-  const domain = url.searchParams.get('domain')?.toLowerCase().trim();
+  let domain = url.searchParams.get('domain')?.toLowerCase().trim();
+  if (!domain) {
+    const name = url.searchParams.get('name')?.toLowerCase().trim();
+    if (name) domain = name.replace(/\.co\.za$/,'').replace(/[^a-z0-9-]/g,'-').replace(/^-+|-+$/g,'') + '.co.za';
+  }
   if (!domain) return jsonResponse({ error: 'Missing domain' }, 400);
 
   const slug = domain.replace(/\.co\.za$/, '');
