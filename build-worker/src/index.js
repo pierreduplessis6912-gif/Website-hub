@@ -156,7 +156,7 @@ async function handleBootstrapIntake(request, env) {
     if (path === '/outbound-prospect')   return handleOutboundProspect(request, env, ctx);
     if (path === '/preview-revert')      return handlePreviewRevert(request, env);
     if (path === '/check-domain')        return handleCheckDomain(url, env);
-    if (path === '/domain-check')        return handleDomainCheck(url, env);
+    if (path === '/domain-check')        return handleCheckDomain(url, env);
     if (path === '/clients')             return handleListClients(request, env);
     if (path === '/analytics')           return handleAnalytics(request, url, env);
     if (path === '/referral-stats')      return handleReferralStats(request, url, env);
@@ -198,7 +198,7 @@ async function handleBootstrapIntake(request, env) {
     if (path === '/outbound-prospect')      return handleOutboundProspect(request, env, ctx);
     if (path === '/preview-revert')         return handlePreviewRevert(request, env);
     if (path === '/check-domain')           return handleCheckDomain(url, env);
-    if (path === '/domain-check')           return handleDomainCheck(url, env);
+    if (path === '/domain-check')           return handleCheckDomain(url, env);
     if (path === '/clients')                return handleListClients(request, env);
     if (path === '/health')                 return handleHealth(env);
     if (path === '/analytics')              return handleAnalytics(request, url, env);
@@ -955,15 +955,14 @@ async function handlePreviewRevert(request, env) {
         const data      = await res.json();
         const available = data.available === true || data.status === 'available';
         const alternatives = available ? [] : [`${slug}-pta.co.za`, `${slug}-sa.co.za`, `${slug}online.co.za`];
-        return jsonResponse({ available, domain, alternatives });
+        return jsonResponse({ available, domain, suggestions: alternatives, alternatives });
       }
     } catch { /* fall through to WHOIS */ }
   }
 
   const result = await checkDomainAvailabilityWhois(domain);
-  return jsonResponse({ ...result, alternatives: result.available === false
-    ? [`${slug}-pta.co.za`, `${slug}-sa.co.za`, `${slug}online.co.za`]
-    : [], fallback: true });
+  const alts4 = result.available === false ? [`${slug}-pta.co.za`, `${slug}-sa.co.za`, `${slug}online.co.za`] : [];
+  return jsonResponse({ ...result, suggestions: alts4, alternatives: alts4, fallback: true });
 }
 
 async function handleDomainCheck(url, env) {
