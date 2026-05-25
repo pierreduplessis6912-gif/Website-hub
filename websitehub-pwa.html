@@ -822,7 +822,7 @@ function onInit(ctx) {
       const d = await apiFetch(`/build-status?token=${S.token}`);
       failStreak = 0;
       if (d.slug) S.slug = d.slug;
-      if (d.status === 'preview_ready') { clearTimers(); showScreen('experience', { slug:S.slug, token:S.token }); }
+      if (d.status === 'preview_ready' || d.status === 'ready') { clearTimers(); showScreen('experience', { slug:S.slug||d.slug, token:S.token }); }
       else if (d.status === 'failed')   { clearTimers(); showInitError(); }
     } catch { failStreak++; }
     if (Date.now() > deadline) { clearTimers(); showInitTimeout(); }
