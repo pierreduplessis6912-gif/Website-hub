@@ -121,6 +121,10 @@ export default {
     const path = url.pathname;
     if (path === '/start')               return handleStart(request, url, env);
     if (path === '/health')              return handleHealth(env);
+    if (path === '/debug-clients') {
+      const rows = await env.DB.prepare('SELECT slug, status, updated_at FROM clients ORDER BY created_at DESC LIMIT 10').all();
+      return Response.json(rows);
+    }
     if (path === '/intake' || path === '/formspree-webhook') { try { return await handleIntake(request, env, ctx); } catch(e) { return Response.json({ error: e.message, where: e.stack?.split('\n')[1] }, {status:500}); } }
     if (path === '/build-status')        return handleBuildStatus(request, url, env);
     if (path === '/verify-pin')          return handleVerifyPin(request, env, ctx);
