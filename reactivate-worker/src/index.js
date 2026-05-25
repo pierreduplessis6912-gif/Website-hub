@@ -171,8 +171,7 @@ async function handleCancelSite(request, env, ctx) {
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
         <h2 style="color:#111">Cancellation confirmed</h2>
         <p>Hi ${name},</p>
-        <p>${clientMsg.replace(/
-/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>')}</p>
+        <p>${clientMsg.replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>')}</p>
         <p style="color:#888;font-size:12px">— Pierre, Website Hub</p>
       </div>`,
     }, env).catch(() => {});

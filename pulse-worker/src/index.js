@@ -351,8 +351,7 @@ async function sendDunningMessage(client, stage, daysLate, env) {
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
         <h2 style="color:#c00">${dunningPreheaders[stage.label] || 'Payment required'}</h2>
         <p>Hi ${name},</p>
-        <p>${body.replace(/
-/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>')}</p>
+        <p>${body.replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>')}</p>
         <p style="margin:24px 0"><a href="${payLink}" style="background:#c00;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Pay Now — R${tier.retainer}</a></p>
         <p style="color:#888;font-size:12px">— Website Hub</p>
       </div>`,
@@ -485,8 +484,7 @@ async function sendPostGoLiveMessage(client, day, env) {
         html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
           <h2 style="color:#111">${postLiveSubjects[day]}</h2>
           <p>Hi ${name},</p>
-          <p>${body.replace(/
-/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>')}</p>
+          <p>${body.replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>')}</p>
           ${manageUrl ? `<p style="margin:24px 0"><a href="${manageUrl}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Manage My Site</a></p>` : ''}
           <p style="color:#888;font-size:12px">— Website Hub</p>
         </div>`,
@@ -538,8 +536,7 @@ async function runWinBackCron(env) {
           html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
             <h2 style="color:#111">Still here if you need us 👋</h2>
             <p>Hi ${name},</p>
-            <p>${body.replace(/
-/g, '<br>')}</p>
+            <p>${body.replace(/\n/g, '<br>')}</p>
             ${reactivateUrl ? `<p style="margin:24px 0"><a href="${reactivateUrl}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">Reactivate My Site</a></p>` : ''}
             <p style="color:#888;font-size:12px">— Pierre, Website Hub</p>
           </div>`,
