@@ -766,7 +766,15 @@ const INIT_MSGS = [
   {s:'Preparing your space',        b:'Setting up your domain and laying the foundations'},
   {s:'Drafting your story',         b:'Pulling together a starting point for your business'},
   {s:'Designing your layout',       b:'Picking a look that fits'},
-  {s:'Almost ready',                b:'Running a quick quality check'},
+  {s:'Running a quality check',     b:'Making sure everything reads right for your industry'},
+  {s:'What's included?',           b:'Homepage, services, about & contact — written for your business, not a template'},
+  {s:'Do you own your domain?',     b:'Yes. Your .co.za is registered in your name. It's yours to keep, always'},
+  {s:'How does WhatsApp support work?', b:'Message us any time. We respond same-day, 7 days a week'},
+  {s:'Can you make changes?',       b:'Yes — every plan includes free revision requests every month'},
+  {s:'What about business email?',  b:'Your plan includes hello@yourdomain.co.za — professional from day one'},
+  {s:'What if you want to cancel?', b:'No lock-in, no penalty. Cancel any time and keep your domain'},
+  {s:'How long does this take?',    b:'Your first preview is 2–3 minutes. This is a real build, not a template swap'},
+  {s:'Finishing touches',           b:'Almost there — your preview is nearly ready'},
 ];
 
 const PROMO_CODES = { 'LAUNCH50':0.5, 'BETA':1.0, 'ZULULAND':1.0 };
@@ -802,12 +810,12 @@ function onInit(ctx) {
   el('initActions').style.display = 'none';
   S._msgIdx = 0;
   setInitMsg(0);
-  S._msgTimer = setInterval(() => { S._msgIdx = (S._msgIdx + 1) % INIT_MSGS.length; setInitMsg(S._msgIdx); }, 4000);
+  S._msgTimer = setInterval(() => { S._msgIdx = (S._msgIdx + 1) % INIT_MSGS.length; setInitMsg(S._msgIdx); }, 5000);
 
   if (isDev()) return; // dev: stay on screen, no polling
 
   // STEP 2 — poll /build-status every 2s
-  const deadline = Date.now() + 120_000;
+  const deadline = Date.now() + 240_000;
   let failStreak = 0;
   S._pollTimer = setInterval(async () => {
     try {
