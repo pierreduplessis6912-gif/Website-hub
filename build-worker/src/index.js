@@ -127,6 +127,7 @@ export default {
     if (path === '/preview-choices')     return handlePreviewChoices(request, env);
     if (path === '/preview-meta')        return handlePreviewMeta(request, url, env);
     if (path === '/bootstrap-preview-app') return handleBootstrapPreviewApp(request, env);
+    if (path === '/bootstrap-pwa')          return handleBootstrapPwa(request, env);
     if (path === '/bootstrap-templates') return handleBootstrapTemplates(request, env);
     if (path === '/bootstrap-intake')    return handleBootstrapIntake(request, env);
   if (path === '/bootstrap-start') {
@@ -189,6 +190,7 @@ async function handleBootstrapIntake(request, env) {
     if (path === '/preview-choices')        return handlePreviewChoices(request, env);
     if (path === '/preview-meta')           return handlePreviewMeta(request, url, env);
     if (path === '/bootstrap-preview-app')  return handleBootstrapPreviewApp(request, env);
+  if (path === '/bootstrap-pwa')           return handleBootstrapPwa(request, env);
     if (path === '/bootstrap-templates')    return handleBootstrapTemplates(request, env);
     if (path === '/trigger-build')          return handleTriggerBuild(request, env, ctx);
     if (path === '/update-status')          return handleUpdateStatus(request, env);
@@ -285,13 +287,9 @@ async function servePreview(url, env) {
   const segment = rawPath.split('/')[0];
 
   // Serve the SPA for app entry points
-  if (segment === 'experience') {
-    const html = await env.SITES.get('app:intake-experience');
-    if (html) return htmlResponse(html, 200);
-    return htmlResponse('Phase 3 not bootstrapped', 404);
-  }
-  if (!rawPath || segment === 'verify' || segment === 'manage' || segment === 'build') {
-    const appHtml = await env.SITES.get('app:preview-manage');
+  if (segment === 'experience' || segment === 'verify' || segment === 'manage' || segment === 'build' || !rawPath) {
+    const appHtml = await env.SITES.get('app:pwa')
+                 || await env.SITES.get('app:preview-manage');
     if (appHtml) return htmlResponse(appHtml, 200);
     return htmlResponse(landingPage(), 200);
   }
@@ -745,6 +743,16 @@ async function handleBootstrapTemplates(request, env) {
 }
 
 // ============================================================
+// ROUTE: /bootstrap-pwa
+async function handleBootstrapPwa(request, env) {
+  try {
+    const html = await request.text();
+    if (!html || html.length < 500) return jsonResponse({ error: 'Empty or too-short body' }, 400);
+    await env.SITES.put('app:pwa', html);
+    return jsonResponse({ ok: true, key: 'app:pwa', size: html.length });
+  } catch(e) { return jsonResponse({ error: String(e) }, 500); }
+}
+
 // ROUTE: /bootstrap-preview-app
 // ============================================================
 
