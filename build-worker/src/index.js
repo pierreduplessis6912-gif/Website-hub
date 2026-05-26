@@ -613,17 +613,20 @@ async function handleBuildStatus(request, url, env) {
   const raw = await env.SITES.get(`build_status:${token}`);
   const data = raw ? JSON.parse(raw) : {};
   if (data.status === 'ready') return jsonResponse(data);
-  // Fallback: check D1 directly
-  if (data.slug) {
-    try {
-      const client = await env.DB.prepare('SELECT status, slug FROM clients WHERE slug = ? LIMIT 1').bind(data.slug).first();
-      if (client?.status === 'preview_ready') {
-        const result = { status: 'ready', slug: data.slug, previewUrl: `https://preview.websitehub.co.za/${data.slug}` };
-        await env.SITES.put(`build_status:${token}`, JSON.stringify(result), { expirationTtl: 3600 });
-        return jsonResponse(result);
-      }
-    } catch(e) {}
-  }
+  // Fallback: check D1 by token directly (covers case where KV slug is missing)
+  try {
+    const client = await env.DB.prepare(
+      'SELECT status, slug FROM clients WHERE manage_token = ? LIMIT 1'
+    ).bind(token).first();
+    if (client?.status === 'preview_ready' || client?.status === 'ready') {
+      const result = { status: 'ready', slug: client.slug, previewUrl: `https://preview.websitehub.co.za/${client.slug}` };
+      await env.SITES.put(`build_status:${token}`, JSON.stringify(result), { expirationTtl: 3600 });
+      return jsonResponse(result);
+    }
+    if (client?.slug) {
+      return jsonResponse({ status: client.status === 'building' || client.status === 'queued' ? 'building' : 'building', slug: client.slug });
+    }
+  } catch(e) {}
   return raw ? jsonResponse(data) : jsonResponse({ status: 'building' });
 }
 
