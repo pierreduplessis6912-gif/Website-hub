@@ -510,11 +510,12 @@ async function handleIntake(request, env, ctx) {
     return jsonResponse({ error: 'Missing required fields: business_name, phone' }, 400);
   }
 
-  let clientId, slug;
+  let clientId, slug, token;
   try {
     const result = await createClient(env, clientFields);
     clientId = result.id;
     slug     = result.slug;
+    token    = result.manage_token;
   } catch (err) {
     await logEvent(env, 'build', 'intake_failed', 'failure', { error: err.message });
     return jsonResponse({ error: `Client creation failed: ${err.message}` }, 500);
@@ -530,7 +531,6 @@ async function handleIntake(request, env, ctx) {
 
   await logEvent(env, 'build', 'lead_created', 'success', { clientId, metadata: { business: clientFields.business_name } });
 
-  const token    = crypto.randomUUID().replace(/-/g, '');
   const name     = clientFields.client_name?.split(' ')[0] || 'there';
   const buildUrl = `https://${PREVIEW_DOMAIN}/build/${token}`;
 
@@ -610,24 +610,56 @@ async function handleVerifyPin(request, env, ctx) {
 async function handleBuildStatus(request, url, env) {
   const token = url.searchParams.get('token');
   if (!token) return jsonResponse({ error: 'Missing token' }, 400);
-  const raw = await env.SITES.get(`build_status:${token}`);
-  const data = raw ? JSON.parse(raw) : {};
-  if (data.status === 'ready') return jsonResponse(data);
-  // Fallback: check D1 by token directly (covers case where KV slug is missing)
+
+  // 1. KV cache first (fast path)
+  try {
+    const raw = await env.SITES.get(KV_KEYS.BUILD_STATUS(token));
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.status === 'ready') return jsonResponse(data);
+    }
+  } catch(e) { /* KV error non-fatal */ }
+
+  // 2. D1 — authoritative source of truth
   try {
     const client = await env.DB.prepare(
-      'SELECT status, slug FROM clients WHERE manage_token = ? LIMIT 1'
+      'SELECT status, slug, domain FROM clients WHERE manage_token = ? LIMIT 1'
     ).bind(token).first();
-    if (client?.status === 'preview_ready' || client?.status === 'ready') {
-      const result = { status: 'ready', slug: client.slug, previewUrl: `https://preview.websitehub.co.za/${client.slug}` };
-      await env.SITES.put(`build_status:${token}`, JSON.stringify(result), { expirationTtl: 3600 });
+
+    if (!client) return jsonResponse({ status: 'not_found' }, 404);
+
+    const statusMap = {
+      lead:          'building',
+      queued:        'building',
+      building:      'building',
+      preview_ready: 'ready',
+      ready:         'ready',
+      paid:          'paid_pending',
+      live:          'live',
+      suspended:     'live',
+    };
+
+    const status = statusMap[client.status] || 'building';
+
+    if (status === 'ready') {
+      const result = {
+        status:     'ready',
+        slug:       client.slug,
+        previewUrl: `https://preview.websitehub.co.za/${client.slug}`,
+      };
+      await env.SITES.put(
+        KV_KEYS.BUILD_STATUS(token),
+        JSON.stringify(result),
+        { expirationTtl: 86400 }
+      ).catch(() => {});
       return jsonResponse(result);
     }
-    if (client?.slug) {
-      return jsonResponse({ status: client.status === 'building' || client.status === 'queued' ? 'building' : 'building', slug: client.slug });
-    }
-  } catch(e) {}
-  return raw ? jsonResponse(data) : jsonResponse({ status: 'building' });
+
+    return jsonResponse({ status, slug: client.slug });
+
+  } catch(e) {
+    return jsonResponse({ error: e.message }, 500);
+  }
 }
 
 // ============================================================
