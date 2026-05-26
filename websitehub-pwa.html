@@ -94,180 +94,87 @@ body::after{
 #initStatus{font-size:20px;font-weight:600;text-align:center;line-height:1.3;}
 #initSub{font-size:13px;color:var(--muted);text-align:center;max-width:280px;line-height:1.6;}
 #initActions{display:none;flex-direction:column;gap:10px;width:100%;max-width:280px;}
-/* ── SCREEN EXPERIENCE ────────────────────────────────────── */
-#screen-experience{overflow:hidden;}
-#siteFrame{position:absolute;inset:0;width:100%;height:100%;border:none;z-index:1;background:var(--bg);}
-/* top bar */
-#expBar{
-  position:absolute;top:0;left:0;right:0;z-index:30;height:52px;
-  background:rgba(10,10,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;padding:0 16px;
-}
+/* -- SCREEN EXPERIENCE -- */
+#screen-experience{display:flex;flex-direction:column;overflow:hidden;}
+#expBar{flex-shrink:0;height:44px;position:relative;z-index:5;background:rgba(10,10,15,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;}
 .exp-brand{font-size:15px;font-weight:700;letter-spacing:-.3px;}
 .exp-brand span{color:var(--cyan);}
-.exp-counter{font-family:var(--mono);font-size:11px;color:var(--cyan);}
-.exp-biz{font-family:var(--mono);font-size:10px;color:var(--muted);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-/* patch overlay */
-#patchOverlay{
-  position:absolute;inset:0;z-index:50;background:rgba(10,10,15,.65);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
-  opacity:0;pointer-events:none;transition:opacity .2s;
-}
+.exp-biz{font-family:var(--mono);font-size:10px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#siteFrame{flex:1 1 0;min-height:0;width:100%;border:none;background:var(--bg);}
+#patchOverlay{position:absolute;inset:0;z-index:50;background:rgba(10,10,15,.65);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:0;pointer-events:none;transition:opacity .2s;}
 #patchOverlay.show{opacity:1;pointer-events:all;}
 .p-spin{width:40px;height:40px;border-radius:50%;border:2px solid var(--border-hi);border-top-color:var(--cyan);border-right-color:var(--purple);animation:spin .9s linear infinite;}
 .p-label{font-family:var(--mono);font-size:11px;color:var(--muted);}
-/* rebuild overlay */
-#rebuildOv{
-  position:absolute;inset:0;z-index:45;background:rgba(10,10,15,.88);backdrop-filter:blur(12px);
-  display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-}
+#rebuildOv{position:absolute;inset:0;z-index:45;background:rgba(10,10,15,.88);backdrop-filter:blur(12px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
 #rebuildOv.show{display:flex;}
 .rb-spin{width:48px;height:48px;border-radius:50%;border:2.5px solid var(--border-hi);border-top-color:var(--cyan);border-right-color:var(--purple);animation:spin 1s linear infinite;}
 .rb-title{font-size:15px;font-weight:600;}
 .rb-sub{font-family:var(--mono);font-size:11px;color:var(--muted);}
-/* ticket strip */
-#ticketStrip{
-  position:absolute;bottom:0;left:0;right:0;z-index:25;
-  background:rgba(10,10,15,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-top:1px solid var(--border);
-  padding:10px 14px calc(10px + var(--safe-b));
-}
-.t-plans{display:flex;gap:6px;margin-bottom:8px;}
-.ticket{
-  flex:1;padding:8px 4px;border-radius:10px;text-align:center;cursor:pointer;
-  background:var(--surface2);border:1.5px solid var(--border);transition:all .18s;
-}
-.ticket.sel{border-color:var(--cyan);background:rgba(0,240,255,.06);}
-.t-name{display:block;font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
-.ticket.sel .t-name{color:var(--cyan);}
-.t-price{display:block;font-size:15px;font-weight:700;line-height:1.2;}
-.t-mo{display:block;font-family:var(--mono);font-size:8px;color:var(--muted);}
-.checkout-btn{
-  width:100%;padding:13px;border-radius:12px;
-  background:linear-gradient(135deg,var(--cyan),var(--magenta));
-  color:#000;font-size:14px;font-weight:700;transition:opacity .15s;
-}
-.checkout-btn:disabled{opacity:.35;pointer-events:none;}
-.checkout-btn:active{opacity:.85;}
-/* cards drawer */
-#cardsDrawer{
-  position:absolute;left:0;right:0;z-index:20;
-  bottom:var(--ticket-h);
-  background:rgba(10,10,15,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-top:1px solid var(--border);border-radius:20px 20px 0 0;
-  overflow:hidden;display:flex;flex-direction:column;
-  transition:height .38s cubic-bezier(.32,.72,0,1);
-}
-#cardsDrawer.collapsed{height:42px;}
-#cardsDrawer.expanded{height:var(--drawer-exp);}
-.drawer-handle-bar{
-  flex-shrink:0;height:42px;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;touch-action:none;
-}
-.drawer-handle{width:36px;height:3.5px;border-radius:2px;background:var(--border-hi);}
-.drawer-header{
-  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
-  padding:0 16px 10px;
-}
-.d-counter{font-family:var(--mono);font-size:11px;color:var(--cyan);}
-.d-toggle{
-  width:28px;height:28px;border-radius:50%;
-  background:var(--surface2);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);
-}
-.drawer-body{flex:1;overflow-y:auto;padding:0 14px 6px;scrollbar-width:none;}
-.drawer-body::-webkit-scrollbar{display:none;}
-/* individual cards */
-.d-card{display:none;flex-direction:column;gap:10px;padding-bottom:4px;}
-.d-card.active{display:flex;animation:cardIn .28s cubic-bezier(.34,1.1,.64,1);}
-@keyframes cardIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
-.card-q{font-size:18px;font-weight:600;line-height:1.25;}
-.card-hint{font-size:12px;color:var(--muted);line-height:1.5;}
-/* industry grid */
-.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:170px;overflow-y:auto;scrollbar-width:none;}
+#expPanel{flex-shrink:0;display:flex;flex-direction:column;background:rgba(10,10,15,.8);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-top:1px solid rgba(255,255,255,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
+#expProgress{padding:10px 16px 4px;flex-shrink:0;}
+.exp-prog-bar{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
+.exp-prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:2px;width:14%;transition:width .4s ease;}
+.exp-prog-row{display:flex;align-items:center;justify-content:space-between;margin-top:5px;}
+.exp-prog-msg{font-family:var(--mono);font-size:9.5px;color:var(--muted);flex:1;padding-right:8px;}
+.exp-prog-step{font-family:var(--mono);font-size:9.5px;color:var(--cyan);flex-shrink:0;}
+#cardsTrackWrap{flex:1;overflow:hidden;min-height:80px;}
+#cardsTrack{display:flex;height:100%;transition:transform .32s cubic-bezier(.4,0,.2,1);}
+.d-card{flex:0 0 100%;padding:8px 16px 4px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:7px;box-sizing:border-box;scrollbar-width:none;}
+.d-card::-webkit-scrollbar{display:none;}
+.card-q{font-size:15px;font-weight:600;line-height:1.25;}
+.card-hint{font-size:11px;color:var(--muted);line-height:1.5;}
+.mono-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);}
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-height:100px;overflow-y:auto;scrollbar-width:none;}
 .ind-grid::-webkit-scrollbar{display:none;}
-.ind-tile{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;padding:9px 4px;border-radius:10px;
-  background:var(--surface2);border:1.5px solid var(--border);
-  cursor:pointer;transition:all .16s;font-size:9.5px;text-align:center;color:var(--muted);
-}
-.ind-tile-icon{font-size:20px;line-height:1;}
+.ind-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:7px 3px;border-radius:9px;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:all .16s;font-size:9px;text-align:center;color:var(--muted);}
+.ind-tile-icon{font-size:16px;line-height:1;}
 .ind-tile.sel{border-color:var(--cyan);background:rgba(0,240,255,.07);color:var(--text);}
-/* vibe */
-.vibe-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.vibe-opt{
-  padding:14px 12px;border-radius:14px;
-  background:var(--surface2);border:1.5px solid var(--border);
-  cursor:pointer;transition:all .16s;
-}
+.vibe-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.vibe-opt{padding:10px;border-radius:12px;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:all .16s;}
 .vibe-opt.sel{border-color:var(--cyan);background:rgba(0,240,255,.06);}
-.vibe-name{font-size:14px;font-weight:600;margin-bottom:2px;}
-.vibe-desc{font-size:11px;color:var(--muted);}
-/* chips */
-.chips{display:flex;flex-wrap:wrap;gap:6px;}
-.chip{
-  padding:7px 12px;border-radius:20px;font-size:12px;cursor:pointer;
-  background:var(--surface2);border:1.5px solid var(--border);color:var(--muted);transition:all .14s;
-}
+.vibe-name{font-size:13px;font-weight:600;margin-bottom:1px;}
+.vibe-desc{font-size:10px;color:var(--muted);}
+.chips{display:flex;flex-wrap:wrap;gap:5px;}
+.chip{padding:5px 10px;border-radius:20px;font-size:11px;cursor:pointer;background:var(--surface2);border:1.5px solid var(--border);color:var(--muted);transition:all .14s;}
 .chip.sel{background:rgba(0,240,255,.08);border-color:var(--cyan);color:var(--text);}
-/* upload */
-.upload-zone{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:6px;padding:18px;border-radius:14px;text-align:center;
-  background:var(--surface2);border:2px dashed var(--border);cursor:pointer;transition:all .16s;
-}
+.upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px;border-radius:12px;text-align:center;background:var(--surface2);border:2px dashed var(--border);cursor:pointer;transition:all .16s;}
 .upload-zone.has-file,.upload-zone:active{border-color:var(--cyan);border-style:solid;}
-.uz-icon{font-size:22px;line-height:1;}
-.uz-title{font-size:13px;font-weight:600;}
-.uz-sub{font-family:var(--mono);font-size:10px;color:var(--muted);}
-.uz-img{width:56px;height:56px;border-radius:8px;object-fit:contain;background:var(--surface);}
-.photo-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.uz-icon{font-size:18px;line-height:1;}
+.uz-title{font-size:12px;font-weight:600;}
+.uz-sub{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.uz-img{width:40px;height:40px;border-radius:6px;object-fit:contain;background:var(--surface);}
+.photo-strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;}
 .photo-strip::-webkit-scrollbar{display:none;}
-.photo-thumb{width:70px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1.5px solid transparent;}
-.photo-add{
-  width:70px;height:52px;flex-shrink:0;border-radius:8px;font-size:18px;
-  display:flex;align-items:center;justify-content:center;color:var(--muted);
-  background:var(--surface2);border:2px dashed var(--border);cursor:pointer;transition:border-color .15s;
-}
+.photo-thumb{width:52px;height:38px;border-radius:6px;object-fit:cover;flex-shrink:0;}
+.photo-add{width:52px;height:38px;flex-shrink:0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px;background:var(--surface2);border:2px dashed var(--border);cursor:pointer;}
 .photo-add:active{border-color:var(--cyan);}
-/* drawer footer */
-.drawer-footer{
-  flex-shrink:0;display:flex;gap:8px;
-  padding:10px 14px calc(10px + var(--safe-b));
-  border-top:1px solid var(--border);
-}
-.btn-back{
-  flex:0 0 80px;padding:13px;border-radius:12px;
-  background:var(--surface2);border:1px solid var(--border);
-  font-size:14px;color:var(--muted);transition:all .14s;
-}
+#expNav{flex-shrink:0;display:flex;gap:8px;padding:7px 14px;border-top:1px solid rgba(255,255,255,.05);}
+.btn-back{flex:0 0 68px;padding:11px;border-radius:11px;background:var(--surface2);border:1px solid var(--border);font-size:13px;color:var(--muted);transition:all .14s;}
 .btn-back:active{color:var(--text);}
-.btn-next{
-  flex:1;padding:13px;border-radius:12px;
-  background:linear-gradient(135deg,rgba(0,240,255,.14),rgba(184,41,221,.14));
-  border:1px solid rgba(0,240,255,.28);
-  font-size:14px;font-weight:600;color:var(--cyan);transition:all .14s;
-}
+.btn-next{flex:1;padding:11px;border-radius:11px;background:linear-gradient(135deg,rgba(0,240,255,.14),rgba(184,41,221,.14));border:1px solid rgba(0,240,255,.28);font-size:14px;font-weight:600;color:var(--cyan);transition:all .14s;}
 .btn-next:active{background:linear-gradient(135deg,rgba(0,240,255,.25),rgba(184,41,221,.25));}
 .btn-next.build{background:linear-gradient(135deg,var(--cyan),var(--magenta));border-color:transparent;color:#000;font-weight:700;}
-/* plan popover */
+#ticketStrip{flex-shrink:0;padding:6px 14px calc(6px + var(--safe-b));border-top:1px solid rgba(255,255,255,.05);}
+.t-plans{display:flex;gap:5px;margin-bottom:5px;}
+.ticket{flex:1;padding:7px 4px;border-radius:9px;text-align:center;cursor:pointer;background:var(--surface2);border:1.5px solid var(--border);transition:all .18s;}
+.ticket.sel{border-color:var(--cyan);background:rgba(0,240,255,.06);}
+.t-name{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+.ticket.sel .t-name{color:var(--cyan);}
+.t-price{display:block;font-size:14px;font-weight:700;line-height:1.2;}
+.t-mo{display:block;font-family:var(--mono);font-size:7.5px;color:var(--muted);}
+.checkout-btn{width:100%;padding:11px;border-radius:11px;background:linear-gradient(135deg,var(--cyan),var(--magenta));color:#000;font-size:14px;font-weight:700;transition:opacity .15s;}
+.checkout-btn:disabled{opacity:.35;pointer-events:none;}
+.checkout-btn:active{opacity:.85;}
 #popoverOv{position:fixed;inset:0;z-index:190;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s;}
 #popoverOv.show{background:rgba(0,0,0,.5);pointer-events:all;}
-#planPopover{
-  position:fixed;left:0;right:0;z-index:200;
-  background:rgba(12,12,20,.98);backdrop-filter:blur(24px);
-  border-top:1px solid var(--border);border-radius:24px 24px 0 0;
-  padding:20px 20px calc(20px + var(--safe-b));
-  transition:bottom .35s cubic-bezier(.32,.72,0,1);
-  bottom:-100%;
-}
+#planPopover{position:fixed;left:0;right:0;z-index:200;background:rgba(12,12,20,.98);backdrop-filter:blur(24px);border-top:1px solid var(--border);border-radius:24px 24px 0 0;padding:20px 20px calc(20px + var(--safe-b));transition:bottom .35s cubic-bezier(.32,.72,0,1);bottom:-100%;}
 #planPopover.open{bottom:0;}
 .pop-name{font-size:20px;font-weight:700;margin-bottom:3px;}
 .pop-badge{font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:1px;margin-bottom:12px;}
 .feat-list{display:flex;flex-direction:column;gap:8px;}
 .feat-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);}
 .feat-check{color:var(--green);font-size:14px;flex-shrink:0;}
+
 /* ── SCREEN CONFIRM ───────────────────────────────────────── */
 #screen-confirm{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 20px calc(20px + var(--safe-b));}
 .confirm-back{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;font-size:13px;color:var(--muted);cursor:pointer;transition:color .14s;}
@@ -396,116 +303,85 @@ body::after{
 
 <!-- ── SCREEN: EXPERIENCE ───────────────────────────────────── -->
 <div class="screen" id="screen-experience">
-  <iframe id="siteFrame" loading="eager"></iframe>
-
   <div id="expBar">
     <div class="exp-brand">Website<span>Hub</span></div>
-    <div class="exp-counter" id="expCounter">Step 1 of 6</div>
     <div class="exp-biz" id="expBiz">Your site</div>
   </div>
-
-  <div id="patchOverlay">
-    <div class="p-spin"></div>
-    <div class="p-label" id="patchLabel">Updating your site...</div>
-  </div>
-
-  <div id="rebuildOv">
-    <div class="rb-spin"></div>
-    <div class="rb-title">Building your final site</div>
-    <div class="rb-sub" id="rbSub">This takes about 30 seconds</div>
-  </div>
-
-  <!-- ── CARDS DRAWER ─────────────────────────────────────── -->
-  <div id="cardsDrawer" class="expanded">
-    <div class="drawer-handle-bar" id="drawerHandle">
-      <div class="drawer-handle"></div>
+  <iframe id="siteFrame" loading="eager"></iframe>
+  <div id="patchOverlay"><div class="p-spin"></div><div class="p-label" id="patchLabel">Updating...</div></div>
+  <div id="rebuildOv"><div class="rb-spin"></div><div class="rb-title">Building your final site</div><div class="rb-sub" id="rbSub">This takes about 30 seconds</div></div>
+  <div id="expPanel">
+    <div id="expProgress">
+      <div class="exp-prog-bar"><div class="exp-prog-fill" id="expProgFill"></div></div>
+      <div class="exp-prog-row">
+        <div class="exp-prog-msg" id="expProgMsg">Start here - every answer improves your site</div>
+        <div class="exp-prog-step" id="expCounter">Step 1 of 7</div>
+      </div>
     </div>
-    <div class="drawer-header">
-      <div class="d-counter" id="dCounter">Step 1 of 6</div>
-      <button class="d-toggle" onclick="toggleDrawer()">⌄</button>
-    </div>
-
-    <div class="drawer-body">
-
-      <!-- CARD 1: INDUSTRY -->
-      <div class="d-card active" data-card="industry">
-        <div class="mono-label">01 — What you do</div>
-        <div class="card-q">What's your business?</div>
+    <div id="cardsTrackWrap"><div id="cardsTrack">
+      <div class="d-card" data-card="industry">
+        <div class="mono-label">01 What you do</div>
+        <div class="card-q">What is your business?</div>
         <div class="ind-grid" id="indGrid"></div>
         <input class="input-field" id="indCustom" placeholder="Or type your industry...">
       </div>
-
-      <!-- CARD 2: AREA -->
       <div class="d-card" data-card="area">
-        <div class="mono-label">02 — Where you work</div>
+        <div class="mono-label">02 Where you work</div>
         <div class="card-q">Where are you based?</div>
         <input class="input-field" id="areaInput" placeholder="e.g. Cape Town, KZN North Coast">
-        <div class="card-hint">Helps us write copy that speaks to your local customers.</div>
         <input class="input-field" id="audienceInput" placeholder="Who are your main customers?">
       </div>
-
-      <!-- CARD 3: VIBE -->
       <div class="d-card" data-card="vibe">
-        <div class="mono-label">03 — The feel</div>
-        <div class="card-q">What's the vibe?</div>
+        <div class="mono-label">03 The feel</div>
+        <div class="card-q">What is the vibe?</div>
         <div class="vibe-grid">
-          <div class="vibe-opt" onclick="selectVibe('bold',this)"><div class="vibe-name">Bold</div><div class="vibe-desc">Direct &amp; confident</div></div>
-          <div class="vibe-opt" onclick="selectVibe('warm',this)"><div class="vibe-name">Warm</div><div class="vibe-desc">Friendly &amp; local</div></div>
-          <div class="vibe-opt" onclick="selectVibe('professional',this)"><div class="vibe-name">Professional</div><div class="vibe-desc">Clean &amp; polished</div></div>
-          <div class="vibe-opt" onclick="selectVibe('playful',this)"><div class="vibe-name">Playful</div><div class="vibe-desc">Fun &amp; energetic</div></div>
+          <div class="vibe-opt" onclick="selectVibe('bold',this)"><div class="vibe-name">Bold</div><div class="vibe-desc">Direct and confident</div></div>
+          <div class="vibe-opt" onclick="selectVibe('warm',this)"><div class="vibe-name">Warm</div><div class="vibe-desc">Friendly and local</div></div>
+          <div class="vibe-opt" onclick="selectVibe('professional',this)"><div class="vibe-name">Professional</div><div class="vibe-desc">Clean and polished</div></div>
+          <div class="vibe-opt" onclick="selectVibe('playful',this)"><div class="vibe-name">Playful</div><div class="vibe-desc">Fun and energetic</div></div>
         </div>
       </div>
-
-      <!-- CARD 4: SERVICES -->
       <div class="d-card" data-card="services">
-        <div class="mono-label">04 — What you offer</div>
+        <div class="mono-label">04 What you offer</div>
         <div class="card-q">What do you sell?</div>
         <div class="chips" id="servicesChips"></div>
-        <input class="input-field" id="svcCustom" placeholder="Add a service (tap Enter)" onkeydown="addCustomService(event)">
-        <input class="input-field" id="ctaInput" placeholder='Main call to action, e.g. "Get a Quote"'>
+        <input class="input-field" id="svcCustom" placeholder="Add a service - tap Enter" onkeydown="addCustomService(event)">
+        <input class="input-field" id="ctaInput" placeholder="Main CTA e.g. Get a Quote">
       </div>
-
-      <!-- CARD 5: DIFFERENTIATORS -->
       <div class="d-card" data-card="differentiators">
-        <div class="mono-label">05 — What sets you apart</div>
+        <div class="mono-label">05 What sets you apart</div>
         <div class="card-q">Why choose you?</div>
-        <input class="input-field" id="diff1" placeholder="Advantage #1  (e.g. 15 years experience)">
-        <input class="input-field" id="diff2" placeholder="Advantage #2  (e.g. Free site visits)">
-        <input class="input-field" id="diff3" placeholder="Advantage #3  (e.g. Manufacturer warranties)">
+        <input class="input-field" id="diff1" placeholder="e.g. 15 years experience">
+        <input class="input-field" id="diff2" placeholder="e.g. Free site visits">
+        <input class="input-field" id="diff3" placeholder="e.g. Manufacturer warranties">
         <input class="input-field" id="testimonial" placeholder="What would a happy customer say?">
       </div>
-
-      <!-- CARD 6: VISUALS -->
       <div class="d-card" data-card="visuals">
-        <div class="mono-label">06 — Your visuals</div>
-        <div class="card-q">Logo &amp; photos</div>
+        <div class="mono-label">06 Your visuals</div>
+        <div class="card-q">Logo and photos</div>
         <div class="upload-zone" id="logoZone" onclick="document.getElementById('logoFile').click()">
-          <div class="uz-icon" id="logoIcon">📎</div>
+          <div class="uz-icon" id="logoIcon">+</div>
           <div class="uz-title" id="logoTitle">Upload your logo</div>
-          <div class="uz-sub">PNG · JPG · SVG · any size</div>
+          <div class="uz-sub">PNG JPG SVG any size</div>
         </div>
         <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
-        <div class="card-hint">Show your work (optional)</div>
         <div class="photo-strip" id="photoStrip">
           <div class="photo-add" onclick="document.getElementById('photoFile').click()">+</div>
         </div>
         <input type="file" id="photoFile" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(this)">
-        <button class="btn-ghost" onclick="cardNext()">Skip photos for now →</button>
+        <button class="btn-ghost" onclick="cardNext()">Skip for now</button>
       </div>
-
-      <!-- CARD 7: STYLE -->
       <div class="d-card" data-card="style">
-        <div class="mono-label">07 — Make it yours</div>
+        <div class="mono-label">07 Make it yours</div>
         <div class="card-q">Finishing touches</div>
-        <div class="card-hint">Your site is built. Pick a look.</div>
         <div class="style-section">
           <div class="style-label">Colour palette</div>
           <div class="palette-row" id="paletteRow">
-            <div class="pal-swatch sel" data-pal="ocean"    style="background:linear-gradient(135deg,#0070f3,#00d4ff)" onclick="pickPalette('ocean',this)">Ocean</div>
-            <div class="pal-swatch"     data-pal="ember"    style="background:linear-gradient(135deg,#ff5500,#ff9900)" onclick="pickPalette('ember',this)">Ember</div>
-            <div class="pal-swatch"     data-pal="forest"   style="background:linear-gradient(135deg,#00874a,#7ecb8f)" onclick="pickPalette('forest',this)">Forest</div>
-            <div class="pal-swatch"     data-pal="twilight" style="background:linear-gradient(135deg,#6e00ff,#b829dd)" onclick="pickPalette('twilight',this)">Twilight</div>
-            <div class="pal-swatch"     data-pal="mono"     style="background:linear-gradient(135deg,#222,#888)"      onclick="pickPalette('mono',this)">Mono</div>
+            <div class="pal-swatch sel" data-pal="ocean" style="background:linear-gradient(135deg,#0070f3,#00d4ff)" onclick="pickPalette('ocean',this)">Ocean</div>
+            <div class="pal-swatch" data-pal="ember" style="background:linear-gradient(135deg,#ff5500,#ff9900)" onclick="pickPalette('ember',this)">Ember</div>
+            <div class="pal-swatch" data-pal="forest" style="background:linear-gradient(135deg,#00874a,#7ecb8f)" onclick="pickPalette('forest',this)">Forest</div>
+            <div class="pal-swatch" data-pal="twilight" style="background:linear-gradient(135deg,#6e00ff,#b829dd)" onclick="pickPalette('twilight',this)">Twilight</div>
+            <div class="pal-swatch" data-pal="mono" style="background:linear-gradient(135deg,#222,#888)" onclick="pickPalette('mono',this)">Mono</div>
           </div>
         </div>
         <div class="style-section">
@@ -513,32 +389,20 @@ body::after{
           <div class="tagline-list" id="taglineList"></div>
         </div>
       </div>
-    </div><!-- /drawer-body -->
-
-    <div class="drawer-footer">
-      <button class="btn-back" id="btnBack" onclick="cardBack()">← Back</button>
-      <button class="btn-next" id="btnNext" onclick="cardNext()">Next →</button>
+    </div></div>
+    <div id="expNav">
+      <button class="btn-back" id="btnBack" onclick="cardBack()">Back</button>
+      <button class="btn-next" id="btnNext" onclick="cardNext()">Next</button>
     </div>
-  </div><!-- /cardsDrawer -->
-
-  <!-- ── TICKET STRIP ───────────────────────────────────────── -->
-  <div id="ticketStrip">
-    <div class="t-plans">
-      <div class="ticket" data-plan="express" onclick="selectPlan('express',this)">
-        <span class="t-name">Express</span><span class="t-price">R699</span><span class="t-mo">/mo</span>
+    <div id="ticketStrip">
+      <div class="t-plans">
+        <div class="ticket" data-plan="express" onclick="tappedPlan('express',this)"><span class="t-name">Express</span><span class="t-price">R699</span><span class="t-mo">/mo</span></div>
+        <div class="ticket sel" data-plan="standard" onclick="tappedPlan('standard',this)"><span class="t-name">Standard</span><span class="t-price">R999</span><span class="t-mo">/mo</span></div>
+        <div class="ticket" data-plan="premium" onclick="tappedPlan('premium',this)"><span class="t-name">Premium</span><span class="t-price">R1499</span><span class="t-mo">/mo</span></div>
       </div>
-      <div class="ticket sel" data-plan="standard" onclick="selectPlan('standard',this)">
-        <span class="t-name">Standard</span><span class="t-price">R999</span><span class="t-mo">/mo</span>
-      </div>
-      <div class="ticket" data-plan="premium" onclick="selectPlan('premium',this)">
-        <span class="t-name">Premium</span><span class="t-price">R1499</span><span class="t-mo">/mo</span>
-      </div>
+      <button class="checkout-btn" id="checkoutBtn" disabled onclick="goToConfirm()">Continue to checkout</button>
     </div>
-    <button class="checkout-btn" id="checkoutBtn" disabled onclick="goToConfirm()">
-      Continue to checkout →
-    </button>
   </div>
-
 </div><!-- /screen-experience -->
 
 <!-- ── PLAN POPOVER ──────────────────────────────────────────── -->
@@ -865,34 +729,42 @@ async function onExperience(ctx) {
 // CARD SYSTEM
 // ══════════════════════════════════════════════════════════════
 function showCard(idx) {
-  document.querySelectorAll('.d-card').forEach(c => c.classList.remove('active'));
-  document.querySelector(`.d-card[data-card="${CARDS[idx]}"]`)?.classList.add('active');
   S.currentCard = idx;
+  var track = document.getElementById('cardsTrack');
+  if (track) track.style.transform = 'translateX(-' + (idx * 100) + '%)';
   updateCardUI();
-  setDrawer(true);
   if (CARDS[idx] === 'style') populateTaglines();
 }
 
 function updateCardUI() {
-  const idx = S.currentCard, tot = CARDS.length;
-  const label = `Step ${idx+1} of ${tot}`;
-  el('dCounter').textContent = label;
-  el('expCounter').textContent = label;
-  el('btnBack').style.display = idx === 0 ? 'none' : '';
-  const nb = el('btnNext');
-  if (idx === tot - 2) { nb.textContent = 'Build my site ✓'; nb.classList.add('build'); }
-  else if (idx === tot - 1) { nb.textContent = 'Continue to checkout →'; nb.classList.remove('build'); }
-  else                  { nb.textContent = 'Next →'; nb.classList.remove('build'); }
+  var idx = S.currentCard, tot = CARDS.length;
+  var stepEl = document.getElementById('expCounter');
+  if (stepEl) stepEl.textContent = 'Step ' + (idx+1) + ' of ' + tot;
+  var back = document.getElementById('btnBack');
+  if (back) back.style.display = idx === 0 ? 'none' : '';
+  var nb = document.getElementById('btnNext');
+  if (nb) {
+    if (idx === tot - 2) { nb.textContent = 'Build my site'; nb.classList.add('build'); }
+    else if (idx === tot - 1) { nb.textContent = 'Checkout'; nb.classList.remove('build'); }
+    else { nb.textContent = 'Next'; nb.classList.remove('build'); }
+  }
+  var pct = Math.round(((idx + 1) / tot) * 100);
+  var fill = document.getElementById('expProgFill'); if (fill) fill.style.width = pct + '%';
+  var msgs = [
+    'Start here - every answer improves your site',
+    'Location shapes how your site reads',
+    'Personality makes copy come alive',
+    'Services locked in - homepage taking shape',
+    'The detail that makes visitors convert',
+    'Visuals make your site feel real',
+    'Almost done - make it yours',
+  ];
+  var msgEl = document.getElementById('expProgMsg'); if (msgEl) msgEl.textContent = msgs[idx] || '';
 }
 
-function cardNext() {
-  gatherCard();
-  fireIntakePreview();
-  const card = CARDS[S.currentCard];
-  if (card === 'style')        { goToConfirm(); }
-  else if (card === 'visuals') { triggerRebuild(); }
-  else if (S.currentCard < CARDS.length - 1) { showCard(S.currentCard + 1); }
-}
+function setDrawer() {}
+
+function tappedPlan(plan, elRef) { selectPlan(plan, elRef); openPopover(plan); }
 
 function cardBack() { if (S.currentCard > 0) showCard(S.currentCard - 1); }
 
@@ -1379,14 +1251,7 @@ function toast(msg) {
 // ══════════════════════════════════════════════════════════════
 // DRAWER HEIGHTS (dynamic calc after render)
 // ══════════════════════════════════════════════════════════════
-function calcDrawerHeights() {
-  const th = el('ticketStrip')?.offsetHeight || 96;
-  const vh = window.innerHeight, topBar = 52;
-  const available = vh - topBar - th - 12;
-  const expH = Math.min(Math.round(vh * 0.62), available);
-  document.documentElement.style.setProperty('--ticket-h', th + 'px');
-  document.documentElement.style.setProperty('--drawer-exp', expH + 'px');
-}
+function calcDrawerHeights() {}
 
 // ══════════════════════════════════════════════════════════════
 // BOOTSTRAP ROUTER
