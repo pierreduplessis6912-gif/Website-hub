@@ -62,6 +62,7 @@ import {
   getPhotosByIndustryVibe, savePhoto,
   recordVisit as d1RecordVisit, getMonthlyVisits,
   createReferral,
+  KV_KEYS,
 } from './shared-services.js';
 
 // ────────────────────────────────────────────────────────────
