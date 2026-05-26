@@ -110,14 +110,14 @@ body::after{
 .rb-spin{width:48px;height:48px;border-radius:50%;border:2.5px solid var(--border-hi);border-top-color:var(--cyan);border-right-color:var(--purple);animation:spin 1s linear infinite;}
 .rb-title{font-size:15px;font-weight:600;}
 .rb-sub{font-family:var(--mono);font-size:11px;color:var(--muted);}
-#expPanel{flex-shrink:0;display:flex;flex-direction:column;background:rgba(10,10,15,.8);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-top:1px solid rgba(255,255,255,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
+#expPanel{flex-shrink:0;height:38vh;display:flex;flex-direction:column;background:rgba(10,10,15,.8);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-top:1px solid rgba(255,255,255,.07);padding-bottom:env(safe-area-inset-bottom,0px);}
 #expProgress{padding:10px 16px 4px;flex-shrink:0;}
 .exp-prog-bar{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
 .exp-prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:2px;width:14%;transition:width .4s ease;}
 .exp-prog-row{display:flex;align-items:center;justify-content:space-between;margin-top:5px;}
 .exp-prog-msg{font-family:var(--mono);font-size:9.5px;color:var(--muted);flex:1;padding-right:8px;}
 .exp-prog-step{font-family:var(--mono);font-size:9.5px;color:var(--cyan);flex-shrink:0;}
-#cardsTrackWrap{flex:1;overflow:hidden;min-height:80px;}
+#cardsTrackWrap{flex:1;overflow:hidden;min-height:0;}
 #cardsTrack{display:flex;height:100%;transition:transform .32s cubic-bezier(.4,0,.2,1);}
 .d-card{flex:0 0 100%;padding:8px 16px 4px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:7px;box-sizing:border-box;scrollbar-width:none;}
 .d-card::-webkit-scrollbar{display:none;}
@@ -732,7 +732,7 @@ function showCard(idx) {
   S.currentCard = idx;
   var wrap = document.getElementById('cardsTrackWrap');
   var track = document.getElementById('cardsTrack');
-  if (track && wrap) track.style.transform = 'translateX(-' + (idx * wrap.offsetWidth) + 'px)';
+  if (track) track.style.transform = 'translateX(-' + (idx * window.innerWidth) + 'px)';
   updateCardUI();
   if (CARDS[idx] === 'style') populateTaglines();
 }
