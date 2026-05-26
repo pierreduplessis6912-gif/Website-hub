@@ -1403,9 +1403,9 @@ async function bootstrap() {
     showScreen('processing', { token });
   } else if (token) {
     try {
-      const d = await apiFetch(`/client-status?token=${token}`);
+      const d = await apiFetch(`/build-status?token=${token}`);
       S.slug = d.slug || null;
-      const dest = { live:'dashboard', paid_pending:'processing', preview_ready:'experience' }[d.status] || 'init';
+      const dest = { live:'dashboard', paid_pending:'processing', preview_ready:'experience', ready:'experience', paid:'processing', building:'init', queued:'init', lead:'init' }[d.status] || 'init';
       showScreen(dest, { token, slug: d.slug });
     } catch {
       showScreen('init', { token });
