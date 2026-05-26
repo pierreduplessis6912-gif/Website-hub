@@ -128,6 +128,7 @@ export default {
     }
     if (path === '/intake' || path === '/formspree-webhook') { try { return await handleIntake(request, env, ctx); } catch(e) { return Response.json({ error: e.message, where: e.stack?.split('\n')[1] }, {status:500}); } }
     if (path === '/build-status')        return handleBuildStatus(request, url, env);
+    if (path === '/trigger-rebuild')      return handleTriggerRebuild(request, env);
     if (path === '/verify-pin')          return handleVerifyPin(request, env, ctx);
     if (path === '/preview-choices')     return handlePreviewChoices(request, env);
     if (path === '/preview-meta')        return handlePreviewMeta(request, url, env);
@@ -192,6 +193,7 @@ async function handleBootstrapIntake(request, env) {
     if (path === '/formspree-webhook')      return handleIntake(request, env, ctx); // legacy alias
     if (path === '/verify-pin')             return handleVerifyPin(request, env, ctx);
     if (path === '/build-status')           return handleBuildStatus(request, url, env);
+    if (path === '/trigger-rebuild')         return handleTriggerRebuild(request, env);
     if (path === '/preview-choices')        return handlePreviewChoices(request, env);
     if (path === '/preview-meta')           return handlePreviewMeta(request, url, env);
     if (path === '/bootstrap-preview-app')  return handleBootstrapPreviewApp(request, env);
@@ -694,6 +696,35 @@ async function handlePreviewChoices(request, env) {
 }
 
 // ============================================================
+// ROUTE: /trigger-rebuild
+async function handleTriggerRebuild(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
+  let body; try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
+  const { token, cards, assets, palette, tagline } = body;
+  if (!token) return jsonResponse({ error: 'Missing token' }, 400);
+  try {
+    const client = await env.DB.prepare('SELECT id, slug FROM clients WHERE manage_token = ? LIMIT 1').bind(token).first();
+    if (!client) return jsonResponse({ error: 'Client not found' }, 404);
+    const updates = { status: 'queued' };
+    if (cards?.area)     updates.area = cards.area;
+    if (cards?.industry) updates.industry = cards.industry;
+    if (cards?.vibe)     updates.vibe = cards.vibe;
+    if (cards?.services?.length) updates.services = JSON.stringify(cards.services);
+    if (cards?.cta)      updates.primary_cta = cards.cta;
+    if (cards?.audience) updates.target_audience = cards.audience;
+    if (cards?.diff1 || cards?.diff2 || cards?.diff3) updates.differentiator = [cards?.diff1,cards?.diff2,cards?.diff3].filter(Boolean).join(' | ');
+    if (cards?.testimonial) updates.testimonial = cards.testimonial;
+    if (assets?.logo)    updates.logo_url = assets.logo;
+    if (palette)         updates.palette = palette;
+    if (tagline)         updates.tagline_override = tagline;
+    await updateClient(env, client.id, updates);
+    await env.SITES.put(KV_KEYS.BUILD_STATUS(token), JSON.stringify({ status: 'building', slug: client.slug }), { expirationTtl: 3600 }).catch(() => {});
+    await env.BUILD_QUEUE.send({ clientId: client.id, paymentId: null, isOutbound: false, buildToken: token });
+    await logEvent(env, 'build', 'rebuild_queued', 'success', { clientId: client.id });
+    return jsonResponse({ success: true, slug: client.slug });
+  } catch(e) { return jsonResponse({ error: e.message }, 500); }
+}
+
 // ROUTE: /preview-meta — preview panel data for SPA
 // ============================================================
 

@@ -858,7 +858,7 @@ async function onExperience(ctx) {
     populateSvc(d.industry?.toLowerCase() || '_');
   } catch(e) { console.warn('/preview-meta', e); }
 
-  el('siteFrame').src = `/${S.slug}/raw/?page=index`;
+  el('siteFrame').src = `/${S.slug}/`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -888,10 +888,10 @@ function updateCardUI() {
 function cardNext() {
   gatherCard();
   fireIntakePreview();
-  if (S.currentCard < CARDS.length - 1) { showCard(S.currentCard + 1); }
-  else if (CARDS[S.currentCard] === 'visuals') { triggerRebuild(); }
-  else if (CARDS[S.currentCard] === 'style')   { goToConfirm(); }
-  else { triggerRebuild(); }
+  const card = CARDS[S.currentCard];
+  if (card === 'style')        { goToConfirm(); }
+  else if (card === 'visuals') { triggerRebuild(); }
+  else if (S.currentCard < CARDS.length - 1) { showCard(S.currentCard + 1); }
 }
 
 function cardBack() { if (S.currentCard > 0) showCard(S.currentCard - 1); }
@@ -1047,7 +1047,7 @@ async function triggerRebuild() {
         palette:S.cards.palette, font:S.cards.font, tagline:S.cards.tagline })
     });
     await pollUntilReady(S.token, 60, s => el('rbSub').textContent = s);
-    el('siteFrame').src = `/${S.slug}/raw/?page=index&t=${Date.now()}`;
+    el('siteFrame').src = `/${S.slug}/?t=${Date.now()}`;
   } catch(e) { el('rbSub').textContent = 'Build complete — continuing'; }
 
   el('rebuildOv').classList.remove('show');
