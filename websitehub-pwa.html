@@ -118,8 +118,10 @@ body::after{
 .exp-prog-msg{font-family:var(--mono);font-size:9.5px;color:var(--muted);flex:1;padding-right:8px;}
 .exp-prog-step{font-family:var(--mono);font-size:9.5px;color:var(--cyan);flex-shrink:0;}
 #cardsTrackWrap{flex:1;overflow:hidden;min-height:0;}
-#cardsTrack{display:flex;height:100%;transition:transform .32s cubic-bezier(.4,0,.2,1);}
-.d-card{flex:0 0 100%;padding:8px 16px 4px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:7px;box-sizing:border-box;scrollbar-width:none;}
+#cardsTrack{width:100%;height:100%;position:relative;}
+.d-card{display:none;flex-direction:column;gap:7px;padding:8px 16px 4px;overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box;scrollbar-width:none;height:100%;}
+.d-card.active{display:flex;animation:cardIn .25s ease;}
+@keyframes cardIn{from{opacity:0;transform:translateX(24px);}to{opacity:1;transform:translateX(0);}}
 .d-card::-webkit-scrollbar{display:none;}
 .card-q{font-size:15px;font-weight:600;line-height:1.25;}
 .card-hint{font-size:11px;color:var(--muted);line-height:1.5;}
@@ -710,7 +712,10 @@ async function onExperience(ctx) {
 
   if (isDev()) { el('siteFrame').src = 'about:blank'; return; }
 
-  // STEP 3 — load /preview-meta then iframe
+  // Load iframe immediately
+  if (S.slug) el('siteFrame').src = '/' + S.slug + '/';
+
+  // STEP 3 — load /preview-meta in background
   try {
     const d = await apiFetch(`/preview-meta?slug=${S.slug}`);
     S.previewMeta = d;
@@ -722,7 +727,7 @@ async function onExperience(ctx) {
     populateSvc(d.industry?.toLowerCase() || '_');
   } catch(e) { console.warn('/preview-meta', e); }
 
-  el('siteFrame').src = `/${S.slug}/`;
+  // iframe already loaded above
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -730,9 +735,9 @@ async function onExperience(ctx) {
 // ══════════════════════════════════════════════════════════════
 function showCard(idx) {
   S.currentCard = idx;
-  var wrap = document.getElementById('cardsTrackWrap');
-  var track = document.getElementById('cardsTrack');
-  if (track) track.style.transform = 'translateX(-' + (idx * window.innerWidth) + 'px)';
+  document.querySelectorAll('.d-card').forEach(function(c){c.classList.remove('active');});
+  var card = document.querySelector('.d-card[data-card="' + CARDS[idx] + '"]');
+  if (card) card.classList.add('active');
   updateCardUI();
   if (CARDS[idx] === 'style') populateTaglines();
 }
