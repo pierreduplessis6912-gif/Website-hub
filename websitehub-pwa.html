@@ -730,8 +730,9 @@ async function onExperience(ctx) {
 // ══════════════════════════════════════════════════════════════
 function showCard(idx) {
   S.currentCard = idx;
+  var wrap = document.getElementById('cardsTrackWrap');
   var track = document.getElementById('cardsTrack');
-  if (track) track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+  if (track && wrap) track.style.transform = 'translateX(-' + (idx * wrap.offsetWidth) + 'px)';
   updateCardUI();
   if (CARDS[idx] === 'style') populateTaglines();
 }
