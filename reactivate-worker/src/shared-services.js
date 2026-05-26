@@ -110,14 +110,39 @@ export const PROSPECT_COOLDOWN_DAYS = 60;
 
 // ── KV_KEYS registry ──────────────────────────────────────────────────────────
 export const KV_KEYS = {
-  INTAKE_HTML:        'app:intake-experience',
-  CLIENT_SITE:        (slug)        => `site:${slug}`,
-  CLIENT_META:        (slug)        => `meta:${slug}`,
-  OPTOUT:             (phone)       => `optout:${phone}`,
-  PROSPECT_STATE:     (phone)       => `prospect_state:${phone}`,
-  TEMPLATE_HOME:      'template:home',
-  TEMPLATE_SUSPENDED: 'template:suspended',
-  TEMPLATE_CANCELLED: 'template:cancelled',
+  // App HTML blobs
+  APP_PWA:             'app:pwa',
+  APP_START:           'app:start-v2',
+  APP_ADMIN:           'app:admin',
+  INTAKE_HTML:         'app:intake-experience',
+
+  // Build status — keyed by manage_token, D1 is authoritative fallback
+  BUILD_STATUS:        (token)       => `build_status:${token}`,
+
+  // Built site pages
+  SITE_PAGE:           (slug, page)  => `preview:${slug}:${page}`,
+  DRAFT_PAGE:          (slug, page)  => `draft:${slug}:${page}`,
+  CONTENT:             (slug)        => `content:${slug}`,
+
+  // Brand brief cache
+  INTAKE_BRIEF:        (slug)        => `intake_brief:${slug}`,
+
+  // Client lookups
+  CLIENT_SITE:         (slug)        => `site:${slug}`,
+  CLIENT_META:         (slug)        => `meta:${slug}`,
+
+  // Comms
+  OPTOUT:              (phone)       => `optout:${phone}`,
+  PROSPECT_STATE:      (phone)       => `prospect_state:${phone}`,
+
+  // Templates
+  TEMPLATE_HOME:       'template:home',
+  TEMPLATE_SUSPENDED:  'template:suspended',
+  TEMPLATE_CANCELLED:  'template:cancelled',
+  TEMPLATE_PAGE:       (arch, page)  => `template:${arch}:${page}`,
+
+  // Outbound
+  PORTFOLIO_CANDIDATE: (slug)        => `portfolio_candidate:${slug}`,
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1222,12 +1247,14 @@ export async function createZohoCreditNote(args, env) {
  */
 export async function createClient(env, fields) {
   const id = crypto.randomUUID();
+  const manage_token = crypto.randomUUID();
   let slug = slugify(fields.business_name);
   const exists = await env.DB.prepare('SELECT id FROM clients WHERE slug = ? LIMIT 1').bind(slug).first().catch(() => null);
   if (exists) slug = slug + '-' + Date.now().toString(36).slice(-4);
   const svc = typeof fields.services === 'string' ? fields.services : JSON.stringify(fields.services || []);
-  await env.DB.prepare(`INSERT INTO clients (id,slug,business_name,client_name,phone,email,industry,area,vibe,services,primary_cta,target_audience,about,differentiator,testimonial,instagram,facebook,tiktok,referral_code_used,status,source,package,retainer) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,slug,fields.business_name||'',fields.client_name||'',fields.phone||'',fields.email||'',fields.industry||'',fields.area||'',fields.vibe||'bold_confident',svc,fields.primary_cta||'whatsapp_us',fields.target_audience||'everyone',fields.about||'',fields.differentiator||'',fields.testimonial||'',fields.instagram||'',fields.facebook||'',fields.tiktok||'',fields.referral_code_used||'',fields.status||'lead',fields.source||'website',fields.package||'standard',fields.retainer||999).run();
-  return { id, slug };
+  const insertResult = await env.DB.prepare(`INSERT INTO clients (id,slug,manage_token,business_name,client_name,phone,email,industry,area,vibe,services,primary_cta,target_audience,about,differentiator,testimonial,instagram,facebook,tiktok,referral_code_used,status,source,package,retainer) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,slug,manage_token,fields.business_name||'',fields.client_name||'',fields.phone||'',fields.email||'',fields.industry||'',fields.area||'',fields.vibe||'bold_confident',svc,fields.primary_cta||'whatsapp_us',fields.target_audience||'everyone',fields.about||'',fields.differentiator||'',fields.testimonial||'',fields.instagram||'',fields.facebook||'',fields.tiktok||'',fields.referral_code_used||'',fields.status||'lead',fields.source||'website',fields.package||'standard',fields.retainer||999).first();
+  if (!insertResult && insertResult !== null) throw new Error('createClient INSERT failed');
+  return { id, slug, manage_token };
 }
 export async function getClientById(env, id) {
   return await env.DB.prepare(
@@ -1509,17 +1536,23 @@ export async function vestReferral(env, referredClientId, creditAmount) {
  */
 export function detectArchetype(industry) {
   const key = (industry || '').toLowerCase().replace(/[^a-z\s]/g, '');
-  if (/plumb|electr|locksmith|ac repair|hvac|geyser|security|pest|tow truck|handyman|appli/.test(key))
+  // Emergency trades — someone needs help NOW
+  if (/plumb|electr|locksmith|hvac|geyser|security|pest|tow truck|handyman|appliance|repair|drainage|roofing|waterproof/.test(key))
     return 'emergency';
-  if (/lawyer|attorney|account|doctor|dentist|physio|financial|architect|consult|audit|tax|notary/.test(key))
+  // Trust professions — handing over a serious problem
+  if (/lawyer|attorney|account|doctor|dentist|physio|financial|architect|consult|audit|tax|notary|insurance|mortgage|broker|therapist|psycholog|optom/.test(key))
     return 'trust';
-  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty/.test(key))
+  // Experience businesses — buying a feeling
+  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|tattoo|piercing|catering|events|wedding plan|guest house|lodge/.test(key))
     return 'experience';
-  if (/hardware|pharmacy|butcher|grocer|creche|dry clean|laundry|florist|nursery|pet shop|bottle store/.test(key))
+  // Local community — beat chains on relationship
+  if (/hardware|pharmacy|butcher|grocer|creche|dry clean|laundry|florist|nursery|pet shop|bottle store|supermarket|spaza|tuck shop|stationery|fabric|sewing|alterations/.test(key))
     return 'local';
-  if (/panel|landscap|renovat|contractor|painter|tiler|designer|trainer|gym|fitness|photog|wedding photo/.test(key))
+  // Results driven — show the work
+  if (/panel|landscap|renovat|contractor|painter|tiler|designer|trainer|gym|fitness|photog|wedding photo|floor|carpet|paving|ceiling|partiti|signage|print|wrap|brand/.test(key))
     return 'results';
-  return 'emergency';
+  // Sensible default — most unknown trades show results better than emergency
+  return 'results';
 }
 
 /**

@@ -110,14 +110,39 @@ export const PROSPECT_COOLDOWN_DAYS = 60;
 
 // ── KV_KEYS registry ──────────────────────────────────────────────────────────
 export const KV_KEYS = {
-  INTAKE_HTML:        'app:intake-experience',
-  CLIENT_SITE:        (slug)        => `site:${slug}`,
-  CLIENT_META:        (slug)        => `meta:${slug}`,
-  OPTOUT:             (phone)       => `optout:${phone}`,
-  PROSPECT_STATE:     (phone)       => `prospect_state:${phone}`,
-  TEMPLATE_HOME:      'template:home',
-  TEMPLATE_SUSPENDED: 'template:suspended',
-  TEMPLATE_CANCELLED: 'template:cancelled',
+  // App HTML blobs
+  APP_PWA:             'app:pwa',
+  APP_START:           'app:start-v2',
+  APP_ADMIN:           'app:admin',
+  INTAKE_HTML:         'app:intake-experience',
+
+  // Build status — keyed by manage_token, D1 is authoritative fallback
+  BUILD_STATUS:        (token)       => `build_status:${token}`,
+
+  // Built site pages
+  SITE_PAGE:           (slug, page)  => `preview:${slug}:${page}`,
+  DRAFT_PAGE:          (slug, page)  => `draft:${slug}:${page}`,
+  CONTENT:             (slug)        => `content:${slug}`,
+
+  // Brand brief cache
+  INTAKE_BRIEF:        (slug)        => `intake_brief:${slug}`,
+
+  // Client lookups
+  CLIENT_SITE:         (slug)        => `site:${slug}`,
+  CLIENT_META:         (slug)        => `meta:${slug}`,
+
+  // Comms
+  OPTOUT:              (phone)       => `optout:${phone}`,
+  PROSPECT_STATE:      (phone)       => `prospect_state:${phone}`,
+
+  // Templates
+  TEMPLATE_HOME:       'template:home',
+  TEMPLATE_SUSPENDED:  'template:suspended',
+  TEMPLATE_CANCELLED:  'template:cancelled',
+  TEMPLATE_PAGE:       (arch, page)  => `template:${arch}:${page}`,
+
+  // Outbound
+  PORTFOLIO_CANDIDATE: (slug)        => `portfolio_candidate:${slug}`,
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
