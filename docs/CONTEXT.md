@@ -74,3 +74,72 @@ STILL NEEDED: POST /trigger-rebuild (HIGH) · GET /client-status · GET /og-imag
 - shared-services.js duplicated in all 5 workers — changes go in all 5
 - Deploy via GitHub Actions (push to main) only — ignore deploy.sh
 - JS syntax check: node --check file.mjs (must use .mjs extension)
+
+---
+
+## Architecture decisions (locked)
+
+### First principle: Zero human touch
+Every customer flow must complete without Pierre intervening.
+Every failure must self-resolve or auto-escalate via WhatsApp/dashboard.
+No step in the system should require a human to unblock it.
+This principle applies to every piece of code written going forward.
+
+### Three-layer model
+
+D1   = single source of truth. Write here first, always. Never expires.
+KV   = read cache only. Write after D1. On miss, fall back to D1.
+Queue = async communication. Carries clientId + manage_token only.
+
+### One token per client: manage_token
+
+Generated once in createClient. Flows through everything:
+- D1: stored as manage_token column
+- Queue message: buildToken = manage_token
+- KV key: build_status:{manage_token}
+- URL: /manage/{manage_token}
+- PWA polling: /build-status?token={manage_token}
+- WhatsApp + email links
+
+handleIntake must NOT generate its own UUID. Use result.manage_token.
+
+THE BUG (found 2026-05-26): handleIntake generated a separate UUID for
+URL/KV/queue while D1 stored a different manage_token. KV expired after
+1 hour and D1 lookup by token always failed. Fix: remove the second UUID.
+
+### KV_KEYS registry
+Every KV key pattern must be registered in KV_KEYS in shared-services.js
+before use. No raw strings in worker code. Ever. All 5 workers import from
+shared-services so all speak the same language. When a new key is needed,
+add it to KV_KEYS first.
+
+Registry gaps to fill (next PR):
+  BUILD_STATUS:        (token) => build_status:{token}
+  SITE_PAGE:           (slug, page) => preview:{slug}:{page}
+  DRAFT_PAGE:          (slug, page) => draft:{slug}:{page}
+  CONTENT:             (slug) => content:{slug}
+  INTAKE_BRIEF:        (slug) => intake_brief:{slug}
+  APP_PWA:             app:pwa
+  APP_START:           app:start-v2
+  APP_ADMIN:           app:admin
+  PORTFOLIO_CANDIDATE: (slug) => portfolio_candidate:{slug}
+
+### KV TTL standards
+BUILD_STATUS ready:   24 hours
+BUILD_STATUS building: 1 hour
+SITE_PAGE:            35 days
+INTAKE_BRIEF:         6 hours
+APP_* HTML blobs:     No TTL (manual bootstrap to update)
+
+### handleBuildStatus correct pattern
+1. Read KV BUILD_STATUS(token) — if ready, return immediately
+2. On KV miss — query D1 WHERE manage_token = token
+3. If D1 ready — update KV with 24hr TTL, return ready
+4. If D1 building — return building with slug
+5. Never swallow errors with catch(e) {} — always return error message
+
+### Next PR
+- Remove duplicate crypto.randomUUID() from handleIntake
+- Add missing KV_KEYS to shared-services.js
+- Rewrite handleBuildStatus per pattern above
+- Copy shared-services.js to all 5 workers
