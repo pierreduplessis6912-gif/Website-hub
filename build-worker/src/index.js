@@ -13,8 +13,8 @@
 // Route: preview.websitehub.co.za/*
 // ============================================================
 
-import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from '../shared-services.js';
-import { getDesignBrief, buildCssVariables, UX_RULES } from '../design-db.js';
+import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from './shared-services.js';
+import { getDesignBrief, buildCssVariables, UX_RULES } from '../../design-db.js';
 
 // ── CONSTANTS ─────────────────────────────────────────────────
 
