@@ -1,0 +1,2131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>Website Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   VARIABLES
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --bg:#0a0a0f;
+  --surface:rgba(255,255,255,0.03);
+  --surface2:rgba(255,255,255,0.06);
+  --surface3:rgba(255,255,255,0.09);
+  --border:rgba(255,255,255,0.08);
+  --border-hi:rgba(255,255,255,0.15);
+  --cyan:#00f0ff;
+  --purple:#b829dd;
+  --magenta:#ff00a0;
+  --green:#00c97a;
+  --red:#ff3b44;
+  --orange:#ff9500;
+  --text:#e8e8f0;
+  --muted:rgba(232,232,240,0.5);
+  --muted2:rgba(232,232,240,0.25);
+  --font:'Inter',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --r:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESET
+   ═══════════════════════════════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+button{font-family:var(--font);cursor:pointer;border:none;background:none;color:inherit;touch-action:manipulation}
+input,textarea{font-family:var(--font);outline:none;-webkit-appearance:none}
+a{color:inherit;text-decoration:none}
+
+/* ═══════════════════════════════════════════════════════════════
+   BACKGROUND
+   ═══════════════════════════════════════════════════════════════ */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 50% at 65% 30%,rgba(0,240,255,0.06) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 60% at 20% 75%,rgba(184,41,221,0.06) 0%,transparent 70%);
+  animation:orbShift 20s ease-in-out infinite alternate;
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px);
+  background-size:64px 64px;
+}
+@keyframes orbShift{from{transform:scale(1) translate(0,0)}to{transform:scale(1.07) translate(3%,4%)}}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+.screen{
+  position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transition:opacity .32s ease, transform .32s cubic-bezier(.34,1.1,.64,1);
+  transform:translateY(22px);
+}
+.screen.active{opacity:1;pointer-events:all;transform:translateY(0)}
+.screen.exit{opacity:0;transform:translateY(-14px);transition-duration:.18s;transition-timing-function:ease-in}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHARED COMPONENTS
+   ═══════════════════════════════════════════════════════════════ */
+.glass{background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--r)}
+.mono{font-family:var(--mono)}
+.btn-primary{
+  width:100%;padding:15px;border-radius:14px;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  color:#000;font-size:15px;font-weight:700;
+  transition:opacity .15s,transform .1s,filter .15s;
+}
+.btn-primary:active{opacity:.85;transform:scale(.98)}
+.btn-primary:disabled{opacity:.4;pointer-events:none;filter:grayscale(1)}
+.btn-ghost{
+  width:100%;padding:12px;border-radius:12px;
+  border:1px solid var(--border);color:var(--muted);font-size:13px;
+  transition:border-color .15s,color .15s,background .15s;
+  text-align:center;display:block;
+}
+.btn-ghost:active{border-color:var(--cyan);color:var(--text);background:var(--surface2)}
+.input-field{
+  width:100%;padding:12px 14px;background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:12px;color:var(--text);font-size:14px;transition:border-color .2s,background .2s;
+}
+.input-field:focus{border-color:var(--cyan);background:var(--surface3)}
+.input-field::placeholder{color:var(--muted2)}
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT / PROCESSING RINGS
+   ═══════════════════════════════════════════════════════════════ */
+.rings-wrap{position:relative;width:180px;height:180px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ring{position:absolute;border-radius:50%;border:2px solid transparent}
+.ring-1{width:180px;height:180px;border-color:rgba(0,240,255,.15);border-top-color:var(--cyan);animation:spin 4s linear infinite}
+.ring-2{width:130px;height:130px;border-color:rgba(184,41,221,.15);border-right-color:var(--purple);animation:spin 2.8s linear infinite reverse}
+.ring-3{width:80px;height:80px;border-color:rgba(255,0,160,.15);border-bottom-color:var(--magenta);animation:spin 2s linear infinite}
+.ring-core{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,rgba(0,240,255,.1),transparent);border:1px solid rgba(0,240,255,.2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: INIT
+   ═══════════════════════════════════════════════════════════════ */
+#screen-init{align-items:center;justify-content:center;gap:24px;padding:40px 24px}
+.init-wordmark{font-family:var(--mono);font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--muted)}
+#initStatus{font-size:20px;font-weight:600;text-align:center;line-height:1.3;max-width:320px}
+#initSub{font-size:13px;color:var(--muted);text-align:center;max-width:280px;line-height:1.6}
+#initActions{display:none;flex-direction:column;gap:10px;width:100%;max-width:280px;margin-top:8px}
+.init-error{color:var(--red);font-size:13px;text-align:center;line-height:1.5;max-width:280px}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: EXPERIENCE — LAYER 1: IFRAME
+   ═══════════════════════════════════════════════════════════════ */
+#screen-experience{display:flex;flex-direction:column;overflow:hidden}
+#expBar{
+  flex-shrink:0;height:48px;position:relative;z-index:5;
+  background:rgba(10,10,15,.95);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px;
+}
+.exp-brand{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.exp-brand span{color:var(--cyan)}
+.exp-biz{font-family:var(--mono);font-size:10px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* iframe container */
+#frameWrap{flex:1;position:relative;min-height:0;background:var(--bg)}
+#siteFrame{position:absolute;inset:0;width:100%;height:100%;border:none;background:var(--bg)}
+
+/* iframe states */
+.frame-loading::after{
+  content:'Loading preview…';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--bg);z-index:2;
+}
+.frame-error::after{
+  content:attr(data-error);position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  font-size:14px;color:var(--muted);background:var(--bg);z-index:2;padding:24px;text-align:center;line-height:1.5;
+}
+.frame-error::before{
+  content:'⚠';font-size:32px;color:var(--orange);
+}
+
+/* patch overlay */
+#patchOverlay{position:absolute;inset:0;z-index:50;background:rgba(10,10,15,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:0;pointer-events:none;transition:opacity .2s}
+#patchOverlay.show{opacity:1;pointer-events:all}
+.p-spin{width:36px;height:36px;border-radius:50%;border:2px solid var(--border-hi);border-top-color:var(--cyan);animation:spin .8s linear infinite}
+.p-label{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* rebuild overlay */
+#rebuildOv{position:absolute;inset:0;z-index:45;background:rgba(10,10,15,.9);backdrop-filter:blur(12px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#rebuildOv.show{display:flex}
+.rb-spin{width:48px;height:48px;border-radius:50%;border:2.5px solid var(--border-hi);border-top-color:var(--cyan);border-right-color:var(--purple);animation:spin 1s linear infinite}
+.rb-title{font-size:16px;font-weight:600}
+.rb-sub{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;max-width:260px;line-height:1.5}
+.rb-actions{display:flex;flex-direction:column;gap:8px;width:100%;max-width:260px;margin-top:8px}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: EXPERIENCE — LAYER 2: CARDS PANEL
+   ═══════════════════════════════════════════════════════════════ */
+#expPanel{
+  flex-shrink:0;
+  height:calc(42vh - 110px); /* Account for ticket strip */
+  min-height:240px;
+  max-height:420px;
+  display:flex;flex-direction:column;
+  background:rgba(10,10,15,.92);backdrop-filter:blur(28px);
+  border-top:1px solid rgba(255,255,255,.08);
+  position:relative;z-index:20;
+}
+
+/* progress bar */
+#expProgress{padding:10px 16px 6px;flex-shrink:0}
+.exp-prog-bar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.exp-prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:2px;width:0%;transition:width .5s cubic-bezier(.22,1,.36,1)}
+.exp-prog-row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.exp-prog-msg{font-family:var(--mono);font-size:9.5px;color:var(--muted);flex:1;padding-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp-prog-step{font-family:var(--mono);font-size:9.5px;color:var(--cyan);flex-shrink:0}
+
+/* cards track — horizontal slide */
+#cardsTrackWrap{flex:1;overflow:hidden;min-height:0;position:relative}
+#cardsTrack{
+  display:flex;height:100%;
+  transition:transform .35s cubic-bezier(.32,.72,0,1);
+  will-change:transform;
+}
+.d-card{
+  flex:0 0 100%;width:100%;height:100%;
+  display:flex;flex-direction:column;gap:8px;
+  padding:8px 16px 80px; /* Extra bottom padding for scroll clearance */
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  box-sizing:border-box;scrollbar-width:none;
+}
+.d-card::-webkit-scrollbar{display:none}
+
+.card-q{font-size:15px;font-weight:600;line-height:1.25}
+.card-hint{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* industry grid */
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ind-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:all .16s;font-size:10px;text-align:center;color:var(--muted);min-height:64px}
+.ind-tile-icon{font-size:18px;line-height:1}
+.ind-tile:active{transform:scale(.96)}
+.ind-tile.sel{border-color:var(--cyan);background:rgba(0,240,255,.07);color:var(--text);font-weight:500}
+
+/* vibe grid */
+.vibe-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.vibe-opt{padding:14px 12px;border-radius:12px;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:all .16s}
+.vibe-opt:active{transform:scale(.98)}
+.vibe-opt.sel{border-color:var(--cyan);background:rgba(0,240,255,.06)}
+.vibe-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.vibe-desc{font-size:11px;color:var(--muted)}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;background:var(--surface2);border:1.5px solid var(--border);color:var(--muted);transition:all .14s;user-select:none}
+.chip:active{transform:scale(.95)}
+.chip.sel{background:rgba(0,240,255,.08);border-color:var(--cyan);color:var(--text)}
+
+/* upload */
+.upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px 12px;border-radius:12px;text-align:center;background:var(--surface2);border:2px dashed var(--border);cursor:pointer;transition:all .16s}
+.upload-zone.has-file,.upload-zone:active{border-color:var(--cyan);border-style:solid;background:var(--surface3)}
+.uz-icon{font-size:20px;line-height:1}
+.uz-title{font-size:13px;font-weight:600}
+.uz-sub{font-family:var(--mono);font-size:9px;color:var(--muted)}
+.uz-img{width:44px;height:44px;border-radius:8px;object-fit:contain;background:var(--surface)}
+
+.photo-strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.photo-strip::-webkit-scrollbar{display:none}
+.photo-thumb{width:56px;height:42px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.photo-add{width:56px;height:42px;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:20px;background:var(--surface2);border:2px dashed var(--border);cursor:pointer;transition:all .14s}
+.photo-add:active{border-color:var(--cyan);background:var(--surface3)}
+
+/* palette */
+.palette-row{display:flex;gap:8px;flex-wrap:wrap}
+.pal-swatch{flex:1;min-width:60px;padding:12px 6px;border-radius:12px;border:2px solid transparent;font-size:11px;font-weight:600;color:#fff;text-align:center;cursor:pointer;transition:border-color .15s,transform .12s;position:relative;overflow:hidden}
+.pal-swatch::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.4));pointer-events:none}
+.pal-swatch.sel{border-color:#fff;transform:scale(1.05);box-shadow:0 0 0 2px rgba(0,240,255,.3)}
+
+/* taglines */
+.tagline-list{display:flex;flex-direction:column;gap:8px}
+.tl-opt{padding:14px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;font-size:14px;line-height:1.5;cursor:pointer;transition:border-color .15s,background .15s}
+.tl-opt:active{background:var(--surface2)}
+.tl-opt.sel{border-color:var(--cyan);background:rgba(0,240,255,.05);color:var(--cyan)}
+
+/* card nav */
+#expNav{flex-shrink:0;display:flex;gap:10px;padding:10px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.btn-back{flex:0 0 72px;padding:12px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);font-size:13px;color:var(--muted);transition:all .14s;font-weight:500}
+.btn-back:active{color:var(--text);border-color:var(--cyan)}
+.btn-back:disabled{opacity:.35;pointer-events:none}
+.btn-next{flex:1;padding:12px;border-radius:12px;background:linear-gradient(135deg,rgba(0,240,255,.14),rgba(184,41,221,.14));border:1px solid rgba(0,240,255,.28);font-size:14px;font-weight:600;color:var(--cyan);transition:all .14s}
+.btn-next:active{background:linear-gradient(135deg,rgba(0,240,255,.25),rgba(184,41,221,.25))}
+.btn-next.build{background:linear-gradient(135deg,var(--cyan),var(--magenta));border-color:transparent;color:#000;font-weight:700}
+.btn-next:disabled{opacity:.35;pointer-events:none}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: EXPERIENCE — LAYER 3: TICKET STRIP (FIXED BOTTOM)
+   ═══════════════════════════════════════════════════════════════ */
+#ticketStrip{
+  position:fixed;bottom:0;left:0;right:0;z-index:30;
+  background:rgba(10,10,15,.97);backdrop-filter:blur(20px);
+  border-top:1px solid rgba(255,255,255,.08);
+  padding:8px 14px calc(8px + var(--safe-b));
+  max-height:110px;
+}
+.t-plans{display:flex;gap:8px;margin-bottom:10px}
+.ticket{flex:1;padding:8px 4px;border-radius:10px;text-align:center;cursor:pointer;background:var(--surface2);border:1.5px solid var(--border);transition:all .18s;position:relative;min-height:0}
+.ticket:active{transform:scale(.97)}
+.ticket.sel{border-color:var(--cyan);background:rgba(0,240,255,.06)}
+.ticket.sel::after{content:'✓';position:absolute;top:2px;right:4px;font-size:9px;color:var(--cyan)}
+.t-name{display:block;font-family:var(--mono);font-size:7.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.ticket.sel .t-name{color:var(--cyan)}
+.t-price{display:block;font-size:14px;font-weight:700;line-height:1.1}
+.t-mo{display:block;font-family:var(--mono);font-size:7.5px;color:var(--muted);margin-top:1px}
+
+.checkout-btn{width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,var(--cyan),var(--magenta));color:#000;font-size:15px;font-weight:700;transition:opacity .15s,filter .15s}
+.checkout-btn:disabled{opacity:.3;pointer-events:none;filter:grayscale(1)}
+.checkout-btn:active{opacity:.85}
+
+/* ═══════════════════════════════════════════════════════════════
+   PLAN POPOVER
+   ═══════════════════════════════════════════════════════════════ */
+#popoverOv{position:fixed;inset:0;z-index:190;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s;display:none}
+#popoverOv.show{display:block;background:rgba(0,0,0,.5);pointer-events:all}
+#planPopover{position:fixed;left:0;right:0;bottom:0;z-index:200;background:rgba(12,12,20,.98);backdrop-filter:blur(24px);border-top:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px 24px calc(24px + var(--safe-b));transition:transform .35s cubic-bezier(.32,.72,0,1);transform:translateY(100%);pointer-events:none}
+#planPopover.open{transform:translateY(0);pointer-events:all}
+#planPopover .pop-close{position:absolute;top:16px;right:20px;font-size:20px;color:var(--muted);cursor:pointer;padding:4px}
+#planPopover .pop-close:active{color:var(--text)}
+#planPopover.open{transform:translateY(0)}
+.pop-name{font-size:22px;font-weight:700;margin-bottom:4px}
+.pop-badge{font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:1px;margin-bottom:16px}
+.feat-list{display:flex;flex-direction:column;gap:10px}
+.feat-row{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
+.feat-check{color:var(--green);font-size:16px;flex-shrink:0;width:20px;text-align:center}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: CONFIRM
+   ═══════════════════════════════════════════════════════════════ */
+#screen-confirm{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 20px calc(24px + var(--safe-b))}
+.confirm-back{display:inline-flex;align-items:center;gap:6px;margin-bottom:20px;font-size:14px;color:var(--muted);cursor:pointer;transition:color .14s;padding:4px 0}
+.confirm-back:active{color:var(--cyan)}
+.confirm-title{font-size:28px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px}
+.confirm-sub{font-size:14px;color:var(--muted);margin-bottom:24px}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:16px}
+.s-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-size:14px}
+.s-row:last-child{border-bottom:none}
+.s-row span{color:var(--muted)}
+.s-row strong{font-weight:600}
+.s-row.hl strong{color:var(--cyan);font-size:18px}
+
+.promo-row{display:flex;gap:8px;margin-bottom:8px}
+.promo-input{flex:1;padding:12px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;transition:border-color .2s}
+.promo-input:focus{border-color:var(--cyan)}
+.promo-input::placeholder{color:var(--muted2)}
+.promo-btn{padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;background:var(--surface2);border:1.5px solid var(--border);transition:all .14s;color:var(--text);white-space:nowrap}
+.promo-btn:active{border-color:var(--cyan);color:var(--cyan)}
+#promoMsg{font-family:var(--mono);font-size:12px;min-height:20px;padding:4px 0 10px}
+#promoMsg.ok{color:var(--green)}
+#promoMsg.err{color:var(--red)}
+
+.legal{font-size:12px;color:var(--muted2);text-align:center;margin-top:14px;line-height:1.6}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: PROCESSING
+   ═══════════════════════════════════════════════════════════════ */
+#screen-processing{align-items:center;justify-content:center;gap:24px;padding:40px 24px}
+#procStatus{font-size:20px;font-weight:600;text-align:center}
+#procSub{font-size:13px;color:var(--muted);text-align:center;max-width:280px;line-height:1.6}
+#procAction{display:none;flex-direction:column;gap:10px;width:100%;max-width:280px;margin-top:8px}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: DASHBOARD
+   ═══════════════════════════════════════════════════════════════ */
+#screen-dashboard{overflow:hidden}
+.dash-bar{flex-shrink:0;height:56px;background:rgba(10,10,15,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.dash-brand{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.dash-brand span{color:var(--cyan)}
+.dash-biz{font-family:var(--mono);font-size:10px;color:var(--muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 100px}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.tab-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,15,.97);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;padding:6px 0 calc(6px + var(--safe-b));z-index:20}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 0;cursor:pointer;transition:color .14s;font-family:var(--mono);font-size:9px;color:var(--muted2)}
+.tab.active{color:var(--cyan)}
+.tab-icon{font-size:20px;line-height:1}
+
+/* dashboard content */
+.section-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:20px 0 10px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px}
+.stat-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-val.c{color:var(--cyan)}
+.stat-delta{font-family:var(--mono);font-size:10px;color:var(--green);margin-top:3px}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.q-tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;cursor:pointer;transition:border-color .16s,background .16s}
+.q-tile:active{border-color:var(--cyan);background:var(--surface2)}
+.q-icon{font-size:22px;margin-bottom:6px}
+.q-label{font-size:12px;font-weight:600;margin-bottom:2px}
+.q-sub{font-size:10px;color:var(--muted)}
+
+.up-card{background:linear-gradient(135deg,rgba(0,240,255,.05),rgba(184,41,221,.05));border:1px solid rgba(0,240,255,.18);border-radius:16px;padding:16px;margin-bottom:10px}
+.up-label{font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.up-title{font-size:15px;font-weight:600;margin-bottom:3px}
+.up-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.up-btn{display:inline-block;padding:10px 16px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--magenta));color:#000;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.up-btn:active{opacity:.85}
+
+.list-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border);font-size:14px}
+.list-row:last-child{border-bottom:none}
+.list-lbl{color:var(--muted);font-size:13px}
+.chart-ph{background:var(--surface);border:1px solid var(--border);border-radius:14px;height:120px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+.allow-bar{margin-bottom:16px}
+.allow-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:6px}
+.allow-lbl{color:var(--muted)}
+.allow-val{font-family:var(--mono);font-size:11px;color:var(--cyan)}
+.allow-track{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.allow-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:2px;transition:width .4s cubic-bezier(.22,1,.36,1)}
+
+.rev-ta{width:100%;padding:12px 14px;min-height:100px;resize:none;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;line-height:1.5;transition:border-color .2s,background .2s}
+.rev-ta:focus{border-color:var(--cyan);background:var(--surface3)}
+.rev-ta::placeholder{color:var(--muted2)}
+
+.ref-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
+.ref-link-row{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:10px;padding:10px 14px}
+.ref-link-val{flex:1;font-family:var(--mono);font-size:11px;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ref-copy{font-size:16px;cursor:pointer;color:var(--muted);transition:color .14s;padding:4px}
+.ref-copy:active{color:var(--cyan)}
+.ref-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.ref-stat{text-align:center}
+.ref-stat-val{font-size:24px;font-weight:700;color:var(--cyan)}
+.ref-stat-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════════ */
+#toast{
+  position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(16,16,26,.98);backdrop-filter:blur(16px);
+  border:1px solid var(--border);border-radius:14px;padding:12px 20px;
+  font-size:13px;z-index:9998;opacity:0;transition:all .3s cubic-bezier(.22,1,.36,1);
+  max-width:90vw;text-align:center;pointer-events:none;line-height:1.4;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.toast-err{border-color:rgba(255,59,68,.4);color:var(--red)}
+#toast.toast-ok{border-color:rgba(0,201,122,.4);color:var(--green)}
+
+/* ═══════════════════════════════════════════════════════════════
+   DEV NAV
+   ═══════════════════════════════════════════════════════════════ */
+#devNav{position:fixed;top:60px;right:12px;z-index:9999;background:rgba(255,0,160,.08);border:1px solid rgba(255,0,160,.25);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:5px}
+.dv{padding:5px 10px;border-radius:8px;background:rgba(255,0,160,.06);border:1px solid rgba(255,0,160,.2);color:var(--magenta);cursor:pointer;font-family:var(--mono);font-size:10px;white-space:nowrap;transition:all .14s}
+.dv:active{background:rgba(255,0,160,.15)}
+.dv-lbl{font-family:var(--mono);font-size:9px;color:var(--magenta);opacity:.5;text-align:center;padding-bottom:2px}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE TWEAKS
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-height:800px){
+  #expPanel{height:38vh;min-height:360px}
+}
+@media (max-height:600px){
+  #expPanel{height:48vh;min-height:280px}
+  .ind-grid{grid-template-columns:repeat(5,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: INIT
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-init">
+  <div class="init-wordmark">Website Hub</div>
+  <div class="rings-wrap">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="ring-core"></div>
+  </div>
+  <div id="initStatus">Preparing your space</div>
+  <div id="initSub">Setting up your domain and laying the foundations</div>
+  <div id="initActions">
+    <button class="btn-primary" onclick="retryInit()">Try again</button>
+    <a class="btn-ghost" href="https://wa.me/27000000000" style="text-align:center;display:block;">WhatsApp support</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: EXPERIENCE
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-experience">
+  <!-- Top bar -->
+  <div id="expBar">
+    <div class="exp-brand">Website<span>Hub</span></div>
+    <div class="exp-biz" id="expBiz">Your site</div>
+  </div>
+
+  <!-- Layer 1: iframe -->
+  <div id="frameWrap">
+    <iframe id="siteFrame" loading="eager" allow="clipboard-write"></iframe>
+    <div id="patchOverlay">
+      <div class="p-spin"></div>
+      <div class="p-label" id="patchLabel">Updating preview…</div>
+    </div>
+    <div id="rebuildOv">
+      <div class="rb-spin"></div>
+      <div class="rb-title">Building your final site</div>
+      <div class="rb-sub" id="rbSub">This takes about 30 seconds</div>
+      <div class="rb-actions" id="rbActions" style="display:none">
+        <button class="btn-primary" onclick="retryRebuild()">Try again</button>
+        <a class="btn-ghost" href="https://wa.me/27000000000">WhatsApp support</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 2: Cards panel -->
+  <div id="expPanel">
+    <div id="expProgress">
+      <div class="exp-prog-bar"><div class="exp-prog-fill" id="expProgFill"></div></div>
+      <div class="exp-prog-row">
+        <div class="exp-prog-msg" id="expProgMsg">Start here — every answer improves your site</div>
+        <div class="exp-prog-step" id="expCounter">Step 1 of 7</div>
+      </div>
+    </div>
+
+    <div id="cardsTrackWrap">
+      <div id="cardsTrack">
+        <!-- Card 0: Industry -->
+        <div class="d-card" data-card="industry">
+          <div class="card-q">What is your business?</div>
+          <div class="card-hint">Pick the closest match — you can refine later</div>
+          <div class="ind-grid" id="indGrid"></div>
+          <input class="input-field" id="indCustom" placeholder="Or type your industry…" onkeydown="if(event.key==='Enter'){event.preventDefault();handleCustomIndustry()}">
+        </div>
+
+        <!-- Card 1: Area -->
+        <div class="d-card" data-card="area">
+          <div class="card-q">Where are you based?</div>
+          <div class="card-hint">This shapes how your site reads to local customers</div>
+          <input class="input-field" id="areaInput" placeholder="e.g. Cape Town, KZN North Coast">
+          <input class="input-field" id="audienceInput" placeholder="Who are your main customers?">
+        </div>
+
+        <!-- Card 2: Vibe -->
+        <div class="d-card" data-card="vibe">
+          <div class="card-q">What's the feel?</div>
+          <div class="card-hint">Pick the personality that fits your brand</div>
+          <div class="vibe-grid">
+            <div class="vibe-opt" data-vibe="bold" onclick="selectVibe('bold',this)">
+              <div class="vibe-name">Bold</div>
+              <div class="vibe-desc">Direct and confident</div>
+            </div>
+            <div class="vibe-opt" data-vibe="warm" onclick="selectVibe('warm',this)">
+              <div class="vibe-name">Warm</div>
+              <div class="vibe-desc">Friendly and local</div>
+            </div>
+            <div class="vibe-opt" data-vibe="professional" onclick="selectVibe('professional',this)">
+              <div class="vibe-name">Professional</div>
+              <div class="vibe-desc">Clean and polished</div>
+            </div>
+            <div class="vibe-opt" data-vibe="playful" onclick="selectVibe('playful',this)">
+              <div class="vibe-name">Playful</div>
+              <div class="vibe-desc">Fun and energetic</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Services -->
+        <div class="d-card" data-card="services">
+          <div class="card-q">What do you sell?</div>
+          <div class="card-hint">Tap to select — add your own if needed</div>
+          <div class="chips" id="servicesChips"></div>
+          <input class="input-field" id="svcCustom" placeholder="Add a service — tap Enter" onkeydown="addCustomService(event)">
+          <input class="input-field" id="ctaInput" placeholder="Main call-to-action e.g. Get a Quote">
+        </div>
+
+        <!-- Card 4: Differentiators -->
+        <div class="d-card" data-card="differentiators">
+          <div class="card-q">Why choose you?</div>
+          <div class="card-hint">Three things that make you different</div>
+          <input class="input-field" id="diff1" placeholder="e.g. 15 years experience">
+          <input class="input-field" id="diff2" placeholder="e.g. Free site visits">
+          <input class="input-field" id="diff3" placeholder="e.g. Manufacturer warranties">
+          <input class="input-field" id="testimonial" placeholder="What would a happy customer say?">
+        </div>
+
+        <!-- Card 5: Visuals -->
+        <div class="d-card" data-card="visuals">
+          <div class="card-q">Logo and photos</div>
+          <div class="card-hint">Upload now or skip — you can add these later</div>
+          <div class="upload-zone" id="logoZone" onclick="document.getElementById('logoFile').click()">
+            <div class="uz-icon" id="logoIcon">+</div>
+            <div class="uz-title" id="logoTitle">Upload your logo</div>
+            <div class="uz-sub">PNG, JPG, SVG — any size</div>
+          </div>
+          <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+          <div class="photo-strip" id="photoStrip">
+            <div class="photo-add" onclick="document.getElementById('photoFile').click()">+</div>
+          </div>
+          <input type="file" id="photoFile" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(this)">
+        </div>
+
+        <!-- Card 6: Style -->
+        <div class="d-card" data-card="style">
+          <div class="card-q">Make it yours</div>
+          <div class="card-hint">Finishing touches — changes apply instantly</div>
+          <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:8px">Colour palette</div>
+          <div class="palette-row" id="paletteRow">
+            <div class="pal-swatch sel" data-pal="ocean" style="background:linear-gradient(135deg,#0070f3,#00d4ff)" onclick="pickPalette('ocean',this)">Ocean</div>
+            <div class="pal-swatch" data-pal="ember" style="background:linear-gradient(135deg,#ff5500,#ff9900)" onclick="pickPalette('ember',this)">Ember</div>
+            <div class="pal-swatch" data-pal="forest" style="background:linear-gradient(135deg,#00874a,#7ecb8f)" onclick="pickPalette('forest',this)">Forest</div>
+            <div class="pal-swatch" data-pal="twilight" style="background:linear-gradient(135deg,#6e00ff,#b829dd)" onclick="pickPalette('twilight',this)">Twilight</div>
+            <div class="pal-swatch" data-pal="mono" style="background:linear-gradient(135deg,#333,#888)" onclick="pickPalette('mono',this)">Mono</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin:14px 0 8px">Headline tagline</div>
+          <div class="tagline-list" id="taglineList">
+            <div class="card-hint">Taglines loading…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="expNav">
+      <button class="btn-back" id="btnBack" onclick="cardBack()" disabled>Back</button>
+      <button class="btn-next" id="btnNext" onclick="cardNext()">Next</button>
+    </div>
+  </div>
+
+  <!-- Layer 3: Ticket strip (fixed bottom) -->
+  <div id="ticketStrip">
+    <div class="t-plans">
+      <div class="ticket" data-plan="express" onclick="selectPlan('express',this)">
+        <span class="t-name">Express</span>
+        <span class="t-price">R699</span>
+        <span class="t-mo">/mo</span>
+      </div>
+      <div class="ticket sel" data-plan="standard" onclick="selectPlan('standard',this)">
+        <span class="t-name">Standard</span>
+        <span class="t-price">R999</span>
+        <span class="t-mo">/mo</span>
+      </div>
+      <div class="ticket" data-plan="premium" onclick="selectPlan('premium',this)">
+        <span class="t-name">Premium</span>
+        <span class="t-price">R1499</span>
+        <span class="t-mo">/mo</span>
+      </div>
+    </div>
+    <button class="checkout-btn" id="checkoutBtn" disabled onclick="goToConfirm()">Continue to checkout →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PLAN POPOVER
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="popoverOv" onclick="closePopover()" ontouchstart="closePopover()"></div>
+<div id="planPopover">
+  <div class="pop-close" onclick="closePopover()">✕</div>
+  <div class="pop-name" id="popName"></div>
+  <div class="pop-badge" id="popBadge"></div>
+  <div class="feat-list" id="popFeats"></div>
+  <button class="btn-primary" style="margin-top:18px" onclick="closePopover()">Got it</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: CONFIRM
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-confirm">
+  <div class="confirm-back" onclick="showScreen('experience')">← Back to my site</div>
+  <div class="confirm-title">You're almost live</div>
+  <div class="confirm-sub" id="confirmSub">Free domain + setup included</div>
+  <div class="summary-card">
+    <div class="s-row"><span>Plan</span><strong id="cPlan">Standard</strong></div>
+    <div class="s-row"><span>Build fee</span><strong>R0 <span style="color:var(--green);font-size:11px;font-weight:500">FREE</span></strong></div>
+    <div class="s-row"><span>Domain</span><strong id="cDomain">—</strong></div>
+    <div class="s-row"><span>Business email</span><strong id="cEmail">1 account</strong></div>
+    <div class="s-row hl"><span>First month</span><strong id="cPrice">R999</strong></div>
+  </div>
+  <div class="promo-row">
+    <input class="promo-input" id="promoInput" placeholder="Promo code (optional)" oninput="clearPromo()">
+    <button class="promo-btn" onclick="applyPromo()">Apply</button>
+  </div>
+  <div id="promoMsg"></div>
+  <button class="btn-primary" id="payBtn" onclick="processPayment()">Pay R999 — Go Live 🚀</button>
+  <div class="legal">Secure payment via PayFast · R0 setup fee · Cancel anytime</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: PROCESSING
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-processing">
+  <div class="init-wordmark">Website Hub</div>
+  <div class="rings-wrap">
+    <div class="ring ring-1" style="border-top-color:var(--green)"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="ring-core" style="background:radial-gradient(circle,rgba(0,201,122,.1),transparent);border-color:rgba(0,201,122,.2)"></div>
+  </div>
+  <div id="procStatus">Confirming your payment</div>
+  <div id="procSub">This usually takes a few seconds</div>
+  <div id="procAction">
+    <button class="btn-primary" onclick="retryProcessing()">Check again</button>
+    <button class="btn-ghost" onclick="showScreen('dashboard')">Open dashboard</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: DASHBOARD
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-dashboard">
+  <div class="dash-bar">
+    <div class="dash-brand">Website<span>Hub</span></div>
+    <div class="dash-biz" id="dashBiz">Your business</div>
+  </div>
+
+  <div class="dash-content" id="dashContent">
+    <!-- HOME -->
+    <div class="tab-panel active" id="tab-home">
+      <div class="section-lbl">Overview</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-lbl">Visits (7d)</div><div class="stat-val c" id="sVisits">—</div><div class="stat-delta" id="sVisitsDelta"></div></div>
+        <div class="stat-card"><div class="stat-lbl">WhatsApp taps</div><div class="stat-val" id="sWaTaps">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Next invoice</div><div class="stat-val" id="sInvoice" style="font-size:15px">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Referrals</div><div class="stat-val" id="sReferrals">0</div></div>
+      </div>
+      <div class="section-lbl">Quick actions</div>
+      <div class="quick-grid">
+        <div class="q-tile" onclick="switchTab('revisions')"><div class="q-icon">✏️</div><div class="q-label">Edit site</div><div class="q-sub" id="qRevSub">2 free/month</div></div>
+        <div class="q-tile" onclick="switchTab('email')"><div class="q-icon">📧</div><div class="q-label">Email</div><div class="q-sub" id="qEmailSub">1 account</div></div>
+        <div class="q-tile" id="qGallery" onclick="galleryTap()"><div class="q-icon">🖼️</div><div class="q-label">Gallery</div><div class="q-sub">Add photos</div></div>
+        <div class="q-tile" onclick="switchTab('account')"><div class="q-icon">🎁</div><div class="q-label">Refer &amp; earn</div><div class="q-sub">1 free month/referral</div></div>
+      </div>
+      <div id="upgradeSection" style="display:none">
+        <div class="section-lbl">Level up</div>
+        <div id="upgradeCards"></div>
+      </div>
+    </div>
+
+    <!-- SITE -->
+    <div class="tab-panel" id="tab-site">
+      <div class="section-lbl">Your site</div>
+      <div class="list-row"><div class="list-lbl">Live URL</div><div style="font-family:var(--mono);font-size:12px;color:var(--cyan)" id="siteLiveUrl">—</div></div>
+      <button class="btn-primary" style="margin:14px 0 8px" onclick="openSite()">Open my site ↗</button>
+      <button class="btn-ghost" onclick="switchTab('revisions')">Request a change</button>
+      <div class="section-lbl">Traffic (last 7 days)</div>
+      <div class="chart-ph" id="trafficChart">Analytics loading…</div>
+      <div class="section-lbl">Top pages</div>
+      <div id="topPagesList"><div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 0">Loading…</div></div>
+    </div>
+
+    <!-- EMAIL -->
+    <div class="tab-panel" id="tab-email">
+      <div class="section-lbl">Business email</div>
+      <div id="emailPanel">
+        <div class="glass" style="padding:16px;margin-bottom:12px">
+          <div class="stat-lbl">Primary inbox</div>
+          <div style="font-family:var(--mono);font-size:13px;color:var(--cyan);margin-top:4px" id="emailAddr">—</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">Webmail access coming soon</div>
+        </div>
+      </div>
+      <div class="up-card" id="emailUpsell" style="display:none">
+        <div class="up-label">Upgrade to Standard</div>
+        <div class="up-title">Get a business email</div>
+        <div class="up-sub">hello@yourdomain.co.za — included from Standard</div>
+        <div class="up-btn" onclick="startUpgrade('standard',300)">Upgrade now →</div>
+      </div>
+      <div class="glass" style="padding:16px;margin-top:12px">
+        <div class="stat-lbl" style="margin-bottom:6px">📸 Send us photos</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Email new photos to<br><strong style="color:var(--cyan);font-family:var(--mono);font-size:12px">updates@websitehub.co.za</strong><br>and we'll update your site within 24hrs.</div>
+      </div>
+    </div>
+
+    <!-- REVISIONS -->
+    <div class="tab-panel" id="tab-revisions">
+      <div class="section-lbl">Edit your site</div>
+      <div class="allow-bar">
+        <div class="allow-row"><span class="allow-lbl">Revisions this month</span><span class="allow-val" id="revCount">0 / 2 used</span></div>
+        <div class="allow-track"><div class="allow-fill" id="revFill" style="width:0%"></div></div>
+      </div>
+      <div class="section-lbl">Request a change</div>
+      <textarea class="rev-ta" id="revText" placeholder="Describe what you'd like changed…&#10;e.g. Update the hero headline to 'Floors Built to Last'"></textarea>
+      <button class="btn-primary" style="margin-top:10px" onclick="submitRevision()">Submit request</button>
+      <div class="section-lbl">Recent requests</div>
+      <div id="revHistory" style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 0">No revisions yet</div>
+    </div>
+
+    <!-- ACCOUNT -->
+    <div class="tab-panel" id="tab-account">
+      <div class="section-lbl">Your account</div>
+      <div class="ref-card">
+        <div class="section-lbl" style="margin:0 0 8px">🎁 Refer &amp; earn</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.5">Share your link. Get 1 free month for every friend who goes live.</div>
+        <div class="ref-link-row">
+          <div class="ref-link-val" id="refLink">—</div>
+          <div class="ref-copy" onclick="copyRef()">📋</div>
+        </div>
+        <div class="ref-stats">
+          <div class="ref-stat"><div class="ref-stat-val" id="refSent">0</div><div class="ref-stat-lbl">Sent</div></div>
+          <div class="ref-stat"><div class="ref-stat-val" id="refConv">0</div><div class="ref-stat-lbl">Live</div></div>
+          <div class="ref-stat"><div class="ref-stat-val" id="refMonths">0</div><div class="ref-stat-lbl">Free months</div></div>
+        </div>
+      </div>
+      <div class="glass" style="padding:16px;margin-bottom:14px">
+        <div class="stat-lbl">Current plan</div>
+        <div style="font-size:18px;font-weight:700;margin-top:4px" id="acctPlan">Standard</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:3px" id="acctInvoice">Next invoice: —</div>
+      </div>
+      <button class="btn-ghost" style="color:var(--red);border-color:rgba(255,59,68,.2)" onclick="cancelSite()">Cancel my subscription</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" data-tab="home" onclick="switchTab('home')"><div class="tab-icon">⊙</div><div>Home</div></div>
+    <div class="tab" data-tab="site" onclick="switchTab('site')"><div class="tab-icon">◈</div><div>Site</div></div>
+    <div class="tab" data-tab="email" onclick="switchTab('email')"><div class="tab-icon">✉</div><div>Email</div></div>
+    <div class="tab" data-tab="revisions" onclick="switchTab('revisions')"><div class="tab-icon">✏</div><div>Revisions</div></div>
+    <div class="tab" data-tab="account" onclick="switchTab('account')"><div class="tab-icon">◉</div><div>Account</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TOAST
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     DEV NAV
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="devNav">
+  <div class="dv-lbl">DEV</div>
+  <button class="dv" onclick="showScreen('init',{token:'dev'})">Init</button>
+  <button class="dv" onclick="showScreen('experience',{slug:'demo',token:'dev'})">Exp</button>
+  <button class="dv" onclick="showScreen('confirm',{})">Confirm</button>
+  <button class="dv" onclick="showScreen('processing',{token:'dev'})">Processing</button>
+  <button class="dv" onclick="showScreen('dashboard',{token:'dev'})">Dashboard</button>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+// CONFIG & CONSTANTS
+// ═══════════════════════════════════════════════════════════════════
+const CONFIG = {
+  POLL_INTERVAL: 2000,
+  INIT_TIMEOUT: 240000,
+  PROCESSING_MAX_POLLS: 30,
+  REBUILD_MAX_POLLS: 60,
+  MSG_ROTATE_INTERVAL: 5000,
+};
+
+const PLANS = {
+  express:  { name:'Express',  price:699,  badge:'Solo traders',       feats:['1-page website','Free .co.za domain','SSL included','Mobile optimised','WhatsApp button','1 revision/month'] },
+  standard: { name:'Standard', price:999,  badge:'Most popular',       feats:['Up to 5 pages','Free .co.za domain','SSL included','1 business email','WhatsApp + contact form','2 revisions/month','Analytics'] },
+  premium:  { name:'Premium',  price:1499, badge:'Growing businesses', feats:['Up to 10 pages','Free .co.za domain','SSL included','2 business emails','WhatsApp + contact form','Unlimited revisions','Analytics','Photo gallery','Referral rewards'] },
+};
+
+const INDUSTRIES = [
+  {i:'🔧',l:'Plumber'},{i:'⚡',l:'Electrician'},{i:'🏗️',l:'Builder'},{i:'🎨',l:'Painter'},
+  {i:'💇',l:'Salon'},{i:'✂️',l:'Barber'},{i:'💅',l:'Nails'},{i:'🌿',l:'Spa'},
+  {i:'🍽️',l:'Restaurant'},{i:'🥐',l:'Bakery'},{i:'🍕',l:'Catering'},{i:'☕',l:'Coffee'},
+  {i:'🪵',l:'Flooring'},{i:'🧹',l:'Cleaning'},{i:'🌱',l:'Landscaping'},{i:'❄️',l:'HVAC'},
+  {i:'🩺',l:'Doctor'},{i:'🦷',l:'Dentist'},{i:'📊',l:'Accountant'},{i:'📸',l:'Photographer'},
+  {i:'🚗',l:'Mechanic'},{i:'🏠',l:'Estate Agent'},{i:'⚖️',l:'Lawyer'},{i:'🎓',l:'Tutor'},
+];
+
+const SVC_DEFAULTS = {
+  flooring:['Tile installation','Vinyl planks','Laminate','Hardwood','Carpet','Repairs & restoration'],
+  plumber:['Pipe repairs','Geyser installation','Drainage','Leak detection','Bathroom fit-outs','Emergency call-out'],
+  electrician:['Wiring & rewiring','DB board upgrades','Solar installation','CCTV','Fault finding','CoC certificates'],
+  builder:['New builds','Renovations','Extensions','Tiling','Plastering','Painting'],
+  salon:['Cut & style','Colouring','Treatments','Extensions','Blow-dry','Kids cuts'],
+  restaurant:['Dine-in','Takeaways','Catering','Private events','Corporate lunches','Delivery'],
+  _:['Service 1','Service 2','Service 3','Service 4','Consultation','Emergency'],
+};
+
+const INIT_MSGS = [
+  {s:'Preparing your space',           b:'Setting up your domain and laying the foundations'},
+  {s:'Drafting your story',            b:'Pulling together a starting point for your business'},
+  {s:'Designing your layout',          b:'Picking a look that fits'},
+  {s:'Running a quality check',        b:'Making sure everything reads right for your industry'},
+  {s:"What's included?",               b:'Homepage, services, about and contact — written for your business'},
+  {s:'Do you own your domain?',        b:'Yes. Your .co.za is registered in your name — yours to keep always'},
+  {s:'How does WhatsApp support work?',b:'Message us any time. We respond same-day, 7 days a week'},
+  {s:'Can you make changes?',          b:'Yes — every plan includes free revision requests every month'},
+  {s:'What about business email?',     b:'Your plan includes hello@yourdomain.co.za — professional from day one'},
+  {s:'What if you want to cancel?',    b:'No lock-in, no penalty. Cancel any time and keep your domain'},
+  {s:'How long does this take?',       b:'Your first preview is 2 to 3 minutes. This is a real build'},
+  {s:'Finishing touches',              b:'Almost there — your preview is nearly ready'},
+];
+
+const PROMO_CODES = { 'LAUNCH50':0.5, 'BETA':1.0, 'ZULULAND':1.0 };
+const CARDS = ['industry','area','vibe','services','differentiators','visuals','style'];
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+const S = {
+  token: null,
+  slug: null,
+  screen: null,
+  previewMeta: null,
+  dashData: null,
+  selectedPlan: 'standard',
+  currentCard: 0,
+  rebuildDone: false,
+  rebuildFailed: false,
+  cards: {
+    industry: null,
+    area: null,
+    audience: null,
+    vibe: null,
+    services: [],
+    cta: null,
+    diff1: null,
+    diff2: null,
+    diff3: null,
+    testimonial: null,
+    logo: null,
+    photos: [],
+    palette: 'ocean',
+    font: null,
+    tagline: null,
+  },
+  _pollTimer: null,
+  _msgTimer: null,
+  _msgIdx: 0,
+  _iframeLoading: false,
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function el(id) { return document.getElementById(id); }
+function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : ''; }
+function isDev() { return !S.token || S.token === 'dev'; }
+
+function clearTimers() {
+  if (S._pollTimer) { clearInterval(S._pollTimer); S._pollTimer = null; }
+  if (S._msgTimer) { clearInterval(S._msgTimer); S._msgTimer = null; }
+}
+
+let _toastT;
+function toast(msg, type = 'info') {
+  const t = el('toast');
+  t.textContent = msg;
+  t.className = type === 'err' ? 'toast-err' : type === 'ok' ? 'toast-ok' : '';
+  t.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => { t.classList.remove('show'); t.className = ''; }, 3500);
+}
+
+function log(label, data) {
+  if (isDev()) console.log(`[WH] ${label}:`, data);
+}
+
+function logErr(label, err) {
+  console.error(`[WH ERROR] ${label}:`, err);
+  // In production, you could send to Sentry here
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// API — defensive wrapper with retries and user feedback
+// ═══════════════════════════════════════════════════════════════════
+async function apiFetch(url, opts = {}, { retries = 1, silent = false } = {}) {
+  const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+  let lastErr;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const r = await fetch(url, { ...opts, headers });
+      if (!r.ok) {
+        const e = new Error(`HTTP ${r.status}`);
+        e.status = r.status;
+        e.url = url;
+        throw e;
+      }
+      return await r.json();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await wait(1000 * (attempt + 1)); // exponential-ish backoff
+      }
+    }
+  }
+
+  logErr(`apiFetch failed: ${url}`, lastErr);
+  if (!silent) {
+    toast('Connection issue — check your internet and try again', 'err');
+  }
+  throw lastErr;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════
+async function showScreen(name, ctx = {}) {
+  if (ctx.token) S.token = ctx.token;
+  if (ctx.slug)  S.slug  = ctx.slug;
+
+  const cur = document.querySelector('.screen.active');
+  if (cur) {
+    cur.classList.add('exit');
+    await wait(200);
+    cur.classList.remove('active', 'exit');
+  }
+
+  const next = el('screen-' + name);
+  if (!next) { logErr('Screen not found', name); return; }
+  next.classList.add('active');
+  S.screen = name;
+
+  // Call screen-specific init
+  const inits = { init: onInit, experience: onExperience, confirm: onConfirm, processing: onProcessing, dashboard: onDashboard };
+  try {
+    await inits[name]?.(ctx);
+  } catch (err) {
+    logErr(`Screen init failed: ${name}`, err);
+    toast('Something went wrong loading this screen', 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: INIT
+// ═══════════════════════════════════════════════════════════════════
+function onInit(ctx) {
+  clearTimers();
+  el('initActions').style.display = 'none';
+  S._msgIdx = 0;
+  setInitMsg(0);
+
+  S._msgTimer = setInterval(() => {
+    S._msgIdx = (S._msgIdx + 1) % INIT_MSGS.length;
+    setInitMsg(S._msgIdx);
+  }, CONFIG.MSG_ROTATE_INTERVAL);
+
+  if (isDev()) return;
+
+  const deadline = Date.now() + CONFIG.INIT_TIMEOUT;
+  let failStreak = 0;
+
+  S._pollTimer = setInterval(async () => {
+    try {
+      const d = await apiFetch(`/build-status?token=${S.token}`, {}, { silent: true });
+      failStreak = 0;
+
+      if (d.slug) S.slug = d.slug;
+
+      if (d.status === 'preview_ready' || d.status === 'ready') {
+        clearTimers();
+        showScreen('experience', { slug: S.slug || d.slug, token: S.token });
+      } else if (d.status === 'failed') {
+        clearTimers();
+        showInitError('Build failed', "We couldn't build your preview. Tap to retry or contact support.");
+      }
+    } catch (err) {
+      failStreak++;
+      if (failStreak >= 3) {
+        clearTimers();
+        showInitError('Connection lost', "Can't reach our servers. Check your connection and tap to retry.");
+      }
+    }
+
+    if (Date.now() > deadline) {
+      clearTimers();
+      showInitTimeout();
+    }
+  }, CONFIG.POLL_INTERVAL);
+}
+
+function setInitMsg(i) {
+  const m = INIT_MSGS[i];
+  el('initStatus').textContent = m.s;
+  el('initSub').textContent = m.b;
+}
+
+function showInitError(status, sub) {
+  clearTimers();
+  el('initStatus').textContent = status;
+  el('initSub').textContent = sub;
+  el('initActions').style.display = 'flex';
+}
+
+function showInitTimeout() {
+  el('initStatus').textContent = 'Taking longer than usual';
+  el('initSub').textContent = "We're still working. You'll get a WhatsApp when it's ready — you can close this tab.";
+  el('initActions').style.display = 'flex';
+}
+
+function retryInit() {
+  el('initActions').style.display = 'none';
+  onInit({ token: S.token });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: EXPERIENCE
+// ═══════════════════════════════════════════════════════════════════
+async function onExperience(ctx) {
+  // Reset card state for fresh entry
+  S.currentCard = 0;
+  S.rebuildDone = false;
+  S.rebuildFailed = false;
+
+  buildIndGrid();
+  updatePlanTickets(S.selectedPlan);
+  updateCardUI();
+  slideCardsTo(0);
+
+  // Setup iframe
+  const frame = el('siteFrame');
+  const frameWrap = el('frameWrap');
+
+  if (isDev()) {
+    frame.src = 'about:blank';
+    frameWrap.classList.remove('frame-loading', 'frame-error');
+    return;
+  }
+
+  if (!S.slug) {
+    frameWrap.classList.add('frame-error');
+    frameWrap.setAttribute('data-error', "We couldn't find your preview. Please start over.");
+    logErr('Experience: no slug', { token: S.token });
+    return;
+  }
+
+  // Load iframe with proper handlers
+  const previewUrl = `/${S.slug}/raw/?page=index`;
+  frameWrap.classList.add('frame-loading');
+  frameWrap.classList.remove('frame-error');
+  S._iframeLoading = true;
+
+  frame.onload = () => {
+    S._iframeLoading = false;
+    frameWrap.classList.remove('frame-loading');
+    log('iframe loaded', previewUrl);
+  };
+
+  frame.onerror = () => {
+    S._iframeLoading = false;
+    frameWrap.classList.remove('frame-loading');
+    frameWrap.classList.add('frame-error');
+    frameWrap.setAttribute('data-error', "Preview couldn't load. Tap to retry.");
+    logErr('iframe error', previewUrl);
+  };
+
+  frame.src = previewUrl;
+
+  // Load preview meta in background
+  try {
+    const d = await apiFetch(`/preview-meta?slug=${S.slug}`, {}, { silent: true });
+    S.previewMeta = d;
+
+    if (d.businessName) el('expBiz').textContent = d.businessName;
+    if (d.area) { el('areaInput').value = d.area; S.cards.area = d.area; }
+    if (d.industry) {
+      S.cards.industry = d.industry.toLowerCase();
+      // Select matching tile
+      document.querySelectorAll('.ind-tile').forEach(t => {
+        t.classList.toggle('sel', t.dataset.ind === S.cards.industry);
+      });
+    }
+    if (d.package) selectPlan(d.package);
+    if (d.taglines?.length) {
+      S.cards.tagline = d.taglines[0];
+    }
+    populateSvc(d.industry?.toLowerCase() || '_');
+  } catch (err) {
+    logErr('preview-meta failed', err);
+    // Non-fatal: cards work without prefill
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CARD SYSTEM — horizontal slide with transform
+// ═══════════════════════════════════════════════════════════════════
+function slideCardsTo(idx) {
+  const track = el('cardsTrack');
+  if (!track) return;
+  track.style.transform = `translateX(-${idx * 100}%)`;
+}
+
+function updateCardUI() {
+  const idx = S.currentCard;
+  const tot = CARDS.length;
+
+  // Progress
+  el('expCounter').textContent = `Step ${idx + 1} of ${tot}`;
+  el('expProgFill').style.width = `${Math.round(((idx + 1) / tot) * 100)}%`;
+
+  const msgs = [
+    'Start here — every answer improves your site',
+    'Location shapes how your site reads',
+    'Personality makes copy come alive',
+    'Services locked in — homepage taking shape',
+    'The detail that makes visitors convert',
+    'Visuals make your site feel real',
+    'Almost done — make it yours',
+  ];
+  el('expProgMsg').textContent = msgs[idx] || '';
+
+  // Buttons
+  const back = el('btnBack');
+  back.disabled = idx === 0;
+  back.style.opacity = idx === 0 ? '0.35' : '1';
+
+  const next = el('btnNext');
+  if (idx === tot - 2) {
+    next.textContent = 'Build my site';
+    next.classList.add('build');
+  } else if (idx === tot - 1) {
+    next.textContent = 'Checkout';
+    next.classList.remove('build');
+  } else {
+    next.textContent = 'Next';
+    next.classList.remove('build');
+  }
+
+  // Populate taglines when reaching style card
+  if (CARDS[idx] === 'style') populateTaglines();
+}
+
+function cardNext() {
+  gatherCard();
+
+  const idx = S.currentCard;
+  const cardName = CARDS[idx];
+
+  // Visuals card → trigger rebuild
+  if (cardName === 'visuals') {
+    triggerRebuild();
+    return;
+  }
+
+  // Style card (last) → checkout
+  if (idx >= CARDS.length - 1) {
+    if (!S.rebuildDone) {
+      toast('Please wait for your site to finish building', 'err');
+      return;
+    }
+    goToConfirm();
+    return;
+  }
+
+  // Normal advance
+  S.currentCard = idx + 1;
+  slideCardsTo(S.currentCard);
+  updateCardUI();
+  fireIntakePreview();
+}
+
+function cardBack() {
+  if (S.currentCard <= 0) return;
+  S.currentCard--;
+  slideCardsTo(S.currentCard);
+  updateCardUI();
+}
+
+function gatherCard() {
+  const name = CARDS[S.currentCard];
+  switch (name) {
+    case 'industry':
+      const custom = el('indCustom').value.trim();
+      if (custom) S.cards.industry = custom.toLowerCase();
+      break;
+    case 'area':
+      S.cards.area = el('areaInput').value.trim();
+      S.cards.audience = el('audienceInput').value.trim();
+      break;
+    case 'services':
+      S.cards.cta = el('ctaInput').value.trim() || 'Get a Quote';
+      break;
+    case 'differentiators':
+      S.cards.diff1 = el('diff1').value.trim();
+      S.cards.diff2 = el('diff2').value.trim();
+      S.cards.diff3 = el('diff3').value.trim();
+      S.cards.testimonial = el('testimonial').value.trim();
+      break;
+  }
+}
+
+// Touch swipe on cards
+(function initSwipe() {
+  let sx = 0, sy = 0, st = 0;
+  const wrap = el('cardsTrackWrap');
+  if (!wrap) return;
+
+  wrap.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    st = Date.now();
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', e => {
+    if (!sx) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    const dt = Date.now() - st;
+    sx = 0;
+
+    // Only handle horizontal swipes, ignore vertical scroll
+    if (Math.abs(dx) < Math.abs(dy)) return;
+    if (Math.abs(dx) < 50 || dt > 500) return;
+
+    if (dx < 0) cardNext();
+    else cardBack();
+  }, { passive: true });
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+// INDUSTRY GRID
+// ═══════════════════════════════════════════════════════════════════
+function buildIndGrid() {
+  const g = el('indGrid');
+  if (!g) return;
+  g.innerHTML = '';
+
+  INDUSTRIES.forEach(({ i, l }) => {
+    const t = document.createElement('div');
+    t.className = 'ind-tile';
+    t.dataset.ind = l.toLowerCase();
+    t.innerHTML = `<div class="ind-tile-icon">${i}</div><div>${l}</div>`;
+    if (S.cards.industry === l.toLowerCase()) t.classList.add('sel');
+
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.ind-tile').forEach(x => x.classList.remove('sel'));
+      t.classList.add('sel');
+      S.cards.industry = l.toLowerCase();
+      el('indCustom').value = '';
+      populateSvc(l.toLowerCase());
+    });
+
+    g.appendChild(t);
+  });
+}
+
+function handleCustomIndustry() {
+  const v = el('indCustom').value.trim();
+  if (!v) return;
+  document.querySelectorAll('.ind-tile').forEach(x => x.classList.remove('sel'));
+  S.cards.industry = v.toLowerCase();
+  populateSvc('_');
+}
+
+function populateSvc(ind) {
+  const svcs = SVC_DEFAULTS[ind] || SVC_DEFAULTS._;
+  S.cards.services = svcs.slice(0, 3);
+
+  const wrap = el('servicesChips');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  svcs.forEach(s => {
+    const c = document.createElement('div');
+    c.className = 'chip sel';
+    c.textContent = s;
+    c.addEventListener('click', () => {
+      c.classList.toggle('sel');
+      if (c.classList.contains('sel')) {
+        if (!S.cards.services.includes(s)) S.cards.services.push(s);
+      } else {
+        S.cards.services = S.cards.services.filter(x => x !== s);
+      }
+    });
+    wrap.appendChild(c);
+  });
+}
+
+function addCustomService(e) {
+  if (e.key !== 'Enter') return;
+  const v = e.target.value.trim();
+  if (!v) return;
+
+  S.cards.services.push(v);
+  const wrap = el('servicesChips');
+  const c = document.createElement('div');
+  c.className = 'chip sel';
+  c.textContent = v;
+  c.addEventListener('click', () => {
+    c.classList.toggle('sel');
+    if (!c.classList.contains('sel')) {
+      S.cards.services = S.cards.services.filter(x => x !== v);
+    }
+  });
+  wrap.appendChild(c);
+  e.target.value = '';
+}
+
+function selectVibe(v, el_) {
+  document.querySelectorAll('.vibe-opt').forEach(x => x.classList.remove('sel'));
+  el_.classList.add('sel');
+  S.cards.vibe = v;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UPLOADS
+// ═══════════════════════════════════════════════════════════════════
+function handleLogoUpload(input) {
+  const f = input.files[0];
+  if (!f) return;
+
+  // Validate
+  if (f.size > 5 * 1024 * 1024) {
+    toast('Logo too large — max 5MB', 'err');
+    return;
+  }
+
+  const r = new FileReader();
+  r.onload = e => {
+    const z = el('logoZone');
+    z.innerHTML = `<img class="uz-img" src="${e.target.result}"><div class="uz-title" style="color:var(--green)">✓ Logo added</div><div class="uz-sub">${f.name}</div>`;
+    z.classList.add('has-file');
+  };
+  r.onerror = () => toast('Could not read logo file', 'err');
+  r.readAsDataURL(f);
+
+  if (isDev()) return;
+
+  const fd = new FormData();
+  fd.append('slug', S.slug);
+  fd.append('token', S.token || '');
+  fd.append('type', 'logo');
+  fd.append('file', f);
+
+  fetch('/upload-assets', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+      if (d.url) {
+        S.cards.logo = d.url;
+        toast('Logo uploaded ✓', 'ok');
+      } else {
+        throw new Error('No URL in response');
+      }
+    })
+    .catch(err => {
+      logErr('Logo upload failed', err);
+      toast('Logo upload failed — try again', 'err');
+    });
+}
+
+function handlePhotoUpload(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+
+  files.forEach(f => {
+    if (f.size > 5 * 1024 * 1024) {
+      toast(`"${f.name}" too large — max 5MB`, 'err');
+      return;
+    }
+
+    const r = new FileReader();
+    r.onload = e => {
+      const strip = el('photoStrip');
+      const img = document.createElement('img');
+      img.className = 'photo-thumb';
+      img.src = e.target.result;
+      img.title = f.name;
+      strip.insertBefore(img, strip.firstChild);
+    };
+    r.onerror = () => toast(`Could not read ${f.name}`, 'err');
+    r.readAsDataURL(f);
+
+    if (isDev()) return;
+
+    const fd = new FormData();
+    fd.append('slug', S.slug);
+    fd.append('token', S.token || '');
+    fd.append('type', 'photo');
+    fd.append('file', f);
+
+    fetch('/upload-assets', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(d => {
+        if (d.url) S.cards.photos.push(d.url);
+      })
+      .catch(err => logErr('Photo upload failed', err));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// REBUILD — with proper success/failure tracking
+// ═══════════════════════════════════════════════════════════════════
+async function triggerRebuild() {
+  const ov = el('rebuildOv');
+  const sub = el('rbSub');
+  const actions = el('rbActions');
+
+  ov.classList.add('show');
+  sub.textContent = 'This takes about 30 seconds';
+  actions.style.display = 'none';
+  S.rebuildDone = false;
+  S.rebuildFailed = false;
+
+  if (isDev()) {
+    await wait(2000);
+    ov.classList.remove('show');
+    S.rebuildDone = true;
+    S.currentCard = CARDS.indexOf('style');
+    slideCardsTo(S.currentCard);
+    updateCardUI();
+    updateCheckout();
+    toast('Preview rebuilt (dev mode) ✓', 'ok');
+    return;
+  }
+
+  try {
+    await apiFetch('/trigger-rebuild', {
+      method: 'POST',
+      body: JSON.stringify({
+        slug: S.slug,
+        token: S.token,
+        cards: { ...S.cards },
+        assets: { logo: S.cards.logo, photos: S.cards.photos },
+        palette: S.cards.palette,
+        font: S.cards.font,
+        tagline: S.cards.tagline,
+      })
+    });
+
+    // Poll for completion
+    let attempts = 0;
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      try {
+        const d = await apiFetch(`/build-status?token=${S.token}`, {}, { silent: true });
+
+        if (d.status === 'preview_ready') {
+          clearInterval(pollInterval);
+          ov.classList.remove('show');
+          S.rebuildDone = true;
+          S.rebuildFailed = false;
+
+          // Reload iframe
+          const frame = el('siteFrame');
+          if (frame) frame.src = `/${S.slug}/raw/?page=index&t=${Date.now()}`;
+
+          // Advance to style card
+          S.currentCard = CARDS.indexOf('style');
+          slideCardsTo(S.currentCard);
+          updateCardUI();
+          updateCheckout();
+          toast('Your site is ready ✓', 'ok');
+          return;
+        }
+
+        if (d.status === 'failed') {
+          clearInterval(pollInterval);
+          sub.textContent = 'Build failed — tap to retry or contact support';
+          actions.style.display = 'flex';
+          S.rebuildFailed = true;
+          logErr('Rebuild failed', d);
+          return;
+        }
+
+        // Update status message
+        if (attempts % 5 === 0) {
+          sub.textContent = `Still building… (${attempts * 2}s)`;
+        }
+      } catch (err) {
+        logErr('Rebuild poll error', err);
+      }
+
+      if (attempts >= CONFIG.REBUILD_MAX_POLLS) {
+        clearInterval(pollInterval);
+        sub.textContent = 'Build is taking longer than expected — tap to retry';
+        actions.style.display = 'flex';
+        S.rebuildFailed = true;
+      }
+    }, CONFIG.POLL_INTERVAL);
+
+  } catch (err) {
+    logErr('Trigger rebuild failed', err);
+    sub.textContent = "Couldn't start build — tap to retry";
+    actions.style.display = 'flex';
+    S.rebuildFailed = true;
+  }
+}
+
+function retryRebuild() {
+  el('rbActions').style.display = 'none';
+  triggerRebuild();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STYLE CARD — palette & taglines
+// ═══════════════════════════════════════════════════════════════════
+function populateTaglines() {
+  const list = el('taglineList');
+  if (!list) return;
+
+  const tags = S.previewMeta?.taglines || [];
+  if (!tags.length) {
+    list.innerHTML = '<div class="card-hint">Taglines loading…</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  tags.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.className = 'tl-opt' + (i === 0 && !S.cards.tagline ? ' sel' : '');
+    d.textContent = t;
+    if (i === 0 && !S.cards.tagline) S.cards.tagline = t;
+
+    d.addEventListener('click', () => {
+      document.querySelectorAll('.tl-opt').forEach(x => x.classList.remove('sel'));
+      d.classList.add('sel');
+      S.cards.tagline = t;
+      sendPatch();
+    });
+
+    list.appendChild(d);
+  });
+}
+
+function pickPalette(pal, el_) {
+  document.querySelectorAll('.pal-swatch').forEach(x => x.classList.remove('sel'));
+  el_.classList.add('sel');
+  S.cards.palette = pal;
+  sendPatch();
+}
+
+async function sendPatch() {
+  if (isDev() || !S.slug) return;
+
+  const ov = el('patchOverlay');
+  ov.classList.add('show');
+
+  try {
+    await apiFetch('/patch-preview', {
+      method: 'POST',
+      body: JSON.stringify({
+        slug: S.slug,
+        token: S.token,
+        patch: {
+          palette: S.cards.palette || 'ocean',
+          tagline: S.cards.tagline || '',
+        }
+      })
+    }, { silent: true });
+
+    // Reload iframe
+    const frame = el('siteFrame');
+    if (frame) frame.src = `/${S.slug}/raw/?page=index&t=${Date.now()}`;
+
+    await wait(600);
+    ov.classList.remove('show');
+  } catch (err) {
+    logErr('Patch failed', err);
+    ov.classList.remove('show');
+    toast("Couldn't apply change — try again", 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INTAKE PREVIEW — fire and forget with logging
+// ═══════════════════════════════════════════════════════════════════
+function fireIntakePreview() {
+  if (isDev() || !S.slug) return;
+
+  fetch('/intake-preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      slug: S.slug,
+      token: S.token,
+      card: S.currentCard,
+      biz: S.previewMeta?.businessName || '',
+      industry: S.cards.industry || '',
+      area: S.cards.area || '',
+      vibe: S.cards.vibe || '',
+      services: S.cards.services.join(', '),
+      differentiators: [S.cards.diff1, S.cards.diff2, S.cards.diff3].filter(Boolean).join('; '),
+      audience: S.cards.audience || '',
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.preview) {
+      // Post to iframe if same-origin
+      try {
+        const frame = el('siteFrame');
+        if (frame?.contentWindow) {
+          frame.contentWindow.postMessage({ type: 'wh-preview', data: d.preview }, '*');
+        }
+      } catch (e) {
+        // Cross-origin or iframe not ready — fine to ignore
+      }
+    }
+  })
+  .catch(err => logErr('Intake preview failed', err));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TICKETS + CHECKOUT
+// ═══════════════════════════════════════════════════════════════════
+function selectPlan(plan, tileEl) {
+  const wasSelected = tileEl?.classList.contains('sel');
+  S.selectedPlan = plan;
+  updatePlanTickets(plan);
+  updateCheckout();
+  if (wasSelected) showPlanPopover(plan);
+}
+
+function updatePlanTickets(plan) {
+  document.querySelectorAll('.ticket').forEach(t => {
+    t.classList.toggle('sel', t.dataset.plan === plan);
+  });
+}
+
+function updateCheckout() {
+  const btn = el('checkoutBtn');
+  const canCheckout = S.currentCard >= CARDS.length - 1 && S.selectedPlan && S.rebuildDone && !S.rebuildFailed;
+  btn.disabled = !canCheckout;
+
+  if (canCheckout) {
+    btn.textContent = 'Continue to checkout →';
+  } else if (S.rebuildFailed) {
+    btn.textContent = 'Build failed — retry above';
+  } else if (!S.rebuildDone) {
+    btn.textContent = 'Finish cards to continue';
+  } else {
+    btn.textContent = 'Continue to checkout →';
+  }
+}
+
+function goToConfirm() {
+  showScreen('confirm', {});
+}
+
+function showPlanPopover(plan) {
+  const p = PLANS[plan];
+  el('popName').textContent = `${p.name} — R${p.price}/mo`;
+  el('popBadge').textContent = p.badge;
+  el('popFeats').innerHTML = p.feats.map(f =>
+    `<div class="feat-row"><span class="feat-check">✓</span>${f}</div>`
+  ).join('');
+  el('planPopover').classList.add('open');
+  el('popoverOv').classList.add('show');
+  // Allow scroll within popover but not body
+  el('planPopover').style.overflowY = 'auto';
+  el('planPopover').style.maxHeight = '70vh';
+}
+
+function closePopover() {
+  el('planPopover').classList.remove('open');
+  el('popoverOv').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: CONFIRM
+// ═══════════════════════════════════════════════════════════════════
+function onConfirm() {
+  const p = PLANS[S.selectedPlan] || PLANS.standard;
+  el('cPlan').textContent = p.name;
+  el('cPrice').textContent = 'R' + p.price;
+  el('cDomain').textContent = S.slug ? `${S.slug}.co.za` : '—';
+  el('cEmail').textContent = S.selectedPlan === 'express' ? 'Not included' : '1 account';
+  el('payBtn').textContent = `Pay R${p.price} — Go Live 🚀`;
+  el('confirmSub').textContent = S.slug ? `${S.slug}.co.za — free domain + setup included` : 'Free domain + setup included';
+}
+
+function clearPromo() {
+  el('promoMsg').textContent = '';
+  el('promoMsg').className = '';
+}
+
+function applyPromo() {
+  const code = el('promoInput').value.trim().toUpperCase();
+  const m = el('promoMsg');
+
+  if (PROMO_CODES[code] !== undefined) {
+    const p = PLANS[S.selectedPlan];
+    const disc = PROMO_CODES[code];
+    const newPrice = disc === 1.0 ? 0 : Math.round(p.price * (1 - disc));
+
+    el('cPrice').textContent = newPrice === 0 ? 'Free first month' : 'R' + newPrice;
+    el('payBtn').textContent = newPrice === 0 ? 'Activate — Go Live 🚀' : `Pay R${newPrice} — Go Live 🚀`;
+    m.textContent = disc === 1.0 ? '🎉 First month free!' : `🎉 ${Math.round(disc * 100)}% off applied`;
+    m.className = 'ok';
+  } else {
+    m.textContent = 'Code not recognised';
+    m.className = 'err';
+  }
+}
+
+async function processPayment() {
+  if (isDev()) {
+    showScreen('processing', { token: 'dev' });
+    return;
+  }
+
+  const btn = el('payBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Connecting to PayFast…';
+  btn.disabled = true;
+
+  const p = PLANS[S.selectedPlan];
+
+  try {
+    const d = await apiFetch('/go-live-link', {
+      method: 'POST',
+      body: JSON.stringify({
+        token: S.token,
+        slug: S.slug,
+        plan: S.selectedPlan,
+        retainer: p.price,
+        choices: {
+          palette: S.cards.palette,
+          font: S.cards.font,
+          tagline: S.cards.tagline,
+          logo: S.cards.logo,
+          photo: S.cards.photos[0] || null,
+        }
+      })
+    });
+
+    if (d.redirectUrl) {
+      window.location.href = d.redirectUrl;
+    } else {
+      throw new Error('No redirect URL');
+    }
+  } catch (err) {
+    logErr('Payment init failed', err);
+    btn.textContent = originalText;
+    btn.disabled = false;
+    toast("Couldn't reach payments — check connection and try again", 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: PROCESSING
+// ═══════════════════════════════════════════════════════════════════
+function onProcessing(ctx) {
+  el('procStatus').textContent = 'Confirming your payment';
+  el('procSub').textContent = 'This usually takes a few seconds';
+  el('procAction').style.display = 'none';
+
+  if (isDev()) {
+    setTimeout(() => showScreen('dashboard', { token: 'dev' }), 2000);
+    return;
+  }
+
+  let attempts = 0;
+  const timer = setInterval(async () => {
+    attempts++;
+
+    try {
+      const d = await apiFetch(`/client-status?token=${S.token}`, {}, { silent: true });
+      if (d.slug) S.slug = d.slug;
+
+      if (d.status === 'live') {
+        clearInterval(timer);
+        showScreen('dashboard', { token: S.token });
+        return;
+      }
+
+      if (d.status === 'failed') {
+        clearInterval(timer);
+        el('procStatus').textContent = 'Payment not confirmed';
+        el('procSub').textContent = 'Something went wrong. Tap to try again or contact support.';
+        el('procAction').style.display = 'flex';
+        return;
+      }
+    } catch (err) {
+      logErr('Processing poll error', err);
+    }
+
+    if (attempts >= CONFIG.PROCESSING_MAX_POLLS) {
+      clearInterval(timer);
+      el('procStatus').textContent = 'Still confirming';
+      el('procSub').textContent = "We'll send you a WhatsApp when ready. You can close this tab.";
+      el('procAction').style.display = 'flex';
+    }
+  }, CONFIG.POLL_INTERVAL);
+}
+
+function retryProcessing() {
+  el('procAction').style.display = 'none';
+  onProcessing({});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: DASHBOARD
+// ═══════════════════════════════════════════════════════════════════
+async function onDashboard(ctx) {
+  if (isDev()) {
+    renderDash({
+      businessName: 'Demo Business',
+      slug: 'demo-business',
+      domain: 'demo-business.co.za',
+      liveUrl: 'https://demo-business.co.za',
+      package: 'standard',
+      status: 'live',
+      retainer: 999,
+      nextInvoiceDate: '2026-06-25',
+      revisions: { used: 0, limit: 2, paidCost: 199 },
+      email: { included: 1, addonAvailable: true, addonCost: 200 },
+      gallery: null,
+      referral: { enabled: true, link: 'https://websitehub.co.za?ref=demo-business', sent: 3, conversions: 1, rewardMonths: 1 },
+      analytics: { enabled: true, slug: 'demo-business' },
+      upgradeOffers: [{ to: 'premium', delta: 500 }]
+    });
+    return;
+  }
+
+  try {
+    const d = await apiFetch(`/manage-panel?token=${S.token}`);
+    S.dashData = d;
+    renderDash(d);
+  } catch (err) {
+    logErr('Dashboard load failed', err);
+    if (err.status === 404) {
+      location.href = '/start';
+    } else {
+      toast("Couldn't load dashboard — check connection and try again", 'err');
+    }
+  }
+}
+
+function renderDash(d) {
+  S.dashData = d;
+  el('dashBiz').textContent = d.businessName || 'Your business';
+
+  const inv = d.nextInvoiceDate
+    ? new Date(d.nextInvoiceDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
+    : '—';
+
+  el('sInvoice').textContent = inv;
+  el('sReferrals').textContent = d.referral?.conversions ?? 0;
+
+  const rl = d.revisions?.limit;
+  el('qRevSub').textContent = rl === null ? 'Unlimited' : `${rl || 0} free/month`;
+  el('qEmailSub').textContent = d.email?.included > 0
+    ? `${d.email.included} account${d.email.included > 1 ? 's' : ''}`
+    : 'Not included';
+
+  if (!d.gallery) el('qGallery').style.opacity = '.5';
+
+  if (d.upgradeOffers?.length) {
+    el('upgradeSection').style.display = 'block';
+    el('upgradeCards').innerHTML = d.upgradeOffers.map(o => `
+      <div class="up-card">
+        <div class="up-label">Upgrade to ${cap(o.to)}</div>
+        <div class="up-title">${upTitle(o.to)}</div>
+        <div class="up-sub">${upDesc(o.to)}</div>
+        <div class="up-btn" onclick="startUpgrade('${o.to}',${o.delta})">+ R${o.delta}/mo →</div>
+      </div>
+    `).join('');
+  } else {
+    el('upgradeSection').style.display = 'none';
+  }
+
+  // Site tab
+  el('siteLiveUrl').textContent = d.liveUrl || '—';
+
+  // Email tab
+  if (d.email?.included > 0) {
+    el('emailAddr').textContent = `hello@${d.domain || d.slug + '.co.za'}`;
+    el('emailUpsell').style.display = 'none';
+  } else {
+    el('emailPanel').innerHTML = '';
+    el('emailUpsell').style.display = 'block';
+  }
+
+  // Revisions tab
+  const used = d.revisions?.used || 0;
+  const limit = d.revisions?.limit ?? 2;
+  el('revCount').textContent = `${used} / ${limit === null ? '∞' : limit} used`;
+  el('revFill').style.width = limit === null ? '0%' : `${Math.min(100, (used / limit) * 100)}%`;
+
+  // Account tab
+  el('acctPlan').textContent = cap(d.package || 'standard');
+  el('acctInvoice').textContent = `Next invoice: ${inv} · R${d.retainer}/mo`;
+
+  if (d.referral) {
+    el('refLink').textContent = d.referral.link || '—';
+    el('refSent').textContent = d.referral.sent || 0;
+    el('refConv').textContent = d.referral.conversions || 0;
+    el('refMonths').textContent = d.referral.rewardMonths || 0;
+  }
+
+  // Analytics
+  if (d.analytics?.enabled) {
+    fetchAnalytics(d.analytics.slug);
+  }
+}
+
+async function fetchAnalytics(slug) {
+  try {
+    const d = await apiFetch(`/analytics?slug=${slug}&range=7d`, {}, { silent: true });
+    el('sVisits').textContent = d.totals?.visits ?? '—';
+    el('sWaTaps').textContent = d.totals?.waTaps ?? '—';
+    el('trafficChart').textContent = `${d.totals?.visits || 0} visits · ${d.totals?.uniqueVisitors || 0} unique · ${d.totals?.waTaps || 0} WA taps`;
+
+    if (d.topPages?.length) {
+      el('topPagesList').innerHTML = d.topPages.map(p =>
+        `<div class="list-row"><div class="list-lbl">${p.path}</div><div>${p.visits}</div></div>`
+      ).join('');
+    }
+  } catch (err) {
+    logErr('Analytics fetch failed', err);
+    el('trafficChart').textContent = 'Analytics unavailable';
+  }
+}
+
+function switchTab(tab) {
+  S.activeTab = tab;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el('tab-' + tab)?.classList.add('active');
+  document.querySelector(`.tab[data-tab="${tab}"]`)?.classList.add('active');
+  el('dashContent').scrollTop = 0;
+}
+
+function openSite() {
+  const u = S.dashData?.liveUrl;
+  if (u) window.open(u, '_blank');
+}
+
+function galleryTap() {
+  if (!S.dashData?.gallery) {
+    toast('Gallery is a Premium feature — upgrade to unlock', 'err');
+  }
+}
+
+async function submitRevision() {
+  const txt = el('revText').value.trim();
+  if (!txt) {
+    toast('Describe what you want changed', 'err');
+    return;
+  }
+
+  if (isDev()) {
+    toast('Revision submitted (demo mode) ✓', 'ok');
+    el('revText').value = '';
+    return;
+  }
+
+  try {
+    const d = await apiFetch('/submit-revision', {
+      method: 'POST',
+      body: JSON.stringify({ token: S.token, message: txt, type: 'free' })
+    });
+
+    if (d.success) {
+      toast("Request submitted ✓ We'll update your site within 24hrs", 'ok');
+      el('revText').value = '';
+    } else if (d.paymentRequired) {
+      toast('Revision allowance exhausted — upgrade to continue', 'err');
+    }
+  } catch (err) {
+    logErr('Revision submit failed', err);
+    toast("Couldn't submit — check connection and try again", 'err');
+  }
+}
+
+function copyRef() {
+  const link = el('refLink').textContent || '';
+  if (!link || link === '—') {
+    toast('No referral link available', 'err');
+    return;
+  }
+  navigator.clipboard?.writeText(link)
+    .then(() => toast('Referral link copied! 🎉', 'ok'))
+    .catch(() => toast('Could not copy link', 'err'));
+}
+
+function startUpgrade(to, delta) {
+  toast(`Upgrade to ${cap(to)} — coming soon`, 'info');
+}
+
+async function cancelSite() {
+  if (!confirm('Are you sure? Your site will be deactivated at the end of this billing period.')) return;
+
+  if (isDev()) {
+    toast('Cancellation (demo mode)', 'info');
+    return;
+  }
+
+  try {
+    await apiFetch('/cancel-site', {
+      method: 'POST',
+      body: JSON.stringify({ token: S.token })
+    });
+    toast('Cancellation received. Confirmation via WhatsApp.', 'ok');
+  } catch (err) {
+    logErr('Cancel failed', err);
+    toast("Couldn't process — contact support", 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function upTitle(to) {
+  return {
+    premium: 'Unlimited revisions + photo gallery',
+    standard: 'Business email + 5 pages'
+  }[to] || 'Upgrade your plan';
+}
+
+function upDesc(to) {
+  return {
+    premium: 'Two email accounts, unlimited changes, gallery add-on.',
+    standard: 'A professional email address and room to grow.'
+  }[to] || '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOTSTRAP ROUTER
+// ═══════════════════════════════════════════════════════════════════
+async function bootstrap() {
+  const path = location.pathname;
+  const slug = (path.match(/\/experience\/([^/]+)/) || [])[1];
+  const token = (path.match(/\/(manage|build|verify)\/([^/]+)/) || [])[2];
+
+  if (token && path.startsWith('/verify/')) {
+    S.token = token;
+    showScreen('processing', { token });
+  } else if (token) {
+    S.token = token;
+    try {
+      const d = await apiFetch(`/build-status?token=${token}`, {}, { retries: 0 });
+      S.slug = d.slug || null;
+
+      const dest = {
+        live: 'dashboard',
+        paid_pending: 'processing',
+        preview_ready: 'experience',
+        ready: 'experience',
+        paid: 'processing',
+        building: 'init',
+        queued: 'init',
+        lead: 'init'
+      }[d.status] || 'init';
+
+      showScreen(dest, { token, slug: d.slug });
+    } catch (err) {
+      logErr('Bootstrap status check failed', err);
+      showScreen('init', { token });
+    }
+  } else if (slug) {
+    S.slug = slug;
+    showScreen('experience', { slug });
+  } else {
+    // No context — dev mode
+    showScreen('init', { token: 'dev' });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  closePopover(); // Ensure popover is closed on load
+  bootstrap();
+});
+</script>
+</body>
+</html>
