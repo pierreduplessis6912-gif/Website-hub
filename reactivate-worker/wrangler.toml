@@ -8,17 +8,14 @@ TEST_MODE = "false"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
 WORKER_URL_LAUNCH = "https://wh-launch.pierreduplessis6912.workers.dev"
 
-# Routes on preview.websitehub.co.za
 [[routes]]
 pattern = "preview.websitehub.co.za/cancel-site"
 zone_name = "websitehub.co.za"
 
-# KV — conversation state, opt-out flags
 [[kv_namespaces]]
 binding = "SITES"
 id = "b63e5b885ead4c02a9e184dd6477e711"
 
-# D1 — cancellation records, win-back sequences, inbound reply routing
 [[d1_databases]]
 binding = "DB"
 database_name = "website-hub-db"

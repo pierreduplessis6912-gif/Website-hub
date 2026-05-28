@@ -8,8 +8,6 @@ RESEND_API_KEY = ""
 TEST_MODE = "false"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
 
-# Routes on preview.websitehub.co.za
-# These take priority over build-worker's /* wildcard
 [[routes]]
 pattern = "preview.websitehub.co.za/manage-panel"
 zone_name = "websitehub.co.za"
@@ -26,22 +24,18 @@ zone_name = "websitehub.co.za"
 pattern = "preview.websitehub.co.za/submit-revision"
 zone_name = "websitehub.co.za"
 
-# KV — content shelf only
 [[kv_namespaces]]
 binding = "SITES"
 id = "b63e5b885ead4c02a9e184dd6477e711"
 
-# R2 — photo and asset uploads
 [[r2_buckets]]
 binding = "ASSETS"
 bucket_name = "wh-assets"
 
-# D1 — client data, gallery records, revision history
 [[d1_databases]]
 binding = "DB"
 database_name = "website-hub-db"
 database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
 migrations_dir = "../migrations"
 
-# Email routing
 send_email = [{binding = "EMAIL", destination_address = "updates@websitehub.co.za"}]
