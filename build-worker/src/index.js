@@ -13,8 +13,8 @@
 // Route: preview.websitehub.co.za/*
 // ============================================================
 
-import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from './shared-services.js';
-import { getDesignBrief, buildCssVariables, UX_RULES } from '../../design-db.js';
+import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from '../shared-services.js';
+import { getDesignBrief, buildCssVariables, UX_RULES } from '../design-db.js';
 
 // ── CONSTANTS ─────────────────────────────────────────────────
 
@@ -142,6 +142,9 @@ export default {
         if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
         return jsonResponse({ error: 'Unknown admin route' }, 404);
       }
+
+      // ── DOMAIN CHECK ─────────────────────────────────────────
+      if (path === '/domain-check' && method === 'GET') return handleDomainCheck(url, env);
 
       // ── PUBLIC CONFIG ────────────────────────────────────────
       if (path === '/config' && method === 'GET') return handleConfig(env);
@@ -303,6 +306,84 @@ async function handlePreviewChoices(request, env) {
 
   await updateClient(env, client.id, updates);
   return jsonResponse({ success: true });
+}
+
+// ── DOMAIN CHECK ─────────────────────────────────────────────
+
+async function handleDomainCheck(url, env) {
+  const name   = url.searchParams.get('name') || '';
+  const slug   = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const domain = slug + '.co.za';
+
+  if (!slug) return jsonResponse({ available: false, domain, error: 'Invalid name' }, 400);
+
+  // CORS — landing page is on a different origin
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-store',
+  };
+
+  // Check against D1 first — if a client already has this slug, it's taken
+  try {
+    const existing = await env.DB.prepare(
+      `SELECT id FROM clients WHERE slug = ? LIMIT 1`
+    ).bind(slug).first();
+    if (existing) {
+      return new Response(JSON.stringify({
+        available:   false,
+        domain,
+        suggestions: generateSuggestions(slug),
+      }), { headers });
+    }
+  } catch {}
+
+  // Call RegisterDomain API
+  if (!env.REGISTERDOMAIN_API_KEY || !env.REGISTERDOMAIN_EMAIL) {
+    // No credentials — assume available (dev/test mode)
+    return new Response(JSON.stringify({ available: true, domain }), { headers });
+  }
+
+  try {
+    const params = new URLSearchParams({
+      username:   env.REGISTERDOMAIN_EMAIL,
+      password:   env.REGISTERDOMAIN_API_KEY,
+      action:     'CheckAvailability',
+      domain:     slug,
+      tld:        'co.za',
+      responsetype: 'json',
+    });
+
+    const res  = await fetch('https://www.registerdomain.co.za/includes/api.php', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    params.toString(),
+    });
+    const data = await res.json();
+
+    // WHMCS returns domains[0].status = 'available' | 'unavailable'
+    const status    = data?.domains?.[0]?.status || data?.result || '';
+    const available = status.toLowerCase().includes('available') && !status.toLowerCase().includes('un');
+
+    return new Response(JSON.stringify({
+      available,
+      domain,
+      suggestions: available ? [] : generateSuggestions(slug),
+    }), { headers });
+
+  } catch (err) {
+    console.error('Domain check failed:', err.message);
+    // Fail open — let them proceed, backend will catch duplicates at intake
+    return new Response(JSON.stringify({ available: true, domain, _fallback: true }), { headers });
+  }
+}
+
+function generateSuggestions(slug) {
+  return [
+    slug + 'za.co.za',
+    slug + '-sa.co.za',
+    'my' + slug + '.co.za',
+  ];
 }
 
 // ── PUBLIC CONFIG ─────────────────────────────────────────────
