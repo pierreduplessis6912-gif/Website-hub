@@ -311,8 +311,10 @@ async function handlePreviewChoices(request, env) {
 // ── DOMAIN CHECK ─────────────────────────────────────────────
 
 async function handleDomainCheck(url, env) {
-  const name   = url.searchParams.get('name') || '';
-  const slug   = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  let rawName = url.searchParams.get('name') || '';
+  // Strip .co.za if caller passed full domain instead of business name
+  if (rawName.toLowerCase().endsWith('.co.za')) rawName = rawName.slice(0, -6);
+  const slug   = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const domain = slug + '.co.za';
 
   if (!slug) return jsonResponse({ available: false, domain, error: 'Invalid name' }, 400);
@@ -346,29 +348,36 @@ async function handleDomainCheck(url, env) {
 
   try {
     const params = new URLSearchParams({
-      username:   env.REGISTERDOMAIN_EMAIL,
-      password:   env.REGISTERDOMAIN_API_KEY,
-      action:     'CheckAvailability',
-      domain:     slug,
-      tld:        'co.za',
+      username:     env.REGISTERDOMAIN_EMAIL,
+      password:     env.REGISTERDOMAIN_API_KEY,
+      action:       'CheckAvailability',
       responsetype: 'json',
     });
+    // WHMCS expects domains as array
+    params.append('domains[0]', domain);
 
     const res  = await fetch('https://www.registerdomain.co.za/includes/api.php', {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body:    params.toString(),
     });
+
+    if (!res.ok) throw new Error(`API ${res.status}`);
     const data = await res.json();
 
-    // WHMCS returns domains[0].status = 'available' | 'unavailable'
-    const status    = data?.domains?.[0]?.status || data?.result || '';
-    const available = status.toLowerCase().includes('available') && !status.toLowerCase().includes('un');
+    // Log raw response for debugging
+    console.log('RegisterDomain response:', JSON.stringify(data));
+
+    // WHMCS response: { domains: [{ domain, status }] }
+    const domainResult = data?.domains?.[0];
+    const status       = (domainResult?.status || data?.result || '').toLowerCase();
+    const available    = status === 'available' || status === 'free';
 
     return new Response(JSON.stringify({
       available,
       domain,
       suggestions: available ? [] : generateSuggestions(slug),
+      _debug: { status, raw: data?.domains?.[0] },
     }), { headers });
 
   } catch (err) {
@@ -380,8 +389,8 @@ async function handleDomainCheck(url, env) {
 
 function generateSuggestions(slug) {
   return [
-    slug + 'za.co.za',
-    slug + '-sa.co.za',
+    slug + 'sa.co.za',
+    slug + 'kzn.co.za',
     'my' + slug + '.co.za',
   ];
 }
@@ -1346,11 +1355,10 @@ function generateUUID() {
 function slugify(name) {
   return (name || '')
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')  // remove special chars
     .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 60);
+    .replace(/\s+/g, '')           // join words — no hyphens
+    .slice(0, 63);
 }
 
 async function uniqueSlug(name, env) {
