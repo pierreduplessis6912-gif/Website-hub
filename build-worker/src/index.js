@@ -54,6 +54,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--fg);overflow-
 .services-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:28px}
 .service-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 20px}
 .service-icon{font-size:28px;margin-bottom:10px;display:block}
+.service-num{font-family:var(--font-heading);font-size:11px;letter-spacing:2px;color:var(--accent);margin-bottom:12px;font-weight:700}
 .service-name{font-family:var(--font-heading);font-size:15px;font-weight:700;margin-bottom:6px;color:var(--fg)}
 .service-desc{font-size:13px;color:var(--muted-fg);line-height:1.5}
 .diff-stack{display:flex;flex-direction:column;gap:12px;margin-top:28px}
@@ -140,6 +141,7 @@ export default {
         if (path === '/admin/bootstrap-start' && method === 'POST') return handleAdminBootstrapStart(request, env);
         if (path === '/admin/reset-test'      && method === 'POST') return handleAdminResetTest(env);
         if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
+        if (path === '/admin/build-detail'     && method === 'GET')  return handleAdminBuildDetail(url, env);
         return jsonResponse({ error: 'Unknown admin route' }, 404);
       }
 
@@ -266,7 +268,43 @@ async function handleAdminResetTest(env) {
   return jsonResponse({ success: true });
 }
 
-async function handleAdminProspects(url, env) {
+async function handleAdminBuildDetail(url, env) {
+  const slug     = url.searchParams.get('slug');
+  const clientId = url.searchParams.get('id');
+
+  let client;
+  if (slug)     client = await getClientBySlug(slug, env);
+  if (clientId) client = await getClientById(clientId, env);
+  if (!client)  return jsonResponse({ error: 'not found' }, 404);
+
+  const build = await env.DB.prepare(
+    `SELECT * FROM builds WHERE client_id = ? ORDER BY created_at DESC LIMIT 1`
+  ).bind(client.id).first();
+
+  const contentTokens = await env.SITES.get(`content:${client.slug}`, 'json');
+
+  return jsonResponse({
+    client: {
+      id:            client.id,
+      business_name: client.business_name,
+      slug:          client.slug,
+      industry:      client.industry,
+      area:          client.area,
+      vibe:          client.vibe,
+      services:      client.services,
+      palette:       client.palette,
+      voice_profile: client.voice_profile ? JSON.parse(client.voice_profile) : null,
+    },
+    build: build ? {
+      status:           build.status,
+      build_time_ms:    build.build_time_ms,
+      palette:          build.palette,
+      unsplash_queries: build.unsplash_queries ? JSON.parse(build.unsplash_queries) : null,
+      voice_profile:    build.voice_profile   ? JSON.parse(build.voice_profile)    : null,
+    } : null,
+    contentTokens,
+  });
+}
   const status = url.searchParams.get('status') || 'pending';
   const limit  = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
   const rows = await env.DB.prepare(
@@ -1039,9 +1077,9 @@ ${cssBlock}
 <section id="services" class="section-bleed">
   <span class="label">${esc(t.section_label_services || 'WHAT WE DO')}</span>
   <div class="services-grid">
-    ${svcs.map(s => `
+    ${svcs.map((s, i) => `
     <div class="service-card">
-      <span class="service-icon">${s.icon || '⚡'}</span>
+      <div class="service-num">${String(i + 1).padStart(2, '0')}</div>
       <div class="service-name">${esc(s.name || '')}</div>
     </div>`).join('')}
   </div>
@@ -1130,9 +1168,9 @@ ${cssBlock}
   <span class="label">${esc(t.section_label_services || 'WHAT WE DO')}</span>
   <h2 class="section-h2">${esc(t.services_headline || '')}</h2>
   <div class="services-grid">
-    ${svcs.map(s => `
+    ${svcs.map((s, i) => `
     <div class="service-card">
-      <span class="service-icon">${s.icon || '⚡'}</span>
+      <div class="service-num">${String(i + 1).padStart(2, '0')}</div>
       <div class="service-name">${esc(s.name || '')}</div>
       <div class="service-desc">${esc(s.desc || '')}</div>
     </div>`).join('')}
@@ -1379,10 +1417,13 @@ function slugify(name) {
 }
 
 async function uniqueSlug(name, env) {
-  let slug = slugify(name);
-  const existing = await env.DB.prepare(`SELECT slug FROM clients WHERE slug LIKE ? LIMIT 5`)
-    .bind(slug + '%').all();
-  if (!existing.results?.some(r => r.slug === slug)) return slug;
+  const slug = slugify(name);
+  // Only treat slug as taken if an active (paid) client owns it
+  // Leads and previews don't block the slug — same logic as domain check
+  const existing = await env.DB.prepare(
+    `SELECT slug FROM clients WHERE slug = ? AND status NOT IN ('lead','building','preview_ready','qa_ready') LIMIT 1`
+  ).bind(slug).first();
+  if (!existing) return slug;
   return slug + '-' + Math.random().toString(36).slice(2, 6);
 }
 
