@@ -269,18 +269,19 @@ function buildUnsplashQuery(industry, vibe, palette) {
 /**
  * buildCssVariables — generates the :root CSS block from a palette
  * Ready to inject directly into the HTML <head>
- * brandColour (optional) — hex from logo/business card, overrides palette accent
+ * primaryColour (optional) — hex from Claude's palette decision or logo extraction
+ * accentColour (optional)  — hex for CTAs and highlights from Claude's decision
  */
-export function buildCssVariables(palette, typography, brandColour = null) {
-  // Derive a subtly tinted dark base from the palette primary colour
-  // Still premium-dark but with personality — never flat black
-  const bg      = tintDark(palette.primary, 0.07);
-  const surface = tintDark(palette.primary, 0.11);
-  const card    = tintDark(palette.primary, 0.04);
+export function buildCssVariables(palette, typography, primaryColour = null, accentColour = null) {
+  // Claude's chosen colours override the design-db palette
+  const primary = primaryColour || palette.primary;
+  const accent  = accentColour  || primaryColour || palette.accent;
 
-  // Logo/business card extraction overrides palette accent
-  const accent  = brandColour || palette.accent;
-  const primary = brandColour || palette.primary;
+  // Derive subtly tinted dark base from primary colour
+  // Each business gets a unique dark backdrop with personality
+  const bg      = tintDark(primary, 0.07);
+  const surface = tintDark(primary, 0.12);
+  const card    = tintDark(primary, 0.04);
 
   return `<style id="wh-design-system">
 ${typography.cssImport}
@@ -292,7 +293,7 @@ ${typography.cssImport}
   --bg:           ${bg};
   --surface:      ${surface};
   --card:         ${card};
-  --card-solid:   ${tintDark(palette.primary, 0.14)};
+  --card-solid:   ${tintDark(primary, 0.16)};
   --fg:           #f0ede8;
   --muted-fg:     rgba(240,237,232,0.55);
   --border:       rgba(255,255,255,0.08);

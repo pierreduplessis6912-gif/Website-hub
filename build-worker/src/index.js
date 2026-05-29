@@ -35,14 +35,15 @@ html{scroll-behavior:smooth}
 body{font-family:var(--font-body);background:var(--bg);color:var(--fg);overflow-x:hidden}
 .nav{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(10,10,10,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:50;border-bottom:1px solid var(--border)}
 .nav-brand{font-family:var(--font-heading);font-size:15px;font-weight:700;color:var(--fg);text-decoration:none}
+.nav-logo{height:32px;width:auto;object-fit:contain;max-width:140px}
 .nav-links{display:flex;gap:20px}
 .nav-link{font-size:13px;color:var(--muted-fg);text-decoration:none}
-.section-hero{min-height:100svh;background-size:cover;background-position:center;background-attachment:scroll;display:flex;flex-direction:column;justify-content:flex-end;padding:52px 0 48px;position:relative}
-.section-hero::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.25) 0%,rgba(0,0,0,0.80) 100%)}
+.section-hero{min-height:100svh;background-size:cover;background-position:center;background-attachment:scroll;display:flex;flex-direction:column;justify-content:flex-end;padding:52px 0 56px;position:relative}
+.section-hero::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.2) 35%,rgba(0,0,0,0.75) 65%,rgba(0,0,0,0.96) 100%)}
 .hero-content{position:relative;z-index:1;padding:0 24px}
-.hero-h1{font-family:var(--font-heading);font-size:clamp(32px,9vw,56px);font-weight:800;line-height:1.1;letter-spacing:-0.02em;color:#fff;margin-bottom:12px}
-.hero-sub{font-size:16px;color:rgba(255,255,255,0.8);margin-bottom:8px;line-height:1.5}
-.trust-line{font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:24px;letter-spacing:0.5px}
+.hero-h1{font-family:var(--font-heading);font-size:clamp(36px,10vw,64px);font-weight:800;line-height:1.05;letter-spacing:-0.02em;color:#fff;margin-bottom:14px;text-shadow:0 2px 20px rgba(0,0,0,0.4)}
+.hero-sub{font-size:17px;color:rgba(255,255,255,0.88);margin-bottom:10px;line-height:1.5;font-weight:400}
+.trust-line{font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:28px;letter-spacing:1.5px;text-transform:uppercase;font-family:var(--font-body)}
 .section{background:var(--bg);padding:72px 24px;border-top:1px solid var(--border)}
 .section.surface{background:var(--surface)}
 .section-bleed{background:var(--surface);border-radius:24px 24px 0 0;margin-top:-32px;position:relative;z-index:2;padding:56px 24px 72px}
@@ -927,7 +928,7 @@ Return only failing fields. Empty object {} if all pass.`;
 // ── PASS PROMPTS: SUBSTANCE BUILD ─────────────────────────────
 
 function substancePass1System(brief) {
-  return `You are a South African brand strategist. A business owner has told you everything about their business — their vibe, who they serve, what makes them different, what a happy customer says. Your job is to find the one story thread running through all of it and articulate their specific voice. Do not categorise them. Do not fit them into an industry mould. The design system is already chosen (${brief.palette.notes}, ${brief.typography.name}). Output only valid JSON — no markdown.`;
+  return `You are a South African brand strategist and designer. A business owner has told you everything about their business. Your job is: (1) find the one story thread running through all of it and articulate their specific voice, (2) choose the right primary and accent colour for this specific business — not a generic industry colour, but one that fits their personality, area, and what makes them different. Rich, bold, considered colours. Dark backgrounds will be auto-derived from your primary choice. Typography is ${brief.typography.name}. Output only valid JSON — no markdown.`;
 }
 
 function substancePass1User(client, cards, brief, previewProfile) {
@@ -953,8 +954,10 @@ Output this JSON exactly:
   "hero_angle": "specific and informed by their actual data",
   "differentiator_narrative": "one paragraph weaving diff1 + diff2 + diff3 into one story",
   "testimonial_frame": "how to present the testimonial seed most powerfully",
-  "unsplash_query": "hero image search — specific to their industry + vibe + area",
-  "brand_colour": "if a logo or business card photo was uploaded, extract the dominant brand hex colour e.g. #2D6A4F — otherwise null"
+  "unsplash_query": "hero image search — specific, fresh, not generic. Different angle each time. Match their actual personality and area.",
+  "primary_colour": "choose a rich hex colour that fits this specific business personality — e.g. #1a3a5c for trustworthy trades, #7c2d2d for bold heritage, #1a4a2e for earthy local. Not a template colour.",
+  "accent_colour": "complementary accent hex — used for CTAs, highlights, and links. Must contrast well on dark backgrounds.",
+  "logo_brand_colour": "if a logo or business card photo was uploaded, extract the dominant brand hex — otherwise null"
 }`;
 }
 
@@ -1060,7 +1063,7 @@ ${cssBlock}
 <body>
 
 <nav class="nav">
-  <a href="/" class="nav-brand">${esc(client.business_name)}</a>
+  ${client.logo_url ? `<img src="${client.logo_url}" class="nav-logo" alt="${esc(client.business_name)}">` : `<a href="/" class="nav-brand">${esc(client.business_name)}</a>`}
   <div class="nav-links">
     <a href="#services" class="nav-link">Services</a>
     <a href="#contact" class="nav-link">Contact</a>
@@ -1070,9 +1073,9 @@ ${cssBlock}
 
 <section class="section-hero" style="background-image:url('${heroUrl}')">
   <div class="hero-content">
-    <p class="trust-line">${esc(t.trust_line || '')}</p>
     <h1 class="hero-h1">${esc(t.hero_h1 || client.business_name)}</h1>
     <p class="hero-sub">${esc(t.hero_subline || '')}</p>
+    <p class="trust-line">${esc(t.trust_line || '')}</p>
     <a href="${waLink}" class="cta-wa">💬 ${esc(t.cta_primary || 'WhatsApp Us')}</a>
   </div>
 </section>
@@ -1136,7 +1139,7 @@ ${cssBlock}
 <body>
 
 <nav class="nav">
-  <a href="/" class="nav-brand">${esc(client.business_name)}</a>
+  ${client.logo_url ? `<img src="${client.logo_url}" class="nav-logo" alt="${esc(client.business_name)}">` : `<a href="/" class="nav-brand">${esc(client.business_name)}</a>`}
   <div class="nav-links">
     <a href="#about"    class="nav-link">About</a>
     <a href="#services" class="nav-link">Services</a>
@@ -1148,9 +1151,9 @@ ${cssBlock}
 <!-- HERO -->
 <section class="section-hero" style="background-image:url('${heroUrl}')">
   <div class="hero-content">
-    <p class="trust-line">${esc(t.hero_trust_line || '')}</p>
     <h1 class="hero-h1">${esc(t.hero_h1_line1 || '')}${t.hero_h1_line2 ? '<br>' + esc(t.hero_h1_line2) : ''}</h1>
     <p class="hero-sub">${esc(t.hero_subline || '')}</p>
+    <p class="trust-line">${esc(t.hero_trust_line || '')}</p>
     <a href="${waLink}" class="cta-wa">💬 ${esc(t.hero_cta || 'WhatsApp Us')}</a>
   </div>
 </section>
@@ -1265,18 +1268,22 @@ async function fetchHeroPhoto(brief, brandBrief, env) {
   const industry = brief._source?.split(':')[1]?.trim() || '';
   const vibe     = '';
 
-  // Check D1 library first
-  try {
-    const cached = await env.DB.prepare(
-      `SELECT url FROM photos WHERE industry=? AND slot='hero' ORDER BY usage_count DESC LIMIT 3`
-    ).bind(industry).all();
-    if (cached.results?.length >= 1) {
-      const chosen = cached.results[Math.floor(Math.random() * cached.results.length)];
-      await env.DB.prepare(`UPDATE photos SET usage_count=usage_count+1, last_used_at=CURRENT_TIMESTAMP WHERE url=?`)
-        .bind(chosen.url).run().catch(() => {});
-      return chosen.url;
-    }
-  } catch {}
+  // For substance builds (brandBrief has a specific query) — always hit Unsplash fresh
+  // For pre-builds — use D1 cache to save API calls
+  const useCache = !brandBrief?.unsplash_query;
+  if (useCache) {
+    try {
+      const cached = await env.DB.prepare(
+        `SELECT url FROM photos WHERE industry=? AND slot='hero' ORDER BY RANDOM() LIMIT 3`
+      ).bind(industry).all();
+      if (cached.results?.length >= 1) {
+        const chosen = cached.results[Math.floor(Math.random() * cached.results.length)];
+        await env.DB.prepare(`UPDATE photos SET usage_count=usage_count+1, last_used_at=CURRENT_TIMESTAMP WHERE url=?`)
+          .bind(chosen.url).run().catch(() => {});
+        return chosen.url;
+      }
+    } catch {}
+  }
 
   // Fetch from Unsplash
   try {
