@@ -422,30 +422,35 @@ async function handleIntake(request, env) {
   if (!business_name || !phone)
     return jsonResponse({ error: 'business_name and phone required' }, 400);
 
-  const id            = generateUUID();
-  const slug          = await uniqueSlug(business_name, env);
-  const manage_token  = generateUUID();
-  const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
-  const normPhone     = normaliseSaPhone(phone);
-  const packageKey    = pkgKey(pkg);
+  try {
+    const id            = generateUUID();
+    const slug          = await uniqueSlug(business_name, env);
+    const manage_token  = generateUUID();
+    const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
+    const normPhone     = normaliseSaPhone(phone);
+    const packageKey    = pkgKey(pkg);
 
-  await env.DB.prepare(`
-    INSERT INTO clients
-      (id, business_name, client_name, slug, phone, email, package, retainer,
-       industry, area, vibe, manage_token, referral_slug, status, source)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website')
-  `).bind(
-    id, business_name, client_name || null, slug, normPhone, email || null,
-    packageKey, PRICING[packageKey]?.retainer || 699,
-    industry || null, area || null, 'professional', manage_token, referral_slug
-  ).run();
+    await env.DB.prepare(`
+      INSERT INTO clients
+        (id, business_name, client_name, slug, phone, email, package, retainer,
+         industry, area, vibe, manage_token, referral_slug, status, source)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website')
+    `).bind(
+      id, business_name, client_name || null, slug, normPhone, email || null,
+      packageKey, PRICING[packageKey]?.retainer || 699,
+      industry || null, area || null, 'professional', manage_token, referral_slug
+    ).run();
 
-  await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
+    await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
 
-  // Queue pre-build
-  await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: false });
+    await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: false });
 
-  return jsonResponse({ slug, manage_token, clientId: id });
+    return jsonResponse({ slug, manage_token, clientId: id });
+
+  } catch (err) {
+    console.error('Intake error:', err.message, err.stack);
+    return jsonResponse({ error: 'intake_failed', detail: err.message }, 500);
+  }
 }
 
 // ── BUILD STATUS ──────────────────────────────────────────────
