@@ -465,10 +465,41 @@ async function handleIntake(request, env) {
 
   try {
     const id            = generateUUID();
+
+    // ── ABUSE PREVENTION ───────────────────────────────────────
+    const WHITELISTED   = ['27790128508'];
+    const normPhone     = normaliseSaPhone(phone);
+    const isWhitelisted = WHITELISTED.includes(normPhone.replace('+',''));
+
+    if (!isTestMode(env) && !isWhitelisted) {
+      // IP rate limit — max 3 intake attempts per IP per hour
+      const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+      const ipKey = `rate:intake:ip:${ip}`;
+      const ipCount = parseInt(await env.SITES.get(ipKey) || '0');
+      if (ipCount >= 3) {
+        return jsonResponse({ error: 'Too many requests — please try again in an hour.' }, 429);
+      }
+      await env.SITES.put(ipKey, String(ipCount + 1), { expirationTtl: 3600 });
+
+      // Phone deduplication — one build per phone per 24 hours
+      const existing = await env.DB.prepare(
+        `SELECT id, slug FROM clients
+         WHERE phone = ? AND status NOT IN ('cancelled')
+         AND created_at > datetime('now', '-1 day')
+         LIMIT 1`
+      ).bind(normPhone).first();
+
+      if (existing) {
+        return jsonResponse({
+          error: 'You already have a site building today. Check your WhatsApp or email for your preview link, or come back tomorrow to start fresh.',
+          slug: existing.slug,
+        }, 429);
+      }
+    }
+
     const slug          = await uniqueSlug(business_name, env);
     const manage_token  = generateUUID();
     const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
-    const normPhone     = normaliseSaPhone(phone);
     const packageKey    = pkgKey(pkg);
 
     await env.DB.prepare(`
