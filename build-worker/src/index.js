@@ -326,10 +326,10 @@ async function handleDomainCheck(url, env) {
     'Cache-Control': 'no-store',
   };
 
-  // Check against D1 first — if a client already has this slug, it's taken
+  // Check D1 — only block if domain is actually live/registered, not just a lead
   try {
     const existing = await env.DB.prepare(
-      `SELECT id FROM clients WHERE slug = ? LIMIT 1`
+      `SELECT id FROM clients WHERE slug = ? AND status NOT IN ('lead','building','preview_ready','qa_ready') LIMIT 1`
     ).bind(slug).first();
     if (existing) {
       return new Response(JSON.stringify({
