@@ -664,7 +664,7 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
   // ── HTML ───────────────────────────────────────────────────
   const html = generateSkeletonHTML(contentTokens, cssBlock, heroUrl, client);
-  const finalHtml = isOutbound ? addWatermark(html, client, env) : html;
+  const finalHtml = addWatermark(html, client, env, isOutbound);
 
   // ── STORE ──────────────────────────────────────────────────
   await env.SITES.put(`preview:${slug}`, finalHtml, { expirationTtl: PREVIEW_TTL });
@@ -1192,13 +1192,17 @@ ${gallerySection}
 </html>`;
 }
 
-function addWatermark(html, client, env) {
-  const waLink = `https://wa.me/${(client.phone||'').replace(/\D/g,'')}`;
-  const claimLink = `https://${PREVIEW_DOMAIN}/start`;
+function addWatermark(html, client, env, isOutbound = false) {
+  // Inbound: link to their manage token so they go straight to the PWA
+  // Outbound: link to /start so they begin the intake flow
+  const claimLink = isOutbound
+    ? `https://${PREVIEW_DOMAIN}/start`
+    : `https://${PREVIEW_DOMAIN}/manage/${client.manage_token}`;
+  const ctaText = isOutbound ? 'Claim this site →' : 'Personalise your site →';
   const strip = `
 <div class="watermark-strip">
   <span class="watermark-text">Preview — ${esc(client.business_name)}</span>
-  <a href="${claimLink}" class="watermark-cta">Claim this site →</a>
+  <a href="${claimLink}" class="watermark-cta">${ctaText}</a>
 </div>`;
   return html.replace('</body>', strip + '\n</body>');
 }
