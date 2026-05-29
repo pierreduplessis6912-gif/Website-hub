@@ -263,7 +263,7 @@ async function triggerFullRebuild(clientId, slug, patch, env) {
       if (Object.keys(updates).length) await updateClient(env, clientId, updates);
     }
 
-    await env.BUILD_QUEUE.send({ clientId, paymentId: null, isOutbound: false });
+    await env.BUILD_QUEUE.send({ type: 'pre_build', clientId, paymentId: null, isOutbound: false });
 
     await logEvent(env, 'patch', 'full_rebuild_triggered', 'success', {
       clientId, metadata: { slug, source: 'patch_preview_tone_change' },
@@ -433,7 +433,7 @@ async function runVisionAndRebuild(client, slug, r2Paths, files, env) {
     await updateClient(env, client.id, { status: 'lead' }).catch(() => {});
   }
 
-  await env.BUILD_QUEUE.send({ clientId: client.id, paymentId: null, isOutbound: false });
+  await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: client.id, paymentId: null, isOutbound: false });
 
   await logEvent(env, 'patch', 'assets_processed', 'success', {
     clientId: client.id,
@@ -834,7 +834,7 @@ async function processRevision(client, payload, env, opts = {}) {
   if (Object.keys(updates).length) await updateClient(env, client.id, updates).catch(() => {});
 
   // Queue rebuild
-  await env.BUILD_QUEUE.send({ clientId: client.id, paymentId: null, isOutbound: false });
+  await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: client.id, paymentId: null, isOutbound: false });
 
   // Notify client
   const name      = (client.client_name || '').split(' ')[0] || 'there';
@@ -1056,7 +1056,7 @@ async function handleIncomingEmail(message, env) {
   } else {
     // Not live — reset to lead and queue rebuild
     await updateClient(env, client.id, { status: 'lead' }).catch(() => {});
-    await env.BUILD_QUEUE.send({ clientId: client.id, paymentId: null, isOutbound: false });
+    await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: client.id, paymentId: null, isOutbound: false });
 
     if (clientPhone) {
       await queueScheduledMessage(client.id, clientPhone,

@@ -322,7 +322,7 @@ async function reactivateInternal(client, env) {
       cancellation_option: null,
     });
 
-    await env.BUILD_QUEUE.send({ clientId: client.id, paymentId: null, isOutbound: false });
+    await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: client.id, paymentId: null, isOutbound: false });
 
     const name = (client.client_name || '').split(' ')[0] || 'there';
     await sendWhatsApp(client.phone,
@@ -693,7 +693,7 @@ async function handleProspectOptIn(phone, text, prospect, env) {
   }
 
   if (clientId) {
-    await env.BUILD_QUEUE.send({ clientId, paymentId: null, isOutbound: true });
+    await env.BUILD_QUEUE.send({ type: 'pre_build', clientId, paymentId: null, isOutbound: true });
   }
 
   await sendWhatsApp(phone,
@@ -742,7 +742,7 @@ async function handleLegacyProspectOptIn(phone, text, prospectState, env) {
     const clientId = prospectState.clientId;
     if (clientId) {
       await updateClient(env, clientId, { client_name: clientName, status: 'lead' }).catch(() => {});
-      await env.BUILD_QUEUE.send({ clientId, paymentId: null, isOutbound: true });
+      await env.BUILD_QUEUE.send({ type: 'pre_build', clientId, paymentId: null, isOutbound: true });
     }
   }
 

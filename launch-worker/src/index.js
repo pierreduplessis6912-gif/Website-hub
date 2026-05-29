@@ -45,7 +45,7 @@ import {
   sendWhatsApp, normaliseSaPhone,
   createZohoInvoice,
   logEvent, getFlag,
-  getClientById, getClientBySlug, updateClient,
+  getClientById, getClientBySlug, getClientByToken, updateClient,
   createInvoice, isPaymentDuplicate, markInvoicePaid,
   logMessage, hasMessageBeenSent,
 } from './shared-services.js';
@@ -115,8 +115,11 @@ async function handleGoLiveLink(request, env) {
   try { body = await request.json(); }
   catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
 
-  const { clientId, slug, package: pkg, retainer } = body;
-  if (!clientId) return jsonResponse({ error: 'clientId required' }, 400);
+  const { token, slug, plan, package: pkgAlias, retainer, billing } = body;
+  const pkg    = plan || pkgAlias || 'standard';
+  const client = token ? await getClientByToken(env, token) : null;
+  if (!client) return jsonResponse({ error: 'not found' }, 404);
+  const clientId = client.id;
 
   const amount = retainer || 699;
   const url    = buildPayFastLink(amount, 'Website Hub Monthly Subscription', clientId, env, {
@@ -134,7 +137,7 @@ async function handleGoLiveLink(request, env) {
     ).catch(() => {});
   }
 
-  return jsonResponse({ url });
+  return jsonResponse({ url, redirectUrl: url });
 }
 
 // ============================================================
@@ -398,7 +401,7 @@ async function handleUpgradePayment(clientId, customStr2, paymentId, amount, env
   }, env).catch(e => console.warn('Zoho upgrade invoice failed:', e?.message || e)));
 
   // Queue rebuild against the new tier
-  await env.BUILD_QUEUE.send({ clientId, paymentId, isOutbound: false });
+  await env.BUILD_QUEUE.send({ type: 'pre_build', clientId, paymentId, isOutbound: false });
 
   const name = (client.client_name || '').split(' ')[0] || 'there';
   await sendWhatsApp(client.phone,
