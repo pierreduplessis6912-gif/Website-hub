@@ -42,7 +42,7 @@ import {
   slugify, escapeHtml, todayDateString, nextMonthDate,
   sendWhatsApp, normaliseSaPhone,
   logEvent,
-  getClientById, getClientByPhone, getClientBySlug, updateClient,
+  getClientById, getClientByPhone, getClientBySlug, getClientByToken, updateClient,
   logMessage,
 } from './shared-services.js';
 
@@ -106,12 +106,25 @@ async function handleHealth(env) {
 
 async function handleCancelSite(request, env, ctx) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
-  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
 
-  const { clientId, option = 'archive', reason = '' } = body;
+  const { token, clientId: bodyClientId, option: optionRaw, reason = '' } = body;
+  const isAdmin = request.headers.get('x-admin-key') === env.ADMIN_KEY;
+
+  let clientId = bodyClientId;
+
+  if (token && !isAdmin) {
+    const resolved = await getClientByToken(env, token).catch(() => null);
+    if (!resolved) return jsonResponse({ error: 'Not found' }, 404);
+    clientId    = resolved.id;
+    body.option = 'archive';
+  } else if (!isAdmin) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+
+  const option = body.option || optionRaw || 'archive';
   if (!clientId) return jsonResponse({ error: 'Missing clientId' }, 400);
   if (!VALID_CANCEL_OPTIONS.includes(option))
     return jsonResponse({ error: `Invalid option — must be one of: ${VALID_CANCEL_OPTIONS.join(', ')}` }, 400);
