@@ -513,20 +513,26 @@ async function handleTriggerRebuild(request, env) {
 
   // Update package + card fields
   const packageKey = pkgKey(pkg || client.package);
+  const differentiator = [cards.diff1, cards.diff2, cards.diff3].filter(Boolean).join(' | ');
   await env.DB.prepare(`
     UPDATE clients SET
-      package=?, retainer=?, vibe=?, services=?, primary_cta=?,
-      target_audience=?, testimonial=?, logo_url=?, status='building',
+      package=?, retainer=?, industry=?, area=?, vibe=?,
+      services=?, primary_cta=?, target_audience=?, testimonial=?,
+      logo_url=?, palette=?, differentiator=?, status='building',
       updated_at=CURRENT_TIMESTAMP
     WHERE id=?
   `).bind(
     packageKey, PRICING[packageKey]?.retainer || 699,
-    cards.vibe || client.vibe,
+    cards.industry || client.industry,
+    cards.area     || client.area,
+    cards.vibe     || client.vibe,
     JSON.stringify(cards.services || []),
-    cards.cta || null,
+    cards.cta      || null,
     cards.audience || null,
     cards.testimonial || null,
-    cards.logo || null,
+    cards.logo     || null,
+    cards.palette  || null,
+    differentiator || null,
     client.id
   ).run();
 
