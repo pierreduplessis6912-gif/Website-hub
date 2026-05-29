@@ -419,8 +419,8 @@ async function handleIntake(request, env) {
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
 
   const { business_name, client_name, phone, email, package: pkg, area, industry } = body;
-  if (!business_name || !phone || !area || !industry)
-    return jsonResponse({ error: 'business_name, phone, area, industry required' }, 400);
+  if (!business_name || !phone)
+    return jsonResponse({ error: 'business_name and phone required' }, 400);
 
   const id            = generateUUID();
   const slug          = await uniqueSlug(business_name, env);
