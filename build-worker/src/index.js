@@ -1603,14 +1603,12 @@ function addWatermark(html, client, env, isOutbound = false) {
 async function fetchHeroPhoto(brief, brandBrief, env) {
   if (!env.UNSPLASH_ACCESS_KEY) return FALLBACK_HERO;
 
-  // Substance: Claude's specific query — always fresh
-  // Pre-build: photo-db validated pool — industry-aware, never generic
-  const query    = brandBrief?.unsplash_query
-    || getHeroPhotoQuery(brief.businessName || '', brief.businessType || '');
-  const industry = getIndustryKey(brief.businessName || '', brief.businessType || '');
+  // Always use photo-db validated pools — Claude's free-form queries return generic/wrong photos
+  const query    = getHeroPhotoQuery(brief.businessName || brief.business_name || '', brief.businessType || brief.business_type || '');
+  const industry = getIndustryKey(brief.businessName || brief.business_name || '', brief.businessType || brief.business_type || '');
   const vibe     = '';
 
-  const useCache = !brandBrief?.unsplash_query;
+  const useCache = false; // Always fresh — different query each build
   if (useCache) {
     try {
       const cached = await env.DB.prepare(
