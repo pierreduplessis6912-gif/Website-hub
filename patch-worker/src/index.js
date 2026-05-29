@@ -665,7 +665,7 @@ async function handleManagePanel(request, url, env) {
   ).bind(client.id, monthStart.toISOString()).first().catch(() => ({ count: 0 }));
 
   const revisionsUsed  = revCountResult?.count || 0;
-  const revisionsLimit = pkg === 'premium' ? null : pkg === 'express' ? 1 : 2;
+  const revisionsLimit = pkg === 'premium' ? 5   : pkg === 'express' ? 1 : 2;
 
   // Next invoice
   let daysUntilInvoice = null;
@@ -679,19 +679,53 @@ async function handleManagePanel(request, url, env) {
   const referralUnlocked = caps.referral && referralFlag;
   let referralBlock = null;
   if (referralUnlocked) {
-    const refStats = await env.DB.prepare(
-      `SELECT
-         COUNT(*) as total,
-         SUM(CASE WHEN status = 'vested' THEN 1 ELSE 0 END) as vested
-       FROM referrals WHERE referrer_client_id = ?`
-    ).bind(client.id).first().catch(() => ({ total: 0, vested: 0 }));
+    const sentResult = await env.DB.prepare(
+      `SELECT COUNT(*) as total FROM referrals WHERE referrer_client_id = ?`
+    ).bind(client.id).first().catch(() => ({ total: 0 }));
+
+    const premiumResult = await env.DB.prepare(
+      `SELECT COUNT(*) as count
+       FROM referrals r
+       JOIN clients rc ON rc.id = r.referred_client_id
+       WHERE r.referrer_client_id = ?
+         AND r.status = 'vested'
+         AND rc.package = 'premium'`
+    ).bind(client.id).first().catch(() => ({ count: 0 }));
+
+    const premiumConversions = premiumResult?.count || 0;
+    const creditEarned       = premiumConversions * (PRICING.premium?.retainer || 999);
+
+    const lbRows = await env.DB.prepare(
+      `SELECT c.client_name, c.referral_display_name, c.slug,
+              COUNT(r.id) as conversions,
+              COUNT(r.id) * ? as credit
+       FROM referrals r
+       JOIN clients c  ON c.id  = r.referrer_client_id
+       JOIN clients rc ON rc.id = r.referred_client_id
+       WHERE r.status = 'vested'
+         AND c.package  = 'premium'
+         AND rc.package = 'premium'
+       GROUP BY r.referrer_client_id
+       ORDER BY conversions DESC
+       LIMIT 5`
+    ).bind(PRICING.premium?.retainer || 999).all().catch(() => ({ results: [] }));
+
+    const leaderboard = (lbRows.results || []).map((row, i) => ({
+      rank:        i + 1,
+      name:        row.referral_display_name || (row.client_name || '').split(' ')[0] || 'Member',
+      conversions: row.conversions,
+      credit:      row.credit,
+      isYou:       row.slug === slug,
+    }));
 
     referralBlock = {
-      enabled:      true,
-      link:         `https://websitehub.co.za?ref=${slug}`,
-      sent:         refStats?.total || 0,
-      conversions:  refStats?.vested || 0,
-      rewardMonths: refStats?.vested || 0,
+      enabled:           true,
+      premiumOnly:       true,
+      link:              `https://websitehub.co.za?ref=${slug}`,
+      sent:              sentResult?.total || 0,
+      premiumConversions,
+      creditEarned,
+      leaderboard,
     };
   }
 
@@ -748,6 +782,7 @@ async function handleManagePanel(request, url, env) {
     gallery:  galleryBlock,
     referral: referralBlock,
     analytics: analyticsBlock,
+    addPageAvailable: pkg === 'standard' || pkg === 'premium',
     upgradeOffers,
   });
 }
