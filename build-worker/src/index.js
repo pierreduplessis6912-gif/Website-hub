@@ -1193,16 +1193,24 @@ ${gallerySection}
 }
 
 function addWatermark(html, client, env, isOutbound = false) {
-  // Inbound: link to their manage token so they go straight to the PWA
-  // Outbound: link to /start so they begin the intake flow
   const claimLink = isOutbound
     ? `https://${PREVIEW_DOMAIN}/start`
     : `https://${PREVIEW_DOMAIN}/manage/${client.manage_token}`;
-  const ctaText = isOutbound ? 'Claim this site →' : 'Personalise your site →';
+  const ctaText = isOutbound ? 'Claim this site →' : 'Make it yours →';
+  const subText = isOutbound
+    ? 'This site was built for you — claim it before someone else does'
+    : 'Personalise your site, choose your plan, go live today';
+
   const strip = `
-<div class="watermark-strip">
-  <span class="watermark-text">Preview — ${esc(client.business_name)}</span>
-  <a href="${claimLink}" class="watermark-cta">${ctaText}</a>
+<style>
+.wh-claim-bar{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0a0a0a;border-top:1px solid rgba(255,255,255,.1);padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.wh-claim-sub{font-family:system-ui,sans-serif;font-size:12px;color:rgba(255,255,255,.5);line-height:1.4;text-align:center}
+.wh-claim-btn{display:block;width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#00f0ff,#b829dd);color:#000;font-family:system-ui,sans-serif;font-size:16px;font-weight:800;text-align:center;text-decoration:none;letter-spacing:-.3px}
+body{padding-bottom:120px}
+</style>
+<div class="wh-claim-bar">
+  <div class="wh-claim-sub">${subText}</div>
+  <a href="${claimLink}" class="wh-claim-btn">${ctaText}</a>
 </div>`;
   return html.replace('</body>', strip + '\n</body>');
 }
