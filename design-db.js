@@ -269,19 +269,30 @@ function buildUnsplashQuery(industry, vibe, palette) {
 /**
  * buildCssVariables — generates the :root CSS block from a palette
  * Ready to inject directly into the HTML <head>
+ * brandColour (optional) — hex from logo/business card, overrides palette accent
  */
-export function buildCssVariables(palette, typography) {
+export function buildCssVariables(palette, typography, brandColour = null) {
+  // Derive a subtly tinted dark base from the palette primary colour
+  // Still premium-dark but with personality — never flat black
+  const bg      = tintDark(palette.primary, 0.07);
+  const surface = tintDark(palette.primary, 0.11);
+  const card    = tintDark(palette.primary, 0.04);
+
+  // Logo/business card extraction overrides palette accent
+  const accent  = brandColour || palette.accent;
+  const primary = brandColour || palette.primary;
+
   return `<style id="wh-design-system">
 ${typography.cssImport}
 :root {
-  --primary:      ${palette.primary};
+  --primary:      ${primary};
   --on-primary:   ${palette.onPrimary};
-  --accent:       ${palette.accent};
+  --accent:       ${accent};
   --accent-bg:    ${palette.bg};
-  --bg:           #0a0a0a;
-  --surface:      #111111;
-  --card:         rgba(255,255,255,0.04);
-  --card-solid:   #161616;
+  --bg:           ${bg};
+  --surface:      ${surface};
+  --card:         ${card};
+  --card-solid:   ${tintDark(palette.primary, 0.14)};
   --fg:           #f0ede8;
   --muted-fg:     rgba(240,237,232,0.55);
   --border:       rgba(255,255,255,0.08);
@@ -290,4 +301,24 @@ ${typography.cssImport}
   --font-body:    '${typography.body}', sans-serif;
 }
 </style>`;
+}
+
+/**
+ * tintDark — mixes a hex colour into near-black at low opacity
+ * Creates distinct dark backgrounds with subtle brand personality
+ * intensity 0.07 = subtle, 0.14 = noticeable
+ */
+function tintDark(hex, intensity) {
+  try {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const base = 8; // near-black base
+    const tr = Math.round(base + (r - base) * intensity);
+    const tg = Math.round(base + (g - base) * intensity);
+    const tb = Math.round(base + (b - base) * intensity);
+    return `#${tr.toString(16).padStart(2,'0')}${tg.toString(16).padStart(2,'0')}${tb.toString(16).padStart(2,'0')}`;
+  } catch {
+    return '#0a0a0a';
+  }
 }

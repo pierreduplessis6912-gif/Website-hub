@@ -953,7 +953,8 @@ Output this JSON exactly:
   "hero_angle": "specific and informed by their actual data",
   "differentiator_narrative": "one paragraph weaving diff1 + diff2 + diff3 into one story",
   "testimonial_frame": "how to present the testimonial seed most powerfully",
-  "unsplash_query": "hero image search — specific to their industry + vibe + area"
+  "unsplash_query": "hero image search — specific to their industry + vibe + area",
+  "brand_colour": "if a logo or business card photo was uploaded, extract the dominant brand hex colour e.g. #2D6A4F — otherwise null"
 }`;
 }
 
