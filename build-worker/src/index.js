@@ -268,7 +268,7 @@ async function handleAdminMigrate(request, env) {
   }
 }
 
-
+async function handleAdminResetTest(env) {
   if (!isTestMode(env)) return jsonResponse({ error: 'Only in test mode' }, 403);
   await env.DB.prepare(`DELETE FROM events`).run();
   await env.DB.prepare(`DELETE FROM builds`).run();
