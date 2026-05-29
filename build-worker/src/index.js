@@ -1421,10 +1421,9 @@ function slugify(name) {
 
 async function uniqueSlug(name, env) {
   const slug = slugify(name);
-  // Only treat slug as taken if an active (paid) client owns it
-  // Leads and previews don't block the slug — same logic as domain check
+  // D1 UNIQUE constraint is absolute — check ALL clients regardless of status
   const existing = await env.DB.prepare(
-    `SELECT slug FROM clients WHERE slug = ? AND status NOT IN ('lead','building','preview_ready','qa_ready') LIMIT 1`
+    `SELECT slug FROM clients WHERE slug = ? LIMIT 1`
   ).bind(slug).first();
   if (!existing) return slug;
   return slug + '-' + Math.random().toString(36).slice(2, 6);
