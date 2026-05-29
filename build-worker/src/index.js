@@ -438,7 +438,7 @@ async function handleIntake(request, env) {
     `).bind(
       id, business_name, client_name || null, slug, normPhone, email || null,
       packageKey, PRICING[packageKey]?.retainer || 699,
-      industry || null, area || null, 'professional', manage_token, referral_slug
+      industry || '', area || '', 'professional', manage_token, referral_slug
     ).run();
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
