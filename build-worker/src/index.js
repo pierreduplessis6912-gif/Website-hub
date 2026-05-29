@@ -305,6 +305,8 @@ async function handleAdminBuildDetail(url, env) {
     contentTokens,
   });
 }
+
+async function handleAdminProspects(url, env) {
   const status = url.searchParams.get('status') || 'pending';
   const limit  = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
   const rows = await env.DB.prepare(
