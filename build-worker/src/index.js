@@ -523,7 +523,7 @@ async function handleIntake(request, env) {
       id, business_name, client_name || null, slug, normPhone, email || null,
       packageKey, PRICING[packageKey]?.retainer || 699,
       industry || '', area || '', 'professional', manage_token, referral_slug,
-      fields.business_type || ''
+      body.business_type || ''
     ).run();
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
