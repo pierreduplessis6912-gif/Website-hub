@@ -15,6 +15,7 @@
 
 import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from './shared-services.js';
 import { getDesignBrief, buildCssVariables, UX_RULES } from '../../design-db.js';
+import { getHeroPhotoQuery, getIndustryKey } from '../../photo-db.js';
 
 // ── CONSTANTS ─────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export default {
         if (path === '/admin/set-config'  && method === 'POST') return handleAdminSetConfig(request, env);
         if (path === '/admin/bootstrap-pwa'   && method === 'POST') return handleAdminBootstrapPwa(request, env);
         if (path === '/admin/bootstrap-start' && method === 'POST') return handleAdminBootstrapStart(request, env);
-        if (path === '/admin/reset-test'      && method === 'POST') return handleAdminResetTest(env);
+        if (path === '/admin/migrate'         && method === 'POST') return handleAdminMigrate(request, env);
         if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
         if (path === '/admin/build-detail'     && method === 'GET')  return handleAdminBuildDetail(url, env);
         return jsonResponse({ error: 'Unknown admin route' }, 404);
@@ -256,7 +257,18 @@ async function handleAdminBootstrapStart(request, env) {
   return jsonResponse({ success: true, size: html.length });
 }
 
-async function handleAdminResetTest(env) {
+async function handleAdminMigrate(request, env) {
+  const { sql } = await request.json();
+  if (!sql) return jsonResponse({ error: 'sql required' }, 400);
+  try {
+    await env.DB.prepare(sql).run();
+    return jsonResponse({ ok: true, sql });
+  } catch (err) {
+    return jsonResponse({ error: err.message, sql }, 500);
+  }
+}
+
+
   if (!isTestMode(env)) return jsonResponse({ error: 'Only in test mode' }, 403);
   await env.DB.prepare(`DELETE FROM events`).run();
   await env.DB.prepare(`DELETE FROM builds`).run();
@@ -505,12 +517,13 @@ async function handleIntake(request, env) {
     await env.DB.prepare(`
       INSERT INTO clients
         (id, business_name, client_name, slug, phone, email, package, retainer,
-         industry, area, vibe, manage_token, referral_slug, status, source)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website')
+         industry, area, vibe, manage_token, referral_slug, status, source, business_type)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?)
     `).bind(
       id, business_name, client_name || null, slug, normPhone, email || null,
       packageKey, PRICING[packageKey]?.retainer || 699,
-      industry || '', area || '', 'professional', manage_token, referral_slug
+      industry || '', area || '', 'professional', manage_token, referral_slug,
+      fields.business_type || ''
     ).run();
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
@@ -1093,62 +1106,281 @@ function generateSkeletonHTML(t, cssBlock, heroUrl, client) {
   const waLink = `https://wa.me/${phone}`;
   const svcs   = t.services || [];
 
+  // ── TAGLINE — best available from Pass 1/2 output ────────────
+  const tagline   = t.tagline || t.hero_subline || '';
+  const trustLine = t.trust_line || t.hero_trust_line || '';
+  const heroH1    = t.hero_h1 || client.business_name;
+  const ctaLabel  = t.cta_primary || 'WhatsApp Us';
+
+  // ── SERVICE NAMES — up to 4, names only, no cards ────────────
+  const svcNames = svcs.slice(0, 4).map(s => s.name || '').filter(Boolean);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(t.hero_h1 || client.business_name)} | ${esc(client.area)}</title>
-<meta name="description" content="${esc(t.hero_subline || '')}">
+<title>${esc(heroH1)} | ${esc(client.area)}</title>
+<meta name="description" content="${esc(tagline)}">
 <meta name="robots" content="noindex">
 ${cssBlock}
-<style>${STRUCTURAL_CSS}</style>
+<style>
+/* ── PREVIEW RESET ───────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:#0a0a0a;color:#f0ede8;overflow-x:hidden;padding-bottom:140px}
+
+/* ── HERO — full bleed, image-dominant ──────── */
+.preview-hero{
+  position:relative;
+  min-height:100svh;
+  background-size:cover;
+  background-position:center;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+}
+.preview-hero::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(
+    180deg,
+    rgba(0,0,0,0) 0%,
+    rgba(0,0,0,0.15) 30%,
+    rgba(0,0,0,0.7) 60%,
+    rgba(0,0,0,0.97) 100%
+  );
+}
+.hero-body{
+  position:relative;z-index:1;
+  padding:0 24px 36px;
+}
+.hero-domain{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-body);
+  font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:16px;
+}
+.hero-domain::before{
+  content:'';
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+
+.hero-h1{
+  font-family:var(--font-heading);
+  font-size:clamp(38px,11vw,68px);
+  font-weight:800;
+  line-height:1.02;
+  letter-spacing:-0.025em;
+  color:#fff;
+  margin-bottom:12px;
+  text-shadow:0 2px 24px rgba(0,0,0,0.5);
+}
+.hero-tagline{
+  font-size:16px;
+  color:rgba(255,255,255,0.82);
+  line-height:1.55;
+  margin-bottom:10px;
+  font-weight:400;
+  max-width:300px;
+}
+.hero-trust{
+  font-size:11px;
+  color:rgba(255,255,255,0.4);
+  letter-spacing:1.8px;
+  text-transform:uppercase;
+  margin-bottom:28px;
+  font-family:var(--font-body);
+}
+.hero-wa{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:15px 24px;
+  background:#25D366;
+  color:#fff;
+  font-size:15px;font-weight:700;
+  border-radius:12px;
+  text-decoration:none;
+  width:100%;
+  justify-content:center;
+}
+
+/* ── SERVICES STRIP — free floating, no cards ─ */
+.services-strip{
+  padding:40px 24px 8px;
+}
+.strip-label{
+  font-size:10px;letter-spacing:3px;text-transform:uppercase;
+  color:rgba(240,237,232,0.3);
+  margin-bottom:20px;display:block;
+}
+.strip-list{
+  display:flex;flex-direction:column;gap:0;
+}
+.strip-item{
+  display:flex;align-items:center;gap:16px;
+  padding:14px 0;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.strip-item:last-child{border-bottom:none}
+.strip-num{
+  font-family:var(--font-heading);
+  font-size:11px;letter-spacing:2px;
+  color:var(--accent);
+  font-weight:700;
+  flex-shrink:0;width:24px;
+}
+.strip-name{
+  font-family:var(--font-heading);
+  font-size:16px;font-weight:700;
+  color:#f0ede8;
+}
+
+/* ── GHOST SECTIONS — honest locked placeholders ─ */
+.ghost-wrap{
+  padding:0 24px;
+  display:flex;flex-direction:column;gap:12px;
+  margin-top:32px;
+}
+.ghost-block{
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,0.06);
+  padding:24px 20px;
+  position:relative;
+  overflow:hidden;
+}
+.ghost-block::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.02),transparent);
+  pointer-events:none;
+}
+.ghost-label{
+  font-size:9px;letter-spacing:2.5px;text-transform:uppercase;
+  color:rgba(240,237,232,0.2);
+  margin-bottom:10px;display:block;
+}
+.ghost-lines{display:flex;flex-direction:column;gap:8px}
+.ghost-line{
+  height:10px;border-radius:4px;
+  background:rgba(255,255,255,0.05);
+}
+.ghost-line.w100{width:100%}
+.ghost-line.w75{width:75%}
+.ghost-line.w55{width:55%}
+.ghost-line.w85{width:85%}
+.ghost-unlock{
+  margin-top:14px;
+  font-size:11px;
+  color:rgba(var(--accent-rgb, 0,240,255),0.5);
+  letter-spacing:.5px;
+}
+
+/* ── CLAIM BAR ───────────────────────────────── */
+.claim-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:999;
+  background:rgba(8,8,8,0.97);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(255,255,255,0.08);
+  padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));
+}
+.claim-domain{
+  font-family:var(--font-body);
+  font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+  color:rgba(240,237,232,0.4);
+  text-align:center;
+  margin-bottom:10px;
+}
+.claim-domain strong{color:var(--accent);font-weight:600}
+.claim-btn{
+  display:block;width:100%;
+  padding:17px;border-radius:14px;
+  background:linear-gradient(135deg,#00f0ff,#b829dd);
+  color:#000;
+  font-family:var(--font-body);
+  font-size:16px;font-weight:800;
+  text-align:center;text-decoration:none;
+  letter-spacing:-0.3px;
+}
+.claim-sub{
+  text-align:center;
+  font-size:11px;
+  color:rgba(240,237,232,0.3);
+  margin-top:8px;
+  letter-spacing:.3px;
+}
+</style>
 </head>
 <body>
 
-<nav class="nav">
-  ${client.logo_url ? `<img src="${client.logo_url}" class="nav-logo" alt="${esc(client.business_name)}">` : `<a href="/" class="nav-brand">${esc(client.business_name)}</a>`}
-  <div class="nav-links">
-    <a href="#services" class="nav-link">Services</a>
-    <a href="#contact" class="nav-link">Contact</a>
-    <a href="${waLink}" class="nav-link" style="color:var(--accent)">WhatsApp</a>
-  </div>
-</nav>
-
-<section class="section-hero" style="background-image:url('${heroUrl}')">
-  <div class="hero-content">
-    <h1 class="hero-h1">${esc(t.hero_h1 || client.business_name)}</h1>
-    <p class="hero-sub">${esc(t.hero_subline || '')}</p>
-    <p class="trust-line">${esc(t.trust_line || '')}</p>
-    <a href="${waLink}" class="cta-wa">💬 ${esc(t.cta_primary || 'WhatsApp Us')}</a>
+<!-- ── HERO ───────────────────────────────────────────────── -->
+<section class="preview-hero" style="background-image:url('${heroUrl}')">
+  <div class="hero-body">
+    <div class="hero-domain">${esc(domain)}</div>
+    <h1 class="hero-h1">${esc(heroH1)}</h1>
+    ${tagline   ? `<p class="hero-tagline">${esc(tagline)}</p>` : ''}
+    ${trustLine ? `<p class="hero-trust">${esc(trustLine)}</p>` : ''}
+    <a href="${waLink}" class="hero-wa">💬 ${esc(ctaLabel)}</a>
   </div>
 </section>
 
-<section id="services" class="section-bleed">
-  <span class="label">${esc(t.section_label_services || 'WHAT WE DO')}</span>
-  <div class="services-grid">
-    ${svcs.map((s, i) => `
-    <div class="service-card">
-      <div class="service-num">${String(i + 1).padStart(2, '0')}</div>
-      <div class="service-name">${esc(s.name || '')}</div>
+<!-- ── SERVICES STRIP — free floating ────────────────────── -->
+${svcNames.length > 0 ? `
+<div class="services-strip">
+  <span class="strip-label">${esc(t.section_label_services || 'What we do')}</span>
+  <div class="strip-list">
+    ${svcNames.map((name, i) => `
+    <div class="strip-item">
+      <span class="strip-num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="strip-name">${esc(name)}</span>
     </div>`).join('')}
   </div>
-</section>
+</div>` : ''}
 
-<section id="contact" class="section">
-  <span class="label">${esc(t.section_label_contact || 'GET IN TOUCH')}</span>
-  <h2 class="section-h2">${esc(t.contact_headline || 'Ready to start?')}</h2>
-  <p class="body-text">${esc(t.contact_subline || '')}</p>
-  <a href="${waLink}" class="cta-wa">💬 ${esc(t.cta_primary || 'WhatsApp Us')}</a>
-</section>
+<!-- ── GHOST SECTIONS — locked, honest ───────────────────── -->
+<div class="ghost-wrap">
 
-<footer class="footer">
-  <div class="footer-brand">${esc(client.business_name)}</div>
-  <div class="footer-meta">${esc(client.area)} · ${esc(domain)}</div>
-  <div class="footer-credit">Built by Website Hub</div>
-</footer>
+  <div class="ghost-block">
+    <span class="ghost-label">Your story</span>
+    <div class="ghost-lines">
+      <div class="ghost-line w100"></div>
+      <div class="ghost-line w85"></div>
+      <div class="ghost-line w75"></div>
+    </div>
+    <div class="ghost-unlock">Unlock by completing your profile →</div>
+  </div>
 
-<a href="${waLink}" class="wa-fab" aria-label="WhatsApp">💬</a>
+  <div class="ghost-block">
+    <span class="ghost-label">Why choose you</span>
+    <div class="ghost-lines">
+      <div class="ghost-line w75"></div>
+      <div class="ghost-line w100"></div>
+      <div class="ghost-line w55"></div>
+    </div>
+    <div class="ghost-unlock">Unlock by completing your profile →</div>
+  </div>
+
+  <div class="ghost-block">
+    <span class="ghost-label">What your customers say</span>
+    <div class="ghost-lines">
+      <div class="ghost-line w85"></div>
+      <div class="ghost-line w100"></div>
+      <div class="ghost-line w55"></div>
+    </div>
+    <div class="ghost-unlock">Unlock by completing your profile →</div>
+  </div>
+
+</div>
+
+<!-- ── CLAIM BAR ──────────────────────────────────────────── -->
+<div class="claim-bar">
+  <div class="claim-domain"><strong>${esc(domain)}</strong> is yours to claim</div>
+  <a href="__CLAIM_LINK__" class="claim-btn">Claim &amp; build your site free →</a>
+  <div class="claim-sub">No build fee &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Live in 2 minutes</div>
+</div>
 
 </body>
 </html>`;
@@ -1350,23 +1582,20 @@ function addWatermark(html, client, env, isOutbound = false) {
   const claimLink = isOutbound
     ? `https://${PREVIEW_DOMAIN}/start`
     : `https://${PREVIEW_DOMAIN}/manage/${client.manage_token}`;
-  const ctaText = isOutbound ? 'Claim this site →' : 'Make it yours →';
-  const subText = isOutbound
-    ? 'This site was built for you — claim it before someone else does'
-    : 'Personalise your site, choose your plan, go live today';
 
-  const strip = `
-<style>
-.wh-claim-bar{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0a0a0a;border-top:1px solid rgba(255,255,255,.1);padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
-.wh-claim-sub{font-family:system-ui,sans-serif;font-size:12px;color:rgba(255,255,255,.5);line-height:1.4;text-align:center}
-.wh-claim-btn{display:block;width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#00f0ff,#b829dd);color:#000;font-family:system-ui,sans-serif;font-size:16px;font-weight:800;text-align:center;text-decoration:none;letter-spacing:-.3px}
-body{padding-bottom:120px}
-</style>
-<div class="wh-claim-bar">
-  <div class="wh-claim-sub">${subText}</div>
-  <a href="${claimLink}" class="wh-claim-btn">${ctaText}</a>
-</div>`;
-  return html.replace('</body>', strip + '\n</body>');
+  // Inject claim link into skeleton preview bar — replaces __CLAIM_LINK__ placeholder
+  // For outbound builds, swap the entire claim bar CTA text too
+  let result = html.replace('__CLAIM_LINK__', claimLink);
+
+  // Outbound: override the claim bar copy to drive fresh signups
+  if (isOutbound) {
+    result = result
+      .replace('is yours to claim', 'was built for you')
+      .replace('Claim &amp; build your site free →', 'Claim this site free →')
+      .replace('No build fee', 'Yours before someone else claims it');
+  }
+
+  return result;
 }
 
 // ── PHOTO FETCHING ────────────────────────────────────────────
@@ -1374,12 +1603,13 @@ body{padding-bottom:120px}
 async function fetchHeroPhoto(brief, brandBrief, env) {
   if (!env.UNSPLASH_ACCESS_KEY) return FALLBACK_HERO;
 
-  const query    = brandBrief?.unsplash_query || brief.unsplashQuery;
-  const industry = brief._source?.split(':')[1]?.trim() || '';
+  // Substance: Claude's specific query — always fresh
+  // Pre-build: photo-db validated pool — industry-aware, never generic
+  const query    = brandBrief?.unsplash_query
+    || getHeroPhotoQuery(brief.businessName || '', brief.businessType || '');
+  const industry = getIndustryKey(brief.businessName || '', brief.businessType || '');
   const vibe     = '';
 
-  // For substance builds (brandBrief has a specific query) — always hit Unsplash fresh
-  // For pre-builds — use D1 cache to save API calls
   const useCache = !brandBrief?.unsplash_query;
   if (useCache) {
     try {
