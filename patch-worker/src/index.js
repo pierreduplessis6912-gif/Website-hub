@@ -117,8 +117,15 @@ async function handlePatchPreview(request, env, ctx) {
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
 
-  const { clientId, slug, patch } = body;
+  const { clientId: bodyClientId, token, slug, patch } = body;
   if (!slug || !patch) return jsonResponse({ error: 'Missing slug or patch' }, 400);
+
+  // Resolve clientId from token if not provided directly
+  let clientId = bodyClientId;
+  if (!clientId && token) {
+    const resolved = await getClientByToken(env, token).catch(() => null);
+    if (resolved) clientId = resolved.id;
+  }
 
   // Tone change = full rebuild
   if (patch.tone) {
