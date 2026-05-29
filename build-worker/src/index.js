@@ -847,12 +847,25 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   // ── PHOTO ──────────────────────────────────────────────────
   const heroUrl = await fetchHeroPhoto(brief, brandBrief, env);
 
-  // ── CSS ────────────────────────────────────────────────────
-  const cssBlock = buildCssVariables(brief.palette, brief.typography);
+  // ── COLOURS ─────────────────────────────────────────────────
+  const primaryColour = brandBrief?.logo_brand_colour || brandBrief?.primary_colour || null;
+  const accentColour  = brandBrief?.accent_colour || null;
+  const cssBlock      = buildCssVariables(brief.palette, brief.typography, primaryColour, accentColour);
+
+  // ── GALLERY PHOTOS from D1 (Premium only) ──────────────────
+  const caps        = PACKAGE_CAPS[pkg] || PACKAGE_CAPS.standard;
+  let galleryPhotos = [];
+  if (caps.gallery) {
+    try {
+      const rows = await env.DB.prepare(
+        `SELECT url FROM gallery_photos WHERE client_id = ? ORDER BY created_at DESC LIMIT 6`
+      ).bind(clientId).all();
+      galleryPhotos = (rows.results || []).map(r => r.url);
+    } catch {}
+  }
 
   // ── HTML ───────────────────────────────────────────────────
-  const hasgallery = PACKAGE_CAPS[pkg]?.gallery && (cards?.photos?.length > 0);
-  const html       = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, hasgallery);
+  const html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg);
 
   // ── STORE ──────────────────────────────────────────────────
   await env.SITES.put(`preview:${slug}`, html, { expirationTtl: PREVIEW_TTL });
@@ -1141,14 +1154,77 @@ ${cssBlock}
 </html>`;
 }
 
-function generateFullHTML(t, cssBlock, heroUrl, client, cards, hasGallery) {
-  const phone  = client.phone?.replace(/\D/g, '');
-  const domain = client.domain || `${client.slug}.co.za`;
-  const waLink = `https://wa.me/${phone}`;
-  const svcs   = t.services || [];
-  const photos  = cards?.photos || [];
+function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg) {
+  const phone   = client.phone?.replace(/\D/g, '');
+  const domain  = client.domain || `${client.slug}.co.za`;
+  const waLink  = `https://wa.me/${phone}`;
+  const svcs    = t.services || [];
+  const tier    = pkgKey(pkg || client.package || 'standard');
+  const isExp   = tier === 'express';
+  const isStd   = tier === 'standard';
+  const isPrem  = tier === 'premium';
 
-  const gallerySection = hasGallery && photos.length > 0 ? `
+  // ── NAV LINKS — Express is minimal ────────────────────────────
+  const navLinks = isExp
+    ? `<a href="#services" class="nav-link">Services</a>
+    <a href="#contact" class="nav-link">Contact</a>
+    <a href="${waLink}" class="nav-link" style="color:var(--accent)">WhatsApp</a>`
+    : `<a href="#about"    class="nav-link">About</a>
+    <a href="#services" class="nav-link">Services</a>
+    <a href="#contact"  class="nav-link">Contact</a>
+    <a href="${waLink}" class="nav-link" style="color:var(--accent)">WhatsApp</a>`;
+
+  // ── ABOUT SECTION — Standard + Premium only ────────────────────
+  const aboutSection = isExp ? '' : `
+<!-- ABOUT -->
+<section id="about" class="section-bleed">
+  <span class="label">${esc(t.section_label_about || 'OUR STORY')}</span>
+  <h2 class="section-h2">${esc(t.about_headline || '')}</h2>
+  <div class="card" style="margin-bottom:24px">
+    <p class="pull-quote">${esc(t.about_pull_quote || '')}</p>
+  </div>
+  <p class="body-text">${esc(t.about_p1 || '')}</p>
+  <p class="body-text">${esc(t.about_p2 || '')}</p>
+</section>`;
+
+  // ── SERVICES — Express gets max 4, no descriptions ─────────────
+  const svcList = isExp ? svcs.slice(0, 4) : svcs;
+  const svcCards = svcList.map((s, i) => `
+    <div class="service-card">
+      <div class="service-num">${String(i + 1).padStart(2, '0')}</div>
+      <div class="service-name">${esc(s.name || '')}</div>
+      ${!isExp ? `<div class="service-desc">${esc(s.desc || '')}</div>` : ''}
+    </div>`).join('');
+
+  // ── WHY US — Standard + Premium only ──────────────────────────
+  const whyUsSection = isExp ? '' : `
+<!-- WHY US -->
+<section id="why-us" class="section-bleed">
+  <span class="label">${esc(t.section_label_whyus || 'WHY US')}</span>
+  <h2 class="section-h2">${esc(t.whyus_headline || '')}</h2>
+  <div class="diff-stack">
+    <div class="diff-card"><div class="diff-title">${esc(t.diff1_title || '')}</div><div class="diff-body">${esc(t.diff1_body || '')}</div></div>
+    <div class="diff-card"><div class="diff-title">${esc(t.diff2_title || '')}</div><div class="diff-body">${esc(t.diff2_body || '')}</div></div>
+    <div class="diff-card"><div class="diff-title">${esc(t.diff3_title || '')}</div><div class="diff-body">${esc(t.diff3_body || '')}</div></div>
+  </div>
+</section>`;
+
+  // ── TESTIMONIAL — Standard + Premium only ──────────────────────
+  const testimonialSection = isExp ? '' : `
+<!-- TESTIMONIAL -->
+<section class="section">
+  <div class="testimonial-wrap">
+    <div class="testimonial-card">
+      <div class="stars">★★★★★</div>
+      <p class="testimonial-quote">${esc(t.testimonial_quote || '')}</p>
+      <div class="testimonial-attr">${esc(t.testimonial_name || '')} · ${esc(t.testimonial_context || '')}</div>
+    </div>
+  </div>
+</section>`;
+
+  // ── GALLERY — Premium only, requires uploaded photos ───────────
+  const gallerySection = isPrem && photos?.length > 0 ? `
+<!-- GALLERY -->
 <section id="gallery" class="section">
   <span class="label">OUR WORK</span>
   <h2 class="section-h2">See it for yourself</h2>
@@ -1156,6 +1232,56 @@ function generateFullHTML(t, cssBlock, heroUrl, client, cards, hasGallery) {
     ${photos.slice(0, 6).map(url => `<img src="${url}" alt="Our work" style="width:100%;border-radius:12px;aspect-ratio:1;object-fit:cover">`).join('')}
   </div>
 </section>` : '';
+
+  // ── MAP — Premium only, if address provided ────────────────────
+  const address = cards?.address || client.address || '';
+  const mapSection = isPrem && address ? `
+<!-- MAP -->
+<section class="section">
+  <span class="label">FIND US</span>
+  <h2 class="section-h2">Come see us</h2>
+  <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" rel="noopener"
+     style="display:flex;align-items:center;gap:14px;background:var(--card-solid);border:1px solid var(--border);border-radius:16px;padding:18px;text-decoration:none;color:inherit;margin-top:16px">
+    <span style="font-size:28px">📍</span>
+    <div>
+      <div style="font-weight:600;margin-bottom:4px">${esc(address)}</div>
+      <div style="font-size:13px;color:var(--accent)">Open in Google Maps →</div>
+    </div>
+  </a>
+</section>` : '';
+
+  // ── ENQUIRY FORM — Premium only ────────────────────────────────
+  const enquiryForm = isPrem && cards?.contactFormEnabled ? `
+<!-- ENQUIRY FORM -->
+<section class="section-bleed">
+  <span class="label">QUICK ENQUIRY</span>
+  <h2 class="section-h2">Send us a message</h2>
+  <form id="enquiryForm" onsubmit="submitEnquiry(event)" style="display:flex;flex-direction:column;gap:12px;margin-top:20px">
+    <input type="text" id="eq-name" placeholder="Your name" required
+           style="padding:14px;background:var(--card-solid);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:15px">
+    <input type="tel" id="eq-phone" placeholder="Your WhatsApp number"
+           style="padding:14px;background:var(--card-solid);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:15px">
+    <textarea id="eq-msg" placeholder="Your message" rows="4" required
+           style="padding:14px;background:var(--card-solid);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:15px;resize:none"></textarea>
+    <button type="submit" style="padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Send →</button>
+  </form>
+  <script>
+  function submitEnquiry(e) {
+    e.preventDefault();
+    const name = document.getElementById('eq-name').value;
+    const msg  = document.getElementById('eq-msg').value;
+    window.location.href = 'https://wa.me/${phone}?text=' + encodeURIComponent('Hi, I\'m ' + name + '. ' + msg);
+  }
+  </script>
+</section>` : '';
+
+  // ── SOCIAL FOOTER LINKS — Standard + Premium ───────────────────
+  const socialLinks = !isExp && (cards?.instagram || cards?.facebook || cards?.tiktok) ? `
+  <div style="display:flex;gap:16px;justify-content:center;margin-bottom:12px">
+    ${cards.instagram ? `<a href="https://instagram.com/${cards.instagram.replace('@','')}" target="_blank" rel="noopener" style="color:var(--muted-fg);font-size:13px">📸 ${cards.instagram}</a>` : ''}
+    ${cards.facebook  ? `<a href="https://facebook.com/${cards.facebook.replace('@','')}"  target="_blank" rel="noopener" style="color:var(--muted-fg);font-size:13px">👍 ${cards.facebook}</a>`  : ''}
+    ${cards.tiktok    ? `<a href="https://tiktok.com/${cards.tiktok.replace('@','')}"      target="_blank" rel="noopener" style="color:var(--muted-fg);font-size:13px">🎵 ${cards.tiktok}</a>`    : ''}
+  </div>` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1171,12 +1297,7 @@ ${cssBlock}
 
 <nav class="nav">
   ${client.logo_url ? `<img src="${client.logo_url}" class="nav-logo" alt="${esc(client.business_name)}">` : `<a href="/" class="nav-brand">${esc(client.business_name)}</a>`}
-  <div class="nav-links">
-    <a href="#about"    class="nav-link">About</a>
-    <a href="#services" class="nav-link">Services</a>
-    <a href="#contact"  class="nav-link">Contact</a>
-    <a href="${waLink}" class="nav-link" style="color:var(--accent)">WhatsApp</a>
-  </div>
+  <div class="nav-links">${navLinks}</div>
 </nav>
 
 <!-- HERO -->
@@ -1189,63 +1310,20 @@ ${cssBlock}
   </div>
 </section>
 
-<!-- ABOUT -->
-<section id="about" class="section-bleed">
-  <span class="label">${esc(t.section_label_about || 'OUR STORY')}</span>
-  <h2 class="section-h2">${esc(t.about_headline || '')}</h2>
-  <div class="card" style="margin-bottom:24px">
-    <p class="pull-quote">${esc(t.about_pull_quote || '')}</p>
-  </div>
-  <p class="body-text">${esc(t.about_p1 || '')}</p>
-  <p class="body-text">${esc(t.about_p2 || '')}</p>
-</section>
+${aboutSection}
 
 <!-- SERVICES -->
 <section id="services" class="section">
   <span class="label">${esc(t.section_label_services || 'WHAT WE DO')}</span>
   <h2 class="section-h2">${esc(t.services_headline || '')}</h2>
-  <div class="services-grid">
-    ${svcs.map((s, i) => `
-    <div class="service-card">
-      <div class="service-num">${String(i + 1).padStart(2, '0')}</div>
-      <div class="service-name">${esc(s.name || '')}</div>
-      <div class="service-desc">${esc(s.desc || '')}</div>
-    </div>`).join('')}
-  </div>
+  <div class="services-grid">${svcCards}</div>
 </section>
 
 ${gallerySection}
-
-<!-- WHY US -->
-<section id="why-us" class="section-bleed">
-  <span class="label">${esc(t.section_label_whyus || 'WHY US')}</span>
-  <h2 class="section-h2">${esc(t.whyus_headline || '')}</h2>
-  <div class="diff-stack">
-    <div class="diff-card">
-      <div class="diff-title">${esc(t.diff1_title || '')}</div>
-      <div class="diff-body">${esc(t.diff1_body || '')}</div>
-    </div>
-    <div class="diff-card">
-      <div class="diff-title">${esc(t.diff2_title || '')}</div>
-      <div class="diff-body">${esc(t.diff2_body || '')}</div>
-    </div>
-    <div class="diff-card">
-      <div class="diff-title">${esc(t.diff3_title || '')}</div>
-      <div class="diff-body">${esc(t.diff3_body || '')}</div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIAL -->
-<section class="section">
-  <div class="testimonial-wrap">
-    <div class="testimonial-card">
-      <div class="stars">★★★★★</div>
-      <p class="testimonial-quote">${esc(t.testimonial_quote || '')}</p>
-      <div class="testimonial-attr">${esc(t.testimonial_name || '')} · ${esc(t.testimonial_context || '')}</div>
-    </div>
-  </div>
-</section>
+${whyUsSection}
+${testimonialSection}
+${mapSection}
+${enquiryForm}
 
 <!-- CONTACT -->
 <section id="contact" class="section-bleed">
@@ -1256,6 +1334,7 @@ ${gallerySection}
 </section>
 
 <footer class="footer">
+  ${socialLinks}
   <div class="footer-brand">${esc(client.business_name)}</div>
   <div class="footer-meta">${esc(client.area)} · ${esc(domain)}</div>
   <div class="footer-credit">Built by Website Hub</div>
