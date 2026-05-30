@@ -922,3 +922,12 @@ export function getHeroPhotoQuery(businessName, freeText) {
 export function getIndustryKey(businessName, freeText) {
   return inferIndustry(businessName, freeText);
 }
+
+/**
+ * getHeroPhotoQueryByKey — direct lookup using pre-computed industry key
+ * Bypasses text inference. Use when industryKey is already known.
+ */
+export function getHeroPhotoQueryByKey(industryKey) {
+  const pool = PHOTO_DB[industryKey] || PHOTO_DB.general;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
