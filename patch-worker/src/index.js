@@ -1005,15 +1005,8 @@ async function handleIncomingEmail(message, env) {
 
   const slug = slugMatch[1].toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
-  let records;
   const emailClient = await getClientBySlug(slug, env);
-  catch (e) {
-    await logHealth(env, 'airtable', 'error', e.message);
-    message.forward('loc10@live.co.za');
-    return;
-  }
-
-  if (!records.length) {
+  if (!emailClient) {
     await logActivity(env, 'email_unknown_slug', { slug, from });
     message.forward('loc10@live.co.za');
     return;
