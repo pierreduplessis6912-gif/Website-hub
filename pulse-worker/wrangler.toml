@@ -29,3 +29,7 @@ crons = [
   "0 6 * * *",
   "*/15 7-10 * * 2-4"
 ]
+
+[[queues.producers]]
+queue = "build-queue"
+binding = "BUILD_QUEUE"
