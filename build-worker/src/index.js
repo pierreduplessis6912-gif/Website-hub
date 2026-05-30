@@ -1567,6 +1567,7 @@ function renderSections(flow, sections) {
 }
 
 
+const HERO_RENDERERS = {
   trade_authority:  renderTradeAuthorityHero,
   split_authority:  renderTradeAuthorityHero,   // alias
   cinematic_left:   renderCinematicHero,
