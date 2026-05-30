@@ -58,6 +58,342 @@ const TYPOGRAPHY_DB = [
   { id:10, name:'Retro Warm',          heading:'Abril Fatface',     body:'Merriweather',   moods:['retro','vintage','warm','food','cafe','bakery','artisan'],       import:"@import url('https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Merriweather:wght@300;400;700&display=swap');" },
 ];
 
+
+// ============================================================
+// PERSONALITY PROFILE SYSTEM
+// 13 categories → layout genome → renderer driver
+// industry → personality → composition intelligence
+// ============================================================
+
+// ── INDUSTRY → PERSONALITY MAPPING ───────────────────────────
+export const INDUSTRY_PERSONALITY = {
+  // Trade Authority
+  plumbing:'trade_authority', electrical:'trade_authority', aircon:'trade_authority',
+  handyman:'trade_authority', carpentry:'trade_authority', roofing:'trade_authority',
+  waterproofing:'trade_authority', welding:'trade_authority', plastering:'trade_authority',
+  appliance_repair:'trade_authority', pest_control:'trade_authority',
+  signage:'trade_authority', cctv:'trade_authority',
+
+  // Transformation
+  flooring:'transformation', renovation:'transformation', panel_beater:'transformation',
+  landscaping:'transformation', garden:'transformation', florist:'transformation',
+  painting:'transformation',
+
+  // Personal Care
+  hair_salon:'personal_care', barber:'personal_care', nails:'personal_care',
+  spa:'personal_care', lashes:'personal_care', makeup:'personal_care',
+
+  // Wellness
+  gym:'wellness', personal_trainer:'wellness', yoga:'wellness',
+
+  // Hospitality
+  restaurant:'hospitality', cafe:'hospitality', bakery:'hospitality',
+  catering:'hospitality', street_food:'hospitality', chicken_shop:'hospitality',
+  shisa_nyama:'hospitality',
+
+  // Community Local
+  childcare:'community_local', tutoring:'community_local',
+  cleaning:'community_local', laundry:'community_local',
+
+  // Professional Trust
+  legal:'professional_trust', accounting:'professional_trust', property:'professional_trust',
+  crypto:'professional_trust', ai_consulting:'professional_trust',
+
+  // Technical Expertise
+  it_support:'technical_expertise', social_media:'technical_expertise',
+  graphic_design:'technical_expertise', security:'technical_expertise',
+
+  // Retail Utility
+  spaza:'retail_utility', hardware:'retail_utility', bottle_store:'retail_utility',
+
+  // Event & Creative
+  wedding:'event_creative', photography:'event_creative',
+  dj:'event_creative', events:'event_creative',
+
+  // Mobility
+  transport:'mobility', kombi:'mobility', bakkie_hire:'mobility',
+
+  // Medical Trust
+  medical:'medical_trust', dental:'medical_trust', pharmacy:'medical_trust', physio:'medical_trust',
+
+  // Memorial & Legacy
+  funeral:'memorial_legacy',
+
+  // Default
+  general:'trade_authority',
+};
+
+// ── PERSONALITY GENOME LIBRARY ────────────────────────────────
+// Each category defines the full composition intelligence
+// Hero archetypes, opening strategies, spacing, typography, density
+export const PERSONALITY_GENOMES = {
+
+  trade_authority: {
+    label: 'Trade Authority',
+    hero_layouts: ['trade_authority','cinematic_left'],
+    opening_strategies: ['proof_first','local_hero'],
+    typography_mode: 'bold_statement',
+    spacing_rhythm: 'compact',
+    card_density: 'low',
+    alignment_bias: 'left',
+    visual_energy: 'high',
+    surface_style: 'matte_dark',
+    cta_style: 'direct',
+    section_flow: 'service_first',
+    palette_row: 55,
+    typography_id: 7,
+    trust_signals: true,
+    image_treatment: { bg_position:'center 30%', hero_height:'90svh', scrim:'heavy_bottom' },
+  },
+
+  transformation: {
+    label: 'Transformation',
+    hero_layouts: ['cinematic_left','trade_authority'],
+    opening_strategies: ['before_after','proof_first'],
+    typography_mode: 'bold_statement',
+    spacing_rhythm: 'airy',
+    card_density: 'low',
+    alignment_bias: 'left',
+    visual_energy: 'medium',
+    surface_style: 'matte_dark',
+    cta_style: 'visual_proof',
+    section_flow: 'story_first',
+    palette_row: 51,
+    typography_id: 7,
+    trust_signals: true,
+    image_treatment: { bg_position:'center', hero_height:'100svh', scrim:'cinematic' },
+  },
+
+  personal_care: {
+    label: 'Personal Care',
+    hero_layouts: ['cinematic_left','quiet_premium'],
+    opening_strategies: ['emotional_story','local_hero'],
+    typography_mode: 'classic_elegant',
+    spacing_rhythm: 'dramatic',
+    card_density: 'very_low',
+    alignment_bias: 'left',
+    visual_energy: 'soft',
+    surface_style: 'warm_dark',
+    cta_style: 'inviting',
+    section_flow: 'story_first',
+    palette_row: 32,
+    typography_id: 1,
+    trust_signals: false,
+    image_treatment: { bg_position:'center top', hero_height:'100svh', scrim:'soft_bottom' },
+  },
+
+  wellness: {
+    label: 'Wellness',
+    hero_layouts: ['trade_authority','cinematic_left'],
+    opening_strategies: ['emotional_story','manifesto'],
+    typography_mode: 'bold_statement',
+    spacing_rhythm: 'airy',
+    card_density: 'low',
+    alignment_bias: 'left',
+    visual_energy: 'high',
+    surface_style: 'matte_dark',
+    cta_style: 'motivational',
+    section_flow: 'emotion_first',
+    palette_row: 35,
+    typography_id: 7,
+    trust_signals: false,
+    image_treatment: { bg_position:'center', hero_height:'95svh', scrim:'heavy_bottom' },
+  },
+
+  hospitality: {
+    label: 'Hospitality',
+    hero_layouts: ['cinematic_left','quiet_premium'],
+    opening_strategies: ['emotional_story','direct_offer'],
+    typography_mode: 'retro_warm',
+    spacing_rhythm: 'airy',
+    card_density: 'very_low',
+    alignment_bias: 'left',
+    visual_energy: 'warm',
+    surface_style: 'warm_dark',
+    cta_style: 'appetite',
+    section_flow: 'emotion_first',
+    palette_row: 34,
+    typography_id: 10,
+    trust_signals: false,
+    image_treatment: { bg_position:'center', hero_height:'100svh', scrim:'warm_bottom' },
+  },
+
+  community_local: {
+    label: 'Community Local',
+    hero_layouts: ['cinematic_left','trade_authority'],
+    opening_strategies: ['local_hero','emotional_story'],
+    typography_mode: 'modern_professional',
+    spacing_rhythm: 'airy',
+    card_density: 'medium',
+    alignment_bias: 'left',
+    visual_energy: 'soft',
+    surface_style: 'warm_dark',
+    cta_style: 'friendly',
+    section_flow: 'story_first',
+    palette_row: 31,
+    typography_id: 2,
+    trust_signals: false,
+    image_treatment: { bg_position:'center top', hero_height:'90svh', scrim:'soft_bottom' },
+  },
+
+  professional_trust: {
+    label: 'Professional Trust',
+    hero_layouts: ['quiet_premium','trade_authority'],
+    opening_strategies: ['proof_first','local_hero'],
+    typography_mode: 'luxury_serif',
+    spacing_rhythm: 'dramatic',
+    card_density: 'very_low',
+    alignment_bias: 'left',
+    visual_energy: 'restrained',
+    surface_style: 'deep_dark',
+    cta_style: 'minimal',
+    section_flow: 'proof_first',
+    palette_row: 40,
+    typography_id: 12,
+    trust_signals: true,
+    image_treatment: { bg_position:'center', hero_height:'100svh', scrim:'minimal' },
+  },
+
+  technical_expertise: {
+    label: 'Technical Expertise',
+    hero_layouts: ['trade_authority','cinematic_left'],
+    opening_strategies: ['proof_first','direct_offer'],
+    typography_mode: 'geometric_modern',
+    spacing_rhythm: 'compact',
+    card_density: 'medium',
+    alignment_bias: 'left',
+    visual_energy: 'medium',
+    surface_style: 'matte_dark',
+    cta_style: 'direct',
+    section_flow: 'service_first',
+    palette_row: 5,
+    typography_id: 11,
+    trust_signals: true,
+    image_treatment: { bg_position:'center', hero_height:'88svh', scrim:'heavy_bottom' },
+  },
+
+  retail_utility: {
+    label: 'Retail Utility',
+    hero_layouts: ['cinematic_left','trade_authority'],
+    opening_strategies: ['direct_offer','local_hero'],
+    typography_mode: 'modern_professional',
+    spacing_rhythm: 'compact',
+    card_density: 'medium',
+    alignment_bias: 'left',
+    visual_energy: 'medium',
+    surface_style: 'matte_dark',
+    cta_style: 'direct',
+    section_flow: 'service_first',
+    palette_row: 31,
+    typography_id: 2,
+    trust_signals: false,
+    image_treatment: { bg_position:'center', hero_height:'80svh', scrim:'heavy_bottom' },
+  },
+
+  event_creative: {
+    label: 'Event & Creative',
+    hero_layouts: ['cinematic_left','quiet_premium'],
+    opening_strategies: ['emotional_story','manifesto'],
+    typography_mode: 'fashion_forward',
+    spacing_rhythm: 'dramatic',
+    card_density: 'very_low',
+    alignment_bias: 'left',
+    visual_energy: 'high',
+    surface_style: 'deep_dark',
+    cta_style: 'experiential',
+    section_flow: 'emotion_first',
+    palette_row: 39,
+    typography_id: 18,
+    trust_signals: false,
+    image_treatment: { bg_position:'center', hero_height:'100svh', scrim:'cinematic' },
+  },
+
+  mobility: {
+    label: 'Mobility',
+    hero_layouts: ['cinematic_left','trade_authority'],
+    opening_strategies: ['direct_offer','local_hero'],
+    typography_mode: 'bold_statement',
+    spacing_rhythm: 'compact',
+    card_density: 'low',
+    alignment_bias: 'left',
+    visual_energy: 'high',
+    surface_style: 'matte_dark',
+    cta_style: 'direct',
+    section_flow: 'service_first',
+    palette_row: 52,
+    typography_id: 7,
+    trust_signals: true,
+    image_treatment: { bg_position:'center 40%', hero_height:'88svh', scrim:'heavy_bottom' },
+  },
+
+  medical_trust: {
+    label: 'Medical Trust',
+    hero_layouts: ['quiet_premium','trade_authority'],
+    opening_strategies: ['proof_first','emotional_story'],
+    typography_mode: 'wellness_calm',
+    spacing_rhythm: 'dramatic',
+    card_density: 'low',
+    alignment_bias: 'left',
+    visual_energy: 'restrained',
+    surface_style: 'clean_dark',
+    cta_style: 'reassuring',
+    section_flow: 'proof_first',
+    palette_row: 58,
+    typography_id: 8,
+    trust_signals: true,
+    image_treatment: { bg_position:'center top', hero_height:'100svh', scrim:'minimal' },
+  },
+
+  memorial_legacy: {
+    label: 'Memorial & Legacy',
+    hero_layouts: ['quiet_premium','cinematic_left'],
+    opening_strategies: ['emotional_story','local_hero'],
+    typography_mode: 'editorial_classic',
+    spacing_rhythm: 'dramatic',
+    card_density: 'very_low',
+    alignment_bias: 'left',
+    visual_energy: 'restrained',
+    surface_style: 'deep_dark',
+    cta_style: 'minimal',
+    section_flow: 'story_first',
+    palette_row: 5,
+    typography_id: 4,
+    trust_signals: false,
+    image_treatment: { bg_position:'center', hero_height:'100svh', scrim:'minimal' },
+  },
+};
+
+
+// ── SPACING RHYTHM DEFINITIONS ────────────────────────────────
+export const SPACING_RHYTHMS = {
+  compact:  { section: '48px 24px', gap: '16px', heroMin: '85svh' },
+  airy:     { section: '72px 24px', gap: '24px', heroMin: '100svh' },
+  dramatic: { section: '96px 24px', gap: '32px', heroMin: '100svh' },
+};
+
+// ── SECTION FLOW DEFINITIONS ──────────────────────────────────
+export const SECTION_FLOWS = {
+  service_first:  ['hero','services','about','why_us','testimonial','contact'],
+  story_first:    ['hero','about','services','why_us','testimonial','contact'],
+  emotion_first:  ['hero','testimonial','about','services','why_us','contact'],
+  proof_first:    ['hero','why_us','testimonial','services','about','contact'],
+};
+
+// ── PERSONALITY RESOLUTION ────────────────────────────────────
+export function getPersonality(industryKey) {
+  const category = INDUSTRY_PERSONALITY[industryKey] || 'trade_authority';
+  return {
+    category,
+    ...PERSONALITY_GENOMES[category],
+  };
+}
+
+// ── TYPOGRAPHY BY ID ──────────────────────────────────────────
+export function getTypographyById(id) {
+  return TYPOGRAPHY_DB.find(t => t.id === id) || TYPOGRAPHY_DB[1];
+}
+
+
 // ── INDUSTRY → PALETTE ROW MAPPING ───────────────────────────
 
 function matchIndustryToRow(industry) {
@@ -139,20 +475,26 @@ export const UX_RULES = [
 // ── MAIN EXPORT ───────────────────────────────────────────────
 
 /**
- * getDesignBrief — replaces getIndustryBrief() and INDUSTRY_MATRIX
+ * getDesignBrief — personality-driven design system
+ * Routes industry → personality category → genome → palette + typography
  *
- * @param {string} industry  e.g. "flooring", "beauty salon", "plumber"
- * @param {string} vibe      e.g. "warm", "bold", "professional", "playful"
- * @returns {object} Complete design brief for Pass 1 + Pass 2 of build pipeline
+ * @param {string} industry  e.g. "flooring", "hair_salon", "plumbing"
+ * @param {string} vibe      optional override (legacy support)
+ * @returns {object} Complete design brief for build pipeline
  */
 export function getDesignBrief(industry, vibe) {
-  const rowNum    = matchIndustryToRow(industry);
-  const palette   = PALETTE_DB[rowNum] || PALETTE_DB[0];
-  const typo      = matchTypography(industry, vibe);
-  const landing   = getLandingPattern();
+  // Resolve personality from industry key
+  const industryKey = normaliseIndustryKey(industry);
+  const personality = getPersonality(industryKey);
+
+  // Get palette from personality's preferred row
+  const palette     = PALETTE_DB[personality.palette_row] || PALETTE_DB[0];
+
+  // Get typography from personality's preferred id
+  const typo        = getTypographyById(personality.typography_id);
+  const landing     = getLandingPattern();
 
   return {
-    // Palette — full CSS custom property set, WCAG-compliant
     palette: {
       primary:    palette.primary,
       onPrimary:  palette.onPrimary,
@@ -167,22 +509,98 @@ export function getDesignBrief(industry, vibe) {
       ring:       palette.ring,
       notes:      palette.notes,
     },
-    // Typography — ready-to-inject CSS @import
     typography: {
       heading:    typo.heading,
       body:       typo.body,
       name:       typo.name,
       cssImport:  typo.import,
     },
-    // Landing pattern — structural brief for Pass 1
+    // Full personality genome — drives renderer
+    personality,
     landing,
-    // UX rules — Pass 3 checklist
     uxRules: UX_RULES,
-    // Unsplash query — keyword search, full archive, no collections
     unsplashQuery: buildUnsplashQuery(industry, vibe, palette),
-    // Source metadata
-    _source: `ui-ux-pro-max-skill row ${rowNum}: ${palette.type}`,
+    _source:       `personality:${personality.category} palette:${personality.palette_row}`,
+    industryKey,
   };
+}
+
+// ── INDUSTRY KEY NORMALISER ───────────────────────────────────
+// Converts free-text industry to a normalised key
+function normaliseIndustryKey(industry) {
+  if (!industry) return 'general';
+  const k = industry.toLowerCase().replace(/[^a-z\s_]/g, '').trim();
+
+  if (/plumb/.test(k))                    return 'plumbing';
+  if (/electr/.test(k))                   return 'electrical';
+  if (/aircon|hvac|air.con/.test(k))      return 'aircon';
+  if (/handyman/.test(k))                 return 'handyman';
+  if (/carpent|joinery/.test(k))          return 'carpentry';
+  if (/paint(?!er.*photo)/.test(k))       return 'painting';
+  if (/roof/.test(k))                     return 'roofing';
+  if (/waterproof/.test(k))               return 'waterproofing';
+  if (/pest|exterminat/.test(k))          return 'pest_control';
+  if (/appliance|whitegoods/.test(k))     return 'appliance_repair';
+  if (/floor|carpet|vinyl|laminate/.test(k)) return 'flooring';
+  if (/hair.*salon|salon|hairdress/.test(k)) return 'hair_salon';
+  if (/barber/.test(k))                   return 'barber';
+  if (/nail/.test(k))                     return 'nails';
+  if (/spa|massage/.test(k))              return 'spa';
+  if (/lash/.test(k))                     return 'lashes';
+  if (/makeup|make.up|cosmetic/.test(k))  return 'makeup';
+  if (/restaurant|diner/.test(k))         return 'restaurant';
+  if (/cater/.test(k))                    return 'catering';
+  if (/baker/.test(k))                    return 'bakery';
+  if (/cafe|coffee/.test(k))              return 'cafe';
+  if (/street.food|food.stall/.test(k))   return 'street_food';
+  if (/chicken|kfc|chick/.test(k))        return 'chicken_shop';
+  if (/shisa|nyama|braai/.test(k))        return 'shisa_nyama';
+  if (/gym|fitness/.test(k))             return 'gym';
+  if (/personal.train/.test(k))           return 'personal_trainer';
+  if (/yoga|pilates/.test(k))             return 'yoga';
+  if (/mechanic|auto.repair/.test(k))     return 'mechanic';
+  if (/panel|body.shop/.test(k))          return 'panel_beater';
+  if (/tyre|tire/.test(k))               return 'tyres';
+  if (/carwash|car.wash/.test(k))         return 'carwash';
+  if (/bakkie.hire|truck.hire/.test(k))   return 'bakkie_hire';
+  if (/construct|build/.test(k))          return 'construction';
+  if (/renovat/.test(k))                  return 'renovation';
+  if (/plaster/.test(k))                  return 'plastering';
+  if (/weld/.test(k))                     return 'welding';
+  if (/sign/.test(k))                     return 'signage';
+  if (/cctv|camera/.test(k))              return 'cctv';
+  if (/clean|maid|domestic/.test(k))      return 'cleaning';
+  if (/laundry/.test(k))                  return 'laundry';
+  if (/medical|doctor|clinic/.test(k))    return 'medical';
+  if (/pharm/.test(k))                    return 'pharmacy';
+  if (/physio/.test(k))                   return 'physio';
+  if (/dental|dentist/.test(k))           return 'dental';
+  if (/property|estate.agent|realtor/.test(k)) return 'property';
+  if (/legal|law|attorney|advocate/.test(k))   return 'legal';
+  if (/account|bookkeep/.test(k))         return 'accounting';
+  if (/crypto|blockchain/.test(k))        return 'crypto';
+  if (/it.support|tech.support/.test(k))  return 'it_support';
+  if (/social.media/.test(k))             return 'social_media';
+  if (/graphic|design/.test(k))           return 'graphic_design';
+  if (/securi/.test(k))                   return 'security';
+  if (/spaza|tuck.shop/.test(k))          return 'spaza';
+  if (/hardware/.test(k))                 return 'hardware';
+  if (/bottle.store|liquor/.test(k))      return 'bottle_store';
+  if (/wedding/.test(k))                  return 'wedding';
+  if (/photo/.test(k))                    return 'photography';
+  if (/\bdj\b|disc.jockey/.test(k))       return 'dj';
+  if (/event/.test(k))                    return 'events';
+  if (/transport|logistics/.test(k))      return 'transport';
+  if (/kombi|minibus/.test(k))            return 'kombi';
+  if (/landscap/.test(k))                 return 'landscaping';
+  if (/garden|nursery/.test(k))           return 'garden';
+  if (/florist|flower/.test(k))           return 'florist';
+  if (/childcare|creche|daycare/.test(k)) return 'childcare';
+  if (/tutor|teach|educat/.test(k))       return 'tutoring';
+  if (/funeral/.test(k))                  return 'funeral';
+  if (/ai.consult/.test(k))               return 'ai_consulting';
+
+  return 'general';
 }
 
 // ── UNSPLASH KEYWORD QUERY BUILDER ───────────────────────────

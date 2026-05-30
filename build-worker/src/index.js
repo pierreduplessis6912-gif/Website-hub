@@ -14,7 +14,7 @@
 // ============================================================
 
 import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from './shared-services.js';
-import { getDesignBrief, buildCssVariables, UX_RULES } from '../../design-db.js';
+import { getDesignBrief, buildCssVariables, UX_RULES, getPersonality, SECTION_FLOWS, SPACING_RHYTHMS } from '../../design-db.js';
 import { getHeroPhotoQuery, getIndustryKey } from '../../photo-db.js';
 
 // ── CONSTANTS ─────────────────────────────────────────────────
@@ -78,6 +78,34 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--fg);overflow-
 .watermark-strip{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,10,0.95);border-top:1px solid rgba(255,255,255,0.08);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;z-index:200;backdrop-filter:blur(12px)}
 .watermark-text{font-size:12px;color:rgba(255,255,255,0.6)}
 .watermark-cta{font-size:12px;font-weight:700;color:var(--accent);text-decoration:none}
+
+/* ── TRADE AUTHORITY HERO ─────────────────────────────────── */
+.hero-ta{min-height:90svh;background-size:cover;background-position:center;display:flex;flex-direction:column;justify-content:flex-end;padding:52px 0 56px;position:relative}
+.hero-ta::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.7) 50%,rgba(0,0,0,0.97) 100%)}
+.hero-ta .trust-bar{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.hero-ta .trust-pill{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);font-weight:700;padding:6px 12px;border:1px solid var(--accent);border-radius:4px;white-space:nowrap}
+.hero-ta .trust-sep{width:1px;height:14px;background:rgba(255,255,255,0.2)}
+.hero-ta .hero-h1{font-family:var(--font-heading);font-size:clamp(40px,11vw,72px);font-weight:900;line-height:0.95;letter-spacing:-0.02em;color:#fff;margin-bottom:16px;text-transform:uppercase}
+.hero-ta .hero-sub{font-size:16px;color:rgba(255,255,255,0.75);margin-bottom:28px;line-height:1.5;max-width:340px}
+.hero-ta .hero-content{position:relative;z-index:1;padding:0 24px}
+
+/* ── CINEMATIC LEFT HERO ─────────────────────────────────── */
+.hero-cl{min-height:100svh;background-size:cover;background-position:center;display:flex;flex-direction:column;justify-content:flex-end;padding:52px 0 64px;position:relative}
+.hero-cl::before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.5) 55%,rgba(0,0,0,0.1) 100%),linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,0.9) 100%)}
+.hero-cl .hero-content{position:relative;z-index:1;padding:0 24px;max-width:420px}
+.hero-cl .hero-emotion{font-size:14px;color:var(--accent);letter-spacing:1px;margin-bottom:16px;font-weight:500}
+.hero-cl .hero-h1{font-family:var(--font-heading);font-size:clamp(38px,10vw,66px);font-weight:800;line-height:1.05;letter-spacing:-0.02em;color:#fff;margin-bottom:14px}
+.hero-cl .hero-sub{font-size:16px;color:rgba(255,255,255,0.82);margin-bottom:10px;line-height:1.55}
+.hero-cl .trust-line{font-size:11px;color:rgba(255,255,255,0.45);margin-bottom:28px;letter-spacing:1.5px;text-transform:uppercase}
+
+/* ── QUIET PREMIUM HERO ──────────────────────────────────── */
+.hero-qp{min-height:100svh;background-size:cover;background-position:center;display:flex;flex-direction:column;justify-content:flex-end;padding:52px 0 72px;position:relative}
+.hero-qp::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.1) 0%,rgba(0,0,0,0.3) 50%,rgba(0,0,0,0.92) 100%)}
+.hero-qp .hero-content{position:relative;z-index:1;padding:0 32px}
+.hero-qp .hero-eyebrow{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:24px;display:block}
+.hero-qp .hero-h1{font-family:var(--font-heading);font-size:clamp(32px,8vw,54px);font-weight:600;line-height:1.15;letter-spacing:-0.01em;color:#fff;margin-bottom:20px}
+.hero-qp .hero-p{font-size:15px;color:rgba(255,255,255,0.65);line-height:1.7;margin-bottom:32px;max-width:360px}
+.hero-qp .cta-qp{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border:1px solid rgba(255,255,255,0.3);border-radius:4px;color:#fff;font-size:14px;font-weight:500;text-decoration:none;letter-spacing:0.5px}
 `;
 
 // ── DEFAULT CONFIG (written to KV on first boot if missing) ───
@@ -865,6 +893,11 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   const accentColour  = brandBrief?.accent_colour || null;
   const cssBlock      = buildCssVariables(brief.palette, brief.typography, primaryColour, accentColour);
 
+  // ── PERSONALITY — Claude confirms or overrides genome ──────
+  const heroLayout       = brandBrief?.hero_layout       || brief.personality?.hero_layouts?.[0]       || 'cinematic_left';
+  const openingStrategy  = brandBrief?.opening_strategy  || brief.personality?.opening_strategies?.[0] || 'proof_first';
+  const personalityCategory = brandBrief?.personality_category?.split(' ')[0] || brief.personality?.category || 'trade_authority';
+
   // ── GALLERY PHOTOS from D1 (Premium only) ──────────────────
   const caps        = PACKAGE_CAPS[pkg] || PACKAGE_CAPS.standard;
   let galleryPhotos = [];
@@ -878,7 +911,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   }
 
   // ── HTML ───────────────────────────────────────────────────
-  const html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg);
+  const html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg, heroLayout, openingStrategy);
 
   // ── STORE ──────────────────────────────────────────────────
   await env.SITES.put(`preview:${slug}`, html, { expirationTtl: PREVIEW_TTL });
@@ -985,37 +1018,53 @@ Return only failing fields. Empty object {} if all pass.`;
 // ── PASS PROMPTS: SUBSTANCE BUILD ─────────────────────────────
 
 function substancePass1System(brief) {
-  return `You are a South African brand strategist and designer. A business owner has told you everything about their business. Your job is: (1) find the one story thread running through all of it and articulate their specific voice, (2) choose the right primary and accent colour for this specific business — not a generic industry colour, but one that fits their personality, area, and what makes them different. Rich, bold, considered colours. Dark backgrounds will be auto-derived from your primary choice. Typography is ${brief.typography.name}. Output only valid JSON — no markdown.`;
+  const p = brief.personality;
+  return `You are a South African brand strategist and designer. You have been given a personality profile for this business — it defines the visual direction, layout archetype, and opening strategy. Your job is to:
+1. Confirm or refine the personality classification based on the specific business context
+2. Select the hero layout and opening strategy from the allowed options
+3. Develop the brand voice and story
+4. Choose colours that fit THIS specific business — the personality system gives you a baseline, but you should refine it based on their name, area, differentiators, and what makes them distinct
+
+Personality profile assigned: ${p.category} (${p.label})
+Allowed hero layouts: ${p.hero_layouts.join(', ')}
+Allowed opening strategies: ${p.opening_strategies.join(', ')}
+Baseline palette: ${brief.palette.notes}
+Typography: ${brief.typography.name}
+
+Colour guidance: The baseline palette is a starting point. Choose a primary colour that fits this specific business — richer and more specific than a generic industry colour. A flooring company in Richards Bay should feel different from one in Sandton. The accent colour drives CTAs and highlights — must pop on dark backgrounds. Only extract logo_brand_colour if a logo image was uploaded.
+
+Output only valid JSON — no markdown.`;
 }
 
 function substancePass1User(client, cards, brief, previewProfile) {
   return `Business: ${client.business_name}
 Area: ${client.area}
 Industry: ${cards?.industry || client.industry}
-Audience: ${cards?.audience || 'general'}
-Vibe: ${cards?.vibe || client.vibe}
+Business type: ${client.business_type || cards?.industry || ''}
 Services: ${(cards?.services || []).join(', ')}
 Main CTA: ${cards?.cta || 'Get in touch'}
 Differentiator 1: ${cards?.diff1 || ''}
 Differentiator 2: ${cards?.diff2 || ''}
 Differentiator 3: ${cards?.diff3 || ''}
 Testimonial seed: ${cards?.testimonial || ''}
-Tagline choice: ${cards?.tagline || ''}
 ${previewProfile ? `\nExisting skeleton content (build forward from this, don't contradict):\nHero: ${previewProfile.hero_h1 || ''} — ${previewProfile.hero_subline || ''}` : ''}
 
 Output this JSON exactly:
 {
+  "personality_category": "${brief.personality.category} — confirm or override with: trade_authority|transformation|personal_care|wellness|hospitality|community_local|professional_trust|technical_expertise|retail_utility|event_creative|mobility|medical_trust|memorial_legacy",
+  "hero_layout": "choose from: ${brief.personality.hero_layouts.join('|')}",
+  "opening_strategy": "choose from: ${brief.personality.opening_strategies.join('|')}",
   "brand_voice": "one sentence — their specific voice, not a category",
   "story_angle": "the narrative thread tying their differentiators together",
   "emotional_core": "what the customer feels after reading this site",
   "hero_angle": "specific and informed by their actual data",
   "differentiator_narrative": "one paragraph weaving diff1 + diff2 + diff3 into one story",
   "testimonial_frame": "how to present the testimonial seed most powerfully",
-  "unsplash_query": "hero image search — specific, fresh, not generic. Different angle each time. Match their actual personality and area.",
-  "primary_colour": "choose a rich hex colour that fits this specific business personality — e.g. #1a3a5c for trustworthy trades, #7c2d2d for bold heritage, #1a4a2e for earthy local. Not a template colour.",
-  "accent_colour": "complementary accent hex — used for CTAs, highlights, and links. Must contrast well on dark backgrounds.",
-  "logo_brand_colour": "if a logo or business card photo was uploaded, extract the dominant brand hex — otherwise null"
+  "primary_colour": "refine from the baseline — a hex that fits THIS specific business, area, and personality. Not generic.",
+  "accent_colour": "complementary accent hex — must contrast on dark backgrounds. Used for CTAs and highlights.",
+  "logo_brand_colour": "extract dominant hex from uploaded logo/business card — otherwise null"
 }`;
+}
 }
 
 function substancePass2System() {
@@ -1386,7 +1435,155 @@ ${svcNames.length > 0 ? `
 </html>`;
 }
 
-function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg) {
+
+// ══════════════════════════════════════════════════════════════
+// HERO RENDERER REGISTRY
+// 3 layouts × 4 opening strategies = 12 distinct hero experiences
+// ══════════════════════════════════════════════════════════════
+
+// ── OPENING STRATEGY COMPOSERS ────────────────────────────────
+function composeOpening(strategy, t) {
+  switch (strategy) {
+    case 'proof_first':
+      return {
+        pre:  t.hero_trust_line || '',           // e.g. "14 Years · Fully Insured · 2,300 Jobs"
+        h1:   t.hero_h1_line1 || '',
+        h1b:  t.hero_h1_line2 || '',
+        sub:  t.hero_subline   || '',
+        type: 'proof',
+      };
+    case 'emotional_story':
+      return {
+        pre:  t.hero_subline   || '',            // Emotional hook comes first
+        h1:   t.hero_h1_line1  || '',
+        h1b:  t.hero_h1_line2  || '',
+        sub:  t.hero_trust_line || '',
+        type: 'emotion',
+      };
+    case 'direct_offer':
+      return {
+        pre:  t.hero_trust_line || '',
+        h1:   t.hero_h1_line1  || '',
+        h1b:  t.hero_h1_line2  || '',
+        sub:  t.hero_subline   || '',
+        type: 'offer',
+      };
+    case 'manifesto':
+    default:
+      return {
+        pre:  '',
+        h1:   t.hero_h1_line1  || '',
+        h1b:  t.hero_h1_line2  || '',
+        sub:  t.hero_subline   || '',
+        type: 'manifesto',
+      };
+  }
+}
+
+// ── TRADE AUTHORITY HERO ──────────────────────────────────────
+// Dense, trust-bar-led, left-anchored. Dark overlay dominates.
+// Used for: trades, security, technical expertise, mobility
+function renderTradeAuthorityHero(t, client, waLink, openingStrategy, heroUrl, img) {
+  const o    = composeOpening(openingStrategy, t);
+  const bgPos = img.bg_position || 'center 30%';
+  const minH  = img.hero_height || '90svh';
+  const pills = o.pre ? o.pre.split(/[·|,·]/).map(p => p.trim()).filter(Boolean) : [];
+  const trustBar = pills.length > 0
+    ? `<div class="trust-bar">${pills.map((p,i) => `<span class="trust-pill">${esc(p)}</span>${i < pills.length-1 ? '<span class="trust-sep"></span>' : ''}`).join('')}</div>`
+    : '';
+
+  return `<section class="hero-ta" style="background-image:url('${heroUrl}');min-height:${minH};background-position:${bgPos}">
+  <div class="hero-content">
+    ${trustBar}
+    <h1 class="hero-h1">${esc(o.h1)}${o.h1b ? '<br>' + esc(o.h1b) : ''}</h1>
+    <p class="hero-sub">${esc(o.sub)}</p>
+    <a href="${waLink}" class="cta-wa">💬 ${esc(t.hero_cta || 'Get a Quote')}</a>
+  </div>
+</section>`;
+}
+
+// ── CINEMATIC LEFT HERO ───────────────────────────────────────
+// Image carries 70% emotional weight. Text hard left, breathing room.
+// Used for: transformation, hospitality, event_creative, personal_care
+function renderCinematicHero(t, client, waLink, openingStrategy, heroUrl, img) {
+  const o     = composeOpening(openingStrategy, t);
+  const bgPos = img.bg_position || 'center';
+  const minH  = img.hero_height || '100svh';
+  const warm  = img.scrim === 'warm_bottom'
+    ? 'background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(20,8,0,0.92) 100%)'
+    : 'background:linear-gradient(105deg,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.5) 55%,rgba(0,0,0,0.1) 100%),linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,0.9) 100%)';
+
+  const preHtml = o.type === 'emotion'
+    ? `<p class="hero-emotion">${esc(o.pre)}</p>`
+    : o.pre
+      ? `<p class="trust-line">${esc(o.pre)}</p>`
+      : '';
+
+  return `<section class="hero-cl" style="background-image:url('${heroUrl}');min-height:${minH};background-position:${bgPos}"><style>.hero-cl::before{${warm}}</style>
+  <div class="hero-content">
+    ${preHtml}
+    <h1 class="hero-h1">${esc(o.h1)}${o.h1b ? '<br>' + esc(o.h1b) : ''}</h1>
+    <p class="hero-sub">${esc(o.sub)}</p>
+    <a href="${waLink}" class="cta-wa">💬 ${esc(t.hero_cta || 'WhatsApp Us')}</a>
+  </div>
+</section>`;
+}
+
+// ── QUIET PREMIUM HERO ────────────────────────────────────────
+// Restrained, editorial. Acres of breathing room. Small CTA.
+// Used for: professional_trust, medical_trust, memorial_legacy, property
+function renderQuietPremiumHero(t, client, waLink, openingStrategy, heroUrl, img) {
+  const o     = composeOpening(openingStrategy, t);
+  const bgPos = img.bg_position || 'center';
+  const minH  = img.hero_height || '100svh';
+
+  // Eyebrow = area + industry signal
+  const eyebrow = [client.area, t.section_label_about].filter(Boolean).join(' · ').toUpperCase();
+
+  return `<section class="hero-qp" style="background-image:url('${heroUrl}');min-height:${minH};background-position:${bgPos}">
+  <div class="hero-content">
+    <span class="hero-eyebrow">${esc(eyebrow)}</span>
+    ${o.pre ? `<p style="font-size:13px;color:var(--accent);letter-spacing:1px;margin-bottom:16px;font-weight:500">${esc(o.pre)}</p>` : ''}
+    <h1 class="hero-h1">${esc(o.h1)}${o.h1b ? '<br>' + esc(o.h1b) : ''}</h1>
+    <p class="hero-p">${esc(o.sub)}</p>
+    <a href="${waLink}" class="cta-qp">Get in touch →</a>
+  </div>
+</section>`;
+}
+
+// ── SECTION FLOW ORCHESTRATOR ─────────────────────────────────
+// Reorders sections based on personality-driven flow
+// Eliminates the same Hero→About→Services→WhyUs→Testimonial every time
+function renderSections(flow, sections) {
+  const { aboutSection, servicesSection, gallerySection, whyUsSection, testimonialSection, mapSection, enquiryForm } = sections;
+
+  const orders = {
+    service_first: [servicesSection, gallerySection, aboutSection, whyUsSection, testimonialSection, mapSection, enquiryForm],
+    story_first:   [aboutSection, servicesSection, gallerySection, whyUsSection, testimonialSection, mapSection, enquiryForm],
+    proof_first:   [whyUsSection, testimonialSection, servicesSection, gallerySection, aboutSection, mapSection, enquiryForm],
+    emotion_first: [testimonialSection, aboutSection, servicesSection, gallerySection, whyUsSection, mapSection, enquiryForm],
+  };
+
+  return (orders[flow] || orders.service_first).filter(Boolean).join('\n');
+}
+
+
+  trade_authority:  renderTradeAuthorityHero,
+  split_authority:  renderTradeAuthorityHero,   // alias
+  cinematic_left:   renderCinematicHero,
+  before_after:     renderCinematicHero,         // alias
+  warm_community:   renderCinematicHero,         // alias
+  editorial_offset: renderCinematicHero,         // alias
+  quiet_premium:    renderQuietPremiumHero,
+  centered_manifesto: renderQuietPremiumHero,    // alias — build separately later
+};
+
+function renderHero(heroLayout, openingStrategy, t, client, waLink, heroUrl, imageTreatment) {
+  const renderer = HERO_RENDERERS[heroLayout] || renderCinematicHero;
+  return renderer(t, client, waLink, openingStrategy, heroUrl, imageTreatment || {});
+}
+
+function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg, heroLayout = 'cinematic_left', openingStrategy = 'proof_first') {
   const phone   = client.phone?.replace(/\D/g, '');
   const domain  = client.domain || `${client.slug}.co.za`;
   const waLink  = `https://wa.me/${phone}`;
@@ -1412,15 +1609,13 @@ function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg) {
 <section id="about" class="section-bleed">
   <span class="label">${esc(t.section_label_about || 'OUR STORY')}</span>
   <h2 class="section-h2">${esc(t.about_headline || '')}</h2>
-  <div class="card" style="margin-bottom:24px">
-    <p class="pull-quote">${esc(t.about_pull_quote || '')}</p>
-  </div>
+  <p class="pull-quote">${esc(t.about_pull_quote || '')}</p>
   <p class="body-text">${esc(t.about_p1 || '')}</p>
   <p class="body-text">${esc(t.about_p2 || '')}</p>
 </section>`;
 
   // ── SERVICES — Express gets max 4, no descriptions ─────────────
-  const svcList = isExp ? svcs.slice(0, 4) : svcs;
+  const svcList  = isExp ? svcs.slice(0, 4) : svcs;
   const svcCards = svcList.map((s, i) => `
     <div class="service-card">
       <div class="service-num">${String(i + 1).padStart(2, '0')}</div>
@@ -1428,16 +1623,39 @@ function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg) {
       ${!isExp ? `<div class="service-desc">${esc(s.desc || '')}</div>` : ''}
     </div>`).join('');
 
-  // ── WHY US — Standard + Premium only ──────────────────────────
+  const servicesSection = `
+<!-- SERVICES -->
+<section id="services" class="section">
+  <span class="label">${esc(t.section_label_services || 'WHAT WE DO')}</span>
+  <h2 class="section-h2">${esc(t.services_headline || '')}</h2>
+  <div class="services-grid">${svcCards}</div>
+</section>`;
+
+  // ── SECTION FLOW — personality-driven ordering ──────────────
+  const sectionFlow = openingStrategy === 'proof_first'  ? 'proof_first'
+                    : openingStrategy === 'emotional_story' ? 'story_first'
+                    : 'service_first';
+
+  // ── WHY US — Standard + Premium only, card-free ──────────────
+  // Differentiators rendered as free-floating editorial blocks, not cards
   const whyUsSection = isExp ? '' : `
 <!-- WHY US -->
-<section id="why-us" class="section-bleed">
+<section id="why-us" class="section">
   <span class="label">${esc(t.section_label_whyus || 'WHY US')}</span>
   <h2 class="section-h2">${esc(t.whyus_headline || '')}</h2>
-  <div class="diff-stack">
-    <div class="diff-card"><div class="diff-title">${esc(t.diff1_title || '')}</div><div class="diff-body">${esc(t.diff1_body || '')}</div></div>
-    <div class="diff-card"><div class="diff-title">${esc(t.diff2_title || '')}</div><div class="diff-body">${esc(t.diff2_body || '')}</div></div>
-    <div class="diff-card"><div class="diff-title">${esc(t.diff3_title || '')}</div><div class="diff-body">${esc(t.diff3_body || '')}</div></div>
+  <div style="margin-top:32px;display:flex;flex-direction:column;gap:0">
+    <div style="padding:24px 0;border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--font-heading);font-size:17px;font-weight:700;margin-bottom:8px;color:var(--fg)">${esc(t.diff1_title || '')}</div>
+      <div style="font-size:14px;color:var(--muted-fg);line-height:1.6">${esc(t.diff1_body || '')}</div>
+    </div>
+    <div style="padding:24px 0;border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--font-heading);font-size:17px;font-weight:700;margin-bottom:8px;color:var(--fg)">${esc(t.diff2_title || '')}</div>
+      <div style="font-size:14px;color:var(--muted-fg);line-height:1.6">${esc(t.diff2_body || '')}</div>
+    </div>
+    <div style="padding:24px 0">
+      <div style="font-family:var(--font-heading);font-size:17px;font-weight:700;margin-bottom:8px;color:var(--fg)">${esc(t.diff3_title || '')}</div>
+      <div style="font-size:14px;color:var(--muted-fg);line-height:1.6">${esc(t.diff3_body || '')}</div>
+    </div>
   </div>
 </section>`;
 
@@ -1532,30 +1750,9 @@ ${cssBlock}
   <div class="nav-links">${navLinks}</div>
 </nav>
 
-<!-- HERO -->
-<section class="section-hero" style="background-image:url('${heroUrl}')">
-  <div class="hero-content">
-    <h1 class="hero-h1">${esc(t.hero_h1_line1 || '')}${t.hero_h1_line2 ? '<br>' + esc(t.hero_h1_line2) : ''}</h1>
-    <p class="hero-sub">${esc(t.hero_subline || '')}</p>
-    <p class="trust-line">${esc(t.hero_trust_line || '')}</p>
-    <a href="${waLink}" class="cta-wa">💬 ${esc(t.hero_cta || 'WhatsApp Us')}</a>
-  </div>
-</section>
+${renderHero(heroLayout, openingStrategy, t, client, waLink, heroUrl, brief?.personality?.image_treatment)}
 
-${aboutSection}
-
-<!-- SERVICES -->
-<section id="services" class="section">
-  <span class="label">${esc(t.section_label_services || 'WHAT WE DO')}</span>
-  <h2 class="section-h2">${esc(t.services_headline || '')}</h2>
-  <div class="services-grid">${svcCards}</div>
-</section>
-
-${gallerySection}
-${whyUsSection}
-${testimonialSection}
-${mapSection}
-${enquiryForm}
+${renderSections(sectionFlow, { aboutSection, servicesSection, gallerySection, whyUsSection, testimonialSection, mapSection, enquiryForm })}
 
 <!-- CONTACT -->
 <section id="contact" class="section-bleed">
