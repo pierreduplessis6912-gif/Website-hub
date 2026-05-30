@@ -70,9 +70,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Sync shared-services
         run: cp build-worker/src/shared-services.js reactivate-worker/src/shared-services.js
-      - name: Install dependencies
-        working-directory: reactivate-worker
-        run: npm install --include=optional
       - name: Deploy wh-reactivate
         uses: cloudflare/wrangler-action@v3
         with:
