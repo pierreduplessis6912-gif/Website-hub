@@ -517,7 +517,6 @@ async function handleIntake(request, env) {
       const isWhitelistedIP = WHITELISTED_IPS.includes(ip);
 
       if (!isWhitelistedIP) {
-      if (!isWhitelistedIP) {
         // IP rate limit — max 3 intake attempts per IP per hour
         const ipKey = `rate:intake:ip:${ip}`;
         const ipCount = parseInt(await env.SITES.get(ipKey) || '0');
