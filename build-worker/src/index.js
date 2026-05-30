@@ -719,7 +719,10 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
   const slug   = client.slug;
   const pkg    = pkgKey(client.package);
-  const brief  = getDesignBrief(client.industry || client.business_type, client.vibe);
+  const brief  = getDesignBrief(
+    client.industry || client.business_type || client.business_name,
+    client.vibe
+  );
   const buildId = await createBuild(env, clientId, { template_id: pkg, palette: client.vibe });
   const buildStart = Date.now();
 
@@ -830,7 +833,10 @@ async function triggerSubstanceBuild(clientId, cards, env) {
 
   const slug  = client.slug;
   const pkg   = pkgKey(client.package);
-  const brief = getDesignBrief(cards?.industry || client.industry || client.business_type, cards?.vibe || client.vibe);
+  const brief = getDesignBrief(
+    cards?.industry || client.industry || client.business_type || client.business_name,
+    cards?.vibe || client.vibe
+  );
 
   // Load pre-build voice profile as anchor
   const previewProfile = await env.SITES.get(`content:${slug}`, 'json').catch(() => null);
@@ -1825,24 +1831,30 @@ async function fetchHeroPhoto(brief, brandBrief, env) {
     } catch {}
   }
 
-  // Fetch from Unsplash
+  // Fetch from Unsplash — get 3 results, take first (best relevance match)
   try {
     const endpoint = `https://api.unsplash.com/photos/random`
       + `?query=${encodeURIComponent(query.slice(0, 100))}`
-      + `&orientation=landscape&content_filter=high`;
+      + `&orientation=landscape&content_filter=high&count=3`;
     const res  = await fetch(endpoint, {
       headers: { 'Authorization': `Client-ID ${env.UNSPLASH_ACCESS_KEY}`, 'Accept-Version': 'v1' }
     });
     if (!res.ok) return FALLBACK_HERO;
     const data = await res.json();
-    const url  = data.urls?.regular || data.urls?.full;
+
+    // data is array when count>1, object when count=1
+    const photos = Array.isArray(data) ? data : [data];
+    const photo  = photos[0];
+    const url    = photo?.urls?.regular || photo?.urls?.full;
     if (!url) return FALLBACK_HERO;
+
+    console.log(`[photo] industry=${industry} query="${query}" url=${url}`);
 
     // Cache in D1 library
     await env.DB.prepare(
       `INSERT OR IGNORE INTO photos (unsplash_id, url, thumb_url, query_used, industry, vibe, slot)
        VALUES (?,?,?,?,?,?,'hero')`
-    ).bind(data.id, url, data.urls?.thumb || url, query, industry, vibe).run().catch(() => {});
+    ).bind(photo.id, url, photo.urls?.thumb || url, query, industry, vibe).run().catch(() => {});
 
     return url;
   } catch {
