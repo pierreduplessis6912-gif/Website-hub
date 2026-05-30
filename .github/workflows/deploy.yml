@@ -5,68 +5,13 @@ on:
     branches: [main]
 
 jobs:
-  migrate:
-    name: Apply D1 migrations
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Apply D1 migrations
-        run: npx wrangler d1 migrations apply website-hub-db --remote
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-  sync-shared-services:
-    name: Sync shared-services.js
-    runs-on: ubuntu-latest
-    needs: migrate
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check for drift before sync
-        run: |
-          DRIFTED=0
-          for worker in patch-worker launch-worker pulse-worker reactivate-worker; do
-            if ! diff -q build-worker/src/shared-services.js $worker/src/shared-services.js > /dev/null 2>&1; then
-              echo "⚠️  DRIFT DETECTED: $worker/src/shared-services.js differs from build-worker"
-              DRIFTED=1
-            fi
-          done
-          if [ $DRIFTED -eq 1 ]; then
-            echo "Drift detected — build-worker version will be used as source of truth."
-          else
-            echo "✓ All shared-services.js copies are in sync."
-          fi
-
-      - name: Sync build-worker shared-services to all workers
-        run: |
-          cp build-worker/src/shared-services.js patch-worker/src/shared-services.js
-          cp build-worker/src/shared-services.js launch-worker/src/shared-services.js
-          cp build-worker/src/shared-services.js pulse-worker/src/shared-services.js
-          cp build-worker/src/shared-services.js reactivate-worker/src/shared-services.js
-          echo "✓ shared-services.js synced to all 5 workers."
-
-      - name: Upload synced files as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: synced-shared-services
-          path: |
-            build-worker/src/shared-services.js
-            patch-worker/src/shared-services.js
-            launch-worker/src/shared-services.js
-            pulse-worker/src/shared-services.js
-            reactivate-worker/src/shared-services.js
-
   deploy-build:
     name: Deploy wh-build
     runs-on: ubuntu-latest
-    needs: sync-shared-services
     steps:
       - uses: actions/checkout@v4
-      - name: Download synced shared-services
-        uses: actions/download-artifact@v4
-        with:
-          name: synced-shared-services
+      - name: Sync shared-services
+        run: cp shared-services.js build-worker/src/shared-services.js
       - name: Deploy wh-build
         uses: cloudflare/wrangler-action@v3
         with:
@@ -77,13 +22,11 @@ jobs:
   deploy-patch:
     name: Deploy wh-patch
     runs-on: ubuntu-latest
-    needs: sync-shared-services
+    needs: deploy-build
     steps:
       - uses: actions/checkout@v4
-      - name: Download synced shared-services
-        uses: actions/download-artifact@v4
-        with:
-          name: synced-shared-services
+      - name: Sync shared-services
+        run: cp shared-services.js patch-worker/src/shared-services.js
       - name: Deploy wh-patch
         uses: cloudflare/wrangler-action@v3
         with:
@@ -94,13 +37,11 @@ jobs:
   deploy-launch:
     name: Deploy wh-launch
     runs-on: ubuntu-latest
-    needs: sync-shared-services
+    needs: deploy-patch
     steps:
       - uses: actions/checkout@v4
-      - name: Download synced shared-services
-        uses: actions/download-artifact@v4
-        with:
-          name: synced-shared-services
+      - name: Sync shared-services
+        run: cp shared-services.js launch-worker/src/shared-services.js
       - name: Deploy wh-launch
         uses: cloudflare/wrangler-action@v3
         with:
@@ -111,13 +52,11 @@ jobs:
   deploy-pulse:
     name: Deploy wh-pulse
     runs-on: ubuntu-latest
-    needs: sync-shared-services
+    needs: deploy-launch
     steps:
       - uses: actions/checkout@v4
-      - name: Download synced shared-services
-        uses: actions/download-artifact@v4
-        with:
-          name: synced-shared-services
+      - name: Sync shared-services
+        run: cp shared-services.js pulse-worker/src/shared-services.js
       - name: Deploy wh-pulse
         uses: cloudflare/wrangler-action@v3
         with:
@@ -128,13 +67,14 @@ jobs:
   deploy-reactivate:
     name: Deploy wh-reactivate
     runs-on: ubuntu-latest
-    needs: sync-shared-services
+    needs: deploy-pulse
     steps:
       - uses: actions/checkout@v4
-      - name: Download synced shared-services
-        uses: actions/download-artifact@v4
-        with:
-          name: synced-shared-services
+      - name: Sync shared-services
+        run: cp shared-services.js reactivate-worker/src/shared-services.js
+      - name: Install dependencies
+        working-directory: reactivate-worker
+        run: npm install --include=optional
       - name: Deploy wh-reactivate
         uses: cloudflare/wrangler-action@v3
         with:
