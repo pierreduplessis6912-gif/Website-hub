@@ -45,9 +45,9 @@ export const SEND_WINDOW = Object.freeze({
 // PRICING — locked per spec v2.0 (May 2026). Single source of truth.
 // All other workers import this; no other file may redefine pricing.
 export const PRICING = Object.freeze({
-  express:  { build: 0, retainer:  699 },
-  standard: { build: 0, retainer:  0 },
-  premium:  { build: 0, retainer: 1499 },
+  express:  { build: 0, retainer:  299 },
+  standard: { build: 0, retainer:  699 },
+  premium:  { build: 0, retainer:  999 },
   upgrade: {
     expressToStandard: 300,  // 999 - 699
     expressToPremium:  800,  // 1499 - 699
@@ -73,7 +73,7 @@ export const PACKAGE_CAPS = Object.freeze({
     extraEmailAddon:  false,
   },
   standard: {
-    pages:            ['index', 'services', 'about', 'contact'],
+    pages:            ['index'],
     pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000 },
     pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500 },
     pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000 },
@@ -84,7 +84,7 @@ export const PACKAGE_CAPS = Object.freeze({
     extraEmailAddon:  false,
   },
   premium: {
-    pages:            ['index', 'services', 'about', 'contact', 'gallery'],
+    pages:            ['index'],
     pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
     pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500, gallery: 2500 },
     pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
