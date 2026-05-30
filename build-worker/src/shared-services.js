@@ -618,10 +618,10 @@ export async function getClientByToken(token, env) {
   return env.DB.prepare(`SELECT * FROM clients WHERE manage_token=? LIMIT 1`).bind(token).first();
 }
 
-
 export async function getClientByPhone(phone, env) {
   return env.DB.prepare(`SELECT * FROM clients WHERE phone=? ORDER BY created_at DESC LIMIT 1`).bind(phone).first();
 }
+
 export async function updateClient(clientId, fields, env) {
   const sets = Object.keys(fields).map(k => `${k}=?`).join(',');
   const vals = [...Object.values(fields), clientId];
@@ -857,17 +857,19 @@ export function normaliseSaPhone(raw) {
  * @param {boolean} [opts.skipTestRedirect]   Bypass TEST_MODE redirect (rare; e.g. owner alerts)
  */
 export async function sendWhatsApp(to, message, env, opts = {}) {
-  if (!env.META_WA_TOKEN || !env.META_PHONE_NUMBER_ID) {
-    console.warn('Meta WhatsApp not configured — skipping:', String(message).slice(0, 60));
+  const evoUrl = env.EVOLUTION_API_URL;
+  const evoKey = env.EVOLUTION_API_KEY;
+  const evoInstance = env.EVOLUTION_INSTANCE || 'wa1';
+
+  if (!evoUrl || !evoKey) {
+    console.warn('Evolution API not configured — skipping:', String(message).slice(0, 60));
     return null;
   }
 
   const toIntl = normaliseSaPhone(to);
   if (!toIntl) return null;
 
-  // TEST_MODE redirect — message goes to owner with a tag showing intended recipient.
-  // We check optout AFTER deciding the final destination, so opted-out real recipients
-  // don't block test deliveries to owner.
+  // TEST_MODE redirect — message goes to owner with tag showing intended recipient
   let finalTo  = toIntl;
   let finalMsg = message;
   const testRedirect = isTestMode(env) && !opts.skipTestRedirect;
@@ -881,9 +883,7 @@ export async function sendWhatsApp(to, message, env, opts = {}) {
     finalMsg = `[TEST → +${toIntl}]\n${message}`;
   }
 
-  // Opt-out check on the FINAL recipient.
-  // In TEST_MODE that's the owner — they shouldn't have themselves opted out, but
-  // we still honour the flag if they did. In production it's the real recipient.
+  // Opt-out check
   const optedOut = await env.SITES.get(`optout:${finalTo}`).catch(() => null);
   if (optedOut) {
     console.warn(`Skipping WhatsApp to opted-out number: ${finalTo}`);
@@ -892,32 +892,29 @@ export async function sendWhatsApp(to, message, env, opts = {}) {
 
   try {
     const res = await fetch(
-      `https://graph.facebook.com/v19.0/${env.META_PHONE_NUMBER_ID}/messages`,
+      `${evoUrl}/message/sendText/${evoInstance}`,
       {
         method:  'POST',
         headers: {
-          'Authorization': `Bearer ${env.META_WA_TOKEN}`,
-          'Content-Type':  'application/json',
+          'apikey':       evoKey,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          recipient_type:    'individual',
-          to:                `+${finalTo}`,
-          type:              'text',
-          text:              { preview_url: opts.previewUrl === true, body: finalMsg },
+          number:  `+${finalTo}`,
+          text:    finalMsg,
         }),
       },
     );
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      console.warn('Meta WhatsApp error:', JSON.stringify(data));
-      await logHealth(env, 'whatsapp', 'error', data?.error?.message || `HTTP ${res.status}`);
+      console.warn('Evolution API error:', JSON.stringify(data));
+      await logHealth(env, 'whatsapp', 'error', data?.message || `HTTP ${res.status}`);
     } else {
       await logHealth(env, 'whatsapp', 'success');
     }
     return data;
   } catch (e) {
-    console.warn('Meta WhatsApp fetch error:', e?.message || e);
+    console.warn('Evolution API fetch error:', e?.message || e);
     await logHealth(env, 'whatsapp', 'error', e?.message || 'fetch failed');
     return null;
   }
