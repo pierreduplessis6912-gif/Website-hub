@@ -562,6 +562,32 @@ export async function getFlag(env, envVarName) {
  * Optionally pass data.source = 'build' | 'patch' | 'launch' | 'pulse' | 'reactivate'
  * to tag which worker emitted the event.
  */
+// ── D1 CLIENT HELPERS ─────────────────────────────────────────
+// Shared across all workers — single source of truth for D1 access
+
+export async function getClientById(clientId, env) {
+  return env.DB.prepare(`SELECT * FROM clients WHERE id=? LIMIT 1`).bind(clientId).first();
+}
+
+export async function getClientBySlug(slug, env) {
+  return env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
+}
+
+export async function getClientByToken(token, env) {
+  return env.DB.prepare(`SELECT * FROM clients WHERE manage_token=? LIMIT 1`).bind(token).first();
+}
+
+export async function updateClient(clientId, fields, env) {
+  const sets = Object.keys(fields).map(k => `${k}=?`).join(',');
+  const vals = [...Object.values(fields), clientId];
+  return env.DB.prepare(`UPDATE clients SET ${sets}, updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(...vals).run();
+}
+
+// logEvent — alias for logActivity (legacy compat)
+export async function logEvent(env, event, data = {}) {
+  return logActivity(env, event, data);
+}
+
 export async function logActivity(env, event, data = {}) {
   try {
     const ts      = Date.now();
