@@ -35,15 +35,15 @@ const STRUCTURAL_CSS = `
 html{scroll-behavior:smooth}
 body{font-family:var(--font-body);background:var(--bg);color:var(--fg);overflow-x:hidden}
 .nav{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(var(--bg-rgb,255,255,255),0.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:50;border-bottom:1px solid var(--border)}
-.nav-brand{font-family:var(--font-heading);font-size:15px;font-weight:700;color:var(--fg);text-decoration:none}
+.nav-brand{font-family:var(--font-heading);font-size:13px;font-weight:700;color:var(--fg);text-decoration:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nav-logo{height:32px;width:auto;object-fit:contain;max-width:140px}
 .nav-links{display:flex;gap:20px}
 .nav-link{font-size:13px;color:var(--muted-fg);text-decoration:none}
 .section-hero{min-height:100svh;background-size:cover;background-position:center;background-attachment:scroll;display:flex;flex-direction:column;justify-content:flex-end;padding:52px 0 56px;position:relative}
 .section-hero::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.2) 35%,rgba(0,0,0,0.75) 65%,rgba(0,0,0,0.96) 100%)}
 .hero-content{position:relative;z-index:1;padding:0 24px}
-.hero-h1{font-family:var(--font-heading);font-size:clamp(36px,10vw,64px);font-weight:800;line-height:1.05;letter-spacing:-0.02em;color:#fff;margin-bottom:14px;text-shadow:0 2px 20px rgba(0,0,0,0.4)}
-.hero-sub{font-size:17px;color:rgba(255,255,255,0.88);margin-bottom:10px;line-height:1.5;font-weight:400}
+.hero-h1{font-family:var(--font-heading);font-size:clamp(36px,10vw,64px);font-weight:800;line-height:1.05;letter-spacing:-0.02em;color:#fff;margin-bottom:14px;text-shadow:0 2px 24px rgba(0,0,0,0.7),0 1px 4px rgba(0,0,0,0.5)}
+.hero-sub{font-size:17px;color:rgba(255,255,255,0.92);margin-bottom:10px;line-height:1.5;font-weight:400;text-shadow:0 1px 8px rgba(0,0,0,0.6)}
 .trust-line{font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:28px;letter-spacing:1.5px;text-transform:uppercase;font-family:var(--font-body)}
 .section{background:var(--bg);padding:72px 24px;border-top:1px solid var(--border)}
 .section.surface{background:var(--surface)}
@@ -1524,7 +1524,7 @@ function renderCinematicHero(t, client, waLink, openingStrategy, heroUrl, img) {
     : 'background:linear-gradient(105deg,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.5) 55%,rgba(0,0,0,0.1) 100%),linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,0.9) 100%)';
 
   const preHtml = o.type === 'emotion'
-    ? `<p class="hero-emotion">${esc(o.pre)}</p>`
+    ? `<p class="hero-emotion" style="color:rgba(255,255,255,0.9);text-shadow:0 1px 8px rgba(0,0,0,0.6)">${esc(o.pre)}</p>`
     : o.pre
       ? `<p class="trust-line">${esc(o.pre)}</p>`
       : '';
@@ -1553,7 +1553,7 @@ function renderQuietPremiumHero(t, client, waLink, openingStrategy, heroUrl, img
   return `<section class="hero-qp" style="background-image:url('${heroUrl}');min-height:${minH};background-position:${bgPos}">
   <div class="hero-content">
     <span class="hero-eyebrow">${esc(eyebrow)}</span>
-    ${o.pre ? `<p style="font-size:13px;color:var(--accent);letter-spacing:1px;margin-bottom:16px;font-weight:500">${esc(o.pre)}</p>` : ''}
+    ${o.pre ? `<p style="font-size:13px;color:rgba(255,255,255,0.85);letter-spacing:1px;margin-bottom:16px;font-weight:500;text-shadow:0 1px 8px rgba(0,0,0,0.5)">${esc(o.pre)}</p>` : ''}
     <h1 class="hero-h1">${esc(o.h1)}${o.h1b ? '<br>' + esc(o.h1b) : ''}</h1>
     <p class="hero-p">${esc(o.sub)}</p>
     <a href="${waLink}" class="cta-qp">Get in touch →</a>
