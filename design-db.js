@@ -691,15 +691,10 @@ function buildUnsplashQuery(industry, vibe, palette) {
  * accentColour (optional)  — hex for CTAs and highlights from Claude's decision
  */
 export function buildCssVariables(palette, typography, primaryColour = null, accentColour = null) {
-  // Claude's chosen colours override the design-db palette
+  // Claude's chosen colours override primary/accent only
+  // All other colours come from the palette naturally — light or dark as designed
   const primary = primaryColour || palette.primary;
   const accent  = accentColour  || primaryColour || palette.accent;
-
-  // Derive subtly tinted dark base from primary colour
-  // Each business gets a unique dark backdrop with personality
-  const bg      = tintDark(primary, 0.07);
-  const surface = tintDark(primary, 0.12);
-  const card    = tintDark(primary, 0.04);
 
   return `<style id="wh-design-system">
 ${typography.cssImport}
@@ -707,15 +702,14 @@ ${typography.cssImport}
   --primary:      ${primary};
   --on-primary:   ${palette.onPrimary};
   --accent:       ${accent};
-  --accent-bg:    ${palette.bg};
-  --bg:           ${bg};
-  --surface:      ${surface};
-  --card:         ${card};
-  --card-solid:   ${tintDark(primary, 0.16)};
-  --fg:           #f0ede8;
-  --muted-fg:     rgba(240,237,232,0.55);
-  --border:       rgba(255,255,255,0.08);
-  --label-color:  rgba(240,237,232,0.35);
+  --bg:           ${palette.bg};
+  --surface:      ${palette.muted};
+  --card:         ${palette.card};
+  --card-solid:   ${palette.muted};
+  --fg:           ${palette.fg};
+  --muted-fg:     ${palette.mutedFg};
+  --border:       ${palette.border};
+  --label-color:  ${palette.mutedFg};
   --font-heading: '${typography.heading}', serif;
   --font-body:    '${typography.body}', sans-serif;
 }

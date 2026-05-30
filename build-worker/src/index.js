@@ -15,7 +15,7 @@
 
 import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from './shared-services.js';
 import { getDesignBrief, buildCssVariables, UX_RULES, getPersonality, SECTION_FLOWS, SPACING_RHYTHMS } from '../../design-db.js';
-import { getHeroPhotoQuery, getIndustryKey } from '../../photo-db.js';
+import { getHeroPhotoQuery, getHeroPhotoQueryByKey, getIndustryKey } from '../../photo-db.js';
 
 // ── CONSTANTS ─────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ const STRUCTURAL_CSS = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:var(--font-body);background:var(--bg);color:var(--fg);overflow-x:hidden}
-.nav{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(10,10,10,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:50;border-bottom:1px solid var(--border)}
+.nav{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(var(--bg-rgb,255,255,255),0.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:50;border-bottom:1px solid var(--border)}
 .nav-brand{font-family:var(--font-heading);font-size:15px;font-weight:700;color:var(--fg);text-decoration:none}
 .nav-logo{height:32px;width:auto;object-fit:contain;max-width:140px}
 .nav-links{display:flex;gap:20px}
@@ -75,7 +75,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--fg);overflow-
 .footer-brand{font-family:var(--font-heading);font-size:16px;font-weight:700;margin-bottom:6px}
 .footer-meta{font-size:12px;color:var(--muted-fg);line-height:1.8}
 .footer-credit{font-size:11px;color:var(--muted-fg);opacity:0.4;margin-top:16px}
-.watermark-strip{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,10,0.95);border-top:1px solid rgba(255,255,255,0.08);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;z-index:200;backdrop-filter:blur(12px)}
+.watermark-strip{position:fixed;bottom:0;left:0;right:0;background:var(--primary);border-top:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;z-index:200;backdrop-filter:blur(12px)}
 .watermark-text{font-size:12px;color:rgba(255,255,255,0.6)}
 .watermark-cta{font-size:12px;font-weight:700;color:var(--accent);text-decoration:none}
 
@@ -1800,9 +1800,9 @@ function addWatermark(html, client, env, isOutbound = false) {
 async function fetchHeroPhoto(brief, brandBrief, env) {
   if (!env.UNSPLASH_ACCESS_KEY) return FALLBACK_HERO;
 
-  // Always use photo-db validated pools — Claude's free-form queries return generic/wrong photos
-  const query    = getHeroPhotoQuery(brief.businessName || brief.business_name || '', brief.businessType || brief.business_type || '');
-  const industry = getIndustryKey(brief.businessName || brief.business_name || '', brief.businessType || brief.business_type || '');
+  // Always use photo-db validated pools — use industryKey from personality system
+  const industry = brief.industryKey || 'general';
+  const query    = getHeroPhotoQueryByKey(industry);
   const vibe     = '';
 
   const useCache = false; // Always fresh — different query each build
