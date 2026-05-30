@@ -38,3 +38,6 @@ database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
 migrations_dir = "../migrations"
 
 send_email = [{binding = "EMAIL", destination_address = "updates@websitehub.co.za"}]
+WORKER_URL_LAUNCH = "https://wh-launch.pierreduplessis6912.workers.dev"
+WORKER_URL_PATCH = "https://wh-patch.pierreduplessis6912.workers.dev"
+ASSETS_DOMAIN_READY = "false"
