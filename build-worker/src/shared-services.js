@@ -562,6 +562,47 @@ export async function getFlag(env, envVarName) {
  * Optionally pass data.source = 'build' | 'patch' | 'launch' | 'pulse' | 'reactivate'
  * to tag which worker emitted the event.
  */
+
+// ── ADDITIONAL D1 HELPERS ─────────────────────────────────────
+
+/** Query multiple clients with optional WHERE clause */
+export async function queryClients(env, where = '1=1', bindings = []) {
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM clients WHERE ${where} ORDER BY created_at DESC`
+  ).bind(...bindings).all();
+  return results || [];
+}
+
+/** Log that a message was sent — prevents duplicate touches */
+export async function logMessage(env, clientId, messageKey) {
+  const key = `msg:${clientId}:${messageKey}`;
+  await env.SITES.put(key, new Date().toISOString(), { expirationTtl: 60 * 60 * 24 * 120 });
+}
+
+/** Check if a message was already sent to this client */
+export async function hasMessageBeenSent(env, clientId, messageKey) {
+  const key = `msg:${clientId}:${messageKey}`;
+  const val = await env.SITES.get(key);
+  return !!val;
+}
+
+/** Get monthly visit count for a slug (KV-based analytics) */
+export async function getMonthlyVisits(env, slug) {
+  const key = `analytics:visits:${slug}:${currentMonthKey()}`;
+  return parseInt(await env.SITES.get(key) || '0');
+}
+
+/** Vest a referral — mark as qualifying, credit the referrer */
+export async function vestReferral(env, referralSlug, referredClientId) {
+  const key = `referral:vested:${referralSlug}:${referredClientId}`;
+  const already = await env.SITES.get(key);
+  if (already) return false; // already vested
+  await env.SITES.put(key, new Date().toISOString(), { expirationTtl: 60 * 60 * 24 * 365 });
+  const conversions = parseInt(await env.SITES.get(`referral:conversions:${referralSlug}`) || '0');
+  await env.SITES.put(`referral:conversions:${referralSlug}`, String(conversions + 1));
+  return true;
+}
+
 // ── D1 CLIENT HELPERS ─────────────────────────────────────────
 // Shared across all workers — single source of truth for D1 access
 
