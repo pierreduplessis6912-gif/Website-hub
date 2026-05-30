@@ -61,8 +61,7 @@ import {
   slugify, escapeHtml, nextMonthDate, todayDateString, md5, constantTimeCompare,
   callClaudeInternal,
   sendWhatsApp, normaliseSaPhone,
-  getAirtableRecord, updateAirtableRecord,
-  createZohoInvoice, getZohoAccessToken,
+  createZohoInvoice,
   logActivity, logHealth, getFlag,
 } from './shared-services.js';
 
