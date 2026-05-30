@@ -911,7 +911,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   }
 
   // ── HTML ───────────────────────────────────────────────────
-  const html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg, heroLayout, openingStrategy);
+  const html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
 
   // ── STORE ──────────────────────────────────────────────────
   await env.SITES.put(`preview:${slug}`, html, { expirationTtl: PREVIEW_TTL });
@@ -1445,16 +1445,16 @@ function composeOpening(strategy, t) {
   switch (strategy) {
     case 'proof_first':
       return {
-        pre:  t.hero_trust_line || '',           // e.g. "14 Years · Fully Insured · 2,300 Jobs"
-        h1:   t.hero_h1_line1 || '',
+        pre:  t.hero_trust_line || '',
+        h1:   t.hero_h1_line1 || t.hero_h1 || '',
         h1b:  t.hero_h1_line2 || '',
         sub:  t.hero_subline   || '',
         type: 'proof',
       };
     case 'emotional_story':
       return {
-        pre:  t.hero_subline   || '',            // Emotional hook comes first
-        h1:   t.hero_h1_line1  || '',
+        pre:  t.hero_subline   || '',
+        h1:   t.hero_h1_line1  || t.hero_h1 || '',
         h1b:  t.hero_h1_line2  || '',
         sub:  t.hero_trust_line || '',
         type: 'emotion',
@@ -1462,7 +1462,7 @@ function composeOpening(strategy, t) {
     case 'direct_offer':
       return {
         pre:  t.hero_trust_line || '',
-        h1:   t.hero_h1_line1  || '',
+        h1:   t.hero_h1_line1  || t.hero_h1 || '',
         h1b:  t.hero_h1_line2  || '',
         sub:  t.hero_subline   || '',
         type: 'offer',
@@ -1471,7 +1471,7 @@ function composeOpening(strategy, t) {
     default:
       return {
         pre:  '',
-        h1:   t.hero_h1_line1  || '',
+        h1:   t.hero_h1_line1  || t.hero_h1 || '',
         h1b:  t.hero_h1_line2  || '',
         sub:  t.hero_subline   || '',
         type: 'manifesto',
@@ -1583,7 +1583,7 @@ function renderHero(heroLayout, openingStrategy, t, client, waLink, heroUrl, ima
   return renderer(t, client, waLink, openingStrategy, heroUrl, imageTreatment || {});
 }
 
-function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg, heroLayout = 'cinematic_left', openingStrategy = 'proof_first') {
+function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg, heroLayout = 'cinematic_left', openingStrategy = 'proof_first', imageTreatment = {}) {
   const phone   = client.phone?.replace(/\D/g, '');
   const domain  = client.domain || `${client.slug}.co.za`;
   const waLink  = `https://wa.me/${phone}`;
@@ -1750,7 +1750,7 @@ ${cssBlock}
   <div class="nav-links">${navLinks}</div>
 </nav>
 
-${renderHero(heroLayout, openingStrategy, t, client, waLink, heroUrl, brief?.personality?.image_treatment)}
+${renderHero(heroLayout, openingStrategy, t, client, waLink, heroUrl, imageTreatment)}
 
 ${renderSections(sectionFlow, { aboutSection, servicesSection, gallerySection, whyUsSection, testimonialSection, mapSection, enquiryForm })}
 
