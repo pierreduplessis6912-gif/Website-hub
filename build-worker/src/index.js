@@ -508,18 +508,24 @@ async function handleIntake(request, env) {
 
     // ── ABUSE PREVENTION ───────────────────────────────────────
     const WHITELISTED   = ['27790128508'];
+    const WHITELISTED_IPS = ['41.23.165.89'];
     const normPhone     = normaliseSaPhone(phone);
     const isWhitelisted = WHITELISTED.includes(normPhone.replace('+',''));
 
     if (!isTestMode(env) && !isWhitelisted) {
-      // IP rate limit — max 3 intake attempts per IP per hour
       const ip = request.headers.get('cf-connecting-ip') || 'unknown';
-      const ipKey = `rate:intake:ip:${ip}`;
-      const ipCount = parseInt(await env.SITES.get(ipKey) || '0');
-      if (ipCount >= 3) {
-        return jsonResponse({ error: 'Too many requests — please try again in an hour.' }, 429);
+      const isWhitelistedIP = WHITELISTED_IPS.includes(ip);
+
+      if (!isWhitelistedIP) {
+      if (!isWhitelistedIP) {
+        // IP rate limit — max 3 intake attempts per IP per hour
+        const ipKey = `rate:intake:ip:${ip}`;
+        const ipCount = parseInt(await env.SITES.get(ipKey) || '0');
+        if (ipCount >= 3) {
+          return jsonResponse({ error: 'Too many requests — please try again in an hour.' }, 429);
+        }
+        await env.SITES.put(ipKey, String(ipCount + 1), { expirationTtl: 3600 });
       }
-      await env.SITES.put(ipKey, String(ipCount + 1), { expirationTtl: 3600 });
 
       // Phone deduplication — one build per phone per 24 hours
       const existing = await env.DB.prepare(
