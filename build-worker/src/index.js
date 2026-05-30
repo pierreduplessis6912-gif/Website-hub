@@ -1065,7 +1065,6 @@ Output this JSON exactly:
   "logo_brand_colour": "extract dominant hex from uploaded logo/business card — otherwise null"
 }`;
 }
-}
 
 function substancePass2System() {
   return `You are a South African brand copywriter. You know this business personally — their story, their voice, their differentiators, what their happiest customer said. Write every section of their website in that voice. Not a generic trade voice. Not a template. Their specific voice. Every headline should be something only this business could say. Obey all word limits — the design containers are fixed. SA tone throughout. No stock phrases. Output only valid JSON — no markdown.`;
