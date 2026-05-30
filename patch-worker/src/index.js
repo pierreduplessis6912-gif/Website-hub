@@ -1,45 +1,48 @@
 // ============================================================
 // WEBSITE HUB — patch-worker.js
-// Owns surgical preview patches, asset uploads to R2, gallery
-// management, the email gateway (updates@websitehub.co.za),
-// the manage panel data endpoint, the revision flow, and Claude
-// Vision brand-signal extraction from uploaded photos.
+// Owns surgical preview patches (no rebuild), asset uploads to R2,
+// gallery management, the email gateway (updates@websitehub.co.za),
+// the manage panel data endpoint, the revision flow including paid
+// revision PayFast handshake, and Claude vision brand-signal extraction
+// from uploaded photos.
 //
 // ROUTES OWNED:
 //   POST /patch-preview            — surgical KV patch from SPA tweak drawer
-//   POST /upload-assets            — manage panel photo upload to R2 + D1
+//   POST /upload-assets            — manage panel photo upload to R2
 //   GET  /asset/{key}              — R2 proxy
-//   GET  /gallery-assets/{slug}    — JSON list of gallery photo URLs (D1 + R2)
+//   GET  /gallery-assets/{slug}    — JSON list of gallery photo URLs (site fetch)
 //   POST /patch-gallery            — admin manual gallery patch
 //   POST /submit-revision          — revision submission (gates on free limit)
-//   GET  /manage-panel             — manage panel data (tier-gated, from D1)
-//   POST /apply-revision-payment   — called by launch-worker after paid revision ITN
+//   GET  /manage-panel             — manage panel data (tier-gated)
+//   POST /apply-revision-payment   — called by launch-worker after paid-revision PayFast ITN
 //   GET  /health                   — service health
 //
 // EMAIL HANDLER:
 //   email(message, env, ctx)       — incoming email to updates@websitehub.co.za
-//                                    Subject: "wh-{slug}", attachments → R2 + D1 gallery
+//                                    Subject: "wh-{slug}", attachments → R2 gallery
 //
-// KEY ARCHITECTURE NOTES (v2):
-//   — manage_token lookup is now via D1 getClientByToken (no KV manage_token:* keys)
-//   — Revision counts tracked in D1 revisions table (not KV manage_revisions:*)
-//   — Gallery photos stored in D1 gallery_photos table (addGalleryPhoto)
-//   — pending_revision:* stays in KV (ephemeral 2-hour token for PayFast flow)
+// CROSS-WORKER URLs (set in wrangler env):
+//   WORKER_URL_BUILD, WORKER_URL_LAUNCH, WORKER_URL_REACTIVATE
+//
+// QUEUE BINDING:
+//   patch-worker is a PRODUCER on build-queue. Sends rebuild messages
+//   to build-worker. Does NOT consume the queue.
+//
+// SECRETS:
+//   ANTHROPIC_KEY (for vision), AIRTABLE_TOKEN/_BASE_ID/_TABLE_ID,
+//   META_WA_TOKEN/_PHONE_NUMBER_ID, WH_PHONE, ADMIN_KEY
 // ============================================================
 
 import {
   PRICING, PACKAGE_CAPS,
   isTestMode, packageKey, getPricingTier, getPackageCaps, getUpgradeDelta, buildPayFastLink,
   jsonResponse, corsResponse,
-  slugify, escapeHtml, uint8ArrayToBase64, currentMonthKey, todayDateString,
+  slugify, escapeHtml, uint8ArrayToBase64, currentMonthKey,
   resolveClaudeModel,
-  sendWhatsApp, queueScheduledMessage, normaliseSaPhone,
-  logEvent, getFlag,
-  constantTimeCompare, checkRateLimit,
+  sendWhatsApp, normaliseSaPhone,
   getClientById, getClientBySlug, getClientByToken, updateClient,
-  createRevision, updateRevision,
-  addGalleryPhoto, getGalleryPhotos,
-  logMessage, hasMessageBeenSent,
+  logActivity, logHealth, getFlag,
+  constantTimeCompare, checkRateLimit,
 } from './shared-services.js';
 
 // ────────────────────────────────────────────────────────────
@@ -48,13 +51,18 @@ import {
 
 const ASSETS_DOMAIN = 'assets.websitehub.co.za';
 
+// Plan photo limits — manage panel uploads and email gateway both enforce these.
+// Express has no gallery so isn't listed; uploads are blocked at the tier check.
 const PLAN_PHOTO_LIMITS = Object.freeze({
-  express:  { maxPhotos: 0,  maxSizeBytes: 0 },
-  standard: { maxPhotos: 10, maxSizeBytes: 3 * 1024 * 1024 },
-  premium:  { maxPhotos: 30, maxSizeBytes: 5 * 1024 * 1024 },
+  Express:  { maxPhotos: 0,  maxSizeBytes: 0 },
+  Standard: { maxPhotos: 10, maxSizeBytes: 3 * 1024 * 1024 },
+  Premium:  { maxPhotos: 30, maxSizeBytes: 5 * 1024 * 1024 },
 });
 
-const PENDING_REVISION_TTL = 60 * 60 * 2; // 2 hours — stays in KV (ephemeral PayFast handshake)
+// Pending revision TTL — long enough for PayFast checkout, short enough to
+// not pile up forgotten revisions. Battle plan §"Late payment grace" uses
+// similar TTLs for related KV state.
+const PENDING_REVISION_TTL = 60 * 60 * 2; // 2 hours
 
 // ────────────────────────────────────────────────────────────
 // EXPORT — fetch + email
@@ -68,15 +76,15 @@ export default {
     const url  = new URL(request.url);
     const path = url.pathname;
 
-    if (path === '/patch-preview')           return handlePatchPreview(request, env, ctx);
-    if (path === '/upload-assets')           return handleUploadAssets(request, env, ctx);
-    if (path.startsWith('/asset/'))          return handleAssetProxy(request, env, path);
+    if (path === '/patch-preview')          return handlePatchPreview(request, env, ctx);
+    if (path === '/upload-assets')          return handleUploadAssets(request, env, ctx);
+    if (path.startsWith('/asset/'))         return handleAssetProxy(request, env, path);
     if (path.startsWith('/gallery-assets/')) return handleGalleryAssets(request, env, path);
-    if (path === '/patch-gallery')           return handlePatchGallery(request, env);
-    if (path === '/submit-revision')         return handleSubmitRevision(request, env, ctx);
-    if (path === '/manage-panel')            return handleManagePanel(request, url, env);
-    if (path === '/apply-revision-payment')  return handleApplyRevisionPayment(request, env);
-    if (path === '/health')                  return handleHealth(env);
+    if (path === '/patch-gallery')          return handlePatchGallery(request, env);
+    if (path === '/submit-revision')        return handleSubmitRevision(request, env, ctx);
+    if (path === '/manage-panel')           return handleManagePanel(request, url, env);
+    if (path === '/apply-revision-payment') return handleApplyRevisionPayment(request, env);
+    if (path === '/health')                 return handleHealth(env);
 
     return jsonResponse({ error: 'Not found', path }, 404);
   },
@@ -91,24 +99,32 @@ export default {
 // ============================================================
 
 async function handleHealth(env) {
-  let d1Status = 'unknown';
-  try { await env.DB.prepare('SELECT 1').first(); d1Status = 'ok'; }
-  catch { d1Status = 'error'; }
-
+  const services = ['airtable', 'r2', 'anthropic', 'whatsapp'];
+  const health = {};
+  for (const svc of services) {
+    try {
+      const raw = await env.SITES.get(`health:${svc}`);
+      health[svc] = raw ? JSON.parse(raw) : { status: 'unknown' };
+    } catch { health[svc] = { status: 'unknown' }; }
+  }
   return jsonResponse({
-    ok:       true,
-    worker:   'patch-worker',
-    time:     new Date().toISOString(),
+    ok:      true,
+    worker:  'patch-worker',
+    time:    new Date().toISOString(),
     testMode: isTestMode(env),
-    d1:       d1Status,
+    services: health,
   });
 }
 
 // ============================================================
 // ROUTE: /patch-preview — surgical KV patch from SPA tweak drawer
 //
-// Body: { clientId, slug, patch: { palette?, heroPhotoId?, tagline?,
+// Body: { airtableId, slug, patch: { palette?, heroPhotoId?, tagline?,
 //         about?, services?, tone? } }
+//
+// If patch.tone is present, falls through to full rebuild path (queues
+// a build via BUILD_QUEUE). Otherwise applies the patch surgically to all
+// per-page KV entries — no Claude call, instant.
 // ============================================================
 
 async function handlePatchPreview(request, env, ctx) {
@@ -117,19 +133,19 @@ async function handlePatchPreview(request, env, ctx) {
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
 
-  const { clientId: bodyClientId, token, slug, patch } = body;
-  if (!slug || !patch) return jsonResponse({ error: 'Missing slug or patch' }, 400);
-
-  // Resolve clientId from token if not provided directly
-  let clientId = bodyClientId;
-  if (!clientId && token) {
-    const resolved = await getClientByToken(env, token).catch(() => null);
-    if (resolved) clientId = resolved.id;
+  const { token, slug, patch } = body;
+  if (!token || !patch) {
+    return jsonResponse({ error: 'Missing token or patch' }, 400);
   }
+
+  const _client = await getClientByToken(token, env);
+  if (!_client) return jsonResponse({ error: 'Invalid token' }, 404);
+  const _clientId = _client.id;
+  const _slug = slug || _client.slug;
 
   // Tone change = full rebuild
   if (patch.tone) {
-    ctx.waitUntil(triggerFullRebuild(clientId, slug, patch, env));
+    ctx.waitUntil(triggerFullRebuild(_clientId, _slug, patch, env));
     return jsonResponse({
       success: true,
       action:  'rebuild',
@@ -137,7 +153,8 @@ async function handlePatchPreview(request, env, ctx) {
     });
   }
 
-  ctx.waitUntil(applyPreviewPatch(clientId, slug, patch, env));
+  // Surgical KV patch — no Claude, no rebuild
+  ctx.waitUntil(applyPreviewPatch(_clientId, _slug, patch, env));
 
   return jsonResponse({
     success: true,
@@ -146,68 +163,72 @@ async function handlePatchPreview(request, env, ctx) {
   });
 }
 
+/**
+ * Applies a surgical patch to a slug's preview HTML across all per-page keys.
+ * Reads tier capabilities to know which pages exist, so Express sites with
+ * a single index page don't get unnecessary key reads.
+ */
 async function applyPreviewPatch(clientId, slug, patch, env) {
   try {
-    let client = null;
-    if (clientId) client = await getClientById(env, clientId).catch(() => null);
-    if (!client && slug) client = await getClientBySlug(env, slug).catch(() => null);
-
-    const pkg   = packageKey(client?.package || 'standard');
-    const caps  = getPackageCaps(pkg);
-    const pages = caps.pages;
+    const client = await getClientById(clientId, env);
+    const caps   = getPackageCaps(client?.package || 'standard');
+    const pages  = caps.pages;
     const domain = (client?.domain || `${slug}.co.za`)
       .replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
 
-    // Patch the legacy single-page key first
+    // Patch the legacy single-page key first (for backward compat + index)
     let html = await env.SITES.get(`preview:${slug}`);
     if (!html) html = await env.SITES.get(`live:${domain}`);
 
     if (!html) {
-      await logEvent(env, 'patch', 'patch_failed', 'warning', { metadata: { slug, reason: 'No preview/live KV entry' } });
+      await logActivity(env, 'patch_failed', { slug, reason: 'No preview/live KV entry' });
       return;
     }
 
     html = applyPatchToHtml(html, patch, 'index');
     await env.SITES.put(`preview:${slug}`, html);
 
+    // Per-page propagation. Each page only receives the relevant subset of patches.
     for (const pageName of pages) {
-      let pageHtml = await env.SITES.get(`preview:${slug}:${pageName}`).catch(() => null);
+      const pageKey = `preview:${slug}:${pageName}`;
+      let pageHtml  = await env.SITES.get(pageKey).catch(() => null);
       if (!pageHtml) continue;
       pageHtml = applyPatchToHtml(pageHtml, patch, pageName);
-      await env.SITES.put(`preview:${slug}:${pageName}`, pageHtml);
+      await env.SITES.put(pageKey, pageHtml);
     }
 
-    // Persist palette and logo_url choices to D1
-    if (client?.id) {
-      const updates = {};
-      if (patch.palette)  updates.palette  = patch.palette;
-      if (patch.logo_url) updates.logo_url = patch.logo_url;
-      if (Object.keys(updates).length) await updateClient(env, client.id, updates).catch(() => {});
-    }
-
-    // Persist text changes to D1 client record
-    if (client?.id) {
-      const textUpdates = {};
-      if (patch.tagline)  textUpdates.testimonial  = patch.tagline;   // closest field
-      if (patch.about)    textUpdates.about        = patch.about.slice(0, 200);
-      if (patch.services) textUpdates.services     = patch.services;
-      if (Object.keys(textUpdates).length) await updateClient(env, client.id, textUpdates).catch(() => {});
-    }
-
-    await logEvent(env, 'patch', 'preview_patched', 'success', {
-      clientId: client?.id,
-      metadata: { slug, keys: Object.keys(patch).join(', ') },
+    await logActivity(env, 'preview_patched', {
+      slug,
+      keys: Object.keys(patch).join(', '),
     });
+
+    // Write text changes back to D1
+    const d1Updates = {};
+    if (patch.tagline)  d1Updates.tagline  = patch.tagline;
+    if (patch.about)    d1Updates.about    = patch.about;
+    if (Object.keys(d1Updates).length) {
+      await updateClient(clientId, d1Updates, env).catch(() => {});
+    }
   } catch (err) {
     console.error('applyPreviewPatch failed:', err);
-    await logEvent(env, 'patch', 'patch_failed', 'failure', { metadata: { slug, error: err.message } });
+    await logActivity(env, 'patch_failed', { slug, error: err.message });
   }
 }
 
+/**
+ * Single-page patch logic. Each patch field has a page-relevance rule:
+ *   palette       → all pages
+ *   tagline       → all pages (often near logo/nav)
+ *   heroPhotoId   → index/express index only
+ *   about         → about page only (Standard/Premium) or index (Express)
+ *   services      → services page only (Standard/Premium) or index (Express)
+ */
 function applyPatchToHtml(html, patch, pageName) {
   let out = html;
 
-  if (patch.palette) out = applyPalette(out, patch.palette);
+  if (patch.palette) {
+    out = applyPalette(out, patch.palette);
+  }
 
   if (patch.tagline) {
     out = out.replace(
@@ -216,7 +237,8 @@ function applyPatchToHtml(html, patch, pageName) {
     );
   }
 
-  if (patch.heroPhotoId && pageName === 'index') {
+  // Hero photo only swaps on the page that has the hero
+  if (patch.heroPhotoId && (pageName === 'index')) {
     const photoUrl = `https://images.unsplash.com/photo-${patch.heroPhotoId}?auto=format&fit=crop&w=1400&q=80`;
     out = out.replace(
       /(<[^>]+class="[^"]*hero[^"]*"[^>]*style="[^"]*background-image:\s*url\()[^)]*(\)[^"]*")/i,
@@ -241,6 +263,34 @@ function applyPatchToHtml(html, patch, pageName) {
   return out;
 }
 
+/**
+ * Queues a full rebuild via BUILD_QUEUE. No HTTP hop — both workers
+ * share the same queue binding (patch-worker as producer, build-worker
+ * as consumer).
+ */
+async function triggerFullRebuild(clientId, slug, patch, env) {
+  try {
+    const d1Updates = {};
+    if (patch.tone)     d1Updates.vibe    = patch.tone;
+    if (patch.tagline)  d1Updates.tagline = patch.tagline;
+    if (patch.about)    d1Updates.about   = patch.about;
+    if (Object.keys(d1Updates).length) await updateClient(clientId, d1Updates, env);
+
+    await env.BUILD_QUEUE.send({ type: 'substance_build', clientId, isOutbound: false });
+
+    await logActivity(env, 'full_rebuild_triggered', {
+      slug, source: 'patch_preview_tone_change',
+    });
+  } catch (err) {
+    console.error('triggerFullRebuild failed:', err);
+    await logActivity(env, 'rebuild_failed', { slug, error: err.message });
+  }
+}
+
+/**
+ * Replaces CSS custom-property colour values in a stylesheet/inline-style block.
+ * Three pre-defined palettes — palette name maps to a {primary,secondary,accent,text} set.
+ */
 function applyPalette(html, paletteName) {
   const palettes = {
     'warm-welcoming':     { primary: '#C8724F', secondary: '#F5EBE0', accent: '#8B4513', text: '#3D2B1F' },
@@ -249,6 +299,9 @@ function applyPalette(html, paletteName) {
   };
   const c = palettes[paletteName];
   if (!c) return html;
+
+  // Replace both --primary/--secondary/--accent/--text and --acc/--bg/--surface
+  // (build-worker uses --acc/--bg/--surface; legacy templates use --primary etc).
   return html
     .replace(/--primary:\s*#[0-9a-fA-F]{3,6}/g,   `--primary: ${c.primary}`)
     .replace(/--secondary:\s*#[0-9a-fA-F]{3,6}/g, `--secondary: ${c.secondary}`)
@@ -259,77 +312,62 @@ function applyPalette(html, paletteName) {
     .replace(/--surface:\s*#[0-9a-fA-F]{3,6}/g,   `--surface: ${c.secondary}`);
 }
 
-async function triggerFullRebuild(clientId, slug, patch, env) {
-  try {
-    if (clientId) {
-      const updates = {};
-      if (patch.tone)     updates.vibe     = patch.tone;
-      if (patch.tagline)  updates.testimonial = patch.tagline;
-      if (patch.about)    updates.about    = patch.about.slice(0, 200);
-      if (patch.services) updates.services = patch.services;
-      if (Object.keys(updates).length) await updateClient(env, clientId, updates);
-    }
-
-    await env.BUILD_QUEUE.send({ type: 'pre_build', clientId, paymentId: null, isOutbound: false });
-
-    await logEvent(env, 'patch', 'full_rebuild_triggered', 'success', {
-      clientId, metadata: { slug, source: 'patch_preview_tone_change' },
-    });
-  } catch (err) {
-    console.error('triggerFullRebuild failed:', err);
-    await logEvent(env, 'patch', 'rebuild_failed', 'failure', { clientId, error: err.message });
-  }
-}
-
 // ============================================================
-// ROUTE: /upload-assets — manage panel photo upload to R2 + D1
+// ROUTE: /upload-assets — manage panel photo upload to R2
+//
+// Multipart form fields:
+//   airtableId  (required)
+//   slug        (required; or businessName for slug fallback)
+//   file_0..N   (File objects, max 6 per request)
+//
+// Enforces tier photo limits. Triggers vision analysis + rebuild
+// asynchronously via runVisionAndRebuild (local to this worker).
 // ============================================================
 
 async function handleUploadAssets(request, env, ctx) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
 
+  // Rate limiting: 10 uploads per minute per IP
   const clientIp = request.headers.get('cf-connecting-ip') || 'unknown';
-  const allowed  = await checkRateLimit(env, `upload:${clientIp}`, 60000, 10);
-  if (!allowed) return jsonResponse({ error: 'Upload rate limit exceeded — max 10 uploads/minute' }, 429);
+  const allowed = await checkRateLimit(env, `upload:${clientIp}`, 60000, 10);
+  if (!allowed) {
+    return jsonResponse({ error: 'Upload rate limit exceeded — max 10 uploads/minute' }, 429);
+  }
 
   let formData;
   try { formData = await request.formData(); }
   catch { return jsonResponse({ error: 'Expected multipart/form-data' }, 400); }
 
-  const clientId = formData.get('clientId');
-  const slug     = formData.get('slug') || slugify(formData.get('businessName') || '');
-  if (!slug) return jsonResponse({ error: 'Missing slug' }, 400);
+  const token = formData.get('token') || formData.get('airtableId');
+  const slug  = formData.get('slug') || slugify(formData.get('businessName') || '');
+  if (!token) return jsonResponse({ error: 'Missing token' }, 400);
 
-  // Resolve client from D1
-  let client = null;
-  if (clientId) client = await getClientById(env, clientId).catch(() => null);
-  if (!client && slug) client = await getClientBySlug(env, slug).catch(() => null);
+  const client = token.length === 32 ? await getClientByToken(token, env) : await getClientById(token, env);
   if (!client) return jsonResponse({ error: 'Client record not found' }, 404);
 
-  const pkg      = packageKey(client.package || 'standard');
-  const limits   = PLAN_PHOTO_LIMITS[pkg];
+  const clientId = client.id;
+  const planKey  = packageKey(client.package || 'standard');
+  const limits   = PLAN_PHOTO_LIMITS[planKey.charAt(0).toUpperCase() + planKey.slice(1)] || PLAN_PHOTO_LIMITS.Standard;
 
+  // Express has no gallery — block upload at the door with an upgrade nudge.
   if (limits.maxPhotos === 0) {
     return jsonResponse({
-      error: `Photo gallery is not included in the ${pkg} plan.`,
+      error: `Photo gallery is not included in the ${planKey} plan.`,
       upgradeAvailable: true,
-      upgradeDelta:     getUpgradeDelta(pkg, 'premium'),
+      upgradeDelta:     getUpgradeDelta(planKey, 'premium'),
     }, 403);
   }
 
-  // Count existing gallery photos from D1
-  const existingPhotos = await getGalleryPhotos(env, client.id).catch(() => []);
-  const slotsRemaining = limits.maxPhotos - existingPhotos.length;
-
+  const slotsRemaining = limits.maxPhotos; // D1: query gallery_photos for actual count
   if (slotsRemaining <= 0) {
     return jsonResponse({
-      error: `Photo limit reached for ${pkg} plan (${limits.maxPhotos} max). ` +
-             (pkg === 'standard' ? 'Upgrade to Premium for 30 photos.' : 'Remove some photos first.'),
-      upgradeAvailable: pkg === 'standard',
-      upgradeDelta:     pkg === 'standard' ? getUpgradeDelta(pkg, 'premium') : 0,
+      error: `Photo limit reached (${limits.maxPhotos} max).`,
+      upgradeAvailable: planKey === 'standard',
+      upgradeDelta:     planKey === 'standard' ? getUpgradeDelta('standard', 'premium') : 0,
     }, 400);
   }
 
+  // Collect uploaded files
   const files = [];
   for (let i = 0; i < 6; i++) {
     const file = formData.get(`file_${i}`);
@@ -337,6 +375,7 @@ async function handleUploadAssets(request, env, ctx) {
   }
   if (files.length === 0) return jsonResponse({ error: 'No files received' }, 400);
 
+  // Upload to R2 with per-file size enforcement
   const r2Paths  = [];
   const rejected = [];
 
@@ -356,28 +395,27 @@ async function handleUploadAssets(request, env, ctx) {
         httpMetadata:   { contentType: file.type || `image/${ext}` },
         customMetadata: { slug, uploadedAt: new Date().toISOString() },
       });
-      const url = `https://${ASSETS_DOMAIN}/${r2Key}`;
-      r2Paths.push({ key: r2Key, name: file.name, type: file.type, size: bytes.byteLength, url });
+      r2Paths.push({ key: r2Key, name: file.name, type: file.type, size: bytes.byteLength });
     } catch (e) {
       console.warn(`R2 upload failed for ${file.name}:`, e);
       rejected.push({ name: file.name, reason: 'Storage error' });
     }
   }
 
-  if (r2Paths.length === 0) return jsonResponse({ error: 'All uploads failed', rejected }, 500);
+  if (r2Paths.length === 0) {
+    return jsonResponse({ error: 'All uploads failed', rejected }, 500);
+  }
 
-  await logEvent(env, 'patch', 'assets_uploaded', 'success', {
-    clientId: client.id, metadata: { count: r2Paths.length, slug },
-  });
+  await logHealth(env, 'r2', 'success');
 
+  // Vision + rebuild runs in background — failures alert owner but don't fail upload
   ctx.waitUntil(
-    runVisionAndRebuild(client, slug, r2Paths, files, env).catch(async err => {
+    runVisionAndRebuild(clientId, client.slug || slug, r2Paths, files, env).catch(async err => {
       console.error('Vision/rebuild failed:', err);
-      await logEvent(env, 'patch', 'vision_rebuild_failed', 'failure', {
-        clientId: client.id, error: err.message,
-      });
+      await logHealth(env, 'anthropic', 'error', err.message);
+      await logActivity(env, 'upload_processing_failed', { slug, error: err.message });
       await sendWhatsApp(env.WH_PHONE,
-        `⚠️ ASSET PROCESSING ISSUE: ${slug}\nError: ${err.message}`,
+        `⚠️ ASSET PROCESSING ISSUE: ${slug}\nError: ${err.message}\nClient: ${clientId}`,
         env, { skipTestRedirect: true },
       ).catch(() => {});
     }),
@@ -393,10 +431,14 @@ async function handleUploadAssets(request, env, ctx) {
 }
 
 // ============================================================
-// VISION SYSTEM — extract brand signals, store to D1, queue rebuild
+// VISION SYSTEM — extract brand signals, queue rebuild
+// Lives in patch-worker because patch-worker is the only worker
+// with raw upload file bytes in scope. build-worker handles the
+// rebuild via queue consumer.
 // ============================================================
 
-async function runVisionAndRebuild(client, slug, r2Paths, files, env) {
+// Canonical implementation. The duplicate in build-worker has been removed.
+async function runVisionAndRebuild(clientId, slug, r2Paths, files, env) {
   let brandBrief = '';
 
   if (await getFlag(env, 'VISION_VALIDATION_ENABLED')) {
@@ -404,47 +446,30 @@ async function runVisionAndRebuild(client, slug, r2Paths, files, env) {
     for (let i = 0; i < Math.min(files.length, 3); i++) {
       try {
         const bytes = await files[i].arrayBuffer();
-        visionImages.push({
-          base64:    uint8ArrayToBase64(new Uint8Array(bytes)),
-          mediaType: files[i].type || 'image/jpeg',
-          name:      files[i].name,
-        });
-      } catch (e) { console.warn(`Failed to read file for vision: ${files[i].name}`, e); }
+        const b64   = uint8ArrayToBase64(new Uint8Array(bytes));
+        const mime  = files[i].type || 'image/jpeg';
+        visionImages.push({ base64: b64, mediaType: mime, name: files[i].name });
+      } catch (e) {
+        console.warn(`Failed to read file for vision: ${files[i].name}`, e);
+      }
     }
 
     if (visionImages.length > 0) {
       brandBrief = await extractBrandSignals(visionImages, slug, env);
-      await logEvent(env, 'patch', 'vision_complete', 'success', { clientId: client.id });
+      await logHealth(env, 'anthropic', 'success');
     }
   }
 
-  // Save each photo to D1 gallery_photos table
-  for (const r2Path of r2Paths) {
-    const url = r2Path.url || `https://${ASSETS_DOMAIN}/${r2Path.key}`;
-    await addGalleryPhoto(env, client.id, r2Path.key, url, null).catch(() => {});
-  }
+  // Queue rebuild — build-worker handles it
+  await env.BUILD_QUEUE.send({
+    type: 'substance_build',
+    clientId,
+    isOutbound: false,
+    brandBrief: brandBrief || '',
+  });
 
-  // If brand brief extracted, persist to voice_profile
-  if (brandBrief && client.id) {
-    const existingProfile = (() => {
-      try { return JSON.parse(client.voice_profile || '{}'); } catch { return {}; }
-    })();
-    existingProfile.brand_analysis = brandBrief;
-    await updateClient(env, client.id, {
-      voice_profile: JSON.stringify(existingProfile),
-    }).catch(() => {});
-  }
-
-  // Reset status if not already live (so rebuild is accepted)
-  if (client.status !== 'live') {
-    await updateClient(env, client.id, { status: 'lead' }).catch(() => {});
-  }
-
-  await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: client.id, paymentId: null, isOutbound: false });
-
-  await logEvent(env, 'patch', 'assets_processed', 'success', {
-    clientId: client.id,
-    metadata: { slug, fileCount: r2Paths.length, visionUsed: !!brandBrief },
+  await logActivity(env, 'assets_processed', {
+    slug, fileCount: r2Paths.length, visionUsed: !!brandBrief,
   });
 
   await sendWhatsApp(env.WH_PHONE,
@@ -453,25 +478,34 @@ async function runVisionAndRebuild(client, slug, r2Paths, files, env) {
   );
 }
 
+/**
+ * Calls Claude Vision with the uploaded images and returns a plain-text
+ * brand brief that downstream Pass 1 uses to colour the design.
+ */
+// Canonical implementation. The duplicate in build-worker has been removed.
 async function extractBrandSignals(images, slug, env) {
   const content = [{
     type: 'text',
-    text: `Analyse these brand assets (logo and photos) for a South African small business. Extract:
+    text: `Analyse these brand assets (logo and photos) for a South African small business. Extract the following:
 
-1. PRIMARY COLOUR — most dominant brand colour (hex code)
+1. PRIMARY COLOUR — the most dominant brand colour (hex code)
 2. SECONDARY COLOUR — supporting colour (hex code)
 3. ACCENT COLOUR — highlight/pop colour (hex code)
-4. TYPOGRAPHY FEEL — serif, sans-serif, script, geometric, bold/delicate?
-5. BRAND PERSONALITY — 3 adjectives describing the visual tone
-6. DESIGN DIRECTION — one sentence: what design style should the website use?
+4. TYPOGRAPHY FEEL — is the logo serif, sans-serif, script, geometric, bold/delicate?
+5. BRAND PERSONALITY — 3 adjectives that describe the visual tone
+6. DESIGN DIRECTION — one sentence: what design style should the website use to match this brand?
 7. LOGO PRESENT — yes/no
-8. PHOTO QUALITY — describe quality and style if photos are present
+8. PHOTO QUALITY — describe the photo quality and style if photos are present
 
-Be specific and practical. Format: "PRIMARY COLOUR: #hexcode"`,
+Be specific and practical. A developer will use this to build a website.
+Format your response as plain text with labels like "PRIMARY COLOUR: #hexcode".`,
   }];
 
   for (const img of images) {
-    content.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.base64 } });
+    content.push({
+      type:   'image',
+      source: { type: 'base64', media_type: img.mediaType, data: img.base64 },
+    });
   }
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -500,6 +534,7 @@ Be specific and practical. Format: "PRIMARY COLOUR: #hexcode"`,
 
 // ============================================================
 // ROUTE: /asset/{key} — R2 proxy
+// Serves uploaded files until assets.websitehub.co.za CDN domain is wired.
 // ============================================================
 
 async function handleAssetProxy(request, env, path) {
@@ -509,9 +544,11 @@ async function handleAssetProxy(request, env, path) {
   try {
     const obj = await env.ASSETS.get(r2Key);
     if (!obj) return new Response('Not found', { status: 404 });
+
+    const contentType = obj.httpMetadata?.contentType || 'application/octet-stream';
     return new Response(obj.body, {
       headers: {
-        'Content-Type':                obj.httpMetadata?.contentType || 'application/octet-stream',
+        'Content-Type':                contentType,
         'Cache-Control':               'public, max-age=31536000, immutable',
         'Access-Control-Allow-Origin': '*',
       },
@@ -523,7 +560,10 @@ async function handleAssetProxy(request, env, path) {
 }
 
 // ============================================================
-// ROUTE: /gallery-assets/{slug} — returns D1 + R2 gallery URLs
+// ROUTE: /gallery-assets/{slug}
+// Returns JSON array of gallery photo URLs. Called by the gallery
+// page script on every page load (1-min cache). Empty array means
+// "Photos coming soon" placeholder in the UI.
 // ============================================================
 
 async function handleGalleryAssets(request, env, path) {
@@ -533,25 +573,15 @@ async function handleGalleryAssets(request, env, path) {
   if (!slug) return jsonResponse({ error: 'Missing slug' }, 400);
 
   try {
-    // First try D1 gallery_photos table
-    const client = await getClientBySlug(env, slug).catch(() => null);
-    let urls = [];
+    const listed = await env.ASSETS.list({ prefix: `${slug}/gallery/` });
+    const ownUrl = env.WORKER_URL_PATCH || '';
 
-    if (client?.id) {
-      const d1Photos = await getGalleryPhotos(env, client.id).catch(() => []);
-      urls = d1Photos.map(p => p.url);
-    }
-
-    // Fall back to R2 listing if D1 has no records (pre-migration photos)
-    if (urls.length === 0) {
-      const ownUrl = env.WORKER_URL_PATCH || '';
-      const listed = await env.ASSETS.list({ prefix: `${slug}/gallery/` }).catch(() => ({ objects: [] }));
-      urls = (listed.objects || [])
-        .filter(obj => /\.(jpg|jpeg|png|webp|gif)$/i.test(obj.key))
-        .map(obj => env.ASSETS_DOMAIN_READY === 'true'
-          ? `https://${ASSETS_DOMAIN}/${obj.key}`
-          : `${ownUrl}/asset/${obj.key}`);
-    }
+    const urls = (listed.objects || [])
+      .filter(obj => /\.(jpg|jpeg|png|webp|gif)$/i.test(obj.key))
+      .map(obj => {
+        if (env.ASSETS_DOMAIN_READY === 'true' || env.ASSETS_DOMAIN_READY === true) return `https://${ASSETS_DOMAIN}/${obj.key}`;
+        return `${ownUrl}/asset/${obj.key}`;
+      });
 
     return new Response(JSON.stringify(urls), {
       headers: {
@@ -570,46 +600,46 @@ async function handleGalleryAssets(request, env, path) {
 
 // ============================================================
 // ROUTE: /patch-gallery — admin manual gallery patch
+// Body: { airtableId, r2Paths: [...] }
+// Used when assets are uploaded out-of-band and need to be patched
+// into a Live site without a rebuild.
 // ============================================================
 
 async function handlePatchGallery(request, env) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
-  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY))
-    return jsonResponse({ error: 'Unauthorized' }, 401);
+  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY)) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
 
-  const { clientId, r2Paths } = body;
+  const { clientId, slug: bodySlug, r2Paths } = body;
   if (!clientId || !r2Paths?.length) return jsonResponse({ error: 'Missing clientId or r2Paths' }, 400);
 
-  const client = await getClientById(env, clientId).catch(() => null);
+  const client = await getClientById(clientId, env);
   if (!client) return jsonResponse({ error: 'Client not found' }, 404);
 
-  const slug   = client.slug    || slugify(client.business_name);
+  const slug   = bodySlug || client.slug;
   const domain = (client.domain || `${slug}.co.za`).replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
 
-  // Save to D1
-  for (const key of r2Paths) {
-    const url = `https://${ASSETS_DOMAIN}/${key}`;
-    await addGalleryPhoto(env, clientId, key, url, null).catch(() => {});
-  }
-
   const patched = await patchGalleryInKV(slug, domain, r2Paths, env);
-  await logEvent(env, 'patch', 'gallery_manual_patch', 'success', {
-    clientId, metadata: { slug, count: r2Paths.length },
-  });
+  await logActivity(env, 'gallery_manual_patch', { slug, count: r2Paths.length });
 
   return jsonResponse({ success: patched, slug, domain, photosPatched: r2Paths.length });
 }
 
+/**
+ * Replaces the gallery section in both the preview and live KV entries.
+ * Looks for <!-- GALLERY START --> / <!-- GALLERY END --> markers, or the
+ * older single <!-- Gallery: ... --> comment. If neither marker is present,
+ * the gallery script (in build-worker's Pass 3 prompt) fetches photos at
+ * runtime via /gallery-assets, so this is best-effort cache-warming only.
+ */
 async function patchGalleryInKV(slug, domain, r2Paths, env) {
-  const ownUrl    = env.WORKER_URL_PATCH || '';
-  const photoUrls = r2Paths.map(key =>
-    env.ASSETS_DOMAIN_READY === 'true'
-      ? `https://${ASSETS_DOMAIN}/${key}`
-      : `${ownUrl}/asset/${key}`
-  );
+  const ownUrl = env.WORKER_URL_PATCH || '';
+  const photoUrls = r2Paths.map(key => {
+    if (env.ASSETS_DOMAIN_READY === 'true' || env.ASSETS_DOMAIN_READY === true) return `https://${ASSETS_DOMAIN}/${key}`;
+    return `${ownUrl}/asset/${key}`;
+  });
 
   const galleryItems = photoUrls.map(url =>
     `<div class="gallery-item"><img src="${url}" alt="Gallery photo" loading="lazy" style="width:100%;height:220px;object-fit:cover;border-radius:4px;"></div>`
@@ -627,7 +657,7 @@ async function patchGalleryInKV(slug, domain, r2Paths, env) {
     } else if (html.includes('<!-- GALLERY START -->')) {
       html = html.replace(/<!-- GALLERY START -->[\s\S]*?<!-- GALLERY END -->/, galleryHtml);
     } else {
-      continue;
+      continue; // No marker — gallery script fetches at runtime anyway
     }
 
     await env.SITES.put(key, html);
@@ -638,157 +668,129 @@ async function patchGalleryInKV(slug, domain, r2Paths, env) {
 }
 
 // ============================================================
-// ROUTE: /manage-panel — tier-gated manage panel data from D1
-// Token lookup is now via D1 clients.manage_token (not KV).
+// ROUTE: /manage-panel — tier-gated manage panel data
+// Returns everything the SPA needs to render the panel for the
+// client's plan. Sections the plan doesn't have are returned as
+// null so the SPA can decide whether to show "Upgrade to unlock".
 // ============================================================
 
 async function handleManagePanel(request, url, env) {
   const token = url.searchParams.get('token');
   if (!token) return jsonResponse({ error: 'Missing token' }, 400);
 
-  // D1 token lookup — replaces KV manage_token:* key
-  const client = await getClientByToken(env, token).catch(() => null);
+  const client = await getClientByToken(token, env);
   if (!client) return jsonResponse({ error: 'Invalid or expired manage token' }, 404);
 
-  const slug    = client.slug || slugify(client.business_name);
-  const domain  = (client.domain || `${slug}.co.za`).replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const pkg     = packageKey(client.package || 'standard');
-  const tier    = PRICING[pkg];
-  const caps    = PACKAGE_CAPS[pkg];
+  const clientId  = client.id;
+  const slug      = client.slug;
+  const domain    = (client.domain || `${slug}.co.za`).replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const plan      = client.package || 'standard';
+  const pkgKey    = packageKey(plan);
+  const tier      = getPricingTier(plan);
+  const caps      = getPackageCaps(plan);
+  const monthStr  = currentMonthKey();
 
-  // Revision count from D1 revisions table (this month)
-  const monthStart = new Date();
-  monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-  const revCountResult = await env.DB.prepare(
-    `SELECT COUNT(*) as count FROM revisions
-     WHERE client_id = ? AND created_at >= ? AND type = 'free'`
-  ).bind(client.id, monthStart.toISOString()).first().catch(() => ({ count: 0 }));
-
-  const revisionsUsed  = revCountResult?.count || 0;
-  const revisionsLimit = pkg === 'premium' ? 5   : pkg === 'express' ? 1 : 2;
+  const revisionsUsed = parseInt(
+    await env.SITES.get(`manage_revisions:${clientId}:${monthStr}`).catch(() => '0') || '0',
+  );
+  const revisionsLimit = pkgKey === 'premium' ? null
+                       : pkgKey === 'express' ? 1 : 2; // Standard = 2, Express = 1
 
   // Next invoice
+  const nextInvoiceStr = client.next_invoice_date;
   let daysUntilInvoice = null;
-  if (client.next_invoice_date) {
-    const diff = new Date(client.next_invoice_date).getTime() - Date.now();
+  if (nextInvoiceStr) {
+    const diff = new Date(nextInvoiceStr).getTime() - Date.now();
     daysUntilInvoice = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   }
 
-  // Referral block — D1 referrals table
-  const referralFlag     = await getFlag(env, 'REFERRAL_ENABLED');
+  // Referral block — only when feature flag on AND tier supports it
+  const referralFlag  = await getFlag(env, 'REFERRAL_ENABLED');
   const referralUnlocked = caps.referral && referralFlag;
   let referralBlock = null;
   if (referralUnlocked) {
-    const sentResult = await env.DB.prepare(
-      `SELECT COUNT(*) as total FROM referrals WHERE referrer_client_id = ?`
-    ).bind(client.id).first().catch(() => ({ total: 0 }));
-
-    const premiumResult = await env.DB.prepare(
-      `SELECT COUNT(*) as count
-       FROM referrals r
-       JOIN clients rc ON rc.id = r.referred_client_id
-       WHERE r.referrer_client_id = ?
-         AND r.status = 'vested'
-         AND rc.package = 'premium'`
-    ).bind(client.id).first().catch(() => ({ count: 0 }));
-
-    const premiumConversions = premiumResult?.count || 0;
-    const creditEarned       = premiumConversions * (PRICING.premium?.retainer || 999);
-
-    const lbRows = await env.DB.prepare(
-      `SELECT c.client_name, c.referral_display_name, c.slug,
-              COUNT(r.id) as conversions,
-              COUNT(r.id) * ? as credit
-       FROM referrals r
-       JOIN clients c  ON c.id  = r.referrer_client_id
-       JOIN clients rc ON rc.id = r.referred_client_id
-       WHERE r.status = 'vested'
-         AND c.package  = 'premium'
-         AND rc.package = 'premium'
-       GROUP BY r.referrer_client_id
-       ORDER BY conversions DESC
-       LIMIT 5`
-    ).bind(PRICING.premium?.retainer || 999).all().catch(() => ({ results: [] }));
-
-    const leaderboard = (lbRows.results || []).map((row, i) => ({
-      rank:        i + 1,
-      name:        row.referral_display_name || (row.client_name || '').split(' ')[0] || 'Member',
-      conversions: row.conversions,
-      credit:      row.credit,
-      isYou:       row.slug === slug,
-    }));
-
+    const sent        = parseInt(await env.SITES.get(`referral:sent:${slug}:${monthStr}`).catch(() => '0') || '0');
+    const conversions = parseInt(await env.SITES.get(`referral:conversions:${slug}`).catch(() => '0') || '0');
     referralBlock = {
-      enabled:           true,
-      premiumOnly:       true,
-      link:              `https://websitehub.co.za?ref=${slug}`,
-      sent:              sentResult?.total || 0,
-      premiumConversions,
-      creditEarned,
-      leaderboard,
+      enabled:      true,
+      link:         `https://websitehub.co.za?ref=${slug}`,
+      sent,
+      conversions,
+      rewardMonths: conversions, // 1 conversion = 1 free month
     };
   }
 
-  // Analytics block
-  const analyticsBlock = caps.analytics ? { enabled: true, slug } : null;
+  // Analytics block — only for tiers that support it
+  let analyticsBlock = null;
+  if (caps.analytics) {
+    // Pulled from build-worker /analytics by SPA when it loads the panel,
+    // but we surface the URL here for one-tap deep linking.
+    analyticsBlock = { enabled: true, slug };
+  }
 
-  // Gallery block — D1 gallery_photos count
+  // Gallery block — only for tiers that support it
   let galleryBlock = null;
   if (caps.gallery) {
-    const photoCount = (await getGalleryPhotos(env, client.id).catch(() => [])).length;
-    const planLimits = PLAN_PHOTO_LIMITS[pkg];
+    const photoCount = 0; // D1: query gallery_photos table
+    const planLimits = PLAN_PHOTO_LIMITS[plan] || PLAN_PHOTO_LIMITS.Standard;
     galleryBlock = {
-      enabled:   true,
+      enabled:     true,
       photoCount,
-      maxPhotos: planLimits.maxPhotos,
-      maxSizeMB: planLimits.maxSizeBytes / 1024 / 1024,
+      maxPhotos:   planLimits.maxPhotos,
+      maxSizeMB:   planLimits.maxSizeBytes / 1024 / 1024,
     };
   }
 
-  // Email block
+  // Email accounts block — show how many configured + upgrade offer if applicable
   const emailBlock = {
-    included:       caps.emailAccounts,
+    included:      caps.emailAccounts,
     addonAvailable: caps.extraEmailAddon,
-    addonCost:      caps.extraEmailAddon ? PRICING.addons.extraEmail : 0,
+    addonCost:     caps.extraEmailAddon ? PRICING.addons.extraEmail : 0,
   };
 
-  // Upgrade offers
+  // Upgrade offers (presented if upgrade target exists)
   const upgradeOffers = [];
-  if (pkg === 'express') {
-    upgradeOffers.push({ to: 'standard', delta: PRICING.upgrade.expressToStandard });
-    upgradeOffers.push({ to: 'premium',  delta: PRICING.upgrade.expressToPremium  });
-  } else if (pkg === 'standard') {
-    upgradeOffers.push({ to: 'premium',  delta: PRICING.upgrade.standardToPremium });
+  if (pkgKey === 'express') {
+    upgradeOffers.push({ to: 'Standard', delta: PRICING.upgrade.expressToStandard });
+    upgradeOffers.push({ to: 'Premium',  delta: PRICING.upgrade.expressToPremium });
+  } else if (pkgKey === 'standard') {
+    upgradeOffers.push({ to: 'Premium',  delta: PRICING.upgrade.standardToPremium });
   }
 
   return jsonResponse({
-    clientId:          client.id,
+    clientId,
     businessName:      client.business_name,
     slug,
     domain,
     liveUrl:           `https://${domain}`,
-    package:           pkg,
+    package:           plan,
     status:            client.status,
     retainer:          tier.retainer,
     nextInvoiceDate:   client.next_invoice_date || null,
     daysUntilInvoice,
     pages:             caps.pages,
     revisions: {
-      used:     revisionsUsed,
-      limit:    revisionsLimit,
-      paidCost: PRICING.addons.revision,
+      used:          revisionsUsed,
+      limit:         revisionsLimit,
+      paidCost:      PRICING.addons.revision,
     },
     email:    emailBlock,
     gallery:  galleryBlock,
     referral: referralBlock,
     analytics: analyticsBlock,
-    addPageAvailable: pkg === 'standard' || pkg === 'premium',
     upgradeOffers,
   });
 }
 
 // ============================================================
-// ROUTE: /submit-revision — free or paid revision flow
+// ROUTE: /submit-revision — revision flow with paid fallback
+//
+// Behaviour:
+//   1. Read tier's free revision limit (1/2/∞).
+//   2. If under limit → increment counter, queue rebuild, return success.
+//   3. If at/over limit → store pending revision in KV, return 402 with
+//      PayFast checkout URL. Client pays. PayFast ITN hits launch-worker.
+//      launch-worker calls /apply-revision-payment, which queues the rebuild.
 // ============================================================
 
 async function handleSubmitRevision(request, env, ctx) {
@@ -800,44 +802,42 @@ async function handleSubmitRevision(request, env, ctx) {
   const { token, palette, font, photo, tagline, specials } = body;
   if (!token) return jsonResponse({ error: 'Missing token' }, 400);
 
-  // D1 token lookup
-  const client = await getClientByToken(env, token).catch(() => null);
+  const client = await getClientByToken(token, env);
   if (!client) return jsonResponse({ error: 'Invalid manage token' }, 404);
 
-  const pkg   = packageKey(client.package || 'standard');
-  const slug  = client.slug || slugify(client.business_name);
+  const clientId = client.id;
+  const pkgKey   = packageKey(client.package || 'standard');
+  const slug     = client.slug;
+  const monthStr = currentMonthKey();
+  const countKey = `manage_revisions:${clientId}:${monthStr}`;
+  const used     = parseInt(await env.SITES.get(countKey).catch(() => '0') || '0');
+  const freeLimit = pkgKey === 'premium' ? Infinity
+                  : pkgKey === 'express' ? 1 : 2;
 
-  // Count free revisions used this month from D1
-  const monthStart = new Date();
-  monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-  const usedResult = await env.DB.prepare(
-    `SELECT COUNT(*) as count FROM revisions
-     WHERE client_id = ? AND created_at >= ? AND type = 'free'`
-  ).bind(client.id, monthStart.toISOString()).first().catch(() => ({ count: 0 }));
+  const revisionPayload = { palette, font, photo, tagline, specials };
 
-  const used       = usedResult?.count || 0;
-  const freeLimit  = pkg === 'premium' ? Infinity : pkg === 'express' ? 1 : 2;
-  const revPayload = { palette, font, photo, tagline, specials };
-
+  // Over free limit → require payment
   if (used >= freeLimit) {
-    // Store pending revision in KV (ephemeral — 2hr PayFast handshake token)
+    // Stash the revision payload keyed by a fresh token. PayFast carries this
+    // token in custom_str2; launch-worker forwards it to /apply-revision-payment.
     const revToken = crypto.randomUUID().replace(/-/g, '');
     await env.SITES.put(`pending_revision:${revToken}`, JSON.stringify({
-      clientId: client.id,
-      payload:  revPayload,
-      created:  new Date().toISOString(),
+      clientId,
+      payload: revisionPayload,
+      created: new Date().toISOString(),
     }), { expirationTtl: PENDING_REVISION_TTL });
 
     const launchUrl = env.WORKER_URL_LAUNCH || '';
     const payLink   = buildPayFastLink(
       PRICING.addons.revision,
       `Website Hub Revision — ${client.business_name}`,
-      client.id,
+      clientId,
       env,
       {
         itemDesc:   'Additional revision request',
         customStr2: `revision:${revToken}`,
         notifyUrl:  launchUrl ? `${launchUrl}/payfast-webhook` : undefined,
+        // No returnUrl — client stays in WhatsApp / SPA flow
       },
     );
 
@@ -852,88 +852,97 @@ async function handleSubmitRevision(request, env, ctx) {
     }, 402);
   }
 
-  await processRevision(client, revPayload, env, { paid: false });
-
+  // Under free limit — process immediately
+  await processRevision(clientId, revisionPayload, env, { paid: false, monthStr, used });
   return jsonResponse({
-    success: true,
-    used:    used + 1,
-    limit:   freeLimit === Infinity ? null : freeLimit,
-    message: `Got it! Your revision is in — we'll have it live within 10 minutes.`,
+    success:   true,
+    used:      used + 1,
+    limit:     freeLimit === Infinity ? null : freeLimit,
+    message:   `Got it! Your revision is in — we'll have it live within 10 minutes.`,
   });
 }
 
-async function processRevision(client, payload, env, opts = {}) {
-  const { paid = false } = opts;
+/**
+ * Applies a revision: increment counter, write change log to Airtable,
+ * write panel choices to KV, queue rebuild, notify client.
+ *
+ * Used by both /submit-revision (free path) and /apply-revision-payment
+ * (paid path after PayFast confirmation).
+ */
+async function processRevision(clientId, payload, env, opts = {}) {
+  const { paid = false, monthStr = currentMonthKey() } = opts;
+
+  const client = await getClientById(clientId, env);
+  if (!client) throw new Error(`Client not found: ${clientId}`);
+  const slug   = client.slug;
+  const pkgKey = packageKey(client.package || 'standard');
+
+  const countKey = `manage_revisions:${clientId}:${monthStr}`;
+  const used     = parseInt(await env.SITES.get(countKey).catch(() => '0') || '0');
+  await env.SITES.put(countKey, String(used + 1), { expirationTtl: 60 * 60 * 24 * 35 });
+
   const { palette, font, photo, tagline, specials } = payload;
 
-  // Create revision record in D1
-  const request    = [palette, font, photo, tagline, specials].filter(Boolean).join(' | ');
-  const revisionId = await createRevision(env, client.id, paid ? 'paid' : 'free', request || 'SPA revision').catch(() => null);
+  // Log revision to D1
+  const timestamp = new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' });
+  await updateClient(clientId, {
+    last_revision_at: new Date().toISOString(),
+  }, env).catch(() => {});
 
-  // Persist choices to D1
-  const updates = {};
-  if (palette) updates.palette = palette;
-  if (Object.keys(updates).length) await updateClient(env, client.id, updates).catch(() => {});
+  // Persist panel choices so the rebuilt site reflects them
+  if (palette || font || photo || tagline) {
+    const existingChoices = JSON.parse(await env.SITES.get(`preview_choices:${slug}`).catch(() => '{}') || '{}');
+    await env.SITES.put(`preview_choices:${slug}`, JSON.stringify({
+      ...existingChoices,
+      ...(palette ? { palette } : {}),
+      ...(font    ? { font }    : {}),
+      ...(photo   ? { photo }   : {}),
+      ...(tagline ? { tagline } : {}),
+      savedAt: new Date().toISOString(),
+    }));
+  }
 
   // Queue rebuild
-  await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: client.id, paymentId: null, isOutbound: false });
+  await env.BUILD_QUEUE.send({ type: 'substance_build', clientId, isOutbound: false });
 
-  // Notify client
-  const name      = (client.client_name || '').split(' ')[0] || 'there';
-  const freeLimit = packageKey(client.package) === 'premium' ? Infinity : packageKey(client.package) === 'express' ? 1 : 2;
+  const name      = client.client_name?.split(' ')[0] || 'there';
+  const freeLimit = pkgKey === 'premium' ? Infinity : pkgKey === 'express' ? 1 : 2;
+  const usageLine = freeLimit !== Infinity && !paid
+    ? `\n_(${used + 1}/${freeLimit} free revisions used this month)_\n`
+    : '';
   const paidLine  = paid ? `\nThanks for the payment — much appreciated!\n` : '';
 
   await sendWhatsApp(client.phone,
-    `Got it ${name}! 👍 Your revision is in — we'll have it live within 10 minutes.${paidLine}\n— Website Hub`,
+    `Got it ${name}! 👍 Your revision is in — we'll have it live within 10 minutes.${paidLine}${usageLine}\n— Website Hub`,
     env,
   );
 
-  if (client.email) {
-    await sendEmail({
-      to: client.email,
-      subject: paid
-        ? `Revision payment confirmed — ${client.business_name}`
-        : `Revision received — ${client.business_name}`,
-      touchpoint: paid ? 'paid_revision_confirmed' : 'revision_submitted',
-      clientSlug: client.slug,
-      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
-        <h2 style="color:#111">${paid ? 'Revision payment confirmed 👍' : 'Revision received 👍'}</h2>
-        <p>Hi ${name},</p>
-        <p>Your revision for <strong>${client.business_name}</strong> is in — we'll have it live within 10 minutes.${paid ? ' Thank you for the payment!' : ''}</p>
-        <p style="margin:24px 0"><a href="https://preview.websitehub.co.za/manage/${client.manage_token}" style="background:#111;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">View My Preview</a></p>
-        <p style="color:#888;font-size:12px">— Website Hub</p>
-      </div>`,
-    }, env).catch(() => {});
-  }
-
+  // Owner alert
   await sendWhatsApp(env.WH_PHONE,
-    `✏️ REVISION${paid ? ` (PAID R${PRICING.addons.revision})` : ''}: ${client.business_name}\nClient: ${client.id}`,
+    `✏️ REVISION ${paid ? '(PAID R' + PRICING.addons.revision + ')' : ''}: ${client.business_name}\nUsed: ${used + 1}/${freeLimit === Infinity ? '∞' : freeLimit}\nClient: ${clientId}`,
     env, { skipTestRedirect: true },
   ).catch(() => {});
 
-  // Log message
-  await logMessage(env, client.id, paid ? 'paid_revision_link' : 'revision_submitted', 'whatsapp').catch(() => {});
-
-  await logEvent(env, 'patch', 'revision_processed', 'success', {
-    clientId: client.id,
-    metadata: { paid, business: client.business_name },
+  await logActivity(env, 'manage_revision_submitted', {
+    clientId, business: client.business_name, used: used + 1, paid,
   });
-
-  // Mark revision complete
-  if (revisionId) {
-    await updateRevision(env, revisionId, { status: 'complete', completed_at: new Date().toISOString() }).catch(() => {});
-  }
 }
 
 // ============================================================
 // ROUTE: /apply-revision-payment
-// Called by launch-worker after PayFast paid-revision ITN.
+// Called server-to-server by launch-worker after a PayFast revision
+// payment ITN is verified. Reads the pending revision payload from KV
+// and processes it through the normal revision pipeline.
+//
+// Body: { revisionToken }
+// Auth: x-admin-key (shared secret between workers)
 // ============================================================
 
 async function handleApplyRevisionPayment(request, env) {
   if (request.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
-  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY))
+  if (!constantTimeCompare(request.headers.get('x-admin-key'), env.ADMIN_KEY)) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
 
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
@@ -942,22 +951,24 @@ async function handleApplyRevisionPayment(request, env) {
   if (!revisionToken) return jsonResponse({ error: 'Missing revisionToken' }, 400);
 
   const raw = await env.SITES.get(`pending_revision:${revisionToken}`);
-  if (!raw) return jsonResponse({ success: true, already_processed: true });
+  if (!raw) {
+    // Either expired or already processed — return 200 idempotent so launch-worker
+    // doesn't retry the ITN forwarding loop.
+    return jsonResponse({ success: true, already_processed: true });
+  }
 
-  const pending   = JSON.parse(raw);
+  const pending = JSON.parse(raw);
   const { clientId, payload } = pending;
 
-  const client = await getClientById(env, clientId).catch(() => null);
-  if (!client) return jsonResponse({ error: 'Client not found' }, 404);
-
   try {
-    await processRevision(client, payload, env, { paid: true });
+    await processRevision(clientId, payload, env, { paid: true });
     await env.SITES.delete(`pending_revision:${revisionToken}`);
     return jsonResponse({ success: true, clientId });
   } catch (err) {
     console.error('Paid revision processing failed:', err);
-    await logEvent(env, 'patch', 'paid_revision_failed', 'failure', {
-      clientId, error: err.message, metadata: { revisionToken },
+    // Don't delete the token — leaves room for manual retry/inspection
+    await logActivity(env, 'paid_revision_failed', {
+      revisionToken, clientId, error: err.message,
     });
     return jsonResponse({ error: err.message }, 500);
   }
@@ -965,8 +976,20 @@ async function handleApplyRevisionPayment(request, env) {
 
 // ============================================================
 // EMAIL HANDLER — incoming gallery photo updates
-// Subject: "wh-{slug}" → looks up client in D1 by slug
-// Attachments → R2 + D1 gallery_photos table
+//
+// Email format:
+//   To:      updates@websitehub.co.za
+//   Subject: wh-{slug}   (or just {slug})
+//   Body:    anything
+//   Attachments: JPG / PNG / WEBP photos
+//
+// Flow:
+//   1. Parse subject → slug
+//   2. Look up Airtable record
+//   3. Enforce gallery photo limits
+//   4. Parse MIME attachments → upload each to R2 under {slug}/gallery/
+//   5. If Live → patch gallery in KV; otherwise queue a rebuild
+//   6. WhatsApp confirmation (window-respecting)
 // ============================================================
 
 async function handleIncomingEmail(message, env) {
@@ -975,53 +998,65 @@ async function handleIncomingEmail(message, env) {
 
   const slugMatch = subject.match(/wh-([a-z0-9-]+)/i) || subject.match(/([a-z0-9-]{3,50})/i);
   if (!slugMatch) {
-    await logEvent(env, 'patch', 'email_unroutable', 'warning', { metadata: { subject, from } });
+    await logActivity(env, 'email_unroutable', { subject, from });
     message.setReject('No valid site slug in subject line. Format: wh-your-business-name');
     return;
   }
 
   const slug = slugMatch[1].toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
-  // D1 lookup by slug — replaces listAirtableRecords
-  const client = await getClientBySlug(env, slug).catch(() => null);
-
-  if (!client) {
-    await logEvent(env, 'patch', 'email_unknown_slug', 'warning', { metadata: { slug, from } });
+  let records;
+  const emailClient = await getClientBySlug(slug, env);
+  catch (e) {
+    await logHealth(env, 'airtable', 'error', e.message);
     message.forward('loc10@live.co.za');
     return;
   }
 
-  const status      = client.status || '';
-  const clientPhone = client.phone  || '';
-  const bizName     = client.business_name || slug;
-  const pkg         = packageKey(client.package || 'standard');
-  const limits      = PLAN_PHOTO_LIMITS[pkg];
+  if (!records.length) {
+    await logActivity(env, 'email_unknown_slug', { slug, from });
+    message.forward('loc10@live.co.za');
+    return;
+  }
 
-  // Express has no gallery
+  const record      = records[0];
+  const f           = record.fields;
+  if (!emailClient) { console.warn(`Email: no client for slug '${slug}'`); return; }
+  const airtableId  = emailClient.id; // kept as var name for KV compat
+  const status      = emailClient.status || '';
+  const clientPhone = emailClient.phone || '';
+  const bizName     = emailClient.business_name || slug;
+  const plan        = emailClient.package || 'standard';
+  const planKey     = (plan === 'Express' || plan === 'Standard' || plan === 'Premium') ? plan : 'Standard';
+  const limits      = PLAN_PHOTO_LIMITS[planKey];
+
+  // Express has no gallery — politely decline
   if (limits.maxPhotos === 0) {
     if (clientPhone) {
-      await queueScheduledMessage(client.id, clientPhone,
+      await queueScheduledMessage(airtableId, clientPhone,
         `Hi! We received your photos for *${bizName}*, but the Express plan doesn't include a photo gallery.\n\nUpgrade to Standard or Premium to add a gallery. Reply UPGRADE for details.\n\n— Website Hub`,
         env, { respectDayOfWeek: false },
       );
     }
-    await logEvent(env, 'patch', 'email_express_no_gallery', 'warning', { clientId: client.id });
+    await logActivity(env, 'email_express_no_gallery', { slug });
     return;
   }
 
-  const existingPhotos = await getGalleryPhotos(env, client.id).catch(() => []);
-  const slotsRemaining = limits.maxPhotos - existingPhotos.length;
+  const existingPhotoList = (f['Photos'] || '').split(',').filter(Boolean);
+  const slotsRemaining    = limits.maxPhotos - existingPhotoList.length;
 
   if (slotsRemaining <= 0) {
     if (clientPhone) {
-      await queueScheduledMessage(client.id, clientPhone,
-        `Hi! We received your photos for *${bizName}*, but your ${pkg} plan gallery is full (${limits.maxPhotos} photos max).\n\n` +
-        (pkg === 'standard' ? `Upgrade to Premium for up to 30 photos. Reply UPGRADE for details.` : `Please ask us to remove some existing photos first.`) +
+      await queueScheduledMessage(airtableId, clientPhone,
+        `Hi! We received your photos for *${bizName}*, but your ${plan} plan gallery is full (${limits.maxPhotos} photos max).\n\n` +
+        (plan === 'Standard'
+          ? `Upgrade to Premium for up to 30 photos. Reply UPGRADE for details.`
+          : `Please ask us to remove some existing photos first.`) +
         `\n\n— Website Hub`,
         env, { respectDayOfWeek: false },
       );
     }
-    await logEvent(env, 'patch', 'email_limit_reached', 'warning', { clientId: client.id, metadata: { pkg } });
+    await logActivity(env, 'email_limit_reached', { slug, plan });
     return;
   }
 
@@ -1038,11 +1073,12 @@ async function handleIncomingEmail(message, env) {
       const att = attachments[i];
       if (!imageTypes.includes(att.contentType.toLowerCase())) continue;
       if (att.data.byteLength > limits.maxSizeBytes) {
-        console.warn(`Photo too large for ${pkg} plan: ${att.data.byteLength} bytes`);
+        console.warn(`Photo too large for ${plan} plan: ${att.data.byteLength} bytes`);
         continue;
       }
 
-      const ext   = att.contentType.includes('png') ? 'png' : att.contentType.includes('webp') ? 'webp' : 'jpg';
+      const ext   = att.contentType.includes('png') ? 'png'
+                  : att.contentType.includes('webp') ? 'webp' : 'jpg';
       const r2Key = `${slug}/gallery/photo_${Date.now()}_${i}.${ext}`;
 
       await env.ASSETS.put(r2Key, att.data, {
@@ -1050,40 +1086,40 @@ async function handleIncomingEmail(message, env) {
         customMetadata: { slug, source: 'email', uploadedAt: new Date().toISOString() },
       });
 
-      const photoUrl = `https://${ASSETS_DOMAIN}/${r2Key}`;
       r2Paths.push(r2Key);
-
-      // Save to D1 gallery_photos
-      await addGalleryPhoto(env, client.id, r2Key, photoUrl, null).catch(() => {});
       photoCount++;
     }
 
-    await logEvent(env, 'patch', 'email_photos_uploaded', 'success', {
-      clientId: client.id, metadata: { count: photoCount, slug },
-    });
+    await logHealth(env, 'r2', 'success');
   } catch (e) {
     console.error('MIME parsing/R2 failed:', e);
-    await logEvent(env, 'patch', 'email_photo_error', 'failure', { clientId: client.id, error: e.message });
+    await logHealth(env, 'r2', 'error', e.message);
+    await logActivity(env, 'email_photo_error', { slug, error: e.message });
   }
 
   if (photoCount === 0) {
     if (clientPhone) {
-      await queueScheduledMessage(client.id, clientPhone,
+      await queueScheduledMessage(airtableId, clientPhone,
         `Hi! We received your email for *${bizName}* but couldn't find any valid photo attachments (JPG, PNG, or WEBP under ${limits.maxSizeBytes / 1024 / 1024}MB).\n\nPlease try again with your photos attached. — Website Hub`,
         env, { respectDayOfWeek: false },
       );
     }
-    await logEvent(env, 'patch', 'email_no_photos', 'warning', { clientId: client.id, metadata: { from } });
+    await logActivity(env, 'email_no_photos', { slug, from });
     return;
   }
 
-  if (status === 'live') {
-    const domain = (client.domain || `${slug}.co.za`)
+  // Update Airtable Photos field
+  const allPhotos = [...existingPhotoList, ...r2Paths];
+  // D1: photo tracking via gallery_photos table (build-worker reads R2 directly)
+
+  // Patch or rebuild depending on Live status
+  if (status === 'Live') {
+    const domain = (f['Domain'] || `${slug}.co.za`)
       .replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
     await patchGalleryInKV(slug, domain, r2Paths, env);
 
     if (clientPhone) {
-      await queueScheduledMessage(client.id, clientPhone,
+      await queueScheduledMessage(airtableId, clientPhone,
         `📸 Got your photos! We've added *${photoCount} photo${photoCount > 1 ? 's' : ''}* to your *${bizName}* gallery.\n\n✅ Your site is updated: https://${domain}\n\n— Website Hub`,
         env, { respectDayOfWeek: false },
       );
@@ -1092,16 +1128,22 @@ async function handleIncomingEmail(message, env) {
       `📸 GALLERY UPDATED: ${bizName} (${slug})\n${photoCount} photos added via email\nSite: https://${domain}`,
       env, { skipTestRedirect: true },
     );
-    await logEvent(env, 'patch', 'gallery_updated', 'success', {
-      clientId: client.id, metadata: { slug, count: photoCount, source: 'email' },
-    });
+    await logActivity(env, 'gallery_updated', { slug, count: photoCount, source: 'email' });
+
   } else {
-    // Not live — reset to lead and queue rebuild
-    await updateClient(env, client.id, { status: 'lead' }).catch(() => {});
-    await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: client.id, paymentId: null, isOutbound: false });
+    if (status !== 'Live') {
+      await updateClient(airtableId, { status: 'lead' }, env).catch(() => {});
+    }
+
+    await env.BUILD_QUEUE.send({
+      airtableId,
+      paymentId:  null,
+      fields:     null,
+      isOutbound: false,
+    });
 
     if (clientPhone) {
-      await queueScheduledMessage(client.id, clientPhone,
+      await queueScheduledMessage(airtableId, clientPhone,
         `📸 Got your photos! We're updating your *${bizName}* website with them now. You'll have an updated preview link in about 10 minutes. ⚡\n\n— Website Hub`,
         env, { respectDayOfWeek: false },
       );
@@ -1110,16 +1152,14 @@ async function handleIncomingEmail(message, env) {
       `📸 PHOTOS RECEIVED (PRE-LIVE): ${bizName} (${slug})\n${photoCount} photos — rebuild queued`,
       env, { skipTestRedirect: true },
     );
-    await logEvent(env, 'patch', 'email_rebuild_triggered', 'success', {
-      clientId: client.id, metadata: { slug, count: photoCount, status },
-    });
+    await logActivity(env, 'email_rebuild_triggered', { slug, count: photoCount, status });
   }
-
-  await logMessage(env, client.id, 'gallery_added', 'email').catch(() => {});
 }
 
 // ============================================================
 // MIME PARSING — extract image attachments from raw email bytes
+// Handles base64 + quoted-printable + 8bit encodings.
+// Strict on attachment minimum size (1KB) to skip MIME boilerplate.
 // ============================================================
 
 function parseMimeAttachments(rawBytes) {
@@ -1156,17 +1196,23 @@ function parseMimeAttachments(rawBytes) {
         const bin = atob(b64);
         data = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
-      } catch (e) { console.warn('Base64 decode failed:', e); continue; }
+      } catch (e) {
+        console.warn('Base64 decode failed:', e);
+        continue;
+      }
     } else if (encoding === 'quoted-printable') {
       const decoded = bodySection
-        .replace(/=\r\n/g, '').replace(/=\n/g, '')
+        .replace(/=\r\n/g, '')
+        .replace(/=\n/g, '')
         .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
       data = new TextEncoder().encode(decoded);
     } else {
       data = new TextEncoder().encode(bodySection);
     }
 
-    if (data && data.length > 1024) attachments.push({ contentType, data });
+    if (data && data.length > 1024) {
+      attachments.push({ contentType, data });
+    }
   }
 
   return attachments;
