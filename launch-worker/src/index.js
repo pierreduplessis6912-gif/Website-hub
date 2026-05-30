@@ -63,7 +63,7 @@ import {
   sendWhatsApp, normaliseSaPhone,
   createZohoInvoice,
   logActivity, logHealth, getFlag,
-} from '../../shared-services.js';
+} from './shared-services.js';
 
 // ────────────────────────────────────────────────────────────
 // CONSTANTS
