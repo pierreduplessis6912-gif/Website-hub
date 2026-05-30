@@ -11,7 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Sync shared-services
-        run: cp shared-services.js build-worker/src/shared-services.js
+        run: |
+          cp build-worker/src/shared-services.js patch-worker/src/shared-services.js
+          cp build-worker/src/shared-services.js launch-worker/src/shared-services.js
+          cp build-worker/src/shared-services.js pulse-worker/src/shared-services.js
+          cp build-worker/src/shared-services.js reactivate-worker/src/shared-services.js
       - name: Deploy wh-build
         uses: cloudflare/wrangler-action@v3
         with:
@@ -25,8 +29,6 @@ jobs:
     needs: deploy-build
     steps:
       - uses: actions/checkout@v4
-      - name: Sync shared-services
-        run: cp shared-services.js patch-worker/src/shared-services.js
       - name: Deploy wh-patch
         uses: cloudflare/wrangler-action@v3
         with:
@@ -40,8 +42,6 @@ jobs:
     needs: deploy-patch
     steps:
       - uses: actions/checkout@v4
-      - name: Sync shared-services
-        run: cp shared-services.js launch-worker/src/shared-services.js
       - name: Deploy wh-launch
         uses: cloudflare/wrangler-action@v3
         with:
@@ -55,8 +55,6 @@ jobs:
     needs: deploy-launch
     steps:
       - uses: actions/checkout@v4
-      - name: Sync shared-services
-        run: cp shared-services.js pulse-worker/src/shared-services.js
       - name: Deploy wh-pulse
         uses: cloudflare/wrangler-action@v3
         with:
@@ -70,8 +68,6 @@ jobs:
     needs: deploy-pulse
     steps:
       - uses: actions/checkout@v4
-      - name: Sync shared-services
-        run: cp shared-services.js reactivate-worker/src/shared-services.js
       - name: Install dependencies
         working-directory: reactivate-worker
         run: npm install --include=optional
