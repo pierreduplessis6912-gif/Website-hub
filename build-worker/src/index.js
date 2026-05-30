@@ -714,7 +714,7 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
   const slug   = client.slug;
   const pkg    = pkgKey(client.package);
-  const brief  = getDesignBrief(client.industry, client.vibe);
+  const brief  = getDesignBrief(client.industry || client.business_type, client.vibe);
   const buildId = await createBuild(env, clientId, { template_id: pkg, palette: client.vibe });
   const buildStart = Date.now();
 
@@ -825,7 +825,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
 
   const slug  = client.slug;
   const pkg   = pkgKey(client.package);
-  const brief = getDesignBrief(client.industry, cards?.vibe || client.vibe);
+  const brief = getDesignBrief(cards?.industry || client.industry || client.business_type, cards?.vibe || client.vibe);
 
   // Load pre-build voice profile as anchor
   const previewProfile = await env.SITES.get(`content:${slug}`, 'json').catch(() => null);
