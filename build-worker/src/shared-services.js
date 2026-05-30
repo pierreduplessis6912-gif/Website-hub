@@ -618,6 +618,10 @@ export async function getClientByToken(token, env) {
   return env.DB.prepare(`SELECT * FROM clients WHERE manage_token=? LIMIT 1`).bind(token).first();
 }
 
+
+export async function getClientByPhone(phone, env) {
+  return env.DB.prepare(`SELECT * FROM clients WHERE phone=? ORDER BY created_at DESC LIMIT 1`).bind(phone).first();
+}
 export async function updateClient(clientId, fields, env) {
   const sets = Object.keys(fields).map(k => `${k}=?`).join(',');
   const vals = [...Object.values(fields), clientId];
