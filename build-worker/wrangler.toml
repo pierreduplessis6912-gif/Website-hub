@@ -5,8 +5,8 @@ account_id = "4c559b9dff9fae56803b9c275b518597"
 
 [vars]
 # RESEND_API_KEY moved to GH secret
+# REGISTERDOMAIN_API_KEY moved to GH secret
 REGISTERDOMAIN_EMAIL = "loc10@live.co.za"
-REGISTERDOMAIN_API_KEY = "FhFq5iDgm1GeL1S1aE2eh132PmTpTAzG"
 TEST_MODE = "false"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
 WORKER_URL_PATCH = "https://wh-patch.pierreduplessis6912.workers.dev"
