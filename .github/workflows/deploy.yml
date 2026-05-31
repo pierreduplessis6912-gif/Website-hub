@@ -16,11 +16,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: build-worker
-          wranglerVersion: "4"
-          secrets: |
-            REGISTERDOMAIN_API_KEY
-        env:
-          REGISTERDOMAIN_API_KEY: ${{ secrets.REGISTERDOMAIN_API_KEY }}
 
   deploy-patch:
     name: Deploy wh-patch
@@ -75,9 +70,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Sync shared-services
         run: cp build-worker/src/shared-services.js reactivate-worker/src/shared-services.js
-      - name: Install dependencies
-        working-directory: reactivate-worker
-        run: npm install --include=optional
       - name: Deploy wh-reactivate
         uses: cloudflare/wrangler-action@v3
         with:
