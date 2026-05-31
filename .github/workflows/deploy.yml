@@ -16,6 +16,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: build-worker
+          wranglerVersion: "4"
           secrets: |
             REGISTERDOMAIN_API_KEY
         env:
