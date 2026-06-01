@@ -1,0 +1,2513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>Website Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   VARIABLES
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --bg:#0a0a0f;
+  --surface:rgba(255,255,255,0.03);
+  --surface2:rgba(255,255,255,0.06);
+  --surface3:rgba(255,255,255,0.09);
+  --border:rgba(255,255,255,0.08);
+  --border-hi:rgba(255,255,255,0.15);
+  --cyan:#00f0ff;
+  --purple:#b829dd;
+  --magenta:#ff00a0;
+  --green:#00c97a;
+  --red:#ff3b44;
+  --orange:#ff9500;
+  --text:#e8e8f0;
+  --muted:rgba(232,232,240,0.5);
+  --muted2:rgba(232,232,240,0.25);
+  --font:'Inter',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --r:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESET
+   ═══════════════════════════════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+button{font-family:var(--font);cursor:pointer;border:none;background:none;color:inherit;touch-action:manipulation}
+input,textarea{font-family:var(--font);outline:none;-webkit-appearance:none}
+a{color:inherit;text-decoration:none}
+
+/* ═══════════════════════════════════════════════════════════════
+   BACKGROUND
+   ═══════════════════════════════════════════════════════════════ */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 50% at 65% 30%,rgba(0,240,255,0.06) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 60% at 20% 75%,rgba(184,41,221,0.06) 0%,transparent 70%);
+  animation:orbShift 20s ease-in-out infinite alternate;
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px);
+  background-size:64px 64px;
+}
+@keyframes orbShift{from{transform:scale(1) translate(0,0)}to{transform:scale(1.07) translate(3%,4%)}}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+.screen{
+  position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transition:opacity .32s ease, transform .32s cubic-bezier(.34,1.1,.64,1);
+  transform:translateY(22px);
+}
+.screen.active{opacity:1;pointer-events:all;transform:translateY(0)}
+.screen.exit{opacity:0;transform:translateY(-14px);transition-duration:.18s;transition-timing-function:ease-in}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHARED COMPONENTS
+   ═══════════════════════════════════════════════════════════════ */
+.glass{background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--r)}
+.mono{font-family:var(--mono)}
+.btn-primary{
+  width:100%;padding:15px;border-radius:14px;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  color:#000;font-size:15px;font-weight:700;
+  transition:opacity .15s,transform .1s,filter .15s;
+}
+.btn-primary:active{opacity:.85;transform:scale(.98)}
+.btn-primary:disabled{opacity:.4;pointer-events:none;filter:grayscale(1)}
+.btn-ghost{
+  width:100%;padding:12px;border-radius:12px;
+  border:1px solid var(--border);color:var(--muted);font-size:13px;
+  transition:border-color .15s,color .15s,background .15s;
+  text-align:center;display:block;
+}
+.btn-ghost:active{border-color:var(--cyan);color:var(--text);background:var(--surface2)}
+.input-field{
+  width:100%;padding:12px 14px;background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:12px;color:var(--text);font-size:14px;transition:border-color .2s,background .2s;
+}
+.input-field:focus{border-color:var(--cyan);background:var(--surface3)}
+.input-field::placeholder{color:var(--muted2)}
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT / PROCESSING RINGS
+   ═══════════════════════════════════════════════════════════════ */
+.rings-wrap{position:relative;width:180px;height:180px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ring{position:absolute;border-radius:50%;border:2px solid transparent}
+.ring-1{width:180px;height:180px;border-color:rgba(0,240,255,.15);border-top-color:var(--cyan);animation:spin 4s linear infinite}
+.ring-2{width:130px;height:130px;border-color:rgba(184,41,221,.15);border-right-color:var(--purple);animation:spin 2.8s linear infinite reverse}
+.ring-3{width:80px;height:80px;border-color:rgba(255,0,160,.15);border-bottom-color:var(--magenta);animation:spin 2s linear infinite}
+.ring-core{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,rgba(0,240,255,.1),transparent);border:1px solid rgba(0,240,255,.2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: INIT
+   ═══════════════════════════════════════════════════════════════ */
+#screen-init{align-items:center;justify-content:center;gap:24px;padding:40px 24px}
+.init-wordmark{font-family:var(--mono);font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--muted)}
+#initStatus{font-size:20px;font-weight:600;text-align:center;line-height:1.3;max-width:320px}
+#initSub{font-size:13px;color:var(--muted);text-align:center;max-width:280px;line-height:1.6}
+#initActions{display:none;flex-direction:column;gap:10px;width:100%;max-width:280px;margin-top:8px}
+.init-error{color:var(--red);font-size:13px;text-align:center;line-height:1.5;max-width:280px}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: EXPERIENCE — FULL-SCREEN CARDS (no iframe)
+   ═══════════════════════════════════════════════════════════════ */
+#screen-experience{display:flex;flex-direction:column;overflow:hidden}
+#expBar{
+  flex-shrink:0;height:48px;position:relative;z-index:5;
+  background:rgba(10,10,15,.95);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px;
+}
+.exp-brand{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.exp-brand span{color:var(--cyan)}
+.exp-biz{font-family:var(--mono);font-size:10px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Progress bar — prominent, full-width */
+#expProgress{padding:14px 20px 8px;flex-shrink:0;background:rgba(10,10,15,.6)}
+.exp-prog-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-bottom:8px}
+.exp-prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:2px;width:0%;transition:width .5s cubic-bezier(.22,1,.36,1)}
+.exp-prog-row{display:flex;align-items:center;justify-content:space-between}
+.exp-prog-msg{font-size:12px;color:var(--text);font-weight:500;flex:1;padding-right:8px}
+.exp-prog-step{font-family:var(--mono);font-size:10px;color:var(--cyan);flex-shrink:0}
+
+/* Cards — fill remaining space between progress and bottom strip */
+#expPanel{
+  flex:1;
+  display:flex;flex-direction:column;
+  min-height:0;
+  background:transparent;
+}
+#cardsTrackWrap{flex:1;overflow:hidden;min-height:0;position:relative}
+#cardsTrack{
+  display:flex;height:100%;
+  transition:transform .35s cubic-bezier(.32,.72,0,1);
+  will-change:transform;
+}
+.d-card{
+  flex:0 0 100%;width:100%;height:100%;
+  display:flex;flex-direction:column;gap:12px;
+  padding:20px 20px 20px;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  box-sizing:border-box;scrollbar-width:none;
+  position:relative;
+}
+.d-card::-webkit-scrollbar{display:none}
+.card-q{font-size:20px;font-weight:700;line-height:1.25;letter-spacing:-.3px}
+.card-hint{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* industry grid — bigger tiles */
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ind-tile{display:flex;align-items:center;justify-content:center;padding:12px 6px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:all .16s;font-size:12px;font-weight:500;text-align:center;color:var(--muted);min-height:48px;line-height:1.2}
+.ind-tile-icon{display:none}
+.ind-tile:active{transform:scale(.96)}
+.ind-tile.sel{border-color:var(--cyan);background:rgba(0,240,255,.07);color:var(--text);font-weight:500}
+
+/* vibe grid */
+.vibe-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vibe-opt{padding:18px 14px;border-radius:14px;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:all .16s}
+.vibe-opt:active{transform:scale(.98)}
+.vibe-opt.sel{border-color:var(--cyan);background:rgba(0,240,255,.06)}
+.vibe-name{font-size:16px;font-weight:700;margin-bottom:4px}
+.vibe-desc{font-size:12px;color:var(--muted)}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:var(--surface2);border:1.5px solid var(--border);color:var(--muted);transition:all .14s;user-select:none}
+.chip:active{transform:scale(.95)}
+.chip.sel{background:rgba(0,240,255,.08);border-color:var(--cyan);color:var(--text)}
+
+/* upload */
+.upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:20px 12px;border-radius:14px;text-align:center;background:var(--surface2);border:2px dashed var(--border);cursor:pointer;transition:all .16s}
+.upload-zone.has-file,.upload-zone:active{border-color:var(--cyan);border-style:solid;background:var(--surface3)}
+.uz-icon{font-size:24px;line-height:1}
+.uz-title{font-size:14px;font-weight:600}
+.uz-sub{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.uz-img{width:52px;height:52px;border-radius:8px;object-fit:contain;background:var(--surface)}
+.photo-strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.photo-strip::-webkit-scrollbar{display:none}
+.photo-thumb{width:64px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.photo-add{width:64px;height:48px;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:22px;background:var(--surface2);border:2px dashed var(--border);cursor:pointer;transition:all .14s}
+.photo-add:active{border-color:var(--cyan);background:var(--surface3)}
+
+/* two-column photo upload */
+.photo-upload-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.photo-main,.photo-cam{flex-direction:column;padding:20px 10px}
+
+/* palette */
+.palette-row{display:flex;gap:8px;flex-wrap:wrap}
+.pal-swatch{flex:1;min-width:60px;padding:14px 6px;border-radius:14px;border:2px solid transparent;font-size:11px;font-weight:600;color:#fff;text-align:center;cursor:pointer;transition:border-color .15s,transform .12s;position:relative;overflow:hidden}
+.pal-swatch::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.4));pointer-events:none}
+.pal-swatch.sel{border-color:#fff;transform:scale(1.05);box-shadow:0 0 0 2px rgba(0,240,255,.3)}
+.tagline-list{display:flex;flex-direction:column;gap:8px}
+.tl-opt{padding:16px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;font-size:15px;line-height:1.5;cursor:pointer;transition:border-color .15s,background .15s}
+.tl-opt:active{background:var(--surface2)}
+.tl-opt.sel{border-color:var(--cyan);background:rgba(0,240,255,.05);color:var(--cyan)}
+
+/* Card nav */
+#expNav{flex-shrink:0;display:flex;gap:10px;padding:12px 16px calc(12px + var(--safe-b));border-top:1px solid rgba(255,255,255,.06);background:rgba(10,10,15,.95);backdrop-filter:blur(16px)}
+.btn-back{flex:0 0 80px;padding:14px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);font-size:13px;color:var(--muted);transition:all .14s;font-weight:500}
+.btn-back:active{color:var(--text);border-color:var(--cyan)}
+.btn-back:disabled{opacity:.35;pointer-events:none}
+.btn-next{flex:1;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(0,240,255,.14),rgba(184,41,221,.14));border:1px solid rgba(0,240,255,.28);font-size:15px;font-weight:600;color:var(--cyan);transition:all .14s}
+.btn-next:active{background:linear-gradient(135deg,rgba(0,240,255,.25),rgba(184,41,221,.25))}
+.btn-next.build{background:linear-gradient(135deg,var(--cyan),var(--magenta));border-color:transparent;color:#000;font-weight:700;font-size:15px}
+.btn-next:disabled{opacity:.35;pointer-events:none}
+
+/* ═══════════════════════════════════════════════════════════════
+   PLAN SELECTOR — prominent strip, single tap opens popover
+   ═══════════════════════════════════════════════════════════════ */
+#planStrip{
+  flex-shrink:0;
+  display:flex;gap:8px;padding:10px 14px 6px;
+  background:rgba(10,10,15,.98);
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.plan-chip{
+  flex:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:12px 8px 10px;border-radius:14px;
+  background:rgba(255,255,255,.05);
+  border:1.5px solid rgba(255,255,255,.12);
+  cursor:pointer;transition:all .2s;
+  min-height:68px;text-align:center;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.plan-chip:active{transform:scale(.96);background:rgba(255,255,255,.09)}
+.plan-chip.sel{
+  border-color:var(--cyan);
+  background:rgba(0,240,255,.1);
+  box-shadow:0 0 0 1px rgba(0,240,255,.2), 0 4px 20px rgba(0,240,255,.08);
+}
+.pc-name{
+  font-family:var(--mono);font-size:8px;letter-spacing:1.5px;
+  text-transform:uppercase;color:rgba(255,255,255,.5);
+  margin-bottom:3px;
+}
+.plan-chip.sel .pc-name{color:var(--cyan)}
+.pc-price{font-size:16px;font-weight:800;color:var(--text);line-height:1;margin-bottom:1px}
+.plan-chip.sel .pc-price{color:#fff}
+.pc-per{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.4);margin-bottom:5px}
+.pc-whats{
+  font-size:9px;color:rgba(255,255,255,.35);
+  font-family:var(--mono);letter-spacing:.3px;
+}
+.plan-chip.sel .pc-whats{color:rgba(0,240,255,.7)}
+
+/* ═══════════════════════════════════════════════════════════════
+   PLAN POPOVER — slides up from bottom
+   ═══════════════════════════════════════════════════════════════ */
+#popoverOv{
+  position:fixed;inset:0;z-index:190;
+  background:rgba(0,0,0,0);pointer-events:none;
+  transition:background .3s;display:none;
+}
+#popoverOv.show{display:block;background:rgba(0,0,0,.55);pointer-events:all}
+
+#planPopover{
+  position:fixed;left:0;right:0;bottom:0;z-index:200;
+  background:rgba(10,10,18,.98);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-top:1px solid var(--border);border-radius:24px 24px 0 0;
+  padding:20px 20px calc(24px + var(--safe-b));
+  transition:transform .35s cubic-bezier(.32,.72,0,1);
+  transform:translateY(100%);pointer-events:none;
+  overflow-y:auto;max-height:82vh;
+}
+#planPopover.open{transform:translateY(0);pointer-events:all}
+#planPopover .pop-close{
+  position:absolute;top:14px;right:18px;
+  font-size:20px;color:var(--muted);cursor:pointer;padding:6px;
+}
+#planPopover .pop-close:active{color:var(--text)}
+.pop-name{font-size:22px;font-weight:700;margin-bottom:2px}
+.pop-badge{font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:1px;margin-bottom:14px;text-transform:uppercase}
+.feat-list{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.feat-row{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
+.feat-check{color:var(--green);font-size:16px;flex-shrink:0;width:20px;text-align:center}
+
+/* Billing toggle inside popover */
+.billing-toggle{display:flex;gap:6px;margin-bottom:18px;background:var(--surface2);border-radius:12px;padding:4px}
+.bt-opt{flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);transition:all .18s;position:relative}
+.bt-opt.sel{background:var(--surface3);color:var(--text);border:1px solid var(--border)}
+.save-badge{font-size:9px;font-weight:700;color:var(--green);margin-left:4px;letter-spacing:.5px}
+
+/* Build fee scratch-out */
+.build-fee-block{
+  background:rgba(0,201,122,.04);
+  border:1px solid rgba(0,201,122,.15);
+  border-radius:12px;padding:12px 14px;
+  margin-bottom:16px;
+}
+.bf-was{font-size:12px;color:var(--muted);margin-bottom:4px}
+.bf-was s{color:var(--muted2);text-decoration:line-through}
+.bf-now{font-size:16px;font-weight:700;color:var(--green)}
+.bf-badge{font-family:var(--mono);font-size:10px;background:rgba(0,201,122,.15);color:var(--green);border-radius:6px;padding:2px 6px;margin-left:6px;letter-spacing:.5px}
+
+/* Pop price block */
+.pop-price-block{display:flex;align-items:baseline;gap:4px;margin-bottom:12px}
+.pop-price{font-size:36px;font-weight:800;letter-spacing:-1px;color:var(--text)}
+.pop-period{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pop-yearly-note{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:-8px;margin-bottom:12px}
+
+/* ═══════════════════════════════════════════════════════════════
+   REFERRAL PROGRAMME
+   ═══════════════════════════════════════════════════════════════ */
+.ref-hero{
+  background:linear-gradient(135deg,rgba(0,240,255,.08),rgba(184,41,221,.08));
+  border:1px solid rgba(0,240,255,.2);border-radius:18px;
+  padding:20px;margin-bottom:14px;text-align:center;
+}
+.ref-hero-amount{font-size:48px;font-weight:800;color:var(--cyan);line-height:1;margin-bottom:4px}
+.ref-hero-label{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.ref-hero-sub{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5}
+.ref-rule{background:rgba(255,150,0,.06);border:1px solid rgba(255,150,0,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,200,100,.9);margin-bottom:14px;line-height:1.5}
+.ref-rule strong{color:#ffa040}
+.lb-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
+.lb-row:last-child{border-bottom:none}
+.lb-left{display:flex;align-items:center;gap:10px}
+.lb-rank{font-family:var(--mono);font-size:13px;width:24px;text-align:center}
+.lb-name{font-size:13px}
+.lb-credit{font-family:var(--mono);font-size:12px;color:var(--green);font-weight:600}
+.lb-row.you .lb-name{color:var(--cyan);font-weight:700}
+.lb-row.you .lb-credit{color:var(--cyan)}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: BUILDING (substance build wait)
+   ═══════════════════════════════════════════════════════════════ */
+#screen-building{align-items:center;justify-content:center;gap:24px;padding:40px 24px}
+#buildStatus{font-size:20px;font-weight:600;text-align:center;line-height:1.3;max-width:320px}
+#buildSub{font-size:13px;color:var(--muted);text-align:center;max-width:280px;line-height:1.6}
+#buildActions{display:none;flex-direction:column;gap:10px;width:100%;max-width:280px;margin-top:8px}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: CONFIRM
+   ═══════════════════════════════════════════════════════════════ */
+#screen-confirm{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 20px calc(24px + var(--safe-b))}
+.confirm-back{display:inline-flex;align-items:center;gap:6px;margin-bottom:20px;font-size:14px;color:var(--muted);cursor:pointer;transition:color .14s;padding:4px 0}
+.confirm-back:active{color:var(--cyan)}
+.confirm-title{font-size:28px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px}
+.confirm-sub{font-size:14px;color:var(--muted);margin-bottom:24px}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:16px}
+.s-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-size:14px}
+.s-row:last-child{border-bottom:none}
+.s-row span{color:var(--muted)}
+.s-row strong{font-weight:600}
+.s-row.hl strong{color:var(--cyan);font-size:18px}
+
+.promo-row{display:flex;gap:8px;margin-bottom:8px}
+.promo-input{flex:1;padding:12px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;transition:border-color .2s}
+.promo-input:focus{border-color:var(--cyan)}
+.promo-input::placeholder{color:var(--muted2)}
+.promo-btn{padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;background:var(--surface2);border:1.5px solid var(--border);transition:all .14s;color:var(--text);white-space:nowrap}
+.promo-btn:active{border-color:var(--cyan);color:var(--cyan)}
+#promoMsg{font-family:var(--mono);font-size:12px;min-height:20px;padding:4px 0 10px}
+#promoMsg.ok{color:var(--green)}
+#promoMsg.err{color:var(--red)}
+
+.legal{font-size:12px;color:var(--muted2);text-align:center;margin-top:14px;line-height:1.6}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: PROCESSING
+   ═══════════════════════════════════════════════════════════════ */
+#screen-processing{align-items:center;justify-content:center;gap:24px;padding:40px 24px}
+#procStatus{font-size:20px;font-weight:600;text-align:center}
+#procSub{font-size:13px;color:var(--muted);text-align:center;max-width:280px;line-height:1.6}
+#procAction{display:none;flex-direction:column;gap:10px;width:100%;max-width:280px;margin-top:8px}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN: DASHBOARD
+   ═══════════════════════════════════════════════════════════════ */
+#screen-dashboard{overflow:hidden}
+.dash-bar{flex-shrink:0;height:56px;background:rgba(10,10,15,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.dash-brand{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.dash-brand span{color:var(--cyan)}
+.dash-biz{font-family:var(--mono);font-size:10px;color:var(--muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 100px}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.tab-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,15,.97);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;padding:6px 0 calc(6px + var(--safe-b));z-index:20}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 0;cursor:pointer;transition:color .14s;font-family:var(--mono);font-size:9px;color:var(--muted2)}
+.tab.active{color:var(--cyan)}
+.tab-icon{font-size:20px;line-height:1}
+
+/* dashboard content */
+.section-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:20px 0 10px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px}
+.stat-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-val.c{color:var(--cyan)}
+.stat-delta{font-family:var(--mono);font-size:10px;color:var(--green);margin-top:3px}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.q-tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;cursor:pointer;transition:border-color .16s,background .16s}
+.q-tile:active{border-color:var(--cyan);background:var(--surface2)}
+.q-icon{font-size:22px;margin-bottom:6px}
+.q-label{font-size:12px;font-weight:600;margin-bottom:2px}
+.q-sub{font-size:10px;color:var(--muted)}
+
+.up-card{background:linear-gradient(135deg,rgba(0,240,255,.05),rgba(184,41,221,.05));border:1px solid rgba(0,240,255,.18);border-radius:16px;padding:16px;margin-bottom:10px}
+.up-label{font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.up-title{font-size:15px;font-weight:600;margin-bottom:3px}
+.up-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.up-btn{display:inline-block;padding:10px 16px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--magenta));color:#000;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.up-btn:active{opacity:.85}
+
+.list-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border);font-size:14px}
+.list-row:last-child{border-bottom:none}
+.list-lbl{color:var(--muted);font-size:13px}
+.chart-ph{background:var(--surface);border:1px solid var(--border);border-radius:14px;height:120px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+.allow-bar{margin-bottom:16px}
+.allow-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:6px}
+.allow-lbl{color:var(--muted)}
+.allow-val{font-family:var(--mono);font-size:11px;color:var(--cyan)}
+.allow-track{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.allow-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:2px;transition:width .4s cubic-bezier(.22,1,.36,1)}
+
+.rev-ta{width:100%;padding:12px 14px;min-height:100px;resize:none;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;line-height:1.5;transition:border-color .2s,background .2s}
+.rev-ta:focus{border-color:var(--cyan);background:var(--surface3)}
+.rev-ta::placeholder{color:var(--muted2)}
+
+.ref-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
+.ref-link-row{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:10px;padding:10px 14px}
+.ref-link-val{flex:1;font-family:var(--mono);font-size:11px;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ref-copy{font-size:16px;cursor:pointer;color:var(--muted);transition:color .14s;padding:4px}
+.ref-copy:active{color:var(--cyan)}
+.ref-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.ref-stat{text-align:center}
+.ref-stat-val{font-size:24px;font-weight:700;color:var(--cyan)}
+.ref-stat-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════════ */
+#toast{
+  position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(16,16,26,.98);backdrop-filter:blur(16px);
+  border:1px solid var(--border);border-radius:14px;padding:12px 20px;
+  font-size:13px;z-index:9998;opacity:0;transition:all .3s cubic-bezier(.22,1,.36,1);
+  max-width:90vw;text-align:center;pointer-events:none;line-height:1.4;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.toast-err{border-color:rgba(255,59,68,.4);color:var(--red)}
+#toast.toast-ok{border-color:rgba(0,201,122,.4);color:var(--green)}
+
+/* ═══════════════════════════════════════════════════════════════
+   DEV NAV
+   ═══════════════════════════════════════════════════════════════ */
+#devNav{position:fixed;top:60px;right:12px;z-index:9999;background:rgba(255,0,160,.08);border:1px solid rgba(255,0,160,.25);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:5px}
+.dv{padding:5px 10px;border-radius:8px;background:rgba(255,0,160,.06);border:1px solid rgba(255,0,160,.2);color:var(--magenta);cursor:pointer;font-family:var(--mono);font-size:10px;white-space:nowrap;transition:all .14s}
+.dv:active{background:rgba(255,0,160,.15)}
+.dv-lbl{font-family:var(--mono);font-size:9px;color:var(--magenta);opacity:.5;text-align:center;padding-bottom:2px}
+
+/* ── CARD LOCK OVERLAYS ──────────────────────────────────────── */
+.card-lock-overlay{
+  display:none;
+  margin-top:auto;
+  margin-left:-20px;margin-right:-20px;margin-bottom:-20px;
+  padding:48px 16px 20px;
+  background:linear-gradient(180deg,transparent 0%,rgba(10,10,15,.97) 40%);
+  border-radius:0 0 20px 20px;
+  flex-direction:column;gap:0;
+  flex-shrink:0;
+}
+.unlock-btn{
+  width:100%;padding:14px;border-radius:12px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--muted-fg);font-size:13px;font-weight:600;
+  cursor:pointer;text-align:center;transition:all .2s;
+  font-family:var(--font-b);
+}
+.unlock-btn:active{background:rgba(0,240,255,.08);border-color:var(--cyan);color:var(--cyan)}
+
+/* ── SOCIAL FIELDS ───────────────────────────────────────────── */
+.social-field{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.soc-lbl{font-size:20px;flex-shrink:0;width:28px;text-align:center}
+.social-field .input-field{margin-bottom:0;flex:1}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE TWEAKS
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-height:800px){
+  #expPanel{height:38vh;min-height:360px}
+}
+@media (max-height:600px){
+  #expPanel{height:48vh;min-height:280px}
+  .ind-grid{grid-template-columns:repeat(5,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: INIT
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-init">
+  <div class="init-wordmark">Website Hub</div>
+  <div class="rings-wrap">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="ring-core"></div>
+  </div>
+  <div id="initStatus">Preparing your space</div>
+  <div id="initSub">Setting up your domain and laying the foundations</div>
+  <div id="initActions">
+    <button class="btn-primary" onclick="retryInit()">Try again</button>
+    <a class="btn-ghost" href="https://wa.me/27000000000" style="text-align:center;display:block;">WhatsApp support</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: EXPERIENCE — FULL-SCREEN INTAKE
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-experience">
+  <!-- Top bar -->
+  <div id="expBar">
+    <div class="exp-brand">Website<span>Hub</span></div>
+    <div class="exp-biz mono" id="expBiz">websitehub.co.za</div>
+  </div>
+
+  <!-- Cards panel (full screen) -->
+  <div id="expPanel">
+    <div id="expProgress">
+      <div class="exp-prog-bar"><div class="exp-prog-fill" id="expProgFill"></div></div>
+      <div class="exp-prog-row">
+        <div class="exp-prog-msg" id="expProgMsg">Start here — every answer improves your site</div>
+        <div class="exp-prog-step" id="expCounter">Step 1 of 7</div>
+      </div>
+    </div>
+
+    <div id="cardsTrackWrap">
+      <div id="cardsTrack">
+        <!-- Card 0: Industry -->
+        <div class="d-card" data-card="industry">
+          <div class="card-q">What is your business?</div>
+          <div class="card-hint">Pick the closest match — you can refine later</div>
+          <div class="ind-grid" id="indGrid"></div>
+          <input class="input-field" id="indCustom" placeholder="Or type your industry…" onkeydown="if(event.key==='Enter'){event.preventDefault();handleCustomIndustry()}">
+        </div>
+
+        <!-- Card 1: Area -->
+        <div class="d-card" data-card="area">
+          <div class="card-q">Where are you based?</div>
+          <div class="card-hint">This shapes how your site reads to local customers</div>
+          <input class="input-field" id="areaInput" placeholder="e.g. Cape Town, KZN North Coast">
+          <input class="input-field" id="audienceInput" placeholder="Who are your main customers?">
+        </div>
+
+        <!-- Card 2: Services -->
+        <div class="d-card" data-card="services">
+          <div class="card-q">What do you sell?</div>
+          <div class="card-hint">Tap to select — add your own if needed</div>
+          <div class="chips" id="servicesChips"></div>
+          <input class="input-field" id="svcCustom" placeholder="Add a service — tap Enter" onkeydown="addCustomService(event)">
+          <input class="input-field" id="ctaInput" placeholder="Main call-to-action e.g. Get a Quote">
+        </div>
+
+        <!-- Card 4: Differentiators -->
+        <!-- Card: Social media links — Standard gate -->
+        <div class="d-card" data-card="social" style="position:relative">
+          <div class="card-q">Where can people find you?</div>
+          <div class="card-hint">Add your social handles — they'll appear on your site</div>
+          <div class="social-field">
+            <span class="soc-lbl">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="ig1" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#ffd600"/><stop offset="50%" stop-color="#ff0069"/><stop offset="100%" stop-color="#7638fa"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig1)"/><path d="M12 7.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9zm0 7.4a2.9 2.9 0 110-5.8 2.9 2.9 0 010 5.8zm5.8-8.1a1.1 1.1 0 10-2.2 0 1.1 1.1 0 002.2 0z" fill="#fff"/></svg>
+            </span>
+            <input class="input-field" id="instagram" placeholder="Instagram @handle" autocorrect="off" autocapitalize="off">
+          </div>
+          <div class="social-field">
+            <span class="soc-lbl">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#1877F2"/><path d="M16 12h-2.5v7h-3v-7H9V9.5h1.5V8c0-2 1.2-3 2.9-3 .8 0 1.6.1 2.4.2v2.4h-1.4c-.7 0-.9.4-.9.9v1h2.3L16 12z" fill="#fff"/></svg>
+            </span>
+            <input class="input-field" id="facebook" placeholder="Facebook page name" autocorrect="off">
+          </div>
+          <div class="social-field">
+            <span class="soc-lbl">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#000"/><path d="M16.5 6.5h-1.7c-.2 1.2-1.2 2-2.3 2v1.5h1.5V16h2v-6h1.5V8.5H16V6.5zm-3.5 9.5H9V13h4v3zm0-5H9V8.5h4V11z" fill="none"/><path d="M13.5 7.5v1h1v1.5h1.5v5h-2V10h-1.5V8.5c1.1 0 2.1-.8 2.3-2H13.5V7.5zm-4 8V8.5h3v8h-3z" fill="none"/><path d="M9.5 8h4.8c-.3 1-1.1 1.8-2.1 2v1h1.3v5.5h-1.5V11h-1.3V9.8c1.2-.1 2.1-1 2.3-2.1H9.5V8zm0 0" fill="none"/><rect x="8" y="8" width="8" height="8" rx="1" fill="none" stroke="none"/><path d="M15.5 6H14c-.1 1.4-1.2 2.5-2.7 2.5v1.8H13V17h2.5v-6.7H17V8.3h-1.5V6zM8.5 17V8.3H11V17H8.5z" fill="#fff"/></svg>
+            </span>
+            <input class="input-field" id="tiktok" placeholder="TikTok @handle" autocorrect="off" autocapitalize="off">
+          </div>
+          <div class="card-hint" style="margin-top:6px">All optional — add what you have, skip the rest</div>
+          <div class="card-lock-overlay" id="lock-social">
+            <button class="unlock-btn" id="unlock-btn-social" onclick="attemptUnlock('social')">🔒 Upgrade to Standard to add your social links →</button>
+          </div>
+        </div>
+
+        <!-- Card: Logo upload — Standard gate -->
+        <div class="d-card" data-card="logo" style="position:relative">
+          <div class="card-q">Got a logo?</div>
+          <div class="card-hint">Upload your logo or business card — we'll pull your brand colours automatically. Completely optional.</div>
+          <div class="photo-upload-row">
+            <div class="upload-zone" id="logoUploadZone" onclick="document.getElementById('logoFile').click()">
+              <div class="uz-icon" id="logoIcon">🏷️</div>
+              <div class="uz-title">Upload logo</div>
+              <div class="uz-sub">Or business card</div>
+            </div>
+            <div class="upload-zone" onclick="document.getElementById('logoCam').click()">
+              <div class="uz-icon">📷</div>
+              <div class="uz-title">Take a photo</div>
+              <div class="uz-sub">Camera now</div>
+            </div>
+          </div>
+          <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+          <input type="file" id="logoCam" accept="image/*" capture="environment" style="display:none" onchange="handleLogoUpload(this)">
+          <div id="logoPreviewWrap" style="display:none;margin-top:12px;text-align:center">
+            <img id="logoPreviewImg" style="max-height:80px;max-width:100%;border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:12px;color:var(--green);margin-top:8px">✓ Logo uploaded — colours will be extracted automatically</div>
+          </div>
+          <button onclick="skipLogoCard()" style="width:100%;margin-top:14px;padding:12px;border-radius:12px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer">Skip — Website Hub will decide →</button>
+          <div class="card-lock-overlay" id="lock-logo">
+            <button class="unlock-btn" id="unlock-btn-logo" onclick="attemptUnlock('logo')">🔒 Upgrade to Standard to add your logo →</button>
+          </div>
+        </div>
+        <div class="d-card" data-card="about">
+          <div class="card-q">Why choose you?</div>
+          <div class="card-hint">Three things that make you different</div>
+          <input class="input-field" id="diff1" placeholder="e.g. 15 years experience">
+          <input class="input-field" id="diff2" placeholder="e.g. Free site visits">
+          <input class="input-field" id="diff3" placeholder="e.g. Manufacturer warranties">
+          <input class="input-field" id="testimonial" placeholder="What would a happy customer say?">
+        </div>
+
+        <!-- Card 5: Visuals — photos only -->
+        <div class="d-card" data-card="gallery">
+          <div class="card-q">Show your business</div>
+          <div class="card-hint">Photos of your work, premises, team — or snap your business card</div>
+          <div class="photo-upload-row">
+            <div class="upload-zone photo-main" onclick="document.getElementById('photoFile').click()">
+              <div class="uz-icon">🖼️</div>
+              <div class="uz-title">Upload photos</div>
+              <div class="uz-sub">From gallery</div>
+            </div>
+            <div class="upload-zone photo-cam" onclick="document.getElementById('photoCam').click()">
+              <div class="uz-icon">📷</div>
+              <div class="uz-title">Take a photo</div>
+              <div class="uz-sub">Camera now</div>
+            </div>
+          </div>
+          <input type="file" id="photoFile" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(this)">
+          <input type="file" id="photoCam" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(this)">
+          <div class="photo-strip" id="photoStrip">
+            <div class="photo-add" onclick="document.getElementById('photoFile').click()" title="Add more">+</div>
+          </div>
+          <div class="card-hint" style="margin-top:6px">Skip for now — you can add photos later from your dashboard</div>
+          <div class="card-lock-overlay" id="lock-gallery">
+            <button class="unlock-btn" id="unlock-btn-gallery" onclick="attemptUnlock('gallery')">🔒 Upgrade to Premium to unlock photo gallery →</button>
+          </div>
+        </div>
+
+        <!-- Card: Map location — Premium gate -->
+        <div class="d-card" data-card="map" style="position:relative">
+          <div class="card-q">Where are you based?</div>
+          <div class="card-hint">We'll add a Google Maps link on your site so customers can find you. Completely optional.</div>
+          <input class="input-field" id="businessAddress" placeholder="e.g. 12 Main St, Richards Bay, 3900" autocomplete="street-address">
+          <div class="card-hint" style="margin-top:6px">Skip if you don't have fixed premises — you can add it later</div>
+          <div class="card-lock-overlay" id="lock-map">
+            <button class="unlock-btn" id="unlock-btn-map" onclick="attemptUnlock('map')">🔒 Upgrade to Premium to add your map location →</button>
+          </div>
+        </div>
+
+        <!-- Card: Google Business Profile — Premium gate -->
+        <div class="d-card" data-card="gbp" style="position:relative">
+          <div class="card-q">Get found on Google</div>
+          <div class="card-hint">We'll automatically create your Google Business Profile when you go live — so you appear in Google Search and Maps.</div>
+          <div style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-top:8px">
+            <div style="font-size:32px">📍</div>
+            <div>
+              <div style="font-weight:700;font-size:15px;margin-bottom:4px">Google Business Profile</div>
+              <div style="font-size:12px;color:var(--muted);line-height:1.5">Auto-created at go-live using your business name, area, category and phone. No extra steps.</div>
+            </div>
+          </div>
+          <div class="card-lock-overlay" id="lock-gbp">
+            <button class="unlock-btn" id="unlock-btn-gbp" onclick="attemptUnlock('gbp')">🔒 Upgrade to Premium — includes Google Business Profile →</button>
+          </div>
+        </div>
+
+        <!-- Card: Contact / enquiry form — Premium gate -->
+        <div class="d-card" data-card="contact-form" style="position:relative">
+          <div class="card-q">Add an enquiry form?</div>
+          <div class="card-hint">A simple form on your site — customers submit their name and message, delivered straight to your WhatsApp or email.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-top:8px" onclick="toggleContactForm()">
+            <div>
+              <div style="font-weight:600;font-size:15px;margin-bottom:2px">Enable enquiry form</div>
+              <div style="font-size:12px;color:var(--muted)" id="contactFormStatus">Tap to enable</div>
+            </div>
+            <div id="contactFormToggle" data-on="false" style="width:44px;height:24px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);position:relative;transition:background .2s;flex-shrink:0">
+              <div style="width:18px;height:18px;border-radius:50%;background:var(--muted);position:absolute;top:2px;left:3px;transition:all .2s" id="toggleDot"></div>
+            </div>
+          </div>
+          <div class="card-lock-overlay" id="lock-contact-form">
+            <button class="unlock-btn" id="unlock-btn-contact-form" onclick="attemptUnlock('contact-form')">🔒 Upgrade to Premium to add an enquiry form →</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="expNav">
+      <button class="btn-back" id="btnBack" onclick="cardBack()" disabled>Back</button>
+      <button class="btn-next" id="btnNext" onclick="cardNext()">Next →</button>
+    </div>
+  </div>
+
+  <!-- Plan selector strip — single tap opens popover -->
+  <div id="planStrip">
+    <div class="plan-chip" data-plan="express" onclick="tapPlan('express',this)">
+      <span class="pc-name">Express</span>
+      <span class="pc-price" id="pcPriceExpress">R299</span>
+      <span class="pc-per" id="pcPerExpress">/mo</span>
+      <span class="pc-whats">What's included ↗</span>
+    </div>
+    <div class="plan-chip sel" data-plan="standard" onclick="tapPlan('standard',this)">
+      <span class="pc-name">Standard</span>
+      <span class="pc-price" id="pcPriceStandard">R699</span>
+      <span class="pc-per" id="pcPerStandard">/mo</span>
+      <span class="pc-whats">What's included ↗</span>
+    </div>
+    <div class="plan-chip" data-plan="premium" onclick="tapPlan('premium',this)">
+      <span class="pc-name">Premium</span>
+      <span class="pc-price" id="pcPricePremium">R999</span>
+      <span class="pc-per" id="pcPerPremium">/mo</span>
+      <span class="pc-whats">What's included ↗</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PLAN POPOVER
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="popoverOv" onclick="closePopover()" ontouchstart="closePopover()"></div>
+<div id="planPopover">
+  <div class="pop-close" onclick="closePopover()">✕</div>
+
+  <!-- Billing toggle -->
+  <div class="billing-toggle">
+    <button class="bt-opt sel" id="btMonthly" onclick="setBilling('monthly')">Monthly</button>
+    <button class="bt-opt" id="btYearly" onclick="setBilling('yearly')">Yearly <span class="save-badge">SAVE 15%</span></button>
+  </div>
+
+  <div class="pop-name" id="popName"></div>
+  <div class="pop-badge" id="popBadge"></div>
+
+  <!-- Price display -->
+  <div class="pop-price-block">
+    <div class="pop-price" id="popPrice"></div>
+    <div class="pop-period" id="popPeriod">/month</div>
+  </div>
+  <div class="pop-yearly-note" id="popYearlyNote" style="display:none"></div>
+
+  <!-- Build fee scratch-out -->
+  <div class="build-fee-block">
+    <div class="bf-was">Build fee: <s id="popBuildFee">R5,000</s></div>
+    <div class="bf-now">R0 <span class="bf-badge">FREE</span></div>
+  </div>
+
+  <div class="feat-list" id="popFeats"></div>
+  <button class="btn-primary" style="margin-top:18px" onclick="selectFromPopover()">Choose <span id="popSelectName">this plan</span> →</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: BUILDING (substance build wait)
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-building">
+  <div class="init-wordmark">Website Hub</div>
+  <div class="rings-wrap">
+    <div class="ring ring-1" style="border-top-color:var(--purple)"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3" style="border-bottom-color:var(--cyan)"></div>
+    <div class="ring-core" style="background:radial-gradient(circle,rgba(184,41,221,.1),transparent);border-color:rgba(184,41,221,.2)"></div>
+  </div>
+  <div id="buildStatus">Writing your story</div>
+  <div id="buildSub">Crafting content around your services and location</div>
+  <div id="buildActions">
+    <button class="btn-primary" onclick="retryBuilding()">Try again</button>
+    <a class="btn-ghost" id="buildWaLink" href="https://wa.me/27000000000" style="text-align:center;display:block">WhatsApp support</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: PREVIEW — customer sees site before paying
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-preview">
+  <div id="prevBar" style="flex-shrink:0;height:48px;background:rgba(10,10,15,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:relative;z-index:5">
+    <div style="font-family:var(--font-d);font-size:15px;font-weight:700">Website<span style="color:var(--cyan)">Hub</span></div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:1px">PREVIEW READY</div>
+  </div>
+  <iframe id="previewFrame" style="flex:1;border:none;width:100%;min-height:0;background:var(--bg)" loading="lazy" allow="clipboard-write"></iframe>
+  <div id="prevBottom" style="flex-shrink:0;background:linear-gradient(135deg,var(--cyan),var(--magenta));padding:16px 20px calc(16px + var(--safe-b))">
+    <div style="color:#000;font-size:12px;font-weight:600;margin-bottom:10px;opacity:.8" id="prevSiteMsg">Your site · personalise it before or after going live</div>
+    <div style="display:flex;gap:10px">
+<button onclick="goToConfirm()" style="width:100%;padding:15px;border-radius:14px;background:#000;color:#fff;font-size:16px;font-weight:800;border:none;cursor:pointer">Go live — <span id="prevPrice">R699</span> 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: CONFIRM
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-confirm">
+  <div class="confirm-back" onclick="showScreen('experience')">← Back</div>
+  <div class="confirm-title">You're almost live</div>
+  <div class="confirm-sub" id="confirmSub">Free domain + setup included</div>
+  <div class="summary-card">
+    <div class="s-row"><span>Plan</span><strong id="cPlan">Standard</strong></div>
+    <div class="s-row"><span>Billing</span><strong id="cBilling">Monthly</strong></div>
+    <div class="s-row"><span>Build fee</span><strong><s style="color:var(--muted);font-size:12px" id="cBuildFee">R7,000</s> <span style="color:var(--green);font-size:12px;font-weight:700">R0 FREE</span></strong></div>
+    <div class="s-row"><span>Domain</span><strong id="cDomain">—</strong></div>
+    <div class="s-row hl"><span id="cPriceLabel">First payment</span><strong id="cPrice">R699</strong></div>
+  </div>
+  <div class="promo-row">
+    <input class="promo-input" id="promoInput" placeholder="Promo code (optional)" oninput="clearPromo()">
+    <button class="promo-btn" onclick="applyPromo()">Apply</button>
+  </div>
+  <div id="promoMsg"></div>
+  <button class="btn-primary" id="payBtn" onclick="processPayment()">Pay R699 — Go Live 🚀</button>
+  <div class="legal">Secure payment via PayFast · R0 setup fee · Cancel anytime</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: PROCESSING
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-processing">
+  <div class="init-wordmark">Website Hub</div>
+  <div class="rings-wrap">
+    <div class="ring ring-1" style="border-top-color:var(--green)"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="ring-core" style="background:radial-gradient(circle,rgba(0,201,122,.1),transparent);border-color:rgba(0,201,122,.2)"></div>
+  </div>
+  <div id="procStatus">Confirming your payment</div>
+  <div id="procSub">This usually takes a few seconds</div>
+  <div id="procAction">
+    <button class="btn-primary" onclick="retryProcessing()">Check again</button>
+    <button class="btn-ghost" onclick="showScreen('dashboard')">Open dashboard</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCREEN: DASHBOARD
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-dashboard">
+  <div class="dash-bar">
+    <div class="dash-brand">Website<span>Hub</span></div>
+    <div class="dash-biz" id="dashBiz">Your business</div>
+  </div>
+
+  <div class="dash-content" id="dashContent">
+    <!-- HOME -->
+    <div class="tab-panel active" id="tab-home">
+      <div class="section-lbl">Overview</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-lbl">Visits (7d)</div><div class="stat-val c" id="sVisits">—</div><div class="stat-delta" id="sVisitsDelta"></div></div>
+        <div class="stat-card"><div class="stat-lbl">WhatsApp taps</div><div class="stat-val" id="sWaTaps">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Next invoice</div><div class="stat-val" id="sInvoice" style="font-size:15px">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Referrals</div><div class="stat-val" id="sReferrals">0</div></div>
+      </div>
+      <div class="section-lbl">Quick actions</div>
+      <div class="quick-grid">
+        <div class="q-tile" onclick="switchTab('revisions')"><div class="q-icon">✏️</div><div class="q-label">Edit site</div><div class="q-sub" id="qRevSub">2 free/month</div></div>
+        <div class="q-tile" onclick="switchTab('email')"><div class="q-icon">📧</div><div class="q-label">Email</div><div class="q-sub">Coming soon</div></div>
+        <div class="q-tile" id="qGallery" onclick="galleryTap()"><div class="q-icon">🖼️</div><div class="q-label">Gallery</div><div class="q-sub">Add photos</div></div>
+        <div class="q-tile" id="qReferral" onclick="switchTab('account')"><div class="q-icon">🏆</div><div class="q-label">Refer &amp; earn</div><div class="q-sub" id="qRefSub">Premium only</div></div>
+      </div>
+      <div id="upgradeSection" style="display:none">
+        <div class="section-lbl">Level up</div>
+        <div id="upgradeCards"></div>
+      </div>
+      <div id="addPageSection" style="display:none">
+        <div class="section-lbl">Grow your site</div>
+        <div class="up-card">
+          <div class="up-label">Add-on available</div>
+          <div class="up-title">Add a dedicated page</div>
+          <div class="up-sub">Services page, About page, Team page — built and live within 24hrs</div>
+          <div class="up-btn" onclick="requestAddPage()">Add a page — R300 once-off →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SITE -->
+    <div class="tab-panel" id="tab-site">
+      <div class="section-lbl">Your site</div>
+      <div class="list-row"><div class="list-lbl">Live URL</div><div style="font-family:var(--mono);font-size:12px;color:var(--cyan)" id="siteLiveUrl">—</div></div>
+      <button class="btn-primary" style="margin:14px 0 8px" onclick="openSite()">Open my site ↗</button>
+      <button class="btn-ghost" onclick="switchTab('revisions')">Request a change</button>
+      <div class="section-lbl">Traffic (last 7 days)</div>
+      <div class="chart-ph" id="trafficChart">Analytics loading…</div>
+      <div class="section-lbl">Top pages</div>
+      <div id="topPagesList"><div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 0">Loading…</div></div>
+    </div>
+
+    <!-- EMAIL — STUBBED (product not yet live) -->
+    <div class="tab-panel" id="tab-email">
+      <div class="section-lbl">Business email</div>
+      <div class="glass" style="padding:28px 20px;text-align:center;margin-bottom:16px">
+        <div style="font-size:36px;margin-bottom:12px">📧</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">Coming soon</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;max-width:280px;margin:0 auto">Business email (hello@yourdomain.co.za) is launching soon.<br><br>You'll get a WhatsApp notification the moment it's ready for your account.</div>
+      </div>
+      <div class="glass" style="padding:16px">
+        <div class="stat-lbl" style="margin-bottom:6px">📸 Send us photos in the meantime</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">WhatsApp new photos to us and we'll update your site within 24hrs.</div>
+      </div>
+    </div>
+
+    <!-- REVISIONS -->
+    <div class="tab-panel" id="tab-revisions">
+      <div class="section-lbl">Edit your site</div>
+      <div class="allow-bar">
+        <div class="allow-row"><span class="allow-lbl">Revisions this month</span><span class="allow-val" id="revCount">0 / 2 used</span></div>
+        <div class="allow-track"><div class="allow-fill" id="revFill" style="width:0%"></div></div>
+      </div>
+      <div class="section-lbl">Request a change</div>
+      <textarea class="rev-ta" id="revText" placeholder="Describe what you'd like changed…&#10;e.g. Update the hero headline to 'Floors Built to Last'"></textarea>
+      <button class="btn-primary" style="margin-top:10px" onclick="submitRevision()">Submit request</button>
+      <div class="section-lbl">Recent requests</div>
+      <div id="revHistory" style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 0">No revisions yet</div>
+    </div>
+
+    <!-- ACCOUNT -->
+    <div class="tab-panel" id="tab-account">
+
+      <!-- REFERRAL GATE — non-Premium users -->
+      <div id="refPremiumGate" style="display:none">
+        <div class="section-lbl">🏆 Referral Programme</div>
+        <!-- Hero amount — grayed out to create desire -->
+        <div class="ref-hero" style="opacity:.55">
+          <div class="ref-hero-amount">R999</div>
+          <div class="ref-hero-label">earned per referral</div>
+          <div class="ref-hero-sub">Premium members earn R999 account credit every time someone they refer goes live on Premium</div>
+        </div>
+        <div class="ref-rule">
+          🔒 <strong>Premium only.</strong> Upgrade to unlock the referral programme and start earning.
+        </div>
+        <div class="up-card">
+          <div class="up-label">Unlock referrals</div>
+          <div class="up-title">Upgrade to Premium</div>
+          <div class="up-sub" id="refGateDelta">Only R300/mo more than Standard</div>
+          <div class="up-btn" id="refGateBtn" onclick="startUpgrade('premium',300)">Upgrade to Premium →</div>
+        </div>
+      </div>
+
+      <!-- REFERRAL ACTIVE — Premium users -->
+      <div id="refPremiumActive" style="display:none">
+        <div class="section-lbl">🏆 Referral Programme</div>
+
+        <!-- Hero stats -->
+        <div class="ref-hero">
+          <div class="ref-hero-amount" id="refCredit">R0</div>
+          <div class="ref-hero-label">total earned</div>
+          <div class="ref-hero-sub"><span id="refConv">0</span> Premium referrals live · <span id="refSent">0</span> sent</div>
+        </div>
+
+        <!-- Rule — clear and upfront -->
+        <div class="ref-rule">
+          ⚠ <strong>Premium referrals only.</strong> Your friend must sign up for Premium (R999/mo). Express and Standard sign-ups don't count.
+        </div>
+
+        <!-- Share your link -->
+        <div class="section-lbl">Your link</div>
+        <div class="glass" style="padding:14px;margin-bottom:10px">
+          <div class="ref-link-row" style="margin-bottom:10px">
+            <div class="ref-link-val" id="refLink">—</div>
+            <div class="ref-copy" onclick="copyRef()" title="Copy link">📋</div>
+          </div>
+          <button class="btn-primary" onclick="shareRefWa()" style="font-size:14px;padding:13px">📲 Share on WhatsApp</button>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="section-lbl">Leaderboard</div>
+        <div class="glass" style="padding:16px">
+          <div id="refLeaderboard">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current plan -->
+      <div class="section-lbl" style="margin-top:24px">Your plan</div>
+      <div class="glass" style="padding:16px;margin-bottom:14px">
+        <div class="stat-lbl">Current plan</div>
+        <div style="font-size:18px;font-weight:700;margin-top:4px" id="acctPlan">Standard</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:3px" id="acctInvoice">Next invoice: —</div>
+      </div>
+      <button class="btn-ghost" style="color:var(--red);border-color:rgba(255,59,68,.2)" onclick="cancelSite()">Cancel my subscription</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" data-tab="home" onclick="switchTab('home')"><div class="tab-icon">⊙</div><div>Home</div></div>
+    <div class="tab" data-tab="site" onclick="switchTab('site')"><div class="tab-icon">◈</div><div>Site</div></div>
+    <div class="tab" data-tab="email" onclick="switchTab('email')"><div class="tab-icon">✉</div><div>Email</div></div>
+    <div class="tab" data-tab="revisions" onclick="switchTab('revisions')"><div class="tab-icon">✏</div><div>Revisions</div></div>
+    <div class="tab" data-tab="account" onclick="switchTab('account')"><div class="tab-icon">◉</div><div>Account</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TOAST
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     DEV NAV
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="devNav" style="display:none">
+  <div class="dv-lbl">DEV</div>
+  <button class="dv" onclick="showScreen('init',{token:'dev'})">Init</button>
+  <button class="dv" onclick="showScreen('experience',{slug:'demo',token:'dev'})">Intake</button>
+  <button class="dv" onclick="showScreen('building',{token:'dev'})">Building</button>
+  <button class="dv" onclick="showScreen('confirm',{})">Confirm</button>
+  <button class="dv" onclick="showScreen('processing',{token:'dev'})">Processing</button>
+  <button class="dv" onclick="showScreen('dashboard',{token:'dev'})">Dashboard</button>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+// CONFIG & CONSTANTS
+// ═══════════════════════════════════════════════════════════════════
+const CONFIG = {
+  POLL_INTERVAL: 2000,
+  INIT_TIMEOUT: 240000,
+  PROCESSING_MAX_POLLS: 30,
+  REBUILD_MAX_POLLS: 60,
+  MSG_ROTATE_INTERVAL: 5000,
+};
+
+const PLANS = {
+  express: {
+    name:'Express', badge:'Get online fast', buildFee:5000,
+    monthly:299, yearly:3050,
+    feats:[
+      '3-section scroll website',
+      'Hero · Services · Contact',
+      'Free .co.za domain',
+      'WhatsApp CTA',
+      '1 revision/month',
+      'SSL included',
+    ],
+  },
+  standard: {
+    name:'Standard', badge:'Most popular', buildFee:7000,
+    monthly:699, yearly:7130,
+    feats:[
+      '6-section story website',
+      'Hero · About · Services · Why Us · Testimonial · Contact',
+      'Free .co.za domain',
+      'WhatsApp CTA',
+      '2 revisions/month',
+      'Analytics dashboard',
+      'Referral rewards',
+      'Extra pages add-on available',
+    ],
+  },
+  premium: {
+    name:'Premium', badge:'Maximum impact', buildFee:9000,
+    monthly:999, yearly:10190,
+    feats:[
+      '7-section story website + photo gallery',
+      'Hero · About · Services · Gallery · Why Us · Testimonial · Contact',
+      'Free .co.za domain',
+      'WhatsApp CTA',
+      '5 revisions/month',
+      'Analytics dashboard',
+      'Photo gallery section included',
+      'Referral rewards',
+      'Extra pages add-on available',
+    ],
+  },
+};
+
+const PROGRESS_MSGS = [
+  'Every answer makes your site better',
+  'Great start — keep going',
+  "You're on a roll",
+  'Halfway there — looking good',
+  'Your site is taking shape',
+  'Almost there',
+  'One more to go',
+  'Your site is going to be incredible 🎉',
+];
+
+const BUILD_MSGS = [
+  {s:'Writing your story',        b:'Crafting content around your services and location'},
+  {s:'Structuring your pages',    b:'Laying out your homepage and sections'},
+  {s:'Applying your style',       b:'Colours, fonts and your tagline coming together'},
+  {s:'Quality check',             b:'Reading it back like a real customer would'},
+  {s:'Almost done',               b:'Your production site is nearly ready'},
+];
+
+const INDUSTRIES = [
+  {i:'🔧',l:'Plumber'},{i:'⚡',l:'Electrician'},{i:'🏗️',l:'Builder'},{i:'🎨',l:'Painter'},
+  {i:'💇',l:'Salon'},{i:'✂️',l:'Barber'},{i:'💅',l:'Nails'},{i:'🌿',l:'Spa'},
+  {i:'🍽️',l:'Restaurant'},{i:'🥐',l:'Bakery'},{i:'🍕',l:'Catering'},{i:'☕',l:'Coffee'},
+  {i:'🪵',l:'Flooring'},{i:'🧹',l:'Cleaning'},{i:'🌱',l:'Landscaping'},{i:'❄️',l:'HVAC'},
+  {i:'🩺',l:'Doctor'},{i:'🦷',l:'Dentist'},{i:'📊',l:'Accountant'},{i:'📸',l:'Photographer'},
+  {i:'🚗',l:'Mechanic'},{i:'🏠',l:'Estate Agent'},{i:'⚖️',l:'Lawyer'},{i:'🎓',l:'Tutor'},
+];
+
+const SVC_DEFAULTS = {
+  flooring:['Tile installation','Vinyl planks','Laminate flooring','Hardwood floors','Carpet fitting','Repairs & restoration'],
+  plumber:['Pipe repairs','Geyser installation','Drain unblocking','Leak detection','Bathroom fit-outs','Emergency call-out'],
+  electrician:['Wiring & rewiring','DB board upgrades','Solar installation','CCTV & security','Fault finding','CoC certificates'],
+  builder:['New builds','Renovations','Extensions','Tiling','Plastering','Painting'],
+  builder:['New builds','Renovations','Extensions','Tiling','Plastering','Painting'],
+  salon:['Cut & style','Colouring','Hair treatments','Extensions','Blow-dry','Kids cuts'],
+  barber:['Haircuts','Fades & tapers','Beard trim','Hot towel shave','Kids cuts','Styling'],
+  nails:['Gel nails','Acrylics','Nail art','Manicure','Pedicure','Nail repairs'],
+  restaurant:['Dine-in','Takeaways','Catering','Private events','Delivery','Corporate lunches'],
+  mechanic:['Full service','Engine repairs','Brake service','Tyres & alignment','Diagnostics','Emergency'],
+  cleaning:['Home cleaning','Office cleaning','Deep clean','After builders','Carpet cleaning','Windows'],
+  landscaping:['Garden design','Lawn care','Tree felling','Irrigation','Paving','Maintenance'],
+  doctor:['General consultation','Sick notes','Chronic medication','Health screening','Vaccinations','Home visits'],
+  accountant:['Tax returns','Bookkeeping','Payroll','Company registration','Annual financials','VAT returns'],
+  photographer:['Portraits','Events','Products','Real estate','Headshots','Family shoots'],
+  tutor:['Maths','Science','English','Exam prep','Home tuition','Online lessons'],
+  _:['Consultation','Free quote','Site visit','Same-day service','Emergency call-out','Ongoing maintenance'],
+};
+
+const INIT_MSGS = [
+  {s:'Preparing your space',           b:'Setting up your domain and laying the foundations'},
+  {s:'Drafting your story',            b:'Pulling together a starting point for your business'},
+  {s:'Designing your layout',          b:'Picking a look that fits'},
+  {s:'Running a quality check',        b:'Making sure everything reads right for your industry'},
+  {s:"What's included?",               b:'Homepage, services, about and contact — written for your business'},
+  {s:'Do you own your domain?',        b:'Yes. Your .co.za is registered in your name — yours to keep always'},
+  {s:'How does WhatsApp support work?',b:'Message us any time. We respond same-day, 7 days a week'},
+  {s:'Can you make changes?',          b:'Yes — every plan includes free revision requests every month'},
+  {s:'What about business email?',     b:'Your plan includes hello@yourdomain.co.za — professional from day one'},
+  {s:'What if you want to cancel?',    b:'No lock-in, no penalty. Cancel any time and keep your domain'},
+  {s:'How long does this take?',       b:'Your site is usually ready in 2 to 3 minutes. You\'ll get a WhatsApp when it\'s ready.'},
+  {s:'Finishing touches',              b:'Almost there — your preview is nearly ready'},
+];
+
+const PROMO_CODES = { 'LAUNCH50':0.5, 'BETA':1.0, 'ZULULAND':1.0 };
+const CARDS = ['industry','area','services','social','logo','about','gallery','map','gbp','contact-form'];
+
+// Upgrade gate config — which plan is required for each card
+const CARD_GATES = {
+  'social':        { plan: 'standard', msg: 'Upgrade to Standard to add your social links →' },
+  'logo':          { plan: 'standard', msg: 'Upgrade to Standard to add your logo →' },
+  'gallery':       { plan: 'premium',  msg: 'Upgrade to Premium to unlock photo gallery →' },
+  'map':           { plan: 'premium',  msg: 'Upgrade to Premium to add your map location →' },
+  'gbp':           { plan: 'premium',  msg: 'Upgrade to Premium — includes Google Business Profile setup →' },
+  'contact-form':  { plan: 'premium',  msg: 'Upgrade to Premium to add an enquiry form →' },
+};
+
+const PLAN_RANK = { express: 1, standard: 2, premium: 3 };
+
+function isCardLocked(cardName) {
+  const gate = CARD_GATES[cardName];
+  if (!gate) return false;
+  return PLAN_RANK[S.selectedPlan] < PLAN_RANK[gate.plan];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+const S = {
+  token: null,
+  slug: null,
+  screen: null,
+  previewMeta: null,
+  dashData: null,
+  selectedPlan: 'standard',
+  billing: 'monthly',      // 'monthly' | 'yearly'
+  popoverPlan: null,       // which plan popover is showing
+  currentCard: 0,
+  buildingDone: false,
+  cards: {
+    industry: null,
+    area: null,
+    audience: null,
+    services: [],
+    cta: null,
+    diff1: null, diff2: null, diff3: null,
+    testimonial: null,
+    instagram: null, facebook: null, tiktok: null,
+    logo: null, logo_file: null,
+    photos: [],
+    address: null,
+    contactFormEnabled: false,
+  },
+  _upgradePrompted: false,
+  _pollTimer: null,
+  _msgTimer: null,
+  _msgIdx: 0,
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function el(id) { return document.getElementById(id); }
+function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : ''; }
+function isDev() { return !S.token || S.token === 'dev'; }
+
+function clearTimers() {
+  if (S._pollTimer) { clearInterval(S._pollTimer); S._pollTimer = null; }
+  if (S._msgTimer) { clearInterval(S._msgTimer); S._msgTimer = null; }
+}
+
+let _toastT;
+function toast(msg, type = 'info') {
+  const t = el('toast');
+  t.textContent = msg;
+  t.className = type === 'err' ? 'toast-err' : type === 'ok' ? 'toast-ok' : '';
+  t.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => { t.classList.remove('show'); t.className = ''; }, 3500);
+}
+
+function log(label, data) {
+  if (isDev()) console.log(`[WH] ${label}:`, data);
+}
+
+function logErr(label, err) {
+  console.error(`[WH ERROR] ${label}:`, err);
+  // In production, you could send to Sentry here
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// API — defensive wrapper with retries and user feedback
+// ═══════════════════════════════════════════════════════════════════
+async function apiFetch(url, opts = {}, { retries = 1, silent = false } = {}) {
+  const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+  let lastErr;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const r = await fetch(url, { ...opts, headers });
+      if (!r.ok) {
+        const e = new Error(`HTTP ${r.status}`);
+        e.status = r.status;
+        e.url = url;
+        throw e;
+      }
+      return await r.json();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await wait(1000 * (attempt + 1)); // exponential-ish backoff
+      }
+    }
+  }
+
+  logErr(`apiFetch failed: ${url}`, lastErr);
+  if (!silent) {
+    toast('Connection issue — check your internet and try again', 'err');
+  }
+  throw lastErr;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════
+async function showScreen(name, ctx = {}) {
+  if (ctx.token) S.token = ctx.token;
+  if (ctx.slug)  S.slug  = ctx.slug;
+
+  const cur = document.querySelector('.screen.active');
+  if (cur) {
+    cur.classList.add('exit');
+    await wait(200);
+    cur.classList.remove('active', 'exit');
+  }
+
+  const next = el('screen-' + name);
+  if (!next) { logErr('Screen not found', name); return; }
+  next.classList.add('active');
+  S.screen = name;
+
+  // Call screen-specific init
+  const inits = { init: onInit, experience: onExperience, building: onBuilding, preview: onPreview, confirm: onConfirm, processing: onProcessing, dashboard: onDashboard };
+  if (isDev()) { const dn = el('devNav'); if (dn) dn.style.display = 'block'; }
+  try {
+    await inits[name]?.(ctx);
+  } catch (err) {
+    logErr(`Screen init failed: ${name}`, err);
+    toast('Something went wrong loading this screen', 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: INIT
+// ═══════════════════════════════════════════════════════════════════
+function onInit(ctx) {
+  clearTimers();
+  el('initActions').style.display = 'none';
+  S._msgIdx = 0;
+  setInitMsg(0);
+
+  S._msgTimer = setInterval(() => {
+    S._msgIdx = (S._msgIdx + 1) % INIT_MSGS.length;
+    setInitMsg(S._msgIdx);
+  }, CONFIG.MSG_ROTATE_INTERVAL);
+
+  if (isDev()) return;
+
+  const deadline = Date.now() + CONFIG.INIT_TIMEOUT;
+  let failStreak = 0;
+
+  S._pollTimer = setInterval(async () => {
+    try {
+      const d = await apiFetch(`/build-status?token=${S.token}`, {}, { silent: true });
+      failStreak = 0;
+
+      if (d.slug) S.slug = d.slug;
+
+      if (d.status === 'preview_ready' || d.status === 'ready') {
+        clearTimers();
+        showScreen('experience', { slug: S.slug || d.slug, token: S.token });
+      } else if (d.status === 'site_ready' || d.status === 'live') {
+        clearTimers();
+        showScreen('dashboard', { slug: S.slug || d.slug, token: S.token });
+      } else if (d.status === 'failed') {
+        clearTimers();
+        showInitError('Build failed', "We couldn't build your preview. Tap to retry or contact support.");
+      }
+    } catch (err) {
+      failStreak++;
+      if (failStreak >= 3) {
+        clearTimers();
+        showInitError('Connection lost', "Can't reach our servers. Check your connection and tap to retry.");
+      }
+    }
+
+    if (Date.now() > deadline) {
+      clearTimers();
+      showInitTimeout();
+    }
+  }, CONFIG.POLL_INTERVAL);
+}
+
+function setInitMsg(i) {
+  const m = INIT_MSGS[i];
+  el('initStatus').textContent = m.s;
+  el('initSub').textContent = m.b;
+}
+
+function showInitError(status, sub) {
+  clearTimers();
+  el('initStatus').textContent = status;
+  el('initSub').textContent = sub;
+  el('initActions').style.display = 'flex';
+}
+
+function showInitTimeout() {
+  el('initStatus').textContent = 'Taking longer than usual';
+  el('initSub').textContent = "We're still working. You'll get a WhatsApp when it's ready — you can close this tab.";
+  el('initActions').style.display = 'flex';
+}
+
+function retryInit() {
+  el('initActions').style.display = 'none';
+  onInit({ token: S.token });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: EXPERIENCE — full-screen intake, no iframe
+// ═══════════════════════════════════════════════════════════════════
+async function onExperience(ctx) {
+  S.currentCard = 0;
+  S.buildingDone = false;
+
+  buildIndGrid();
+  updatePlanChips(S.selectedPlan);
+  updateCardUI();
+  slideCardsTo(0);
+
+  // Show domain in topbar immediately
+  if (S.slug) el('expBiz').textContent = S.slug + '.co.za';
+
+  // Prefetch meta to pre-fill cards
+  if (!isDev() && S.slug) {
+    try {
+      const d = await apiFetch(`/preview-meta?slug=${S.slug}`, {}, { silent: true });
+      S.previewMeta = d;
+      if (d.domain)        el('expBiz').textContent = d.domain;
+      else if (d.slug)     el('expBiz').textContent = d.slug + '.co.za';
+      if (d.area)     { el('areaInput').value = d.area; S.cards.area = d.area; }
+      if (d.industry) {
+        S.cards.industry = d.industry.toLowerCase();
+        document.querySelectorAll('.ind-tile').forEach(t => {
+          t.classList.toggle('sel', t.dataset.ind === S.cards.industry);
+        });
+        populateSvc(d.industry.toLowerCase());
+      }
+      if (d.package)  selectPlan(d.package);
+    } catch (err) {
+      logErr('preview-meta failed', err);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: BUILDING — substance build wait
+// ═══════════════════════════════════════════════════════════════════
+function onBuilding(ctx) {
+  clearTimers();
+  el('buildActions').style.display = 'none';
+  S._msgIdx = 0;
+  setBuildMsg(0);
+
+  S._msgTimer = setInterval(() => {
+    S._msgIdx = (S._msgIdx + 1) % BUILD_MSGS.length;
+    setBuildMsg(S._msgIdx);
+  }, CONFIG.MSG_ROTATE_INTERVAL);
+
+  if (isDev()) return;
+
+  const deadline = Date.now() + 300000; // 5 min max
+  let failStreak = 0;
+
+  S._pollTimer = setInterval(async () => {
+    try {
+      const d = await apiFetch(`/build-status?token=${S.token}`, {}, { silent: true });
+      failStreak = 0;
+      if (d.status === 'preview_ready') {
+        clearTimers();
+        showScreen('preview', {});
+      }
+    } catch {
+      if (++failStreak >= 3) { clearTimers(); el('buildActions').style.display = 'flex'; }
+    }
+    if (Date.now() > deadline) { clearTimers(); el('buildActions').style.display = 'flex'; }
+  }, CONFIG.POLL_INTERVAL);
+}
+
+function onPreview(ctx) {
+  // Load the built site in the iframe
+  if (!S.slug) return;
+  const frame = el('previewFrame');
+  if (frame) frame.src = '/site/' + S.slug + '/';
+
+  // Show pricing in CTA
+  const p = PLANS[S.selectedPlan] || PLANS.standard;
+  const price = S.billing === 'yearly' ? p.yearly : p.monthly;
+  const priceEl = el('prevPrice');
+  if (priceEl) priceEl.textContent = 'R' + price;
+}
+
+function openPreviewTab() {
+  if (S.slug) window.open('/' + S.slug + '/', '_blank');
+}
+
+function setBuildMsg(i) {
+  const m = BUILD_MSGS[i];
+  el('buildStatus').textContent = m.s;
+  el('buildSub').textContent = m.b;
+}
+
+function retryBuilding() {
+  el('buildActions').style.display = 'none';
+  onBuilding({});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CARD SYSTEM — horizontal slide with transform
+// ═══════════════════════════════════════════════════════════════════
+function slideCardsTo(idx) {
+  const track = el('cardsTrack');
+  if (!track) return;
+  track.style.transform = `translateX(-${idx * 100}%)`;
+}
+
+function updateCardUI() {
+  const idx = S.currentCard;
+  const tot = CARDS.length;
+  const pct = Math.round(((idx + 1) / tot) * 100);
+
+  el('expCounter').textContent = `${idx + 1} of ${tot}`;
+  el('expProgFill').style.width = pct + '%';
+  el('expProgMsg').textContent = PROGRESS_MSGS[idx] || PROGRESS_MSGS[0];
+
+  const back = el('btnBack');
+  back.disabled = idx === 0;
+
+  const next = el('btnNext');
+  S._upgradePrompted = false;
+
+  const cardName = CARDS[idx];
+  const locked   = isCardLocked(cardName);
+
+  // Show/hide lock overlays — overlay contains its own unlock button
+  document.querySelectorAll('.card-lock-overlay').forEach(o => o.style.display = 'none');
+  if (locked) {
+    const ov = el('lock-' + cardName);
+    if (ov) ov.style.display = 'flex';
+  }
+
+  // Next button is ALWAYS just Next — never blocks progression
+  if (idx >= tot - 1) {
+    next.textContent = 'Build my site 🚀';
+    next.classList.add('build');
+  } else {
+    next.textContent = 'Next →';
+    next.classList.remove('build');
+  }
+  next.style.background = '';
+  next.style.color      = '';
+  next.style.border     = '';
+}
+
+// ── LOGO UPLOAD ──────────────────────────────────────────────
+function handleLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  S.cards.logo_file = file;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const wrap = document.getElementById('logoPreviewWrap');
+    const img  = document.getElementById('logoPreviewImg');
+    const zone = document.getElementById('logoUploadZone');
+    const icon = document.getElementById('logoIcon');
+    if (img) img.src = e.target.result;
+    if (wrap) wrap.style.display = 'block';
+    if (zone) zone.classList.add('has-file');
+    if (icon) icon.textContent = '✓';
+  };
+  reader.readAsDataURL(file);
+}
+
+function skipLogoCard() {
+  S.cards.logo_file = null;
+  cardNext();
+}
+
+function toggleContactForm() {
+  const toggle = el('contactFormToggle');
+  const dot    = el('toggleDot');
+  const status = el('contactFormStatus');
+  if (!toggle) return;
+  const isOn = toggle.dataset.on !== 'true';
+  toggle.dataset.on = String(isOn);
+  toggle.style.background  = isOn ? 'var(--cyan)' : 'var(--surface2)';
+  if (dot) { dot.style.background = isOn ? '#000' : 'var(--muted)'; dot.style.left = isOn ? '23px' : '3px'; }
+  if (status) status.textContent = isOn ? '✓ Enquiry form enabled' : 'Tap to enable';
+  S.cards.contactFormEnabled = isOn;
+}
+
+function cardNext() {
+  gatherCard();
+
+  const idx = S.currentCard;
+
+  // Last card → fire substance build → go to building screen
+  if (idx >= CARDS.length - 1) {
+    triggerRebuild();
+    return;
+  }
+
+  S.currentCard = idx + 1;
+  slideCardsTo(S.currentCard);
+  updateCardUI();
+  fireIntakePreview();
+}
+
+// ── UPGRADE UNLOCK — called from within locked card overlay ──────────────
+function attemptUnlock(cardName) {
+  const gate = CARD_GATES[cardName];
+  if (!gate) return;
+  const btn = el('unlock-btn-' + cardName);
+
+  if (!S._upgradePrompted) {
+    // First tap: morph the overlay button
+    S._upgradePrompted = true;
+    if (btn) {
+      btn.textContent      = 'Tap again to confirm upgrade to ' + cap(gate.plan) + ' →';
+      btn.style.background = 'linear-gradient(135deg,var(--cyan),var(--magenta))';
+      btn.style.color      = '#000';
+    }
+  } else {
+    // Second tap: upgrade plan, unlock card
+    S._upgradePrompted = false;
+    selectPlan(gate.plan);
+    toast('✓ Upgraded to ' + cap(gate.plan) + ' — feature unlocked!', 'ok');
+    updateCardUI(); // hides overlay, resets Next button
+  }
+}
+
+function cardBack() {
+  if (S.currentCard <= 0) return;
+  S.currentCard--;
+  slideCardsTo(S.currentCard);
+  updateCardUI();
+}
+
+function gatherCard() {
+  const name = CARDS[S.currentCard];
+  switch (name) {
+    case 'industry':
+      const custom = el('indCustom').value.trim();
+      if (custom) S.cards.industry = custom.toLowerCase();
+      break;
+    case 'area':
+      S.cards.area = el('areaInput').value.trim();
+      S.cards.audience = el('audienceInput').value.trim();
+      break;
+    case 'services':
+      S.cards.cta = el('ctaInput').value.trim() || 'Get a Quote';
+      break;
+    case 'about':
+      S.cards.diff1 = el('diff1').value.trim();
+      S.cards.diff2 = el('diff2').value.trim();
+      S.cards.diff3 = el('diff3').value.trim();
+      S.cards.testimonial = el('testimonial').value.trim();
+      break;
+    case 'social':
+      S.cards.instagram = el('instagram')?.value.trim() || null;
+      S.cards.facebook  = el('facebook')?.value.trim()  || null;
+      S.cards.tiktok    = el('tiktok')?.value.trim()    || null;
+      break;
+    case 'map':
+      S.cards.address = el('businessAddress')?.value.trim() || null;
+      break;
+    case 'contact-form':
+      S.cards.contactFormEnabled = el('contactFormToggle')?.dataset.on === 'true';
+      break;
+  }
+}
+
+// Touch swipe on cards
+(function initSwipe() {
+  let sx = 0, sy = 0, st = 0;
+  const wrap = el('cardsTrackWrap');
+  if (!wrap) return;
+
+  wrap.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    st = Date.now();
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', e => {
+    if (!sx) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    const dt = Date.now() - st;
+    sx = 0;
+
+    // Only handle horizontal swipes, ignore vertical scroll
+    if (Math.abs(dx) < Math.abs(dy)) return;
+    if (Math.abs(dx) < 50 || dt > 500) return;
+
+    if (dx < 0) cardNext();
+    else cardBack();
+  }, { passive: true });
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+// INDUSTRY GRID
+// ═══════════════════════════════════════════════════════════════════
+function buildIndGrid() {
+  const g = el('indGrid');
+  if (!g) return;
+  g.innerHTML = '';
+
+  INDUSTRIES.forEach(({ i, l }) => {
+    const t = document.createElement('div');
+    t.className = 'ind-tile';
+    t.dataset.ind = l.toLowerCase();
+    t.innerHTML = `<div class="ind-tile-icon">${i}</div><div>${l}</div>`;
+    if (S.cards.industry === l.toLowerCase()) t.classList.add('sel');
+
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.ind-tile').forEach(x => x.classList.remove('sel'));
+      t.classList.add('sel');
+      S.cards.industry = l.toLowerCase();
+      el('indCustom').value = '';
+      populateSvc(l.toLowerCase());
+    });
+
+    g.appendChild(t);
+  });
+}
+
+function handleCustomIndustry() {
+  const v = el('indCustom').value.trim();
+  if (!v) return;
+  document.querySelectorAll('.ind-tile').forEach(x => x.classList.remove('sel'));
+  S.cards.industry = v.toLowerCase();
+  populateSvc('_');
+}
+
+function populateSvc(ind) {
+  const svcs = SVC_DEFAULTS[ind] || SVC_DEFAULTS._;
+
+  // Pre-select first 3, rest are available to tap
+  S.cards.services = svcs.slice(0, 3);
+
+  const wrap = el('servicesChips');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  svcs.forEach((s, i) => {
+    const c = document.createElement('div');
+    // First 3 pre-selected, rest available to tap
+    const preSelected = i < 3;
+    c.className = preSelected ? 'chip sel' : 'chip';
+    c.textContent = s;
+    c.addEventListener('click', () => {
+      c.classList.toggle('sel');
+      if (c.classList.contains('sel')) {
+        if (!S.cards.services.includes(s)) S.cards.services.push(s);
+      } else {
+        S.cards.services = S.cards.services.filter(x => x !== s);
+      }
+    });
+    wrap.appendChild(c);
+  });
+}
+
+function addCustomService(e) {
+  if (e.key !== 'Enter') return;
+  const v = e.target.value.trim();
+  if (!v) return;
+
+  S.cards.services.push(v);
+  const wrap = el('servicesChips');
+  const c = document.createElement('div');
+  c.className = 'chip sel';
+  c.textContent = v;
+  c.addEventListener('click', () => {
+    c.classList.toggle('sel');
+    if (!c.classList.contains('sel')) {
+      S.cards.services = S.cards.services.filter(x => x !== v);
+    }
+  });
+  wrap.appendChild(c);
+  e.target.value = '';
+}
+
+function selectVibe(v, el_) {
+  document.querySelectorAll('.vibe-opt').forEach(x => x.classList.remove('sel'));
+  el_.classList.add('sel');
+  S.cards.vibe = v;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UPLOADS
+// ═══════════════════════════════════════════════════════════════════
+function handlePhotoUpload(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+
+  files.forEach(f => {
+    if (f.size > 5 * 1024 * 1024) {
+      toast(`"${f.name}" too large — max 5MB`, 'err');
+      return;
+    }
+
+    const r = new FileReader();
+    r.onload = e => {
+      const strip = el('photoStrip');
+      const img = document.createElement('img');
+      img.className = 'photo-thumb';
+      img.src = e.target.result;
+      img.title = f.name;
+      strip.insertBefore(img, strip.firstChild);
+    };
+    r.onerror = () => toast(`Could not read ${f.name}`, 'err');
+    r.readAsDataURL(f);
+
+    if (isDev()) return;
+
+    const fd = new FormData();
+    fd.append('slug', S.slug);
+    fd.append('token', S.token || '');
+    fd.append('type', 'photo');
+    fd.append('file', f);
+
+    fetch('/upload-assets', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(d => {
+        if (d.url) S.cards.photos.push(d.url);
+      })
+      .catch(err => logErr('Photo upload failed', err));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SUBSTANCE BUILD — collects all cards, posts to /trigger-rebuild
+// then transitions to screen-building which polls for completion
+// ═══════════════════════════════════════════════════════════════════
+async function triggerRebuild() {
+  gatherCard(); // capture final card state
+
+  if (isDev()) {
+    showScreen('building', {});
+    return;
+  }
+
+  try {
+    await apiFetch('/trigger-rebuild', {
+      method: 'POST',
+      body: JSON.stringify({
+        token: S.token,
+        package: S.selectedPlan,
+        billing: S.billing,
+        cards: {
+          ...S.cards,
+          industry: S.cards.industry,
+          area: S.cards.area,
+          audience: S.cards.audience,
+          vibe: S.cards.vibe,
+          services: S.cards.services,
+          cta: S.cards.cta,
+          diff1: S.cards.diff1,
+          diff2: S.cards.diff2,
+          diff3: S.cards.diff3,
+          testimonial: S.cards.testimonial,
+          logo: S.cards.logo,
+          photos: S.cards.photos,
+          palette: S.cards.palette,
+          font: S.cards.font,
+          tagline: S.cards.tagline,
+        },
+      })
+    });
+    showScreen('building', {});
+  } catch (err) {
+    logErr('Trigger rebuild failed', err);
+    toast("Couldn't start build — check connection and try again", 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STYLE CARD — palette & taglines
+// ═══════════════════════════════════════════════════════════════════
+function populateTaglines() {
+  const list = el('taglineList');
+  if (!list) return;
+
+  const tags = S.previewMeta?.taglines || [];
+  if (!tags.length) {
+    list.innerHTML = '<div class="card-hint">Taglines loading…</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  tags.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.className = 'tl-opt' + (i === 0 && !S.cards.tagline ? ' sel' : '');
+    d.textContent = t;
+    if (i === 0 && !S.cards.tagline) S.cards.tagline = t;
+
+    d.addEventListener('click', () => {
+      document.querySelectorAll('.tl-opt').forEach(x => x.classList.remove('sel'));
+      d.classList.add('sel');
+      S.cards.tagline = t;
+      sendPatch();
+    });
+
+    list.appendChild(d);
+  });
+}
+
+function pickPalette(pal, el_) {
+  document.querySelectorAll('.pal-swatch').forEach(x => x.classList.remove('sel'));
+  el_.classList.add('sel');
+  S.cards.palette = pal;
+  sendPatch();
+}
+
+async function sendPatch() {
+  if (isDev() || !S.slug) return;
+
+  const ov = el('patchOverlay');
+
+  try {
+    if (ov) ov.classList.add('show');
+    await apiFetch('/patch-preview', {
+      method: 'POST',
+      body: JSON.stringify({
+        slug: S.slug,
+        token: S.token,
+        patch: {
+          palette: S.cards.palette || 'ocean',
+          tagline: S.cards.tagline || '',
+        }
+      })
+    }, { silent: true });
+
+    await wait(400);
+    if (ov) ov.classList.remove('show');
+  } catch (err) {
+    logErr('Patch failed', err);
+    if (ov) ov.classList.remove('show');
+    toast("Couldn't apply change — try again", 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INTAKE PREVIEW — fire and forget with logging
+// ═══════════════════════════════════════════════════════════════════
+function fireIntakePreview() {
+  if (isDev() || !S.slug) return;
+
+  fetch('/intake-preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      slug: S.slug,
+      token: S.token,
+      card: S.currentCard,
+      biz: S.previewMeta?.businessName || '',
+      industry: S.cards.industry || '',
+      area: S.cards.area || '',
+      vibe: S.cards.vibe || '',
+      services: S.cards.services.join(', '),
+      differentiators: [S.cards.diff1, S.cards.diff2, S.cards.diff3].filter(Boolean).join('; '),
+      audience: S.cards.audience || '',
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    // No iframe — intake preview is for server-side cosmetic updates only
+  })
+  .catch(err => logErr('Intake preview failed', err));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TICKETS + CHECKOUT
+// ═══════════════════════════════════════════════════════════════════
+// Single tap: select plan AND open popover immediately
+function tapPlan(plan, tileEl) {
+  S.selectedPlan = plan;
+  updatePlanChips(plan);
+  openPlanPopover(plan);
+}
+
+// Called programmatically (e.g. from bootstrap or popover select)
+function selectPlan(plan) {
+  S.selectedPlan = plan;
+  updatePlanChips(plan);
+}
+
+function updatePlanChips(plan) {
+  document.querySelectorAll('.plan-chip').forEach(t => {
+    t.classList.toggle('sel', t.dataset.plan === plan);
+  });
+  // Update prices in chips based on billing period
+  ['express','standard','premium'].forEach(p => {
+    const pp = PLANS[p];
+    if (!pp) return;
+    const monthly = S.billing === 'yearly'
+      ? Math.round(pp.yearly / 12)
+      : pp.monthly;
+    const priceEl = el('pcPrice' + cap(p));
+    const perEl   = el('pcPer'   + cap(p));
+    if (priceEl) priceEl.textContent = 'R' + monthly;
+    if (perEl)   perEl.textContent   = S.billing === 'yearly' ? '/mo*' : '/mo';
+  });
+}
+
+function goToConfirm() {
+  showScreen('confirm', {});
+}
+
+function openPlanPopover(plan) {
+  S.popoverPlan = plan;
+  renderPopover(plan);
+  el('planPopover').classList.add('open');
+  el('popoverOv').classList.add('show');
+  el('planPopover').style.overflowY = 'auto';
+  el('planPopover').style.maxHeight = '82vh';
+}
+
+function renderPopover(plan) {
+  const p = PLANS[plan];
+  if (!p) return;
+  const isYearly = S.billing === 'yearly';
+
+  // Billing toggle state
+  el('btMonthly').classList.toggle('sel', !isYearly);
+  el('btYearly').classList.toggle('sel', isYearly);
+
+  el('popName').textContent = p.name;
+  el('popBadge').textContent = p.badge;
+  el('popSelectName').textContent = p.name;
+
+  if (isYearly) {
+    el('popPrice').textContent = 'R' + Math.round(p.yearly / 12);
+    el('popPeriod').textContent = '/month';
+    el('popYearlyNote').textContent = `R${p.yearly} billed annually — save R${(p.monthly * 12) - p.yearly}`;
+    el('popYearlyNote').style.display = 'block';
+  } else {
+    el('popPrice').textContent = 'R' + p.monthly;
+    el('popPeriod').textContent = '/month';
+    el('popYearlyNote').style.display = 'none';
+  }
+
+  el('popBuildFee').textContent = 'R' + p.buildFee.toLocaleString();
+  el('popFeats').innerHTML = p.feats.map(f =>
+    `<div class="feat-row"><span class="feat-check">✓</span>${f}</div>`
+  ).join('');
+}
+
+function setBilling(period) {
+  S.billing = period;
+  el('btMonthly').classList.toggle('sel', period === 'monthly');
+  el('btYearly').classList.toggle('sel', period === 'yearly');
+  if (S.popoverPlan) renderPopover(S.popoverPlan);
+  updatePlanChips(S.selectedPlan);
+}
+
+function selectFromPopover() {
+  if (S.popoverPlan) {
+    S.selectedPlan = S.popoverPlan;
+    updatePlanChips(S.selectedPlan);
+  }
+  closePopover();
+}
+
+function closePopover() {
+  el('planPopover').classList.remove('open');
+  el('popoverOv').classList.remove('show');
+  S.popoverPlan = null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: CONFIRM
+// ═══════════════════════════════════════════════════════════════════
+function onConfirm() {
+  const p = PLANS[S.selectedPlan] || PLANS.standard;
+  const isYearly = S.billing === 'yearly';
+  const amount = isYearly ? p.yearly : p.monthly;
+
+  el('cPlan').textContent = p.name;
+  el('cBilling').textContent = isYearly ? 'Yearly (save 15%)' : 'Monthly';
+  el('cBuildFee').textContent = 'R' + p.buildFee.toLocaleString();
+  el('cDomain').textContent = S.slug ? `${S.slug}.co.za` : '—';
+  el('cPriceLabel').textContent = isYearly ? 'Annual payment' : 'First month';
+  el('cPrice').textContent = 'R' + amount;
+  el('payBtn').textContent = `Pay R${amount} — Go Live 🚀`;
+  el('confirmSub').textContent = S.slug
+    ? `${S.slug}.co.za — free domain + setup`
+    : 'Free domain + setup included';
+}
+
+function clearPromo() {
+  el('promoMsg').textContent = '';
+  el('promoMsg').className = '';
+}
+
+function applyPromo() {
+  const code = el('promoInput').value.trim().toUpperCase();
+  const m = el('promoMsg');
+
+  if (PROMO_CODES[code] !== undefined) {
+    const p = PLANS[S.selectedPlan];
+    const disc = PROMO_CODES[code];
+    const basePrice = S.billing === 'yearly' ? p.yearly : p.monthly;
+    const newPrice = disc === 1.0 ? 0 : Math.round(basePrice * (1 - disc));
+
+    el('cPrice').textContent = newPrice === 0 ? 'Free first month' : 'R' + newPrice;
+    el('payBtn').textContent = newPrice === 0 ? 'Activate — Go Live 🚀' : `Pay R${newPrice} — Go Live 🚀`;
+    m.textContent = disc === 1.0 ? '🎉 First month free!' : `🎉 ${Math.round(disc * 100)}% off applied`;
+    m.className = 'ok';
+  } else {
+    m.textContent = 'Code not recognised';
+    m.className = 'err';
+  }
+}
+
+async function processPayment() {
+  if (isDev()) {
+    showScreen('processing', { token: 'dev' });
+    return;
+  }
+
+  const btn = el('payBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Connecting to PayFast…';
+  btn.disabled = true;
+
+  const p = PLANS[S.selectedPlan];
+
+  try {
+    const d = await apiFetch('/go-live-link', {
+      method: 'POST',
+      body: JSON.stringify({
+        token: S.token,
+        slug: S.slug,
+        plan: S.selectedPlan,
+        retainer: S.billing === 'yearly' ? p.yearly : p.monthly,
+        billing: S.billing,
+        choices: {
+          palette: S.cards.palette,
+          font: S.cards.font,
+          tagline: S.cards.tagline,
+          logo: S.cards.logo,
+          photo: S.cards.photos[0] || null,
+        }
+      })
+    });
+
+    if (d.redirectUrl) {
+      window.location.href = d.redirectUrl;
+    } else {
+      throw new Error('No redirect URL');
+    }
+  } catch (err) {
+    logErr('Payment init failed', err);
+    btn.textContent = originalText;
+    btn.disabled = false;
+    toast("Couldn't reach payments — check connection and try again", 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: PROCESSING
+// ═══════════════════════════════════════════════════════════════════
+function onProcessing(ctx) {
+  el('procStatus').textContent = 'Confirming your payment';
+  el('procSub').textContent = 'This usually takes a few seconds';
+  el('procAction').style.display = 'none';
+
+  if (isDev()) {
+    setTimeout(() => showScreen('dashboard', { token: 'dev' }), 2000);
+    return;
+  }
+
+  let attempts = 0;
+  const timer = setInterval(async () => {
+    attempts++;
+
+    try {
+      const d = await apiFetch(`/client-status?token=${S.token}`, {}, { silent: true });
+      if (d.slug) S.slug = d.slug;
+
+      if (d.status === 'live') {
+        clearInterval(timer);
+        showScreen('dashboard', { token: S.token });
+        return;
+      }
+
+      if (d.status === 'failed') {
+        clearInterval(timer);
+        el('procStatus').textContent = 'Payment not confirmed';
+        el('procSub').textContent = 'Something went wrong. Tap to try again or contact support.';
+        el('procAction').style.display = 'flex';
+        return;
+      }
+    } catch (err) {
+      logErr('Processing poll error', err);
+    }
+
+    if (attempts >= CONFIG.PROCESSING_MAX_POLLS) {
+      clearInterval(timer);
+      el('procStatus').textContent = 'Still confirming';
+      el('procSub').textContent = "We'll send you a WhatsApp when ready. You can close this tab.";
+      el('procAction').style.display = 'flex';
+    }
+  }, CONFIG.POLL_INTERVAL);
+}
+
+function retryProcessing() {
+  el('procAction').style.display = 'none';
+  onProcessing({});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN: DASHBOARD
+// ═══════════════════════════════════════════════════════════════════
+async function onDashboard(ctx) {
+  if (isDev()) {
+    renderDash({
+      businessName: 'Demo Business',
+      slug: 'demo-business',
+      domain: 'demo-business.co.za',
+      liveUrl: 'https://demo-business.co.za',
+      package: 'premium',
+      status: 'live',
+      retainer: 999,
+      nextInvoiceDate: '2026-06-25',
+      revisions: { used: 1, limit: 5 },
+      gallery: true,
+      addPageAvailable: true,
+      referral: {
+        premiumOnly: true,
+        link: 'https://websitehub.co.za?ref=demo-biz',
+        sent: 5, premiumConversions: 2, creditEarned: 1998,
+        leaderboard: [
+          { rank:1, name:'Thabo M.',  conversions:5, credit:4995 },
+          { rank:2, name:'Zanele K.', conversions:3, credit:2997 },
+          { rank:3, name:'Mike T.',   conversions:2, credit:1998 },
+          { rank:4, name:'You',       conversions:2, credit:1998, isYou:true },
+          { rank:5, name:'Sipho N.',  conversions:1, credit:999 },
+        ]
+      },
+      analytics: { enabled: true, slug: 'demo-business' },
+      upgradeOffers: []
+    });
+    return;
+  }
+
+  try {
+    const d = await apiFetch(`/manage-panel?token=${S.token}`);
+    S.dashData = d;
+    renderDash(d);
+  } catch (err) {
+    logErr('Dashboard load failed', err);
+    if (err.status === 404) {
+      location.href = '/start';
+    } else {
+      toast("Couldn't load dashboard — check connection and try again", 'err');
+    }
+  }
+}
+
+function renderDash(d) {
+  S.dashData = d;
+  el('dashBiz').textContent = d.businessName || 'Your business';
+
+  const inv = d.nextInvoiceDate
+    ? new Date(d.nextInvoiceDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
+    : '—';
+
+  el('sInvoice').textContent = inv;
+  const sRef = el('sReferrals'); if (sRef) sRef.textContent = d.referral?.premiumConversions ?? 0;
+
+  const rl = d.revisions?.limit;
+  const qRevSub = el('qRevSub');
+  if (qRevSub) qRevSub.textContent = `${rl || 0} free/month`;
+
+  const qGallery = el('qGallery');
+  if (qGallery) qGallery.style.opacity = d.gallery ? '1' : '.5';
+
+  if (d.upgradeOffers?.length) {
+    el('upgradeSection').style.display = 'block';
+    el('upgradeCards').innerHTML = d.upgradeOffers.map(o => `
+      <div class="up-card">
+        <div class="up-label">Upgrade to ${cap(o.to)}</div>
+        <div class="up-title">${upTitle(o.to)}</div>
+        <div class="up-sub">${upDesc(o.to)}</div>
+        <div class="up-btn" onclick="startUpgrade('${o.to}',${o.delta})">+ R${o.delta}/mo →</div>
+      </div>
+    `).join('');
+  } else {
+    el('upgradeSection').style.display = 'none';
+  }
+
+  // Site tab
+  el('siteLiveUrl').textContent = d.liveUrl || '—';
+
+  // Email tab — stubbed for now, no-op
+
+  // Revisions tab
+  const used = d.revisions?.used || 0;
+  const limit = d.revisions?.limit ?? 2;
+  el('revCount').textContent = `${used} / ${limit === null ? '∞' : limit} used`;
+  el('revFill').style.width = limit === null ? '0%' : `${Math.min(100, (used / limit) * 100)}%`;
+
+  // Account tab
+  el('acctPlan').textContent = cap(d.package || 'standard');
+  el('acctInvoice').textContent = `Next invoice: ${inv} · R${d.retainer}/mo`;
+
+  // Referral — premium gated
+  const isPremium = (d.package || '').toLowerCase() === 'premium';
+  const qRefSub = el('qRefSub'); if (qRefSub) qRefSub.textContent = isPremium ? 'Earn R999/referral' : 'Premium only';
+  const qRef = el('qReferral'); if (qRef) qRef.style.opacity = isPremium ? '1' : '.55';
+
+  if (isPremium && d.referral) {
+    el('refPremiumGate').style.display = 'none';
+    el('refPremiumActive').style.display = 'block';
+    el('refLink').textContent = d.referral.link || '—';
+    el('refSent').textContent = d.referral.sent || 0;
+    el('refConv').textContent = d.referral.premiumConversions || 0;
+    el('refCredit').textContent = 'R' + (d.referral.creditEarned || 0).toLocaleString();
+
+    // Leaderboard
+    const lb = d.referral.leaderboard || [];
+    el('refLeaderboard').innerHTML = lb.length
+      ? lb.map(e => `
+        <div class="lb-row${e.isYou ? ' you' : ''}">
+          <div class="lb-left">
+            <span class="lb-rank">${e.rank <= 3 ? ['🥇','🥈','🥉'][e.rank-1] : e.rank + '.'}</span>
+            <span class="lb-name">${e.name}${e.isYou ? ' (you)' : ''}</span>
+          </div>
+          <span class="lb-credit">R${e.credit.toLocaleString()}</span>
+        </div>`).join('')
+      : '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0">No referrals yet — be the first on the board</div>';
+
+  } else {
+    // Show gate with accurate delta
+    el('refPremiumGate').style.display = 'block';
+    el('refPremiumActive').style.display = 'none';
+    const curPkg = (d.package || 'standard').toLowerCase();
+    const deltas = { express: 700, standard: 300 };
+    const delta = deltas[curPkg] || 300;
+    const gateBtn = el('refGateBtn');
+    const gateDelta = el('refGateDelta');
+    if (gateDelta) gateDelta.textContent = `Only R${delta}/mo more than ${curPkg === 'express' ? 'Express' : 'Standard'}`;
+    if (gateBtn)   gateBtn.onclick = () => startUpgrade('premium', delta);
+    if (gateBtn)   gateBtn.textContent = `Upgrade to Premium — +R${delta}/mo →`;
+  }
+
+  // Add page upsell — Standard+ only
+  const caps = { express: false, standard: true, premium: true };
+  if (caps[(d.package||'').toLowerCase()] && d.addPageAvailable) {
+    el('addPageSection').style.display = 'block';
+  }
+
+  // Analytics
+  if (d.analytics?.enabled) {
+    fetchAnalytics(d.analytics.slug);
+  }
+}
+
+async function fetchAnalytics(slug) {
+  try {
+    const d = await apiFetch(`/analytics?slug=${slug}&range=7d`, {}, { silent: true });
+    el('sVisits').textContent = d.totals?.visits ?? '—';
+    el('sWaTaps').textContent = d.totals?.waTaps ?? '—';
+    el('trafficChart').textContent = `${d.totals?.visits || 0} visits · ${d.totals?.uniqueVisitors || 0} unique · ${d.totals?.waTaps || 0} WA taps`;
+
+    if (d.topPages?.length) {
+      el('topPagesList').innerHTML = d.topPages.map(p =>
+        `<div class="list-row"><div class="list-lbl">${p.path}</div><div>${p.visits}</div></div>`
+      ).join('');
+    }
+  } catch (err) {
+    logErr('Analytics fetch failed', err);
+    el('trafficChart').textContent = 'Analytics unavailable';
+  }
+}
+
+function switchTab(tab) {
+  S.activeTab = tab;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el('tab-' + tab)?.classList.add('active');
+  document.querySelector(`.tab[data-tab="${tab}"]`)?.classList.add('active');
+  el('dashContent').scrollTop = 0;
+}
+
+function openSite() {
+  const u = S.dashData?.liveUrl;
+  if (u) window.open(u, '_blank');
+}
+
+function galleryTap() {
+  if (!S.dashData?.gallery) {
+    toast('Gallery is a Premium feature — upgrade to unlock', 'err');
+  }
+}
+
+async function submitRevision() {
+  const txt = el('revText').value.trim();
+  if (!txt) {
+    toast('Describe what you want changed', 'err');
+    return;
+  }
+
+  if (isDev()) {
+    toast('Revision submitted (demo mode) ✓', 'ok');
+    el('revText').value = '';
+    return;
+  }
+
+  try {
+    const d = await apiFetch('/submit-revision', {
+      method: 'POST',
+      body: JSON.stringify({ token: S.token, message: txt, type: 'free' })
+    });
+
+    if (d.success) {
+      toast("Request submitted ✓ We'll update your site within 24hrs", 'ok');
+      el('revText').value = '';
+    } else if (d.paymentRequired) {
+      toast('Revision allowance exhausted — upgrade to continue', 'err');
+    }
+  } catch (err) {
+    logErr('Revision submit failed', err);
+    toast("Couldn't submit — check connection and try again", 'err');
+  }
+}
+
+function copyRef() {
+  const link = el('refLink').textContent || '';
+  if (!link || link === '—') {
+    toast('No referral link available', 'err');
+    return;
+  }
+  navigator.clipboard?.writeText(link)
+    .then(() => toast('Referral link copied! 🎉', 'ok'))
+    .catch(() => toast('Could not copy link', 'err'));
+}
+
+function startUpgrade(to, delta) {
+  toast(`Upgrade to ${cap(to)} — coming soon`, 'info');
+}
+
+async function cancelSite() {
+  if (!confirm('Are you sure? Your site will be deactivated at the end of this billing period.')) return;
+
+  if (isDev()) {
+    toast('Cancellation (demo mode)', 'info');
+    return;
+  }
+
+  try {
+    await apiFetch('/cancel-site', {
+      method: 'POST',
+      body: JSON.stringify({ token: S.token })
+    });
+    toast('Cancellation received. Confirmation via WhatsApp.', 'ok');
+  } catch (err) {
+    logErr('Cancel failed', err);
+    toast("Couldn't process — contact support", 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function upTitle(to) {
+  return {
+    premium: '5 revisions/month + photo gallery',
+    standard: 'Business email + 5 pages'
+  }[to] || 'Upgrade your plan';
+}
+
+function upDesc(to) {
+  return {
+    premium: 'Two email accounts, unlimited changes, gallery add-on.',
+    standard: 'A professional email address and room to grow.'
+  }[to] || '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOTSTRAP ROUTER
+// ═══════════════════════════════════════════════════════════════════
+async function bootstrap() {
+  const path = location.pathname;
+  const slug = (path.match(/\/experience\/([^/]+)/) || [])[1];
+  // Token from URL path, or baked in by substance build shell
+  const token = (path.match(/\/(manage|build|verify)\/([^/]+)/) || [])[2]
+    || window.__WH_TOKEN__
+    || null;
+  if (window.__WH_SLUG__ && !S.slug) S.slug = window.__WH_SLUG__;
+
+  if (token && path.startsWith('/verify/')) {
+    S.token = token;
+    showScreen('processing', { token });
+  } else if (token) {
+    S.token = token;
+    try {
+      const d = await apiFetch(`/build-status?token=${token}`, {}, { retries: 0 });
+      S.slug = d.slug || null;
+
+      const dest = {
+        live:          'dashboard',
+        site_ready:    'dashboard',
+        preview_ready: 'experience',
+        paid_pending:  'processing',
+        ready:         'dashboard',
+        paid:          'processing',
+        building:      'init',
+        queued:        'init',
+        lead:          'experience'
+      }[d.status] || 'init';
+
+      showScreen(dest, { token, slug: d.slug });
+    } catch (err) {
+      logErr('Bootstrap status check failed', err);
+      showScreen('init', { token });
+    }
+  } else if (slug) {
+    S.slug = slug;
+    showScreen('experience', { slug });
+  } else {
+    // No context — dev mode
+    showScreen('init', { token: 'dev' });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  closePopover(); // Ensure popover is closed on load
+  bootstrap();
+});
+</script>
+</body>
+</html>
