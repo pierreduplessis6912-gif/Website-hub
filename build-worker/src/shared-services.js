@@ -503,12 +503,16 @@ export function getUpgradeDelta(fromPkg, toPkg) {
 export function buildPayFastLink(amount, itemName, airtableId, env, opts = {}) {
   const sandbox = isTestMode(env);
   const host    = sandbox ? 'sandbox.payfast.co.za' : 'www.payfast.co.za';
-  const merchId = sandbox
-    ? (env?.PAYFAST_SANDBOX_MERCHANT_ID || '10000100')
-    : (env?.PAYFAST_MERCHANT_ID || '13581217');
+  const merchId  = sandbox
+    ? (env?.PAYFAST_SANDBOX_MERCHANT_ID  || '10000100')
+    : (env?.PAYFAST_MERCHANT_ID          || '13581217');
+  const merchKey = sandbox
+    ? (env?.PAYFAST_SANDBOX_MERCHANT_KEY || '01ab23de45fg67hi')
+    : (env?.PAYFAST_MERCHANT_KEY         || '');
 
   const params = new URLSearchParams();
-  params.set('merchant_id', merchId);
+  params.set('merchant_id',  merchId);
+  params.set('merchant_key', merchKey);
   params.set('amount',      String(amount));
   params.set('item_name',   itemName);
   params.set('custom_str1', airtableId);
@@ -1759,3 +1763,4 @@ export function buildExpressPage(pages) {
 // ────────────────────────────────────────────────────────────
 // End of shared-services.js
 // ────────────────────────────────────────────────────────────
+
