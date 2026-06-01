@@ -563,7 +563,7 @@ async function handleIntake(request, env) {
 
     await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: false });
 
-    return jsonResponse({ slug, manage_token, clientId: id });
+    return jsonResponse({ slug, manage_token, clientId: id, redirectUrl: `https://${PREVIEW_DOMAIN}/manage/${manage_token}` });
 
   } catch (err) {
     console.error('Intake error:', err.message, err.stack);
@@ -2034,3 +2034,4 @@ function fireAndForget(fn) {
 function siteNotFound(slug) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not Found</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0ede8;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}.box{max-width:400px}h1{font-size:22px;margin-bottom:12px}p{color:rgba(240,237,232,0.55);line-height:1.6}a{color:#25D366;font-weight:700;text-decoration:none}</style></head><body><div class="box"><h1>Site not found</h1><p>The site <strong>${slug}</strong> doesn't exist yet.<br><br><a href="https://websitehub.co.za">Visit Website Hub →</a></p></div></body></html>`;
 }
+
