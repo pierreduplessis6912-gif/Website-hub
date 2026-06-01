@@ -16,6 +16,22 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: build-worker
+          secrets: |
+            ANTHROPIC_KEY
+            UNSPLASH_ACCESS_KEY
+            WH_PHONE
+            EVOLUTION_API_URL
+            EVOLUTION_API_KEY
+            EVOLUTION_INSTANCE
+            ADMIN_KEY
+        env:
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          WH_PHONE: ${{ secrets.WH_PHONE }}
+          EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
+          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
+          EVOLUTION_INSTANCE: ${{ secrets.EVOLUTION_INSTANCE }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
 
   deploy-patch:
     name: Deploy wh-patch
