@@ -681,6 +681,18 @@ async function servePwa(env, kvKey) {
 }
 
 async function serveBuiltSite(url, path, request, env) {
+  // /site/{slug} — raw HTML for PWA iframe (no wrapper)
+  if (path.startsWith('/site/')) {
+    const slug = path.replace(/^\/site\//, '').split('/')[0];
+    if (!slug) return new Response('Not found', { status: 404 });
+    const html = await env.SITES.get(`site:${slug}`) ||
+                 await env.SITES.get(`preview:${slug}`);
+    if (!html) return new Response(siteNotFound(slug), { status: 404, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+    return new Response(html, {
+      headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache', 'X-Frame-Options': 'SAMEORIGIN' },
+    });
+  }
+
   // Paths: /{slug} or /{slug}/{page}
   const parts = path.replace(/^\//, '').split('/');
   const slug  = parts[0];
@@ -692,9 +704,9 @@ async function serveBuiltSite(url, path, request, env) {
   const client = await getClientBySlug(slug, env).catch(() => null);
   if (client?.id) fireAndForget(() => recordVisit(env, client.id, page));
 
-  // Try specific page key first, then fall back to index
-  let html = await env.SITES.get(`preview:${slug}:${page}`) ||
-             await env.SITES.get(`preview:${slug}`);
+  // /{slug} always serves the PWA shell (managed experience) until go-live
+  // After go-live, live:{domain} takes over via custom hostname
+  let html = await env.SITES.get(`preview:${slug}`);
 
   if (!html) {
     return new Response(siteNotFound(slug), {
@@ -705,8 +717,8 @@ async function serveBuiltSite(url, path, request, env) {
   return new Response(html, {
     headers: {
       'Content-Type': 'text/html;charset=UTF-8',
-      'Cache-Control': 'public, max-age=300',
-      'X-Robots-Tag': client?.status === 'live' ? 'index, follow' : 'noindex',
+      'Cache-Control': 'no-cache',
+      'X-Robots-Tag': 'noindex',
     },
   });
 }
@@ -925,7 +937,20 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   const html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
 
   // ── STORE ──────────────────────────────────────────────────
-  await env.SITES.put(`preview:${slug}`, html, { expirationTtl: PREVIEW_TTL });
+  // Raw HTML at site:{slug} — served inside PWA iframe at /site/{slug}
+  await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL });
+
+  // PWA shell at preview:{slug} — served at /{slug}, always the managed experience
+  const pwaTpl = await env.SITES.get('app:pwa');
+  if (pwaTpl && client.manage_token) {
+    // Inject the token into the PWA shell so /{slug} always routes back into the managed flow
+    const managedShell = pwaTpl.replace(
+      '</head>',
+      `<script>window.__WH_TOKEN__="${client.manage_token}";window.__WH_SLUG__="${slug}";</script></head>`
+    );
+    await env.SITES.put(`preview:${slug}`, managedShell, { expirationTtl: PREVIEW_TTL });
+  }
+
   await env.SITES.put(`content:${slug}`, JSON.stringify(contentTokens), { expirationTtl: PREVIEW_TTL });
 
   const buildMs = Date.now() - buildStart;
