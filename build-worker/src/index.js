@@ -173,6 +173,12 @@ export default {
         if (path === '/admin/bootstrap-preview' && method === 'POST') return handleAdminBootstrapPreview(request, env);
         if (path === '/admin/bootstrap-manage'  && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
+      if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
+      if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
+      if (path === '/admin/scrape'             && method === 'POST') return handleScrape(request, env);
+      if (path === '/admin/approve-prospect'   && method === 'POST') return handleApproveProspect(request, env);
+      if (path === '/admin/reject-prospect'    && method === 'POST') return handleRejectProspect(request, env);
+      if (path === '/admin/prospect-queue'     && method === 'GET')  return handleProspectQueue(env);
         if (path === '/admin/migrate'         && method === 'POST') return handleAdminMigrate(request, env);
         if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
         if (path === '/admin/build-detail'     && method === 'GET')  return handleAdminBuildDetail(url, env);
@@ -277,6 +283,178 @@ async function handleAdminSetConfig(request, env) {
   await env.SITES.put('app:config', JSON.stringify(merged));
   return jsonResponse({ success: true, config: merged });
 }
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+async function handleGetConfig(env) {
+  const rows = await env.DB.prepare(`SELECT key, value, description, updated_at FROM config ORDER BY key`).all().catch(() => ({ results: [] }));
+  const config = {};
+  for (const r of (rows.results || [])) {
+    try { config[r.key] = JSON.parse(r.value); } catch { config[r.key] = r.value; }
+  }
+  return jsonResponse({ config, raw: rows.results || [] });
+}
+
+async function handleSetConfig(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const { key, value } = body;
+  if (!key || value === undefined) return jsonResponse({ error: 'key and value required' }, 400);
+
+  const strVal = typeof value === 'string' ? value : JSON.stringify(value);
+  await env.DB.prepare(
+    `INSERT INTO config (key, value, updated_at) VALUES (?, ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`
+  ).bind(key, strVal).run();
+
+  return jsonResponse({ success: true, key, value });
+}
+
+// ── GOOGLE PLACES SCRAPE ──────────────────────────────────────────────────────
+async function handleScrape(request, env) {
+  const { industry, province, area, limit = 20 } = await request.json().catch(() => ({}));
+  if (!industry || !province) return jsonResponse({ error: 'industry and province required' }, 400);
+
+  // Get fresh Google access token
+  const accessToken = await getGoogleAccessToken(env);
+  if (!accessToken) return jsonResponse({ error: 'Google auth failed — check GOOGLE_REFRESH_TOKEN' }, 500);
+
+  // Build search query
+  const searchArea = area || province;
+  const query = `${industry} in ${searchArea} South Africa`;
+
+  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type':     'application/json',
+      'Authorization':    `Bearer ${accessToken}`,
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.shortFormattedAddress',
+    },
+    body: JSON.stringify({
+      textQuery:  query,
+      maxResultCount: Math.min(limit, 20),
+      regionCode: 'ZA',
+      languageCode: 'en',
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    return jsonResponse({ error: 'Places API error', detail: err, status: res.status }, 502);
+  }
+
+  const data = await res.json();
+  const places = data.places || [];
+
+  // Filter: no website = our target
+  const targets = places.filter(p => !p.websiteUri);
+
+  let inserted = 0, skipped = 0;
+
+  for (const p of targets) {
+    const phone = normalisePhone(p.internationalPhoneNumber || p.nationalPhoneNumber || '');
+    if (!phone) { skipped++; continue; }
+
+    // Check if already in prospects or clients
+    const existing = await env.DB.prepare(
+      `SELECT id FROM prospects WHERE phone=? OR google_place_id=? LIMIT 1`
+    ).bind(phone, p.id).first().catch(() => null);
+    if (existing) { skipped++; continue; }
+
+    const bizName = p.displayName?.text || 'Unknown Business';
+    const area    = p.shortFormattedAddress || province;
+
+    await env.DB.prepare(`
+      INSERT INTO prospects (business_name, phone, industry, area, google_place_id, province_scraped, status, scrape_date)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending', date('now'))
+    `).bind(bizName, phone, industry, area, p.id, province).run().catch(() => { skipped++; });
+
+    inserted++;
+  }
+
+  await logEvent(env, null, 'build', 'scrape_complete', 'success', {
+    metadata: { query, found: places.length, noWebsite: targets.length, inserted, skipped }
+  });
+
+  return jsonResponse({ success: true, query, found: places.length, noWebsite: targets.length, inserted, skipped });
+}
+
+function normalisePhone(raw) {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('27') && digits.length === 11) return digits;
+  if (digits.startsWith('0') && digits.length === 10) return '27' + digits.slice(1);
+  return null;
+}
+
+async function getGoogleAccessToken(env) {
+  if (!env.GOOGLE_REFRESH_TOKEN || !env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return null;
+  try {
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type:    'refresh_token',
+        refresh_token: env.GOOGLE_REFRESH_TOKEN,
+        client_id:     env.GOOGLE_CLIENT_ID,
+        client_secret: env.GOOGLE_CLIENT_SECRET,
+      }),
+    });
+    const d = await res.json();
+    return d.access_token || null;
+  } catch { return null; }
+}
+
+// ── PROSPECT QUEUE ────────────────────────────────────────────────────────────
+async function handleProspectQueue(env) {
+  const rows = await env.DB.prepare(
+    `SELECT * FROM prospects WHERE status='pending' ORDER BY created_at DESC LIMIT 50`
+  ).all().catch(() => ({ results: [] }));
+  return jsonResponse({ prospects: rows.results || [] });
+}
+
+async function handleApproveProspect(request, env) {
+  const { id } = await request.json().catch(() => ({}));
+  if (!id) return jsonResponse({ error: 'id required' }, 400);
+  await env.DB.prepare(`UPDATE prospects SET status='approved' WHERE id=?`).bind(id).run();
+
+  // Check mode — if auto, trigger build immediately
+  const modeRow = await env.DB.prepare(`SELECT value FROM config WHERE key='outbound_mode'`).first().catch(() => null);
+  if (modeRow?.value === 'auto') {
+    const prospect = await env.DB.prepare(`SELECT * FROM prospects WHERE id=?`).bind(id).first().catch(() => null);
+    if (prospect) {
+      await triggerOutboundBuild(prospect, env).catch(e => console.warn('Auto build failed:', e.message));
+    }
+  }
+
+  return jsonResponse({ success: true });
+}
+
+async function handleRejectProspect(request, env) {
+  const { id } = await request.json().catch(() => ({}));
+  if (!id) return jsonResponse({ error: 'id required' }, 400);
+  await env.DB.prepare(
+    `UPDATE prospects SET status='rejected', cooldown_until=datetime('now','+30 days') WHERE id=?`
+  ).bind(id).run();
+  return jsonResponse({ success: true });
+}
+
+async function triggerOutboundBuild(prospect, env) {
+  const id           = generateUUID();
+  const slug         = await uniqueSlug(prospect.business_name, env);
+  const manage_token = generateUUID();
+  const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
+
+  await env.DB.prepare(`
+    INSERT INTO clients (id, business_name, slug, phone, industry, area, vibe, manage_token, referral_slug, status, source, package, retainer)
+    VALUES (?,?,?,?,?,?,?,?,?,'lead','outbound','standard',?)
+  `).bind(id, prospect.business_name, slug, prospect.phone || '', prospect.industry || '',
+      prospect.area || '', 'professional', manage_token, referral_slug, PRICING.standard.retainer).run();
+
+  await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
+    .bind(id, prospect.id).run();
+
+  await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: true });
+}
+
 
 async function handleAdminBootstrapPwa(request, env) {
   const html = await request.text();
