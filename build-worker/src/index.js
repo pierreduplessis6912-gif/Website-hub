@@ -1026,6 +1026,17 @@ async function triggerSubstanceBuild(clientId, cards, env) {
       `✅ SUBSTANCE BUILD: ${client.business_name}\nSlug: ${slug}\n${buildMs}ms`,
       env, { skipTestRedirect: true }
     ).catch(() => {});
+
+    // Client message — show the wife 😄
+    const firstName = (client.client_name || client.business_name || '').split(' ')[0] || 'there';
+    const previewLink = `https://${PREVIEW_DOMAIN}/preview/${client.manage_token}`;
+    await sendWhatsApp(client.phone,
+      `🎉 *${client.business_name}* — your site is ready!\n\n` +
+      `Have a look, share it around, and when you're ready to go live tap the button:\n\n` +
+      `👉 ${previewLink}\n\n` +
+      `No card needed until you go live.\n— Website Hub`,
+      env
+    ).catch(() => {});
   }
 
   return slug;
