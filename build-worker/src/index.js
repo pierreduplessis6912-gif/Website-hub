@@ -172,6 +172,8 @@ export default {
         if (path === '/admin/bootstrap-intake'  && method === 'POST') return handleAdminBootstrapIntake(request, env);
         if (path === '/admin/bootstrap-preview' && method === 'POST') return handleAdminBootstrapPreview(request, env);
         if (path === '/admin/bootstrap-manage'  && method === 'POST') return handleAdminBootstrapManage(request, env);
+      if (path === '/admin/bootstrap-admin'   && method === 'POST') return handleAdminBootstrapAdmin(request, env);
+      if (path === '/admin' || path === '/admin/')                  return servePwa(env, 'app:admin');
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
@@ -497,6 +499,13 @@ async function handleTestWhatsapp(request, env) {
   } catch(e) {
     return jsonResponse({ error: e.message, evoUrl, evoInstance }, 500);
   }
+}
+
+async function handleAdminBootstrapAdmin(request, env) {
+  const html = await request.text();
+  if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
+  await env.SITES.put('app:admin', html);
+  return jsonResponse({ success: true, size: html.length });
 }
 
 async function handleAdminBootstrapManage(request, env) {
