@@ -1787,9 +1787,7 @@ ${renderSections(sectionFlow, { aboutSection, servicesSection, gallerySection, w
 }
 
 function addWatermark(html, client, env, isOutbound = false) {
-  const claimLink = isOutbound
-    ? `https://${PREVIEW_DOMAIN}/start`
-    : `https://${PREVIEW_DOMAIN}/manage/${client.manage_token}`;
+  const claimLink = `https://${PREVIEW_DOMAIN}/manage/${client.manage_token}`;
 
   // Inject claim link into skeleton preview bar — replaces __CLAIM_LINK__ placeholder
   // For outbound builds, swap the entire claim bar CTA text too
