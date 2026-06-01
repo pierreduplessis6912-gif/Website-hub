@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dashboard — Website Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f7f6f3;
+  --white:#ffffff;
+  --surface:#f0ede8;
+  --border:#e5e2dc;
+  --border2:#d0cdc7;
+  --text:#1a1814;
+  --text2:#3d3a35;
+  --muted:#8a8780;
+  --muted2:#c0bdb7;
+  --cyan:#00c8d4;
+  --cyan-dark:#009aa5;
+  --magenta:#e8007a;
+  --purple:#9b1fcc;
+  --green:#00a86b;
+  --red:#d93025;
+  --amber:#c47d00;
+  --gold:#b8960c;
+  --font-display:'DM Serif Display',serif;
+  --font-body:'DM Sans',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --safe-b:env(safe-area-inset-bottom);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);overflow:hidden}
+
+/* ── TOP BAR ── */
+#topBar{
+  position:fixed;top:0;left:0;right:0;
+  height:56px;
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  z-index:100;
+}
+.top-brand{
+  font-family:var(--font-display);
+  font-size:18px;color:var(--text);
+}
+.top-brand span{color:var(--cyan-dark)}
+.top-biz{
+  font-size:13px;font-weight:600;color:var(--text2);
+  max-width:180px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.top-live-pill{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:100px;
+  background:rgba(0,168,107,.08);
+  border:1px solid rgba(0,168,107,.2);
+  font-size:10px;font-weight:700;
+  color:var(--green);letter-spacing:.4px;
+}
+.live-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--green);
+  animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── SCROLL CONTENT ── */
+#content{
+  position:fixed;
+  top:56px;left:0;right:0;
+  bottom:calc(60px + var(--safe-b));
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* ── TAB PANELS ── */
+.tab-panel{display:none;padding:20px 20px 32px;animation:fadeIn .3s ease}
+.tab-panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SECTION LABEL ── */
+.section-lbl{
+  font-family:var(--font-mono);
+  font-size:10px;font-weight:500;
+  color:var(--muted);letter-spacing:1px;
+  text-transform:uppercase;
+  margin:24px 0 12px;
+}
+.section-lbl:first-child{margin-top:0}
+
+/* ── STAT GRID ── */
+.stat-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:10px;margin-bottom:4px;
+}
+.stat-card{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px;
+}
+.stat-lbl{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:6px}
+.stat-val{
+  font-family:var(--font-display);
+  font-size:26px;color:var(--text);
+  line-height:1;
+}
+.stat-val.c{color:var(--cyan-dark)}
+.stat-delta{font-size:11px;color:var(--green);margin-top:4px;font-weight:500}
+
+/* ── HERO SITE CARD ── */
+.hero-site-card{
+  background:var(--text);
+  border-radius:16px;
+  padding:20px;
+  color:var(--white);
+  margin-bottom:4px;
+  position:relative;
+  overflow:hidden;
+}
+.hero-site-card::before{
+  content:'';position:absolute;
+  top:-40px;right:-40px;
+  width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,200,212,.15),transparent);
+}
+.hero-domain{
+  font-family:var(--font-mono);
+  font-size:13px;color:rgba(255,255,255,.5);
+  margin-bottom:8px;
+}
+.hero-biz{
+  font-family:var(--font-display);
+  font-size:22px;color:var(--white);
+  margin-bottom:16px;line-height:1.2;
+}
+.hero-btns{display:flex;gap:8px}
+.btn-open-site{
+  flex:1;padding:12px;border-radius:12px;
+  background:var(--cyan-dark);border:none;
+  color:var(--white);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font-body);
+  transition:all .2s;
+}
+.btn-open-site:active{transform:scale(.98);background:#007a84}
+.btn-share-site{
+  padding:12px 16px;border-radius:12px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+  color:var(--white);font-size:14px;
+  cursor:pointer;font-family:var(--font-body);
+  display:flex;align-items:center;gap:6px;
+  transition:all .2s;
+}
+.btn-share-site:active{background:rgba(255,255,255,.2)}
+
+/* ── QUICK TILES ── */
+.quick-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+.q-tile{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px;
+  cursor:pointer;
+  transition:all .2s;
+  position:relative;
+  overflow:hidden;
+}
+.q-tile:active{transform:scale(.98);border-color:var(--cyan-dark)}
+.q-tile.locked{opacity:.55}
+.q-tile-icon{
+  width:36px;height:36px;
+  border-radius:10px;
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:10px;
+}
+.q-tile-icon svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.q-label{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+.q-sub{font-size:11px;color:var(--muted)}
+.q-lock{
+  position:absolute;top:10px;right:10px;
+  width:16px;height:16px;
+}
+.q-lock svg{width:14px;height:14px;stroke:var(--muted2);fill:none;stroke-width:1.5}
+
+/* ── UPGRADE DELTA CARD ── */
+.upgrade-card{
+  background:linear-gradient(135deg,rgba(0,200,212,.06),rgba(155,31,204,.04));
+  border:1.5px solid rgba(0,200,212,.2);
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:10px;
+}
+.upgrade-card-eyebrow{
+  font-family:var(--font-mono);
+  font-size:10px;color:var(--cyan-dark);
+  letter-spacing:.5px;margin-bottom:8px;
+}
+.upgrade-card-title{
+  font-family:var(--font-display);
+  font-size:18px;color:var(--text);
+  margin-bottom:4px;
+}
+.upgrade-card-desc{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px}
+.upgrade-card-features{
+  display:flex;flex-direction:column;gap:6px;margin-bottom:14px;
+}
+.upgrade-feat{
+  display:flex;align-items:center;gap:8px;
+  font-size:13px;color:var(--text2);
+}
+.upgrade-feat svg{width:14px;height:14px;stroke:var(--green);fill:none;stroke-width:2;flex-shrink:0}
+.btn-upgrade{
+  width:100%;padding:13px;border-radius:12px;
+  background:linear-gradient(135deg,var(--cyan-dark),var(--purple));
+  border:none;color:var(--white);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font-body);
+  transition:all .2s;
+}
+.btn-upgrade:active{transform:scale(.98)}
+
+/* ── SITE TAB ── */
+.info-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--white);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;margin-bottom:8px;
+}
+.info-row-label{font-size:13px;color:var(--muted);font-weight:500}
+.info-row-value{
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--cyan-dark);font-weight:500;
+}
+
+/* Allowance bar */
+.allow-card{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:14px;padding:16px;margin-bottom:10px;
+}
+.allow-row{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:10px;
+}
+.allow-lbl{font-size:13px;font-weight:600;color:var(--text)}
+.allow-val{font-size:12px;color:var(--muted);font-family:var(--font-mono)}
+.allow-track{
+  height:4px;background:var(--surface);border-radius:2px;overflow:hidden;
+}
+.allow-fill{
+  height:100%;background:linear-gradient(90deg,var(--cyan-dark),var(--purple));
+  border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1);
+}
+
+/* Revision textarea */
+.rev-ta{
+  width:100%;background:var(--white);
+  border:1.5px solid var(--border);border-radius:14px;
+  padding:16px;font-family:var(--font-body);font-size:14px;
+  color:var(--text);outline:none;resize:none;
+  min-height:120px;line-height:1.6;
+  transition:border-color .2s;
+}
+.rev-ta::placeholder{color:var(--muted2)}
+.rev-ta:focus{border-color:var(--cyan-dark)}
+
+.btn-primary{
+  width:100%;padding:15px;border-radius:14px;
+  background:var(--text);border:none;
+  color:var(--white);font-size:15px;font-weight:600;
+  cursor:pointer;font-family:var(--font-body);
+  transition:all .2s;margin-top:10px;
+}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.4;pointer-events:none}
+
+/* Rev history */
+.rev-item{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;margin-bottom:8px;
+}
+.rev-item-date{font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px}
+.rev-item-text{font-size:13px;color:var(--text2);line-height:1.5}
+.rev-item-status{
+  display:inline-block;margin-top:6px;
+  padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;
+  letter-spacing:.3px;
+}
+.rev-item-status.pending{background:rgba(196,125,0,.1);color:var(--amber)}
+.rev-item-status.done{background:rgba(0,168,107,.1);color:var(--green)}
+
+/* ── EMAIL TAB ── */
+.email-card{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:16px;padding:20px;margin-bottom:10px;
+}
+.email-addr{
+  font-family:var(--font-mono);font-size:14px;
+  color:var(--cyan-dark);font-weight:500;
+  margin:8px 0 12px;
+}
+.btn-email-open{
+  width:100%;padding:13px;border-radius:12px;
+  background:var(--surface);border:1.5px solid var(--border);
+  color:var(--text);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font-body);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .2s;
+}
+.btn-email-open:active{border-color:var(--cyan-dark)}
+.email-coming{
+  text-align:center;padding:32px 20px;
+}
+.email-coming-icon{
+  width:52px;height:52px;border-radius:14px;
+  background:var(--surface);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 16px;
+}
+.email-coming-icon svg{width:24px;height:24px;stroke:var(--muted);fill:none;stroke-width:1.5}
+
+/* ── REFERRAL TAB ── */
+.ref-hero{
+  background:var(--text);
+  border-radius:16px;padding:24px;
+  margin-bottom:16px;
+  position:relative;overflow:hidden;
+  text-align:center;
+}
+.ref-hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 70% 30%,rgba(0,200,212,.12),transparent 60%),
+             radial-gradient(circle at 30% 70%,rgba(184,150,12,.08),transparent 60%);
+}
+.ref-hero-amount{
+  font-family:var(--font-display);
+  font-size:52px;color:var(--white);
+  line-height:1;margin-bottom:4px;
+  position:relative;
+}
+.ref-hero-amount span{font-size:28px;vertical-align:top;margin-top:8px;display:inline-block}
+.ref-hero-label{
+  font-size:14px;color:rgba(255,255,255,.6);
+  margin-bottom:4px;position:relative;
+}
+.ref-hero-sub{
+  font-size:12px;color:rgba(255,255,255,.4);
+  line-height:1.5;max-width:240px;margin:0 auto;
+  position:relative;
+}
+
+.ref-stats-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:8px;margin-bottom:16px;
+}
+.ref-stat{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:12px;padding:12px;text-align:center;
+}
+.ref-stat-val{
+  font-family:var(--font-display);font-size:22px;
+  color:var(--text);line-height:1;margin-bottom:4px;
+}
+.ref-stat-val.gold{color:var(--gold)}
+.ref-stat-lbl{font-size:10px;color:var(--muted);font-weight:500}
+
+.ref-link-card{
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:14px;padding:16px;margin-bottom:10px;
+}
+.ref-link-lbl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px}
+.ref-link-row{
+  display:flex;align-items:center;gap:8px;
+}
+.ref-link-url{
+  flex:1;font-family:var(--font-mono);font-size:11px;
+  color:var(--muted);overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.btn-copy{
+  padding:8px 16px;border-radius:10px;
+  background:var(--text);border:none;
+  color:var(--white);font-size:12px;font-weight:600;
+  cursor:pointer;font-family:var(--font-body);
+  flex-shrink:0;transition:all .2s;
+}
+.btn-copy:active{transform:scale(.96)}
+
+/* Leaderboard */
+.lb-card{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;
+}
+.lb-header{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.lb-header svg{width:16px;height:16px;stroke:var(--gold);fill:none;stroke-width:1.5}
+.lb-header-title{font-size:14px;font-weight:700;color:var(--text)}
+.lb-row{
+  display:flex;align-items:center;
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  gap:12px;transition:background .15s;
+}
+.lb-row:last-child{border-bottom:none}
+.lb-row.you{background:rgba(0,200,212,.04)}
+.lb-rank-badge{
+  width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  font-family:var(--font-mono);font-size:12px;font-weight:700;
+  background:var(--surface);color:var(--muted);
+}
+.lb-rank-badge.gold{background:rgba(184,150,12,.12);color:var(--gold)}
+.lb-rank-badge.silver{background:rgba(160,160,160,.12);color:#888}
+.lb-rank-badge.bronze{background:rgba(180,100,40,.1);color:#b46428}
+.lb-name{flex:1;font-size:14px;font-weight:500;color:var(--text)}
+.lb-you-tag{
+  font-size:10px;font-weight:700;
+  padding:2px 6px;border-radius:4px;
+  background:rgba(0,200,212,.1);color:var(--cyan-dark);
+  margin-left:4px;
+}
+.lb-credit{
+  font-family:var(--font-mono);font-size:13px;
+  color:var(--green);font-weight:500;
+}
+.lb-conv{font-size:11px;color:var(--muted);margin-left:4px}
+
+/* Credit badge */
+.credit-badge{
+  display:flex;align-items:center;gap:12px;
+  background:linear-gradient(135deg,rgba(0,168,107,.08),rgba(0,168,107,.04));
+  border:1.5px solid rgba(0,168,107,.2);
+  border-radius:14px;padding:16px;margin-bottom:10px;
+}
+.credit-badge-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:rgba(0,168,107,.1);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.credit-badge-icon svg{width:20px;height:20px;stroke:var(--green);fill:none;stroke-width:1.5}
+.credit-badge-body strong{font-size:16px;font-weight:700;color:var(--text);display:block}
+.credit-badge-body span{font-size:12px;color:var(--muted)}
+
+/* Ref gate */
+.ref-gate{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:16px;padding:24px;text-align:center;
+}
+.ref-gate-amount{
+  font-family:var(--font-display);font-size:40px;
+  color:var(--muted2);margin-bottom:4px;
+}
+.ref-gate-label{font-size:13px;color:var(--muted);margin-bottom:16px}
+.ref-gate-rule{
+  font-size:12px;color:var(--muted);line-height:1.6;
+  padding:12px;background:var(--surface);border-radius:10px;
+  margin-bottom:16px;
+}
+
+/* ── ACCOUNT TAB ── */
+.account-header{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:16px;padding:20px;margin-bottom:10px;
+}
+.account-plan-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:100px;
+  background:rgba(0,200,212,.08);border:1px solid rgba(0,200,212,.2);
+  font-size:11px;font-weight:700;color:var(--cyan-dark);
+  letter-spacing:.3px;margin-bottom:12px;
+}
+.account-biz{
+  font-family:var(--font-display);font-size:22px;
+  color:var(--text);margin-bottom:4px;
+}
+.account-invoice{font-size:13px;color:var(--muted)}
+
+.account-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--white);border:1px solid var(--border);
+  border-radius:12px;padding:15px 16px;margin-bottom:8px;
+  cursor:pointer;transition:all .2s;
+}
+.account-row:active{border-color:var(--border2);background:var(--surface)}
+.account-row-left{display:flex;align-items:center;gap:12px}
+.account-row-icon{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+}
+.account-row-icon svg{width:16px;height:16px;stroke:var(--text2);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.account-row-label{font-size:14px;font-weight:500;color:var(--text)}
+.account-row-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.account-row-chevron{
+  color:var(--muted2);font-size:16px;
+}
+.btn-cancel{
+  width:100%;padding:14px;border-radius:14px;
+  background:transparent;border:1.5px solid var(--border);
+  color:var(--red);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font-body);
+  transition:all .2s;margin-top:8px;
+}
+.btn-cancel:active{border-color:var(--red);background:rgba(217,48,37,.04)}
+
+/* ── BOTTOM NAV ── */
+#bottomNav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(60px + var(--safe-b));
+  background:var(--white);
+  border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-around;
+  padding-top:8px;
+  z-index:100;
+}
+.nav-tab{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:4px 16px;cursor:pointer;
+  transition:all .2s;border:none;background:transparent;
+  font-family:var(--font-body);
+}
+.nav-tab svg{
+  width:22px;height:22px;stroke:var(--muted);fill:none;
+  stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
+  transition:stroke .2s;
+}
+.nav-tab span{font-size:10px;font-weight:500;color:var(--muted);transition:color .2s}
+.nav-tab.active svg{stroke:var(--cyan-dark)}
+.nav-tab.active span{color:var(--cyan-dark)}
+
+/* ── SHEET (upgrade, confirm cancel) ── */
+#sheet{
+  position:fixed;inset:0;z-index:300;
+  display:flex;align-items:flex-end;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+#sheet.open{opacity:1;pointer-events:all}
+#sheetInner{
+  width:100%;background:var(--white);
+  border-radius:20px 20px 0 0;
+  padding:24px 24px calc(24px + var(--safe-b));
+  transform:translateY(100%);
+  transition:transform .38s cubic-bezier(.4,0,.2,1);
+  max-height:82vh;overflow-y:auto;
+}
+#sheet.open #sheetInner{transform:translateY(0)}
+.sheet-handle{
+  width:36px;height:4px;border-radius:2px;
+  background:var(--border2);margin:0 auto 20px;
+}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;top:68px;left:50%;
+  transform:translateX(-50%) translateY(-20px);
+  background:var(--text);color:var(--white);
+  font-size:13px;font-weight:500;
+  padding:10px 20px;border-radius:100px;
+  opacity:0;transition:all .3s;
+  white-space:nowrap;z-index:500;pointer-events:none;
+  box-shadow:0 4px 16px rgba(0,0,0,.15);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--green)}
+#toast.err{background:var(--red)}
+</style>
+</head>
+<body>
+
+<div id="topBar">
+  <div class="top-brand">Website<span>Hub</span></div>
+  <div class="top-biz" id="topBiz">Your Business</div>
+  <div class="top-live-pill"><div class="live-dot"></div>LIVE</div>
+</div>
+
+<div id="content">
+
+  <!-- ── HOME TAB ── -->
+  <div class="tab-panel active" id="tab-home">
+
+    <div class="hero-site-card">
+      <div class="hero-domain" id="heroDomain">domain.co.za</div>
+      <div class="hero-biz" id="heroBiz">Your Business</div>
+      <div class="hero-btns">
+        <button class="btn-open-site" onclick="openSite()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open my site
+        </button>
+        <button class="btn-share-site" onclick="shareSite()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share
+        </button>
+      </div>
+    </div>
+
+    <div class="section-lbl">This month</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-lbl">Site visits</div>
+        <div class="stat-val c" id="sVisits">—</div>
+        <div class="stat-delta" id="sVisitsDelta"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">WhatsApp taps</div>
+        <div class="stat-val" id="sWaTaps">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Next invoice</div>
+        <div class="stat-val" id="sInvoice" style="font-size:18px;margin-top:4px">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Referral credit</div>
+        <div class="stat-val" id="sCredit" style="font-size:18px;margin-top:4px;color:var(--green)">R0</div>
+      </div>
+    </div>
+
+    <div class="section-lbl">Quick actions</div>
+    <div class="quick-grid">
+      <div class="q-tile" onclick="switchTab('site')">
+        <div class="q-tile-icon">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <div class="q-label">Edit site</div>
+        <div class="q-sub" id="qRevSub">—</div>
+      </div>
+      <div class="q-tile" id="qEmailTile" onclick="switchTab('email')">
+        <div class="q-tile-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="q-label">Business email</div>
+        <div class="q-sub" id="qEmailSub">—</div>
+        <div class="q-lock" id="qEmailLock" style="display:none">
+          <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+        </div>
+      </div>
+      <div class="q-tile" id="qGalleryTile" onclick="galleryTap()">
+        <div class="q-tile-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+        </div>
+        <div class="q-label">Gallery</div>
+        <div class="q-sub" id="qGallerySub">Add photos</div>
+        <div class="q-lock" id="qGalleryLock" style="display:none">
+          <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+        </div>
+      </div>
+      <div class="q-tile" onclick="switchTab('referrals')">
+        <div class="q-tile-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <div class="q-label">Refer & earn</div>
+        <div class="q-sub" id="qRefSub">—</div>
+      </div>
+    </div>
+
+    <div id="upgradeSection" style="display:none">
+      <div class="section-lbl">Level up</div>
+      <div id="upgradeCards"></div>
+    </div>
+
+  </div>
+
+  <!-- ── SITE TAB ── -->
+  <div class="tab-panel" id="tab-site">
+
+    <div class="section-lbl">Your live site</div>
+    <div class="info-row">
+      <div class="info-row-label">Domain</div>
+      <div class="info-row-value" id="siteDomain">—</div>
+    </div>
+    <div class="info-row">
+      <div class="info-row-label">Status</div>
+      <div style="font-size:12px;font-weight:700;color:var(--green)">LIVE</div>
+    </div>
+    <button class="btn-primary" style="margin:4px 0 16px" onclick="openSite()">Open my site ↗</button>
+
+    <div class="section-lbl">Request a change</div>
+    <div class="allow-card">
+      <div class="allow-row">
+        <div class="allow-lbl">Revisions this month</div>
+        <div class="allow-val" id="revCount">—</div>
+      </div>
+      <div class="allow-track"><div class="allow-fill" id="revFill" style="width:0%"></div></div>
+    </div>
+    <textarea class="rev-ta" id="revText"
+      placeholder="Describe what you'd like changed…&#10;e.g. Update my headline to 'Floors Built to Last'&#10;e.g. Add our new phone number 082 000 0000"></textarea>
+    <button class="btn-primary" onclick="submitRevision()" id="revBtn">Submit change request</button>
+
+    <div class="section-lbl" style="margin-top:24px">Recent requests</div>
+    <div id="revHistory">
+      <div style="font-size:13px;color:var(--muted);padding:12px 0">No revisions yet</div>
+    </div>
+
+  </div>
+
+  <!-- ── EMAIL TAB ── -->
+  <div class="tab-panel" id="tab-email">
+
+    <div class="section-lbl">Business email</div>
+    <div id="emailActive" style="display:none">
+      <div class="email-card">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Your business email</div>
+        <div class="email-addr" id="emailAddr">hello@domain.co.za</div>
+        <button class="btn-email-open" onclick="openWebmail()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Open webmail
+        </button>
+      </div>
+      <div class="email-card">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Set up on your phone</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Add your business email to the Mail app. WhatsApp us and we'll walk you through the setup in under 5 minutes.</div>
+      </div>
+    </div>
+
+    <div id="emailGate" style="display:none">
+      <div class="email-coming">
+        <div class="email-coming-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div style="font-family:var(--font-display);font-size:20px;margin-bottom:8px">Business email</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;max-width:260px;margin:0 auto 20px">Get hello@yourdomain.co.za included with Standard and Premium</div>
+      </div>
+      <div class="upgrade-card" id="emailUpgradeCard"></div>
+    </div>
+
+  </div>
+
+  <!-- ── REFERRALS TAB ── -->
+  <div class="tab-panel" id="tab-referrals">
+
+    <div id="refActive" style="display:none">
+
+      <div class="ref-hero">
+        <div class="ref-hero-amount"><span>R</span><span id="refCreditVal">0</span></div>
+        <div class="ref-hero-label">credit earned</div>
+        <div class="ref-hero-sub">1 free month per referral who goes live on your plan or higher</div>
+      </div>
+
+      <div class="section-lbl">Your numbers</div>
+      <div class="ref-stats-grid">
+        <div class="ref-stat">
+          <div class="ref-stat-val" id="refSent">0</div>
+          <div class="ref-stat-lbl">Links shared</div>
+        </div>
+        <div class="ref-stat">
+          <div class="ref-stat-val gold" id="refConv">0</div>
+          <div class="ref-stat-lbl">Went live</div>
+        </div>
+        <div class="ref-stat">
+          <div class="ref-stat-val" id="refMonths">0</div>
+          <div class="ref-stat-lbl">Free months</div>
+        </div>
+      </div>
+
+      <div id="creditBadge" style="display:none">
+        <div class="credit-badge">
+          <div class="credit-badge-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div class="credit-badge-body">
+            <strong id="creditBadgeVal">R0 credit</strong>
+            <span>Applied to your next invoice automatically</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-lbl">Your referral link</div>
+      <div class="ref-link-card">
+        <div class="ref-link-lbl">Share this link — earn 1 free month per sign-up</div>
+        <div class="ref-link-row">
+          <div class="ref-link-url" id="refLink">—</div>
+          <button class="btn-copy" onclick="copyRefLink()">Copy</button>
+        </div>
+      </div>
+
+      <div class="section-lbl">Leaderboard</div>
+      <div class="lb-card" id="refLeaderboard">
+        <div style="padding:20px;text-align:center;font-size:13px;color:var(--muted)">Loading leaderboard…</div>
+      </div>
+
+    </div>
+
+    <div id="refGate" style="display:none">
+      <div class="ref-gate">
+        <div class="ref-gate-amount">R999</div>
+        <div class="ref-gate-label">credit per referral — Premium only</div>
+        <div class="ref-gate-rule">
+          Premium members earn one free month of their plan for every person they refer who goes live on Standard or higher. Credit is applied automatically.
+        </div>
+        <div class="upgrade-card" id="refUpgradeCard"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── ACCOUNT TAB ── -->
+  <div class="tab-panel" id="tab-account">
+
+    <div class="section-lbl">Your plan</div>
+    <div class="account-header">
+      <div class="account-plan-badge" id="acctPlanBadge">Standard</div>
+      <div class="account-biz" id="acctBiz">Your Business</div>
+      <div class="account-invoice" id="acctInvoice">Next invoice: —</div>
+    </div>
+
+    <div class="section-lbl">Manage</div>
+    <div class="account-row" onclick="openSite()">
+      <div class="account-row-left">
+        <div class="account-row-icon">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </div>
+        <div>
+          <div class="account-row-label">View live site</div>
+          <div class="account-row-sub" id="acctDomainRow">—</div>
+        </div>
+      </div>
+      <div class="account-row-chevron">›</div>
+    </div>
+    <div class="account-row" onclick="switchTab('site')">
+      <div class="account-row-left">
+        <div class="account-row-icon">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <div>
+          <div class="account-row-label">Request a change</div>
+          <div class="account-row-sub">Updated within 24 hours</div>
+        </div>
+      </div>
+      <div class="account-row-chevron">›</div>
+    </div>
+    <div class="account-row" onclick="contactSupport()">
+      <div class="account-row-left">
+        <div class="account-row-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div>
+          <div class="account-row-label">WhatsApp support</div>
+          <div class="account-row-sub">Usually responds within the hour</div>
+        </div>
+      </div>
+      <div class="account-row-chevron">›</div>
+    </div>
+
+    <div id="upgradeAccountSection" style="display:none">
+      <div class="section-lbl">Upgrade your plan</div>
+      <div id="upgradeAccountCards"></div>
+    </div>
+
+    <div class="section-lbl" style="margin-top:24px">Danger zone</div>
+    <button class="btn-cancel" onclick="cancelSite()">Cancel subscription</button>
+
+  </div>
+
+</div>
+
+<!-- ── BOTTOM NAV ── -->
+<div id="bottomNav">
+  <button class="nav-tab active" data-tab="home" onclick="switchTab('home')">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="nav-tab" data-tab="site" onclick="switchTab('site')">
+    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    <span>Site</span>
+  </button>
+  <button class="nav-tab" data-tab="referrals" onclick="switchTab('referrals')">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    <span>Referrals</span>
+  </button>
+  <button class="nav-tab" data-tab="email" onclick="switchTab('email')">
+    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    <span>Email</span>
+  </button>
+  <button class="nav-tab" data-tab="account" onclick="switchTab('account')">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Account</span>
+  </button>
+</div>
+
+<!-- ── SHEET ── -->
+<div id="sheet" onclick="closeSheet()">
+  <div id="sheetInner" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div id="sheetContent"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const S = {
+  token: null,
+  slug: null,
+  data: null,
+};
+
+const PLANS = {
+  express:  { name:'Express',  monthly:299,  features:['Domain','WhatsApp CTA','1 revision/month'] },
+  standard: { name:'Standard', monthly:699,  features:['Everything in Express','Business email','Logo & socials','Analytics','5 revisions/month'] },
+  premium:  { name:'Premium',  monthly:999,  features:['Everything in Standard','Photo gallery','Map location','Google Business Profile','Enquiry form','Unlimited revisions','Referral programme'] },
+};
+
+const PLAN_RANK = { express:1, standard:2, premium:3 };
+
+function el(id){ return document.getElementById(id) }
+
+// ── BOOTSTRAP ────────────────────────────────────────────────────
+async function bootstrap() {
+  const path = location.pathname;
+  const token = (path.match(/\/manage\/([^/]+)/) || [])[1]
+    || window.__WH_TOKEN__
+    || null;
+
+  if (token) S.token = token;
+
+  if (!token) {
+    // Dev mode
+    renderDash(devData());
+    return;
+  }
+
+  try {
+    const d = await apiFetch(`/manage-panel?token=${token}`);
+    S.data = d;
+    S.slug = d.slug;
+    renderDash(d);
+  } catch(err) {
+    if (err.message === '404') {
+      location.href = '/start';
+    } else {
+      toast("Couldn't load dashboard — check connection", 'err');
+    }
+  }
+}
+
+function devData() {
+  return {
+    businessName: 'Jimmys Nails',
+    slug: 'jimmysnails',
+    domain: 'jimmysnails.co.za',
+    liveUrl: 'https://jimmysnails.co.za',
+    package: 'standard',
+    status: 'live',
+    retainer: 699,
+    nextInvoiceDate: '2026-07-01',
+    revisions: { used: 1, limit: 5 },
+    email: { active: false },
+    analytics: { visits: 47, waTaps: 12 },
+    referral: {
+      active: false,
+      link: 'https://websitehub.co.za?ref=jimmysnails',
+      sent: 3, conversions: 1, creditEarned: 699,
+      leaderboard: [
+        { rank:1, name:'Thabo M.',  conversions:5, credit:3495 },
+        { rank:2, name:'Zanele K.', conversions:3, credit:2097 },
+        { rank:3, name:'Mike T.',   conversions:2, credit:1398 },
+        { rank:4, name:'You',       conversions:1, credit:699, isYou:true },
+        { rank:5, name:'Sipho N.',  conversions:1, credit:699 },
+      ]
+    },
+    upgradeOffers: [
+      { to: 'premium', delta: 300 }
+    ],
+  };
+}
+
+// ── RENDER DASHBOARD ─────────────────────────────────────────────
+function renderDash(d) {
+  S.data = d;
+  const pkg = (d.package || 'express').toLowerCase();
+  const rank = PLAN_RANK[pkg] || 1;
+
+  // Top bar
+  el('topBiz').textContent = d.businessName || 'Your Business';
+
+  // Hero card
+  el('heroDomain').textContent = d.domain || (d.slug + '.co.za');
+  el('heroBiz').textContent = d.businessName || 'Your Business';
+
+  // Stats
+  el('sVisits').textContent = d.analytics?.visits ?? '—';
+  el('sWaTaps').textContent = d.analytics?.waTaps ?? '—';
+  const inv = d.nextInvoiceDate
+    ? new Date(d.nextInvoiceDate).toLocaleDateString('en-ZA',{day:'numeric',month:'short'})
+    : '—';
+  el('sInvoice').textContent = inv;
+  const credit = d.referral?.creditEarned || 0;
+  el('sCredit').textContent = credit > 0 ? 'R' + credit.toLocaleString() : 'R0';
+
+  // Quick tiles
+  const used = d.revisions?.used || 0;
+  const limit = d.revisions?.limit ?? 2;
+  el('qRevSub').textContent = limit === null ? 'Unlimited' : `${limit - used} of ${limit} left`;
+
+  // Email tile
+  const hasEmail = rank >= 2;
+  if (hasEmail && d.email?.active) {
+    el('qEmailSub').textContent = d.email.address || `hello@${d.domain}`;
+    el('qEmailLock').style.display = 'none';
+  } else if (hasEmail) {
+    el('qEmailSub').textContent = 'Set up email';
+    el('qEmailLock').style.display = 'none';
+  } else {
+    el('qEmailSub').textContent = 'Standard feature';
+    el('qEmailLock').style.display = 'block';
+    el('qEmailTile').classList.add('locked');
+  }
+
+  // Gallery tile
+  const hasGallery = rank >= 3;
+  if (hasGallery) {
+    el('qGallerySub').textContent = 'Add photos';
+    el('qGalleryLock').style.display = 'none';
+  } else {
+    el('qGallerySub').textContent = 'Premium feature';
+    el('qGalleryLock').style.display = 'block';
+    el('qGalleryTile').classList.add('locked');
+  }
+
+  // Referral quick tile
+  const hasRef = rank >= 3;
+  el('qRefSub').textContent = hasRef
+    ? (credit > 0 ? 'R' + credit.toLocaleString() + ' earned' : 'Share & earn')
+    : 'Premium feature';
+
+  // Upgrade cards
+  if (d.upgradeOffers?.length) {
+    el('upgradeSection').style.display = 'block';
+    el('upgradeCards').innerHTML = d.upgradeOffers.map(o => upgradeCardHTML(o.to, o.delta, pkg)).join('');
+    el('upgradeAccountSection').style.display = 'block';
+    el('upgradeAccountCards').innerHTML = d.upgradeOffers.map(o => upgradeCardHTML(o.to, o.delta, pkg)).join('');
+  }
+
+  // Site tab
+  el('siteDomain').textContent = d.domain || (d.slug + '.co.za');
+  el('revCount').textContent = limit === null ? '∞ unlimited' : `${used} / ${limit} used`;
+  el('revFill').style.width = limit === null ? '0%' : `${Math.min(100,(used/limit)*100)}%`;
+
+  // Email tab
+  if (hasEmail && d.email?.active) {
+    el('emailActive').style.display = 'block';
+    el('emailGate').style.display = 'none';
+    el('emailAddr').textContent = d.email.address || `hello@${d.domain}`;
+  } else if (!hasEmail) {
+    el('emailActive').style.display = 'none';
+    el('emailGate').style.display = 'block';
+    el('emailUpgradeCard').innerHTML = upgradeCardHTML('standard', 300, pkg);
+  } else {
+    el('emailActive').style.display = 'none';
+    el('emailGate').style.display = 'block';
+    el('emailUpgradeCard').innerHTML = `<div style="font-size:13px;color:var(--muted);text-align:center;padding:16px">Your email is being set up — we'll WhatsApp you shortly.</div>`;
+  }
+
+  // Referrals tab
+  if (hasRef) {
+    el('refActive').style.display = 'block';
+    el('refGate').style.display = 'none';
+    const ref = d.referral || {};
+    el('refCreditVal').textContent = (ref.creditEarned || 0).toLocaleString();
+    el('refSent').textContent = ref.sent || 0;
+    el('refConv').textContent = ref.conversions || 0;
+    el('refMonths').textContent = ref.conversions || 0;
+    el('refLink').textContent = ref.link || '—';
+
+    if ((ref.creditEarned || 0) > 0) {
+      el('creditBadge').style.display = 'flex';
+      el('creditBadgeVal').textContent = `R${ref.creditEarned.toLocaleString()} credit`;
+    }
+
+    // Leaderboard
+    const lb = ref.leaderboard || [];
+    el('refLeaderboard').innerHTML = lb.length
+      ? `<div class="lb-header">
+           <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+           <div class="lb-header-title">Referral leaderboard</div>
+         </div>` +
+        lb.map(e => {
+          const medalClass = e.rank === 1 ? 'gold' : e.rank === 2 ? 'silver' : e.rank === 3 ? 'bronze' : '';
+          const medalLabel = e.rank <= 3 ? ['1st','2nd','3rd'][e.rank-1] : e.rank + '.';
+          return `<div class="lb-row${e.isYou ? ' you' : ''}">
+            <div class="lb-rank-badge ${medalClass}">${medalLabel}</div>
+            <div class="lb-name">${e.name}${e.isYou ? '<span class="lb-you-tag">YOU</span>' : ''}</div>
+            <div>
+              <div class="lb-credit">R${e.credit.toLocaleString()}</div>
+              <div class="lb-conv">${e.conversions} referral${e.conversions !== 1 ? 's' : ''}</div>
+            </div>
+          </div>`;
+        }).join('')
+      : `<div class="lb-header">
+           <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+           <div class="lb-header-title">Referral leaderboard</div>
+         </div>
+         <div style="padding:24px;text-align:center;font-size:13px;color:var(--muted)">No referrals yet — be the first on the board</div>`;
+  } else {
+    el('refActive').style.display = 'none';
+    el('refGate').style.display = 'block';
+    el('refUpgradeCard').innerHTML = upgradeCardHTML('premium', PLANS.premium.monthly - PLANS[pkg].monthly, pkg);
+  }
+
+  // Account tab
+  el('acctPlanBadge').textContent = PLANS[pkg]?.name || pkg;
+  el('acctBiz').textContent = d.businessName || 'Your Business';
+  el('acctInvoice').textContent = `Next invoice: ${inv} · R${d.retainer || PLANS[pkg]?.monthly}/mo`;
+  el('acctDomainRow').textContent = d.domain || (d.slug + '.co.za');
+}
+
+function upgradeCardHTML(to, delta, from) {
+  const plan = PLANS[to];
+  if (!plan) return '';
+  const newFeatures = {
+    standard: ['Business email','Logo & socials','Analytics','5 revisions/month'],
+    premium:  ['Photo gallery','Map location','Google Business Profile','Enquiry form','Unlimited revisions','Referral programme'],
+  }[to] || [];
+  return `<div class="upgrade-card">
+    <div class="upgrade-card-eyebrow">UPGRADE TO ${to.toUpperCase()}</div>
+    <div class="upgrade-card-title">Add R${delta}/month</div>
+    <div class="upgrade-card-desc">Everything in ${PLANS[from]?.name || from}, plus:</div>
+    <div class="upgrade-card-features">
+      ${newFeatures.map(f => `<div class="upgrade-feat">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        ${f}
+      </div>`).join('')}
+    </div>
+    <button class="btn-upgrade" onclick="startUpgrade('${to}',${delta})">Upgrade to ${plan.name} — +R${delta}/mo →</button>
+  </div>`;
+}
+
+// ── TABS ─────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  el('tab-' + tab)?.classList.add('active');
+  document.querySelector(`.nav-tab[data-tab="${tab}"]`)?.classList.add('active');
+  el('content').scrollTop = 0;
+}
+
+// ── ACTIONS ──────────────────────────────────────────────────────
+function openSite() {
+  const u = S.data?.liveUrl || (S.data?.domain ? `https://${S.data.domain}` : null);
+  if (u) window.open(u, '_blank');
+}
+
+function shareSite() {
+  const u = S.data?.liveUrl || `https://${S.data?.domain}`;
+  if (navigator.share) {
+    navigator.share({ title: S.data?.businessName, url: u }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(u).then(() => toast('Link copied!', 'ok'));
+  }
+}
+
+function openWebmail() {
+  const domain = S.data?.domain;
+  if (domain) window.open(`https://webmail.${domain}`, '_blank');
+}
+
+function galleryTap() {
+  const pkg = (S.data?.package || 'express').toLowerCase();
+  if (PLAN_RANK[pkg] < 3) {
+    toast('Gallery is a Premium feature', 'err');
+    switchTab('referrals'); // nudge to upgrade path
+  } else {
+    toast('Gallery — coming soon', 'ok');
+  }
+}
+
+function copyRefLink() {
+  const link = el('refLink').textContent;
+  if (!link || link === '—') { toast('No referral link available', 'err'); return; }
+  navigator.clipboard?.writeText(link)
+    .then(() => toast('Referral link copied!', 'ok'))
+    .catch(() => toast('Could not copy', 'err'));
+}
+
+function contactSupport() {
+  window.open('https://wa.me/27000000000?text=Hi+Website+Hub+support', '_blank');
+}
+
+async function submitRevision() {
+  const txt = el('revText').value.trim();
+  if (!txt) { toast('Describe what you want changed', 'err'); return; }
+
+  const btn = el('revBtn');
+  btn.textContent = 'Submitting…';
+  btn.disabled = true;
+
+  if (!S.token) {
+    setTimeout(() => {
+      toast('Change submitted ✓ (demo mode)', 'ok');
+      el('revText').value = '';
+      btn.textContent = 'Submit change request';
+      btn.disabled = false;
+    }, 800);
+    return;
+  }
+
+  try {
+    const d = await apiFetch('/submit-revision', {
+      method: 'POST',
+      body: JSON.stringify({ token: S.token, message: txt, type: 'free' })
+    });
+    if (d.success) {
+      toast("Request submitted ✓ We'll update your site within 24hrs", 'ok');
+      el('revText').value = '';
+    } else if (d.paymentRequired) {
+      toast('Revision limit reached — upgrade for more', 'err');
+    }
+  } catch {
+    toast("Couldn't submit — check connection", 'err');
+  } finally {
+    btn.textContent = 'Submit change request';
+    btn.disabled = false;
+  }
+}
+
+function startUpgrade(to, delta) {
+  toast(`Upgrade to ${PLANS[to]?.name} — coming soon`, 'ok');
+}
+
+async function cancelSite() {
+  el('sheetContent').innerHTML = `
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-family:var(--font-display);font-size:22px;margin-bottom:8px">Cancel subscription?</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Your site stays live until the end of this billing period. After that it'll be taken offline.</div>
+    </div>
+    <button class="btn-cancel" onclick="confirmCancel()" style="margin-bottom:10px;border-radius:14px">Yes, cancel my subscription</button>
+    <button onclick="closeSheet()" style="width:100%;padding:14px;border-radius:14px;background:transparent;border:none;color:var(--muted);font-size:14px;cursor:pointer;font-family:var(--font-body)">Keep my site active</button>
+  `;
+  el('sheet').classList.add('open');
+}
+
+async function confirmCancel() {
+  closeSheet();
+  if (!S.token) { toast('Cancellation (demo mode)', 'ok'); return; }
+  try {
+    await apiFetch('/cancel-site', { method:'POST', body: JSON.stringify({ token: S.token }) });
+    toast('Cancellation received. We\'ll send confirmation via WhatsApp.', 'ok');
+  } catch {
+    toast("Couldn't process — please WhatsApp us", 'err');
+  }
+}
+
+function openSheet()  { el('sheet').classList.add('open'); }
+function closeSheet() { el('sheet').classList.remove('open'); }
+
+// ── API ──────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) },
+    ...opts,
+  });
+  if (!res.ok) { const e = new Error(String(res.status)); e.message = String(res.status); throw e; }
+  return res.json();
+}
+
+// ── TOAST ────────────────────────────────────────────────────────
+let _tt;
+function toast(msg, type='') {
+  const t = el('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.className = '', 3000);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+bootstrap();
+</script>
+</body>
+</html>
