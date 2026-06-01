@@ -172,6 +172,7 @@ export default {
         if (path === '/admin/bootstrap-intake'  && method === 'POST') return handleAdminBootstrapIntake(request, env);
         if (path === '/admin/bootstrap-preview' && method === 'POST') return handleAdminBootstrapPreview(request, env);
         if (path === '/admin/bootstrap-manage'  && method === 'POST') return handleAdminBootstrapManage(request, env);
+      if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
         if (path === '/admin/migrate'         && method === 'POST') return handleAdminMigrate(request, env);
         if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
         if (path === '/admin/build-detail'     && method === 'GET')  return handleAdminBuildDetail(url, env);
@@ -296,6 +297,26 @@ async function handleAdminBootstrapPreview(request, env) {
   if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
   await env.SITES.put('app:preview', html);
   return jsonResponse({ success: true, size: html.length });
+}
+
+async function handleTestWhatsapp(request, env) {
+  const { to, message } = await request.json().catch(() => ({}));
+  if (!to) return jsonResponse({ error: 'to required' }, 400);
+  const evoUrl = env.EVOLUTION_API_URL;
+  const evoKey = env.EVOLUTION_API_KEY;
+  const evoInstance = env.EVOLUTION_INSTANCE || 'wa1';
+  if (!evoUrl || !evoKey) return jsonResponse({ error: 'Evolution API not configured', evoUrl: !!evoUrl, evoKey: !!evoKey }, 500);
+  try {
+    const res = await fetch(`${evoUrl}/message/sendText/${evoInstance}`, {
+      method: 'POST',
+      headers: { 'apikey': evoKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: to, textMessage: { text: message || 'Test from Website Hub ✅' } }),
+    });
+    const data = await res.json().catch(() => ({}));
+    return jsonResponse({ status: res.status, ok: res.ok, data, evoUrl, evoInstance });
+  } catch(e) {
+    return jsonResponse({ error: e.message, evoUrl, evoInstance }, 500);
+  }
 }
 
 async function handleAdminBootstrapManage(request, env) {
