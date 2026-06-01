@@ -62,6 +62,24 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: launch-worker
+          secrets: |
+            PAYFAST_MERCHANT_KEY
+            PAYFAST_PASSPHRASE
+            PAYFAST_SANDBOX_MERCHANT_ID
+            PAYFAST_SANDBOX_MERCHANT_KEY
+            ANTHROPIC_KEY
+            WH_PHONE
+            ADMIN_KEY
+            CF_API_TOKEN
+        env:
+          PAYFAST_MERCHANT_KEY: ${{ secrets.PAYFAST_MERCHANT_KEY }}
+          PAYFAST_PASSPHRASE: ${{ secrets.PAYFAST_PASSPHRASE }}
+          PAYFAST_SANDBOX_MERCHANT_ID: ${{ secrets.PAYFAST_SANDBOX_MERCHANT_ID }}
+          PAYFAST_SANDBOX_MERCHANT_KEY: ${{ secrets.PAYFAST_SANDBOX_MERCHANT_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          WH_PHONE: ${{ secrets.WH_PHONE }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
   deploy-pulse:
     name: Deploy wh-pulse
