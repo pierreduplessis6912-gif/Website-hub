@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Website Hub — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0a0f;--surface:rgba(20,20,35,.6);--surface2:#12121a;
+  --cyan:#00f0ff;--magenta:#ff00a0;--purple:#b829dd;--green:#00ff88;--orange:#ff6b35;--amber:#ffc400;
+  --text:#e8e8f0;--muted:#8b8b9e;--faint:#44445a;
+  --border:rgba(255,255,255,.08);--border2:rgba(0,240,255,.15);
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+
+/* BG */
+.bg-grid{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.3;
+  background-image:linear-gradient(rgba(0,240,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,.03) 1px,transparent 1px);
+  background-size:60px 60px;animation:gridMove 20s linear infinite;}
+@keyframes gridMove{0%{transform:translate(0,0);}100%{transform:translate(60px,60px);}}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;animation:orbFloat 8s ease-in-out infinite;}
+.orb-1{width:500px;height:500px;background:rgba(0,240,255,.05);top:-150px;right:-100px;}
+.orb-2{width:400px;height:400px;background:rgba(184,41,221,.05);bottom:-100px;left:-100px;animation-delay:-4s;}
+@keyframes orbFloat{0%,100%{transform:translate(0,0);}50%{transform:translate(20px,-20px);}}
+
+/* LAYOUT */
+.app{position:relative;z-index:1;display:grid;grid-template-rows:52px 1fr;height:100vh;}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  background:rgba(10,10,15,.9);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;
+}
+.brand{font-size:.75rem;font-weight:800;letter-spacing:.25em;text-transform:uppercase;color:var(--cyan);text-shadow:0 0 20px rgba(0,240,255,.4);}
+.brand em{color:var(--muted);font-style:normal;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.health-chip{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:.7rem;font-family:var(--mono);color:var(--muted);cursor:pointer;transition:all .2s;}
+.health-chip:hover{border-color:var(--border2);}
+.h-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);transition:all .3s;flex-shrink:0;}
+.h-dot.ok{background:var(--green);box-shadow:0 0 8px var(--green);}
+.h-dot.err{background:var(--magenta);box-shadow:0 0 8px var(--magenta);}
+.h-dot.checking{background:var(--cyan);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.ts-chip{font-family:var(--mono);font-size:.65rem;color:var(--muted);}
+
+/* BODY */
+.body{display:grid;grid-template-columns:220px 1fr;height:calc(100vh - 52px);}
+@media(max-width:768px){.body{grid-template-columns:1fr;}.sidebar{display:none;}}
+
+/* SIDEBAR */
+.sidebar{background:rgba(10,10,15,.7);backdrop-filter:blur(20px);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 0;overflow-y:auto;}
+.nav-section{margin-bottom:4px;}
+.nav-section-label{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);opacity:.5;padding:8px 20px 4px;}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:9px 20px;width:100%;text-align:left;font-size:.78rem;font-weight:500;color:var(--muted);transition:all .2s;border-left:2px solid transparent;}
+.nav-btn:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.nav-btn.active{color:var(--cyan);background:rgba(0,240,255,.06);border-left-color:var(--cyan);}
+.nav-icon{font-size:.9rem;width:18px;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:rgba(0,240,255,.12);border:1px solid rgba(0,240,255,.2);color:var(--cyan);font-family:var(--mono);font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:20px;}
+.nav-badge.green{background:rgba(0,255,136,.12);border-color:rgba(0,255,136,.2);color:var(--green);}
+.nav-sep{height:1px;background:var(--border);margin:8px 20px;}
+
+/* Outbound toggle in sidebar */
+.sidebar-outbound{padding:12px 16px;margin:4px 8px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all .3s;}
+.sidebar-outbound.on{border-color:var(--green);background:rgba(0,255,136,.06);}
+.sidebar-outbound.off{border-color:rgba(255,61,87,.3);background:rgba(255,61,87,.04);}
+.sob-row{display:flex;align-items:center;justify-content:space-between;}
+.sob-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+.sob-label.on{color:var(--green);}
+.sob-label.off{color:#ff3d57;}
+.sob-knob{width:36px;height:20px;border-radius:10px;position:relative;transition:all .2s;border:1px solid;}
+.sob-knob.on{background:rgba(0,255,136,.15);border-color:var(--green);}
+.sob-knob.off{background:rgba(255,61,87,.1);border-color:#ff3d57;}
+.sob-dot{position:absolute;top:3px;width:12px;height:12px;border-radius:50%;transition:all .25s;}
+.sob-knob.on .sob-dot{left:calc(100% - 15px);background:var(--green);}
+.sob-knob.off .sob-dot{left:3px;background:#ff3d57;}
+.sob-sub{font-size:.6rem;color:var(--muted);margin-top:4px;font-family:var(--mono);}
+
+.sidebar-footer{margin-top:auto;padding:14px 20px;border-top:1px solid var(--border);}
+.sf-label{font-size:.58rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.5;margin-bottom:3px;}
+.sf-val{font-family:var(--mono);font-size:.65rem;color:var(--muted);}
+
+/* MAIN */
+.main{overflow-y:auto;padding:24px;scrollbar-width:none;}
+.main::-webkit-scrollbar{display:none;}
+.page{display:none;}
+.page.active{display:block;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* PAGE HEADER */
+.ph{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;}
+.ph-title{font-size:1.4rem;font-weight:800;letter-spacing:-.02em;}
+.ph-sub{font-size:.7rem;color:var(--muted);margin-top:2px;font-family:var(--mono);}
+.ph-actions{display:flex;gap:8px;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.stat-tile{background:var(--surface);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;transition:all .2s;}
+.stat-tile:hover{border-color:var(--border2);transform:translateY(-2px);}
+.stat-num{font-size:1.8rem;font-weight:800;line-height:1;}
+.stat-num.cyan{color:var(--cyan);}
+.stat-num.green{color:var(--green);}
+.stat-num.purple{color:var(--purple);}
+.stat-num.orange{color:var(--orange);}
+.stat-num.magenta{color:var(--magenta);}
+.stat-lbl{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:5px;}
+
+/* CARDS */
+.card{background:var(--surface);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;position:relative;overflow:hidden;margin-bottom:16px;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0;transition:opacity .3s;}
+.card:hover::before{opacity:.5;}
+.card-header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.card-title{font-size:.68rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.card-meta{font-family:var(--mono);font-size:.62rem;color:var(--muted);opacity:.6;}
+
+/* EVENTS FEED */
+.event-row{display:flex;align-items:center;gap:12px;padding:9px 18px;border-bottom:1px solid rgba(255,255,255,.03);font-size:.76rem;transition:background .15s;}
+.event-row:last-child{border-bottom:none;}
+.event-row:hover{background:rgba(255,255,255,.02);}
+.ev-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.ev-dot.success{background:var(--green);box-shadow:0 0 6px var(--green);}
+.ev-dot.error,.ev-dot.failure{background:var(--magenta);box-shadow:0 0 6px var(--magenta);}
+.ev-worker{font-family:var(--mono);font-size:.66rem;color:var(--cyan);width:56px;flex-shrink:0;}
+.ev-type{flex:1;color:var(--text);}
+.ev-time{font-family:var(--mono);font-size:.62px;color:var(--muted);}
+
+/* TABLE */
+.table-card{overflow:hidden;}
+.table-toolbar{padding:10px 18px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.search-box{font-family:var(--mono);font-size:.7rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;outline:none;width:180px;transition:border-color .2s;}
+.search-box:focus{border-color:rgba(0,240,255,.3);}
+.search-box::placeholder{color:var(--muted);}
+.filter-btn{font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .2s;}
+.filter-btn:hover,.filter-btn.active{background:rgba(0,240,255,.08);border-color:rgba(0,240,255,.25);color:var(--cyan);}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-size:.58rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);padding:9px 16px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.03);transition:background .15s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(0,240,255,.03);}
+td{padding:10px 16px;vertical-align:middle;font-size:.78rem;}
+td.mono{font-family:var(--mono);font-size:.68rem;color:var(--muted);}
+.biz-name{font-weight:600;color:var(--text);}
+.biz-slug{font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-top:2px;}
+.empty-state{padding:40px;text-align:center;font-family:var(--mono);font-size:.7rem;color:var(--muted);opacity:.5;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.badge.lead{background:rgba(255,255,255,.06);color:#666;border:1px solid rgba(255,255,255,.08);}
+.badge.lead::before{background:#555;}
+.badge.preview_ready{background:rgba(0,240,255,.1);color:var(--cyan);border:1px solid rgba(0,240,255,.2);}
+.badge.preview_ready::before{background:var(--cyan);}
+.badge.building{background:rgba(184,41,221,.1);color:var(--purple);border:1px solid rgba(184,41,221,.2);}
+.badge.building::before{background:var(--purple);animation:blink 1s infinite;}
+.badge.live{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2);}
+.badge.live::before{background:var(--green);box-shadow:0 0 6px var(--green);}
+.badge.suspended{background:rgba(255,0,160,.1);color:var(--magenta);border:1px solid rgba(255,0,160,.2);}
+.badge.suspended::before{background:var(--magenta);}
+.pkg-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+.pkg-badge.express{background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.2);color:var(--cyan);}
+.pkg-badge.standard{background:rgba(184,41,221,.1);border:1px solid rgba(184,41,221,.2);color:var(--purple);}
+.pkg-badge.premium{background:rgba(255,0,160,.1);border:1px solid rgba(255,0,160,.2);color:var(--magenta);}
+
+/* BTNS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:9px;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .2s;border:none;outline:none;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#000;font-weight:700;}
+.btn-outline{background:transparent;color:var(--cyan);border:1px solid rgba(0,240,255,.3);}
+.btn-outline:hover{background:rgba(0,240,255,.08);}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border);font-size:.7rem;}
+.btn-ghost:hover{background:rgba(255,255,255,.1);color:var(--text);}
+.btn-danger{background:rgba(255,0,160,.1);color:var(--magenta);border:1px solid rgba(255,0,160,.2);}
+.btn-danger:hover{background:rgba(255,0,160,.18);}
+.btn-success{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2);}
+.btn-success:hover{background:rgba(0,255,136,.18);}
+
+/* HEALTH */
+.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.hc{background:var(--surface);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;padding:18px;transition:all .3s;}
+.hc.ok{border-color:rgba(0,255,136,.2);background:rgba(0,255,136,.04);}
+.hc.err{border-color:rgba(255,0,160,.2);background:rgba(255,0,160,.04);}
+.hc-label{font-size:.58rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.6;margin-bottom:8px;}
+.hc-val{font-size:1.5rem;font-weight:800;}
+.hc.ok .hc-val{color:var(--green);}
+.hc.err .hc-val{color:var(--magenta);}
+.hc.loading .hc-val{color:var(--muted);}
+.hc-sub{font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-top:4px;}
+
+/* ── PROSPECTING ── */
+.pros-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.pros-tabs{display:flex;gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:3px;}
+.pros-tab{padding:6px 14px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .2s;position:relative;}
+.pros-tab.active{background:rgba(0,240,255,.1);color:var(--cyan);}
+.pros-tab-badge{position:absolute;top:3px;right:6px;background:var(--amber);color:#000;font-size:8px;font-weight:700;border-radius:100px;padding:1px 4px;}
+
+/* Pros inner card */
+.pros-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;}
+.pros-card-label{font-family:var(--mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+
+/* Dial */
+.dial-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.dial-label{font-size:.78rem;font-weight:500;color:var(--text);}
+.dial-val{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--cyan);}
+.slider-wrap{position:relative;height:28px;display:flex;align-items:center;}
+.slider-track{width:100%;height:3px;background:var(--border);border-radius:2px;position:relative;}
+.slider-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:2px;transition:width .1s;}
+input[type=range]{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;height:28px;}
+.range-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.55rem;color:var(--faint);margin-top:2px;}
+
+/* Mode btns */
+.mode-row{display:flex;gap:8px;}
+.mode-btn{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .2s;}
+.mode-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,240,255,.08);}
+
+/* Time */
+.time-row{display:flex;gap:8px;align-items:center;}
+.time-input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--mono);font-size:.8rem;color:var(--text);outline:none;transition:border-color .2s;}
+.time-input:focus{border-color:rgba(0,240,255,.3);}
+.time-sep{color:var(--muted);font-weight:700;}
+
+/* Chips */
+.chip-grid{display:flex;flex-wrap:wrap;gap:5px;}
+.chip{padding:4px 10px;border-radius:100px;border:1px solid var(--border);background:transparent;font-size:.68rem;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;font-family:var(--font);}
+.chip.active{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.08);}
+
+/* Scrape input */
+.scrape-select{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:.78rem;color:var(--text);outline:none;margin-bottom:8px;transition:border-color .2s;}
+.scrape-select:focus{border-color:rgba(0,240,255,.3);}
+.scrape-input-text{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:.78rem;color:var(--text);outline:none;margin-bottom:8px;}
+.scrape-input-text:focus{border-color:rgba(0,240,255,.3);}
+.scrape-input-text::placeholder{color:var(--muted);}
+
+/* Queue items */
+.queue-item{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;transition:all .2s;}
+.queue-biz{font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+.queue-meta{font-family:var(--mono);font-size:.65rem;color:var(--muted);margin-bottom:6px;}
+.queue-preview{font-size:.68rem;color:var(--faint);line-height:1.5;margin-bottom:8px;font-style:italic;}
+.queue-actions{display:flex;gap:6px;}
+.btn-approve{flex:2;padding:7px;border-radius:7px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);color:var(--green);font-size:.7rem;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.btn-approve:active{transform:scale(.97);}
+.btn-skip{flex:1;padding:7px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);font-size:.7rem;cursor:pointer;font-family:var(--font);}
+.btn-approve-all{width:100%;padding:10px;border-radius:9px;background:linear-gradient(135deg,var(--green),#00a86b);border:none;color:#000;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font);margin-top:8px;}
+.queue-empty{text-align:center;padding:32px 20px;font-family:var(--mono);font-size:.7rem;color:var(--muted);line-height:1.8;opacity:.6;}
+
+/* Funnel */
+.funnel-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.f-label{font-family:var(--mono);font-size:.65rem;color:var(--muted);width:80px;flex-shrink:0;}
+.f-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.f-bar{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:3px;width:0%;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.f-val{font-family:var(--mono);font-size:.7rem;color:var(--text);font-weight:700;width:24px;text-align:right;flex-shrink:0;}
+
+.mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.mini-stat{background:rgba(255,255,255,.04);border-radius:10px;padding:12px;text-align:center;}
+.mini-stat-val{font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--cyan);margin-bottom:3px;}
+.mini-stat-lbl{font-size:.6rem;color:var(--muted);font-weight:600;letter-spacing:.05em;text-transform:uppercase;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease;}
+.modal{background:rgba(12,12,22,.97);border:1px solid rgba(0,240,255,.2);border-radius:20px;width:460px;max-height:82vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.7),0 0 60px rgba(0,240,255,.05);}
+.modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:rgba(12,12,22,.98);z-index:1;border-radius:20px 20px 0 0;}
+.modal-title{font-size:1.1rem;font-weight:800;}
+.modal-slug{font-family:var(--mono);font-size:.65rem;color:var(--cyan);margin-top:2px;}
+.modal-close{color:var(--muted);font-size:1rem;padding:3px;transition:color .2s;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:18px 22px;}
+.modal-section{margin-bottom:16px;}
+.modal-section-title{font-size:.58rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);opacity:.6;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.modal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.03);}
+.modal-row:last-child{border-bottom:none;}
+.modal-row .k{font-size:.7rem;color:var(--muted);}
+.modal-row .v{font-family:var(--mono);font-size:.7rem;color:var(--text);text-align:right;}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
+.modal-actions .btn{flex:1;}
+
+/* TOAST */
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px;}
+.toast{background:rgba(14,14,24,.95);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.75rem;transform:translateX(120%);animation:slideIn .3s cubic-bezier(.4,0,.2,1) forwards;max-width:260px;}
+.toast.ok{border-color:rgba(0,255,136,.25);}
+.toast.err{border-color:rgba(255,0,160,.25);}
+@keyframes slideIn{to{transform:translateX(0);}}
+@keyframes slideOut{to{transform:translateX(120%);opacity:0;}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div><div class="orb orb-2"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">WEBSITE<em>HUB</em> &nbsp;·&nbsp; ADMIN</div>
+    <div class="topbar-right">
+      <div class="health-chip" onclick="showPage('health')">
+        <div class="h-dot checking" id="hDot"></div>
+        <span id="hLabel">checking...</span>
+      </div>
+      <span class="ts-chip" id="tsChip">—</span>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="nav-section">
+        <div class="nav-section-label">Overview</div>
+        <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')">
+          <span class="nav-icon">⬡</span> Dashboard
+        </button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">Clients</div>
+        <button class="nav-btn" id="nav-all" onclick="showPage('all')">
+          <span class="nav-icon">◈</span> All Clients
+          <span class="nav-badge" id="badge-all">—</span>
+        </button>
+        <button class="nav-btn" id="nav-live" onclick="showPage('live')">
+          <span class="nav-icon">●</span> Live
+          <span class="nav-badge green" id="badge-live">—</span>
+        </button>
+        <button class="nav-btn" id="nav-building" onclick="showPage('building')">
+          <span class="nav-icon">◐</span> Building
+        </button>
+        <button class="nav-btn" id="nav-preview" onclick="showPage('preview')">
+          <span class="nav-icon">◇</span> Preview Ready
+        </button>
+      </div>
+      <div class="nav-sep"></div>
+      <div class="nav-section">
+        <div class="nav-section-label">Outbound</div>
+        <!-- Master outbound toggle -->
+        <div class="sidebar-outbound off" id="sobCard" onclick="toggleMaster()">
+          <div class="sob-row">
+            <div class="sob-label off" id="sobLabel">OUTBOUND OFF</div>
+            <div class="sob-knob off" id="sobKnob"><div class="sob-dot"></div></div>
+          </div>
+          <div class="sob-sub" id="sobSub">Tap to enable</div>
+        </div>
+        <button class="nav-btn" id="nav-prospecting" onclick="showPage('prospecting')">
+          <span class="nav-icon">⊕</span> Prospecting
+          <span class="nav-badge" id="badge-queue" style="display:none">0</span>
+        </button>
+      </div>
+      <div class="nav-sep"></div>
+      <div class="nav-section">
+        <div class="nav-section-label">System</div>
+        <button class="nav-btn" id="nav-health" onclick="showPage('health')">
+          <span class="nav-icon">♦</span> Health
+        </button>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sf-label">Worker</div>
+        <div class="sf-val">preview.websitehub.co.za</div>
+        <div style="margin-top:8px">
+          <div class="sf-label">Last Sync</div>
+          <div class="sf-val" id="lastSync">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="ph">
+          <div><div class="ph-title">Dashboard</div><div class="ph-sub" id="dashSub">Loading...</div></div>
+          <div class="ph-actions"><button class="btn btn-ghost" onclick="loadAll()">↻ Refresh</button></div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-tile"><div class="stat-num cyan" id="s-total">—</div><div class="stat-lbl">Total</div></div>
+          <div class="stat-tile"><div class="stat-num green" id="s-live">—</div><div class="stat-lbl">Live</div></div>
+          <div class="stat-tile"><div class="stat-num purple" id="s-building">—</div><div class="stat-lbl">Building</div></div>
+          <div class="stat-tile"><div class="stat-num orange" id="s-preview">—</div><div class="stat-lbl">Preview</div></div>
+          <div class="stat-tile"><div class="stat-num magenta" id="s-suspended">—</div><div class="stat-lbl">Suspended</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Recent Events</span><span class="card-meta" id="evCount">—</span></div>
+          <div id="eventsFeed"><div class="empty-state">Loading events...</div></div>
+        </div>
+      </div>
+
+      <!-- ── ALL CLIENTS ── -->
+      <div class="page" id="page-all">
+        <div class="ph">
+          <div><div class="ph-title">All Clients</div><div class="ph-sub" id="allSub">—</div></div>
+          <div class="ph-actions"><button class="btn btn-ghost" onclick="loadAll()">↻ Refresh</button></div>
+        </div>
+        <div class="card table-card">
+          <div class="table-toolbar">
+            <input class="search-box" type="text" placeholder="Search..." oninput="filterClients(this.value)">
+            <button class="filter-btn active" id="f-all" onclick="setFilter('all')">All</button>
+            <button class="filter-btn" id="f-live" onclick="setFilter('live')">Live</button>
+            <button class="filter-btn" id="f-preview_ready" onclick="setFilter('preview_ready')">Preview</button>
+            <button class="filter-btn" id="f-building" onclick="setFilter('building')">Building</button>
+            <button class="filter-btn" id="f-suspended" onclick="setFilter('suspended')">Suspended</button>
+          </div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Business</th><th>Status</th><th>Plan</th><th>Retainer</th><th>Domain</th><th>Phone</th><th>Created</th></tr></thead>
+            <tbody id="clientsBody"><tr><td colspan="7"><div class="empty-state">Loading...</div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── LIVE ── -->
+      <div class="page" id="page-live">
+        <div class="ph"><div><div class="ph-title">Live Sites</div></div></div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table><thead><tr><th>Business</th><th>Plan</th><th>Retainer</th><th>Domain</th><th>Go Live</th><th>Next Invoice</th></tr></thead>
+            <tbody id="liveBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BUILDING ── -->
+      <div class="page" id="page-building">
+        <div class="ph"><div><div class="ph-title">Building</div></div></div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table><thead><tr><th>Business</th><th>Status</th><th>Plan</th><th>Domain</th><th>Phone</th><th>Created</th></tr></thead>
+            <tbody id="buildingBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PREVIEW ── -->
+      <div class="page" id="page-preview">
+        <div class="ph"><div><div class="ph-title">Preview Ready</div></div></div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table><thead><tr><th>Business</th><th>Plan</th><th>Domain</th><th>Preview</th><th>Phone</th><th>Created</th></tr></thead>
+            <tbody id="previewBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PROSPECTING ── -->
+      <div class="page" id="page-prospecting">
+        <div class="ph">
+          <div><div class="ph-title">Prospecting</div><div class="ph-sub">Google Places → build → send</div></div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:4px;margin-bottom:16px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:3px;width:fit-content">
+          <button class="pros-tab active" id="pt-control" onclick="prosTab('control')">Control</button>
+          <button class="pros-tab" id="pt-scrape" onclick="prosTab('scrape')">Scrape</button>
+          <button class="pros-tab" id="pt-queue" onclick="prosTab('queue')">Queue<span class="pros-tab-badge" id="qBadge" style="display:none">0</span></button>
+          <button class="pros-tab" id="pt-morning" onclick="prosTab('morning')">Morning</button>
+        </div>
+
+        <!-- Control -->
+        <div id="pp-control">
+          <div class="pros-card">
+            <div class="pros-card-label">Mode</div>
+            <div class="mode-row">
+              <button class="mode-btn active" id="modeManual" onclick="setMode('manual')">👁 Manual</button>
+              <button class="mode-btn" id="modeAuto" onclick="setMode('auto')">⚡ Auto</button>
+            </div>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:8px;line-height:1.6" id="modeDesc">Manual — you approve each WhatsApp before it sends.</div>
+          </div>
+
+          <div class="pros-card">
+            <div class="pros-card-label">Daily limits</div>
+            <div class="dial-row"><div class="dial-label">Scrape limit</div><div class="dial-val" id="scrapeVal">20</div></div>
+            <div class="slider-wrap"><div class="slider-track"><div class="slider-fill" id="scrapeFill" style="width:37%"></div></div><input type="range" min="5" max="50" value="20" oninput="updateDial('scrape',this.value)"></div>
+            <div class="range-labels"><span>5</span><span>50</span></div>
+            <div style="margin-top:14px">
+            <div class="dial-row"><div class="dial-label">Send limit</div><div class="dial-val" id="sendVal">10</div></div>
+            <div class="slider-wrap"><div class="slider-track"><div class="slider-fill" id="sendFill" style="width:10%"></div></div><input type="range" min="5" max="50" value="10" oninput="updateDial('send',this.value)"></div>
+            <div class="range-labels"><span>5</span><span>50</span></div>
+            </div>
+          </div>
+
+          <div class="pros-card">
+            <div class="pros-card-label">Send window (SAST)</div>
+            <div class="time-row">
+              <input type="time" class="time-input" id="windowStart" value="09:00" onchange="saveWindow()">
+              <div class="time-sep">→</div>
+              <input type="time" class="time-input" id="windowEnd" value="17:00" onchange="saveWindow()">
+            </div>
+            <div style="font-size:.68rem;color:var(--muted);margin-top:8px">No messages outside this window</div>
+          </div>
+
+          <div class="pros-card">
+            <div class="pros-card-label">Target provinces</div>
+            <div class="chip-grid" id="provinceGrid"></div>
+          </div>
+
+          <div class="pros-card">
+            <div class="pros-card-label" style="display:flex;justify-content:space-between">
+              <span>Target industries</span>
+              <span style="display:flex;gap:6px">
+                <button class="chip" onclick="toggleAllInd(true)" style="padding:2px 8px;font-size:.6rem">All on</button>
+                <button class="chip" onclick="toggleAllInd(false)" style="padding:2px 8px;font-size:.6rem">All off</button>
+              </span>
+            </div>
+            <div class="chip-grid" id="industryGrid"></div>
+          </div>
+        </div>
+
+        <!-- Scrape -->
+        <div id="pp-scrape" style="display:none">
+          <div class="pros-card">
+            <div class="pros-card-label">Manual Google Places search</div>
+            <select class="scrape-select" id="scrapeIndustry"><option value="">Select industry...</option></select>
+            <select class="scrape-select" id="scrapeProvince">
+              <option value="">Select province...</option>
+              <option>KZN</option><option>GP</option><option>WC</option><option>EC</option>
+              <option>LP</option><option>MP</option><option>NW</option><option>FS</option><option>NC</option>
+            </select>
+            <input type="text" class="scrape-input-text" id="scrapeArea" placeholder="Specific area e.g. Durban North (optional)">
+            <div class="dial-row" style="margin-bottom:4px"><div class="dial-label" style="font-size:.72rem">Results limit</div><div class="dial-val" id="sLimitVal">20</div></div>
+            <div class="slider-wrap"><div class="slider-track"><div class="slider-fill" id="sLimitFill" style="width:100%"></div></div><input type="range" min="5" max="20" value="20" oninput="updateScrapeLimit(this.value)"></div>
+            <div class="range-labels" style="margin-bottom:14px"><span>5</span><span>20</span></div>
+            <button class="btn btn-primary" onclick="runScrape()" id="btnScrape" style="width:100%">Search Google Places →</button>
+          </div>
+          <div id="scrapeResultCard" style="display:none" class="pros-card"></div>
+        </div>
+
+        <!-- Queue -->
+        <div id="pp-queue" style="display:none">
+          <div id="queueList"><div class="queue-empty">Queue is empty.<br>Run a scrape or wait for the nightly cron.</div></div>
+        </div>
+
+        <!-- Morning -->
+        <div id="pp-morning" style="display:none">
+          <div class="mini-stats">
+            <div class="mini-stat"><div class="mini-stat-val" id="allScraped">0</div><div class="mini-stat-lbl">Scraped</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="allSent">0</div><div class="mini-stat-lbl">Sent</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="allConverted" style="color:var(--green)">0</div><div class="mini-stat-lbl">Live</div></div>
+          </div>
+          <div class="pros-card">
+            <div class="pros-card-label">Today's funnel</div>
+            <div class="funnel-row"><div class="f-label">Scraped</div><div class="f-bar-wrap"><div class="f-bar" id="fb-scraped" style="width:100%"></div></div><div class="f-val" id="f-scraped">0</div></div>
+            <div class="funnel-row"><div class="f-label">Built</div><div class="f-bar-wrap"><div class="f-bar" id="fb-built"></div></div><div class="f-val" id="f-built">0</div></div>
+            <div class="funnel-row"><div class="f-label">Sent</div><div class="f-bar-wrap"><div class="f-bar" id="fb-sent"></div></div><div class="f-val" id="f-sent">0</div></div>
+            <div class="funnel-row"><div class="f-label">Converted</div><div class="f-bar-wrap"><div class="f-bar" id="fb-converted" style="background:var(--green)"></div></div><div class="f-val" id="f-converted">0</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── HEALTH ── -->
+      <div class="page" id="page-health">
+        <div class="ph">
+          <div><div class="ph-title">System Health</div></div>
+          <div class="ph-actions"><button class="btn btn-ghost" onclick="loadHealth()">↻ Refresh</button></div>
+        </div>
+        <div class="health-grid">
+          <div class="hc loading" id="hc-d1"><div class="hc-label">D1 Database</div><div class="hc-val" id="hv-d1">···</div><div class="hc-sub" id="hs-d1">—</div></div>
+          <div class="hc loading" id="hc-worker"><div class="hc-label">Worker</div><div class="hc-val" id="hv-worker">···</div><div class="hc-sub" id="hs-worker">—</div></div>
+          <div class="hc loading" id="hc-ts"><div class="hc-label">Last Event</div><div class="hc-val" id="hv-ts">···</div><div class="hc-sub" id="hs-ts">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Recent Events</span></div>
+          <div id="healthFeed"><div class="empty-state">Loading...</div></div>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /body -->
+</div><!-- /app -->
+
+<!-- CLIENT MODAL -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="modalTitle">—</div><div class="modal-slug" id="modalSlug">—</div></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────
+const WORKER = 'https://preview.websitehub.co.za';
+const ADMIN_KEY = (() => {
+  let k = sessionStorage.getItem('wh_admin_key');
+  if (!k) { k = prompt('Admin key:'); if (k) sessionStorage.setItem('wh_admin_key', k); }
+  return k || '';
+})();
+
+const PROVINCES = ['KZN','GP','WC','EC','LP','MP','NW','FS','NC'];
+const INDUSTRIES = ['Plumber','Electrician','Builder','Painter','Salon','Barber','Nails','Spa','Restaurant','Bakery','Cleaning','Landscaping','Mechanic','Flooring','HVAC','Photographer','Catering','Coffee','Estate Agent'];
+
+// ── STATE ──────────────────────────────────────────────────────
+let clients = [], events = [], activeFilter = 'all', searchQ = '';
+const P = { masterOn:false, mode:'manual', scrapeLimit:20, sendLimit:10, windowStart:'09:00', windowEnd:'17:00', provinces:{}, industries:{}, queue:[], sLimit:20 };
+
+function el(id){ return document.getElementById(id) }
+
+// ── INIT ───────────────────────────────────────────────────────
+async function init() {
+  buildProvinceGrid();
+  buildIndustryGrid();
+  buildIndustrySelect();
+  loadAll();
+  loadHealth();
+  loadConfig();
+}
+
+// ── DATA ───────────────────────────────────────────────────────
+async function loadAll() {
+  try {
+    const d = await api('/admin/clients');
+    clients = d.clients || [];
+    events  = d.recentEvents || [];
+    updateStats(); renderFeed(events,'eventsFeed');
+    renderAll(); renderLive(); renderBuilding(); renderPreview();
+    updateBadges();
+    const t = new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    el('lastSync').textContent = t;
+    el('dashSub').textContent = `${clients.length} clients · synced ${t}`;
+    toast(`✓ ${clients.length} clients loaded`,'ok');
+  } catch(e){ toast(`✗ ${e.message}`,'err'); }
+}
+
+async function loadHealth() {
+  setHC('d1','loading','···'); setHC('worker','loading','···'); setHC('ts','loading','···');
+  el('hDot').className='h-dot checking'; el('hLabel').textContent='checking...';
+  try {
+    const d = await api('/admin/health');
+    const ok = d.d1==='ok';
+    setHC('d1',ok?'ok':'err',ok?'OK':'FAIL',d.d1);
+    setHC('worker','ok','ONLINE','preview.websitehub.co.za');
+    const ts = (d.timestamp||'').replace('T',' ').split('.')[0];
+    setHC('ts','ok',ts.split(' ')[1]||'—',ts.split(' ')[0]||'—');
+    el('hDot').className='h-dot '+(ok?'ok':'err');
+    el('hLabel').textContent=ok?'d1:ok':'d1:fail';
+    el('tsChip').textContent=ts;
+    if (d.recentEvents) renderFeed(d.recentEvents,'healthFeed');
+  } catch(e){
+    setHC('worker','err','OFFLINE',''); setHC('d1','err','FAIL','');
+    el('hDot').className='h-dot err'; el('hLabel').textContent='offline';
+    toast(`✗ ${e.message}`,'err');
+  }
+}
+
+function setHC(id,state,val,sub){
+  el('hc-'+id).className='hc '+state;
+  el('hv-'+id).textContent=val;
+  if(sub!==undefined) el('hs-'+id).textContent=sub;
+}
+
+async function loadConfig() {
+  try {
+    const r = await api('/admin/get-config');
+    const c = r.config||{};
+    P.masterOn    = c.outbound_enabled===true||c.outbound_enabled==='true';
+    P.mode        = c.outbound_mode||'manual';
+    P.scrapeLimit = parseInt(c.daily_scrape_limit)||20;
+    P.sendLimit   = parseInt(c.daily_send_limit)||10;
+    P.windowStart = c.send_window_start||'09:00';
+    P.windowEnd   = c.send_window_end||'17:00';
+    if(Array.isArray(c.target_provinces)) c.target_provinces.forEach(p=>P.provinces[p]=true);
+    if(Array.isArray(c.target_industries)) c.target_industries.forEach(i=>P.industries[i.toLowerCase()]=true);
+    applyConfig();
+  } catch(e){ console.warn('Config load failed:',e.message); }
+}
+
+function applyConfig(){
+  updateMasterUI();
+  el('modeManual').classList.toggle('active',P.mode==='manual');
+  el('modeAuto').classList.toggle('active',P.mode==='auto');
+  el('modeDesc').textContent=P.mode==='manual'?'Manual — you approve each WhatsApp before it sends.':'Auto — scrape → build → send. Hands off.';
+  el('scrapeVal').textContent=P.scrapeLimit;
+  el('scrapeFill').style.width=((P.scrapeLimit-5)/45*100)+'%';
+  el('sendVal').textContent=P.sendLimit;
+  el('sendFill').style.width=((P.sendLimit-5)/45*100)+'%';
+  el('windowStart').value=P.windowStart;
+  el('windowEnd').value=P.windowEnd;
+  document.querySelectorAll('[data-province]').forEach(c=>c.classList.toggle('active',!!P.provinces[c.dataset.province]));
+  document.querySelectorAll('[data-industry]').forEach(c=>c.classList.toggle('active',!!P.industries[c.dataset.industry]));
+}
+
+// ── STATS ──────────────────────────────────────────────────────
+function updateStats(){
+  const c={live:0,building:0,preview:0,suspended:0};
+  clients.forEach(x=>{
+    if(x.status==='live') c.live++;
+    else if(['building','deposit_paid','qa'].includes(x.status)) c.building++;
+    else if(x.status==='preview_ready') c.preview++;
+    else if(x.status==='suspended') c.suspended++;
+  });
+  el('s-total').textContent=clients.length;
+  el('s-live').textContent=c.live;
+  el('s-building').textContent=c.building;
+  el('s-preview').textContent=c.preview;
+  el('s-suspended').textContent=c.suspended;
+}
+
+function updateBadges(){
+  el('badge-all').textContent=clients.length;
+  el('badge-live').textContent=clients.filter(c=>c.status==='live').length;
+}
+
+function renderFeed(evs,id){
+  const feed=el(id);
+  if(!evs||!evs.length){feed.innerHTML='<div class="empty-state">No events.</div>';return;}
+  if(id==='eventsFeed') el('evCount').textContent=evs.length+' events';
+  feed.innerHTML=evs.slice(0,15).map(e=>`
+    <div class="event-row">
+      <div class="ev-dot ${e.status||'success'}"></div>
+      <span class="ev-worker">${e.worker}</span>
+      <span class="ev-type">${(e.event_type||'').replace(/_/g,' ')}</span>
+      <span class="ev-time">${fmtTime(e.created_at)}</span>
+    </div>`).join('');
+}
+
+// ── TABLES ─────────────────────────────────────────────────────
+function renderAll(){
+  let list=activeFilter==='all'?clients:clients.filter(c=>c.status===activeFilter);
+  if(searchQ) list=list.filter(c=>c.business_name.toLowerCase().includes(searchQ)||(c.domain||'').toLowerCase().includes(searchQ)||(c.phone||'').includes(searchQ));
+  el('allSub').textContent=`${list.length} of ${clients.length} clients`;
+  el('clientsBody').innerHTML=list.length?list.map(c=>`<tr onclick="openModal('${c.id}')"><td><div class="biz-name">${esc(c.business_name)}</div><div class="biz-slug">${c.slug}</div></td><td>${sBadge(c.status)}</td><td>${pkgBadge(c.package)}</td><td class="mono">${c.retainer?'R'+c.retainer+'/mo':'—'}</td><td class="mono">${c.domain||'—'}</td><td class="mono">${c.phone||'—'}</td><td class="mono">${fmtDate(c.created_at)}</td></tr>`).join(''):'<tr><td colspan="7"><div class="empty-state">No clients found.</div></td></tr>';
+}
+
+function renderLive(){
+  const list=clients.filter(c=>c.status==='live');
+  el('liveBody').innerHTML=list.length?list.map(c=>`<tr onclick="openModal('${c.id}')"><td><div class="biz-name">${esc(c.business_name)}</div><div class="biz-slug">${c.slug}</div></td><td>${pkgBadge(c.package)}</td><td class="mono" style="color:var(--green)">${c.retainer?'R'+c.retainer+'/mo':'—'}</td><td class="mono">${c.domain?`<a href="https://${c.domain}" target="_blank" style="color:var(--cyan)">${c.domain} ↗</a>`:'—'}</td><td class="mono">${c.go_live_date||'—'}</td><td class="mono">${c.next_invoice_date||'—'}</td></tr>`).join(''):'<tr><td colspan="6"><div class="empty-state">No live clients.</div></td></tr>';
+}
+
+function renderBuilding(){
+  const list=clients.filter(c=>['building','deposit_paid','qa'].includes(c.status));
+  el('buildingBody').innerHTML=list.length?list.map(c=>`<tr onclick="openModal('${c.id}')"><td><div class="biz-name">${esc(c.business_name)}</div><div class="biz-slug">${c.slug}</div></td><td>${sBadge(c.status)}</td><td>${pkgBadge(c.package)}</td><td class="mono">${c.domain||'—'}</td><td class="mono">${c.phone||'—'}</td><td class="mono">${fmtDate(c.created_at)}</td></tr>`).join(''):'<tr><td colspan="6"><div class="empty-state">No sites building.</div></td></tr>';
+}
+
+function renderPreview(){
+  const list=clients.filter(c=>c.status==='preview_ready');
+  el('previewBody').innerHTML=list.length?list.map(c=>`<tr onclick="openModal('${c.id}')"><td><div class="biz-name">${esc(c.business_name)}</div><div class="biz-slug">${c.slug}</div></td><td>${pkgBadge(c.package)}</td><td class="mono">${c.domain||'—'}</td><td class="mono"><a href="https://preview.websitehub.co.za/preview/${c.manage_token||c.slug}" target="_blank" style="color:var(--cyan)">Open ↗</a></td><td class="mono">${c.phone||'—'}</td><td class="mono">${fmtDate(c.created_at)}</td></tr>`).join(''):'<tr><td colspan="6"><div class="empty-state">No previews.</div></td></tr>';
+}
+
+function setFilter(f){ activeFilter=f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); el('f-'+f)?.classList.add('active'); renderAll(); }
+function filterClients(q){ searchQ=q.toLowerCase(); renderAll(); }
+
+// ── MODAL ──────────────────────────────────────────────────────
+function openModal(id){
+  const c=clients.find(x=>x.id===id); if(!c) return;
+  el('modalTitle').textContent=c.business_name;
+  el('modalSlug').textContent=c.slug;
+  el('modalBody').innerHTML=`
+    <div class="modal-section"><div class="modal-section-title">Status</div><div style="display:flex;gap:8px;flex-wrap:wrap">${sBadge(c.status)} ${pkgBadge(c.package)}</div></div>
+    <div class="modal-section"><div class="modal-section-title">Details</div>
+      ${mrow('Phone',c.phone||'—')}${mrow('Domain',c.domain?`<a href="https://${c.domain}" target="_blank" style="color:var(--cyan)">${c.domain} ↗</a>`:'—')}${mrow('Created',fmtDate(c.created_at))}</div>
+    <div class="modal-section"><div class="modal-section-title">Billing</div>
+      ${mrow('Retainer',c.retainer?`<span style="color:var(--green)">R${c.retainer}/mo</span>`:'—')}${mrow('Go Live',c.go_live_date||'—')}${mrow('Next Invoice',c.next_invoice_date||'—')}</div>
+    <div class="modal-section"><div class="modal-section-title">Links</div>
+      ${mrow('Preview',`<a href="https://preview.websitehub.co.za/preview/${c.manage_token||c.slug}" target="_blank" style="color:var(--cyan)">Open preview ↗</a>`)}
+      ${mrow('Manage',`<a href="https://preview.websitehub.co.za/manage/${c.manage_token||''}" target="_blank" style="color:var(--cyan)">Open dashboard ↗</a>`)}
+      ${c.phone?mrow('WhatsApp',`<a href="https://wa.me/${c.phone}" target="_blank" style="color:var(--green)">Chat ↗</a>`):''}
+    </div>
+    <div class="modal-actions">
+      ${c.status==='live'?`<button class="btn btn-danger" onclick="doSuspend('${c.id}','${esc(c.business_name)}')">⊘ Suspend</button>`:''}
+      ${c.status==='suspended'?`<button class="btn btn-success" onclick="doReinstate('${c.id}','${esc(c.business_name)}')">↑ Reinstate</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    </div>`;
+  el('clientModal').classList.add('open');
+}
+function closeModal(){ el('clientModal').classList.remove('open'); }
+
+async function doSuspend(id,name){
+  if(!confirm(`Suspend ${name}?`)) return;
+  try{ const d=await api('/suspend-site',{method:'POST',body:JSON.stringify({clientId:id})}); if(d.success){toast(`⊘ ${name} suspended`,'ok');closeModal();loadAll();}else toast(`✗ ${d.error||'Failed'}`,'err'); }catch(e){toast(`✗ ${e.message}`,'err');}
+}
+async function doReinstate(id,name){
+  if(!confirm(`Reinstate ${name}?`)) return;
+  try{ const d=await api('/reinstate-site',{method:'POST',body:JSON.stringify({clientId:id})}); if(d.success){toast(`✓ ${name} reinstated`,'ok');closeModal();loadAll();}else toast(`✗ ${d.error||'Failed'}`,'err'); }catch(e){toast(`✗ ${e.message}`,'err');}
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────────
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  el('page-'+p)?.classList.add('active');
+  el('nav-'+p)?.classList.add('active');
+  if(p==='health') loadHealth();
+  if(p==='prospecting') loadQueue();
+}
+
+// ── OUTBOUND MASTER ────────────────────────────────────────────
+async function toggleMaster(){
+  P.masterOn=!P.masterOn;
+  updateMasterUI();
+  await saveConfig('outbound_enabled',P.masterOn);
+  toast(P.masterOn?'🟢 Outbound ENABLED':'🔴 Outbound DISABLED');
+}
+
+function updateMasterUI(){
+  const card=el('sobCard'),lbl=el('sobLabel'),knob=el('sobKnob'),sub=el('sobSub');
+  card.className='sidebar-outbound '+(P.masterOn?'on':'off');
+  lbl.className='sob-label '+(P.masterOn?'on':'off');
+  lbl.textContent=P.masterOn?'OUTBOUND LIVE':'OUTBOUND OFF';
+  knob.className='sob-knob '+(P.masterOn?'on':'off');
+  sub.textContent=P.masterOn?'Cron fires 11pm SAST':'Tap to enable';
+}
+
+// ── PROSPECTING ────────────────────────────────────────────────
+function prosTab(t){
+  ['control','scrape','queue','morning'].forEach(x=>{ el('pp-'+x).style.display=x===t?'block':'none'; el('pt-'+x).classList.toggle('active',x===t); });
+  if(t==='queue') loadQueue();
+  if(t==='morning') loadMorning();
+}
+
+async function setMode(m){
+  P.mode=m;
+  el('modeManual').classList.toggle('active',m==='manual');
+  el('modeAuto').classList.toggle('active',m==='auto');
+  el('modeDesc').textContent=m==='manual'?'Manual — you approve each WhatsApp before it sends.':'Auto — scrape → build → send. Hands off.';
+  await saveConfig('outbound_mode',m);
+  toast(m==='auto'?'⚡ Auto mode active':'👁 Manual mode active');
+}
+
+function updateDial(type,val){
+  val=parseInt(val); const pct=((val-5)/45*100)+'%';
+  if(type==='scrape'){P.scrapeLimit=val;el('scrapeVal').textContent=val;el('scrapeFill').style.width=pct;saveConfig('daily_scrape_limit',val);}
+  else{P.sendLimit=val;el('sendVal').textContent=val;el('sendFill').style.width=pct;saveConfig('daily_send_limit',val);}
+}
+
+function updateScrapeLimit(val){ val=parseInt(val); P.sLimit=val; el('sLimitVal').textContent=val; el('sLimitFill').style.width=((val-5)/15*100)+'%'; }
+
+async function saveWindow(){ P.windowStart=el('windowStart').value; P.windowEnd=el('windowEnd').value; await saveConfig('send_window_start',P.windowStart); await saveConfig('send_window_end',P.windowEnd); toast('Send window saved'); }
+
+function buildProvinceGrid(){
+  const g=el('provinceGrid');
+  PROVINCES.forEach(p=>{ const c=document.createElement('div'); c.className='chip'+(P.provinces[p]?' active':''); c.dataset.province=p; c.textContent=p; c.onclick=async()=>{ P.provinces[p]=!P.provinces[p]; c.classList.toggle('active',P.provinces[p]); await saveConfig('target_provinces',Object.keys(P.provinces).filter(k=>P.provinces[k])); }; g.appendChild(c); });
+}
+
+function buildIndustryGrid(){
+  const g=el('industryGrid');
+  INDUSTRIES.forEach(ind=>{ const key=ind.toLowerCase(); const c=document.createElement('div'); c.className='chip'+(P.industries[key]?' active':''); c.dataset.industry=key; c.textContent=ind; c.onclick=async()=>{ P.industries[key]=!P.industries[key]; c.classList.toggle('active',P.industries[key]); await saveConfig('target_industries',Object.keys(P.industries).filter(k=>P.industries[k])); }; g.appendChild(c); });
+}
+
+function buildIndustrySelect(){ const s=el('scrapeIndustry'); INDUSTRIES.forEach(i=>{ const o=document.createElement('option'); o.value=i.toLowerCase(); o.textContent=i; s.appendChild(o); }); }
+
+async function toggleAllInd(on){ INDUSTRIES.forEach(i=>P.industries[i.toLowerCase()]=on); document.querySelectorAll('[data-industry]').forEach(c=>c.classList.toggle('active',on)); await saveConfig('target_industries',on?INDUSTRIES.map(i=>i.toLowerCase()):[]); toast(on?'All industries on':'All industries off'); }
+
+async function runScrape(){
+  const industry=el('scrapeIndustry').value, province=el('scrapeProvince').value, area=el('scrapeArea').value.trim();
+  if(!industry||!province){toast('Select industry and province','err');return;}
+  const btn=el('btnScrape'); btn.textContent='Searching...'; btn.disabled=true;
+  try{
+    const r=await api('/admin/scrape',{method:'POST',body:JSON.stringify({industry,province,area,limit:P.sLimit})});
+    el('scrapeResultCard').style.display='block';
+    el('scrapeResultCard').innerHTML=`<div class="pros-card-label">Result</div><div style="text-align:center;padding:8px 0"><div style="font-size:1.8rem;font-weight:800;color:var(--cyan);margin-bottom:4px">${r.inserted}</div><div style="font-size:.7rem;color:var(--muted)">new prospects added</div><div style="font-family:var(--mono);font-size:.6rem;color:var(--faint);margin-top:8px">Found ${r.found} · No website: ${r.noWebsite} · Skipped: ${r.skipped}</div></div>`;
+    toast(`Found ${r.inserted} new prospects`,'ok');
+    await loadQueue();
+    if(r.inserted>0) prosTab('queue');
+  }catch(e){toast('Scrape failed — '+e.message,'err');}
+  finally{btn.textContent='Search Google Places →';btn.disabled=false;}
+}
+
+async function loadQueue(){
+  try{ const r=await api('/admin/prospect-queue'); P.queue=r.prospects||[]; renderQueue(); }catch(e){ console.warn('Queue failed:',e.message); }
+}
+
+function renderQueue(){
+  const list=el('queueList'),badge=el('qBadge'),navBadge=el('badge-queue');
+  if(!P.queue.length){list.innerHTML='<div class="queue-empty">Queue is empty.<br>Run a scrape or wait for nightly cron.</div>';badge.style.display='none';navBadge.style.display='none';return;}
+  badge.style.display='inline';badge.textContent=P.queue.length;navBadge.style.display='inline';navBadge.textContent=P.queue.length;
+  list.innerHTML='';
+  P.queue.forEach(p=>{
+    const d=document.createElement('div'); d.className='queue-item'; d.id='qi-'+p.id;
+    d.innerHTML=`<div class="queue-biz">${esc(p.business_name)}</div><div class="queue-meta">${p.industry||'—'} · ${p.area||'—'} · ${p.phone||'—'}</div><div class="queue-preview">"Hi! We noticed ${esc(p.business_name)} doesn't have a website yet. We've built one for you..."</div><div class="queue-actions"><button class="btn-approve" onclick="approveProspect(${p.id})">✓ Approve & Build</button><button class="btn-skip" onclick="rejectProspect(${p.id})">Skip</button></div>`;
+    list.appendChild(d);
+  });
+  if(P.queue.length>1){const b=document.createElement('button');b.className='btn-approve-all';b.textContent=`Approve & Build All ${P.queue.length}`;b.onclick=approveAll;list.appendChild(b);}
+}
+
+async function approveProspect(id){
+  const item=el('qi-'+id); if(item){item.style.opacity='.3';item.style.pointerEvents='none';}
+  try{ await api('/admin/approve-prospect',{method:'POST',body:JSON.stringify({id})}); P.queue=P.queue.filter(p=>p.id!==id); renderQueue(); toast('✅ Approved — building site'); }
+  catch(e){ toast('Failed','err'); if(item){item.style.opacity='1';item.style.pointerEvents='auto';} }
+}
+
+async function rejectProspect(id){
+  try{ await api('/admin/reject-prospect',{method:'POST',body:JSON.stringify({id})}); P.queue=P.queue.filter(p=>p.id!==id); renderQueue(); toast('Skipped'); }
+  catch(e){ toast('Failed','err'); }
+}
+
+async function approveAll(){
+  const ids=P.queue.map(p=>p.id);
+  for(const id of ids) await api('/admin/approve-prospect',{method:'POST',body:JSON.stringify({id})}).catch(()=>{});
+  P.queue=[]; renderQueue(); toast(`✅ All ${ids.length} approved`);
+}
+
+async function loadMorning(){
+  try{
+    const r=await api('/admin/clients'); const all=r.clients||[];
+    const out=all.filter(c=>c.source==='outbound');
+    const built=out.filter(c=>c.status!=='lead');
+    const live=out.filter(c=>c.status==='live');
+    el('f-scraped').textContent=out.length; el('f-built').textContent=built.length; el('f-sent').textContent=built.length; el('f-converted').textContent=live.length;
+    const max=out.length||1;
+    el('fb-built').style.width=(built.length/max*100)+'%'; el('fb-sent').style.width=(built.length/max*100)+'%'; el('fb-converted').style.width=(live.length/max*100)+'%';
+    el('allScraped').textContent=out.length; el('allSent').textContent=built.length; el('allConverted').textContent=live.length;
+  }catch(e){ console.warn('Morning failed'); }
+}
+
+// ── API ────────────────────────────────────────────────────────
+async function api(path,opts={}){
+  const r=await fetch(WORKER+path,{headers:{'Content-Type':'application/json','x-admin-key':ADMIN_KEY,...(opts.headers||{})},...opts});
+  if(!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
+async function saveConfig(key,value){ await api('/admin/set-config',{method:'POST',body:JSON.stringify({key,value})}).catch(()=>{}); }
+
+// ── HELPERS ────────────────────────────────────────────────────
+function sBadge(s){ return `<span class="badge ${s||''}">${(s||'unknown').replace(/_/g,' ')}</span>`; }
+function pkgBadge(p){ if(!p) return '—'; return `<span class="pkg-badge ${p}">${p}</span>`; }
+function mrow(k,v){ return `<div class="modal-row"><span class="k">${k}</span><span class="v">${v}</span></div>`; }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
+function fmtDate(s){ return s?s.split(' ')[0]:'—'; }
+function fmtTime(s){ if(!s) return '—'; const p=s.split(' '); return p[1]?p[1].substring(0,5):p[0]; }
+
+function toast(msg,type=''){
+  const w=el('toastWrap'), d=document.createElement('div');
+  d.className='toast '+(type||''); d.textContent=msg; w.appendChild(d);
+  setTimeout(()=>{ d.style.animation='slideOut .3s ease forwards'; setTimeout(()=>d.remove(),300); },2800);
+}
+
+init();
+</script>
+</body>
+</html>
