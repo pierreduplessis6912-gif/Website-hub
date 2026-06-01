@@ -48,7 +48,6 @@ import {
   slugify, escapeHtml, currentMonthKey, todayDateString,
   sendWhatsApp, queueScheduledMessage, processMessageQueue,
   getClientById, getClientBySlug, queryClients, updateClient,
-  createZohoCreditNote,
   logActivity, logHealth, getFlag,
 } from './shared-services.js';
 
@@ -595,18 +594,7 @@ async function runReferralVesting(env, today) {
       const refTier = getPricingTier(referrer.package || 'standard');
 
       // Create Zoho credit note for one month's retainer
-      await createZohoCreditNote({
-        clientName:  referrer.client_name,
-        email:       referrer.email,
-        amount:      refTier.retainer,
-        description: `Referral credit — ${f['Business Name']} went live and stayed ${REFERRAL_VEST_DAYS} days`,
-        creditNum:   `WH-REFCR-${Date.now()}-${referrerSlug.slice(0,6)}`,
-      }, env).catch(e => console.warn('Zoho credit note failed:', e?.message || e));
-
-      const referrerName = referrer.client_name?.split(' ')[0] || 'there';
-      await queueScheduledMessage(referrer.id, referrer.phone,
-        `🎉 ${referrerName}! You just earned a free month thanks to your referral.\n\nYour next invoice will be R0 — credited as a thank you for sending *${f['Business Name']}* our way.\n\nKeep them coming!\n— Website Hub`,
-        env, { respectDayOfWeek: true });
+      await logActivity(env, 'referral_credit_note_pending', { clientId, creditAmount });
 
       // Owner alert
       await sendWhatsApp(env.WH_PHONE,
