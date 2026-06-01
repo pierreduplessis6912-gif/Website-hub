@@ -8,7 +8,7 @@
 //
 // IMPORT EXAMPLE (in any worker file):
 //   import {
-//     PRICING, getPricingTier, buildPayFastLink, sendWhatsApp,
+//     PRICING, getPricingTier, buildPayFastLink, sendWhatsApp, createInvoice,
 //     callClaudeInternal, getAirtableRecord, updateAirtableRecord,
 //     logActivity, logHealth, jsonResponse, corsResponse, slugify,
 //   } from './shared-services.js';
@@ -536,7 +536,7 @@ const FLAG_KV_KEYS = {
   OUTBOUND_ENABLED:          'config:outbound_enabled',
   REFERRAL_ENABLED:          'config:referral_enabled',
   VISION_VALIDATION_ENABLED: 'config:vision_enabled',
-  ZOHO_PROVISIONING_ENABLED: 'config:zoho_provisioning_enabled',
+  // ZOHO_PROVISIONING_ENABLED removed — Zoho replaced
   GBP_UPDATE_ENABLED:        'config:gbp_update_enabled',
 };
 
@@ -1227,175 +1227,18 @@ export async function getZohoAccessToken(env) {
   }
 }
 
-/**
- * Creates a Zoho invoice (or in TEST_MODE, logs the payload to KV).
- *
- * @param {object} args
- * @param {string} args.clientName
- * @param {string} args.email
- * @param {number} args.amount
- * @param {string} args.description
- * @param {string} args.invoiceNum
- * @param {boolean} [args.markPaid=false]  Set to true on go-live (deposit already paid via PayFast)
- * @param {string}  [args.payLink='']      PayFast URL to include in invoice notes
- * @param {object}  env
- */
-export async function createZohoInvoice(args, env) {
-  const { clientName, email, amount, description, invoiceNum, markPaid = false, payLink = '' } = args;
-
-  // TEST_MODE → log payload only
-  if (isTestMode(env)) {
-    const key = `test_log:zoho:invoice:${Date.now()}:${invoiceNum}`;
-    await env.SITES.put(
-      key,
-      JSON.stringify({ clientName, email, amount, description, invoiceNum, markPaid, payLink, ts: new Date().toISOString() }),
-      { expirationTtl: 60 * 60 * 24 * 30 },
-    ).catch(() => {});
-    await logActivity(env, 'test_mode_zoho_invoice', { invoiceNum, amount, clientName });
-    return { invoice_number: invoiceNum, amount, test_mode: true };
-  }
-
-  if (!env.ZOHO_CLIENT_ID || !env.ZOHO_CLIENT_SECRET || !env.ZOHO_ORG_ID) {
-    console.warn('Zoho not configured — skipping invoice');
-    return null;
-  }
-
-  const accessToken = await getZohoAccessToken(env);
-  if (!accessToken) return null;
-
-  const headers = {
-    'Authorization': `Zoho-oauthtoken ${accessToken}`,
-    'Content-Type':  'application/json',
-  };
-  const orgId = env.ZOHO_ORG_ID;
-
-  let contactId;
-  try {
-    const searchRes  = await fetch(
-      `https://books.zoho.com/api/v3/contacts?organization_id=${orgId}&email=${encodeURIComponent(email)}`,
-      { headers },
-    );
-    const searchData = await searchRes.json();
-    const existing   = searchData?.contacts?.[0];
-    if (existing) {
-      contactId = existing.contact_id;
-    } else {
-      const contactRes  = await fetch(
-        `https://books.zoho.com/api/v3/contacts?organization_id=${orgId}`,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ contact_name: clientName, email, contact_type: 'customer' }),
-        },
-      );
-      const contactData = await contactRes.json();
-      contactId = contactData?.contact?.contact_id;
-    }
-  } catch (e) {
-    console.warn('Zoho contact lookup failed:', e?.message || e);
-    return null;
-  }
-  if (!contactId) return null;
-
-  const today   = todayDateString();
-  const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const notes   = payLink
-    ? `Pay online: ${payLink}\n\nThank you for choosing Website Hub.`
-    : 'Thank you for choosing Website Hub.';
-
-  try {
-    const suffix     = markPaid ? '&invoice_status=paid' : '';
-    const invoiceRes = await fetch(
-      `https://books.zoho.com/api/v3/invoices?organization_id=${orgId}&send=true${suffix}`,
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          customer_id:    contactId,
-          invoice_number: invoiceNum,
-          date:           today,
-          due_date:       dueDate,
-          line_items: [{ description, quantity: 1, rate: amount }],
-          notes,
-        }),
-      },
-    );
-    const invoiceData = await invoiceRes.json();
-    await logHealth(env, 'zoho', 'success');
-    return invoiceData?.invoice || null;
-  } catch (e) {
-    console.warn('Zoho invoice create failed:', e?.message || e);
-    await logHealth(env, 'zoho', 'error', e?.message || 'invoice create failed');
-    return null;
-  }
+// ── D1 INVOICE SYSTEM (replaces Zoho Books) ──────────────────────────────────
+// createInvoice is implemented in launch-worker where env.RESEND_API_KEY is available.
+// This export stub is kept for import compatibility across workers.
+export async function createInvoice(args, env) {
+  const { clientId, clientName, amount, description, invoiceNum, type = 'retainer', status = 'pending' } = args;
+  await env.DB.prepare(`
+    INSERT OR IGNORE INTO invoices (id, client_id, invoice_num, amount, description, type, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+  `).bind(generateUUID(), clientId, invoiceNum, amount, description, type, status).run().catch(() => null);
+  await logActivity(env, 'invoice_created', { clientId, invoiceNum, amount, type, status });
 }
 
-/**
- * Creates a Zoho credit note (e.g. for referral free months).
- * TEST_MODE: logs payload to KV.
- */
-export async function createZohoCreditNote(args, env) {
-  const { clientName, email, amount, description, creditNum } = args;
-
-  if (isTestMode(env)) {
-    const key = `test_log:zoho:credit:${Date.now()}:${creditNum}`;
-    await env.SITES.put(
-      key,
-      JSON.stringify({ clientName, email, amount, description, creditNum, ts: new Date().toISOString() }),
-      { expirationTtl: 60 * 60 * 24 * 30 },
-    ).catch(() => {});
-    await logActivity(env, 'test_mode_zoho_credit', { creditNum, amount, clientName });
-    return { creditnote_number: creditNum, amount, test_mode: true };
-  }
-
-  if (!env.ZOHO_CLIENT_ID || !env.ZOHO_CLIENT_SECRET || !env.ZOHO_ORG_ID) return null;
-
-  const accessToken = await getZohoAccessToken(env);
-  if (!accessToken) return null;
-
-  const headers = {
-    'Authorization': `Zoho-oauthtoken ${accessToken}`,
-    'Content-Type':  'application/json',
-  };
-  const orgId = env.ZOHO_ORG_ID;
-
-  let contactId;
-  try {
-    const searchRes  = await fetch(
-      `https://books.zoho.com/api/v3/contacts?organization_id=${orgId}&email=${encodeURIComponent(email)}`,
-      { headers },
-    );
-    const searchData = await searchRes.json();
-    contactId = searchData?.contacts?.[0]?.contact_id;
-  } catch {
-    return null;
-  }
-  if (!contactId) return null;
-
-  try {
-    const today     = todayDateString();
-    const creditRes = await fetch(
-      `https://books.zoho.com/api/v3/creditnotes?organization_id=${orgId}`,
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          customer_id:       contactId,
-          creditnote_number: creditNum,
-          date:              today,
-          line_items: [{ description, quantity: 1, rate: amount }],
-        }),
-      },
-    );
-    const creditData = await creditRes.json();
-    await logHealth(env, 'zoho', 'success');
-    return creditData?.creditnote || null;
-  } catch (e) {
-    console.warn('Zoho credit note failed:', e?.message || e);
-    await logHealth(env, 'zoho', 'error', e?.message || 'credit note failed');
-    return null;
-  }
-}
 
 // ────────────────────────────────────────────────────────────
 // TEMPLATE SYSTEM — archetype detection, KV fetch, token replace
