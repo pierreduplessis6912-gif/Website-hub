@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Your Site Preview — Website Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0d0d0d;
+  --surface:#161616;
+  --surface2:#1e1e1e;
+  --border:#2a2a2a;
+  --text:#f0ede8;
+  --muted:#6b6b6b;
+  --muted2:#444;
+  --cyan:#00f0ff;
+  --magenta:#ff00a0;
+  --purple:#b829dd;
+  --green:#00e676;
+  --red:#ff4444;
+  --amber:#f5a623;
+  --font-display:'DM Serif Display',serif;
+  --font-body:'DM Sans',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-body)}
+
+/* ── SCREENS ── */
+.screen{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transition:opacity .4s ease;
+}
+.screen.active{opacity:1;pointer-events:all}
+
+/* ══════════════════════════════════════════
+   BUILDING SCREEN
+══════════════════════════════════════════ */
+#screen-building{
+  align-items:center;justify-content:center;
+  gap:0;
+  background:var(--bg);
+}
+
+.build-wordmark{
+  position:absolute;top:24px;left:24px;
+  font-family:var(--font-display);
+  font-size:20px;
+  color:var(--text);
+}
+.build-wordmark span{color:var(--cyan)}
+
+/* Rings */
+.rings-wrap{
+  position:relative;
+  width:180px;height:180px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:48px;
+}
+.ring{
+  position:absolute;border-radius:50%;border:1.5px solid transparent;
+  animation:spin linear infinite;
+}
+.ring-1{
+  width:180px;height:180px;
+  border-top-color:var(--cyan);
+  border-right-color:rgba(0,240,255,.15);
+  animation-duration:3s;
+}
+.ring-2{
+  width:130px;height:130px;
+  border-top-color:var(--purple);
+  border-left-color:rgba(184,41,221,.15);
+  animation-duration:2s;
+  animation-direction:reverse;
+}
+.ring-3{
+  width:82px;height:82px;
+  border-top-color:var(--magenta);
+  border-bottom-color:rgba(255,0,160,.1);
+  animation-duration:1.5s;
+}
+.ring-core{
+  width:36px;height:36px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,240,255,.15),transparent);
+  border:1.5px solid rgba(0,240,255,.3);
+  animation:pulse-core 2s ease-in-out infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse-core{
+  0%,100%{transform:scale(1);opacity:.6}
+  50%{transform:scale(1.15);opacity:1}
+}
+
+.build-slug{
+  font-family:var(--font-mono);
+  font-size:13px;
+  color:var(--cyan);
+  letter-spacing:.5px;
+  margin-bottom:16px;
+}
+.build-status{
+  font-family:var(--font-display);
+  font-size:clamp(22px,5vw,30px);
+  color:var(--text);
+  text-align:center;
+  margin-bottom:8px;
+  min-height:40px;
+  transition:opacity .3s;
+}
+.build-sub{
+  font-size:14px;
+  color:var(--muted);
+  text-align:center;
+  min-height:20px;
+  transition:opacity .3s;
+}
+
+/* Build messages animation */
+.build-status.fade,.build-sub.fade{opacity:0}
+
+/* Error actions */
+#buildActions{
+  display:none;
+  flex-direction:column;align-items:center;gap:12px;
+  margin-top:32px;
+}
+.btn-retry{
+  padding:14px 32px;border-radius:14px;
+  background:var(--surface);border:1.5px solid var(--border);
+  color:var(--text);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font-body);
+  transition:all .2s;
+}
+.btn-retry:active{border-color:var(--cyan)}
+
+/* ══════════════════════════════════════════
+   PREVIEW SCREEN
+══════════════════════════════════════════ */
+#screen-preview{background:var(--bg)}
+
+#prevTopBar{
+  flex-shrink:0;
+  height:52px;
+  background:rgba(13,13,13,.95);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  position:relative;z-index:10;
+}
+.prev-brand{
+  font-family:var(--font-display);
+  font-size:16px;
+}
+.prev-brand span{color:var(--cyan)}
+.prev-status-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:100px;
+  background:rgba(0,230,118,.08);
+  border:1px solid rgba(0,230,118,.2);
+  font-family:var(--font-mono);
+  font-size:10px;
+  color:var(--green);
+  letter-spacing:.5px;
+}
+.prev-status-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--green);
+  animation:blink 1.5s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+#previewFrame{
+  flex:1;border:none;width:100%;
+  min-height:0;background:var(--bg);
+}
+
+/* Bottom CTA */
+#prevBottom{
+  flex-shrink:0;
+  padding:16px 20px calc(16px + env(safe-area-inset-bottom));
+  background:var(--bg);
+  border-top:1px solid var(--border);
+}
+.prev-plan-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.prev-plan-name{
+  font-size:13px;color:var(--muted);font-weight:500;
+}
+.prev-plan-switcher{
+  font-size:12px;color:var(--cyan);
+  cursor:pointer;font-weight:600;
+  border:none;background:transparent;
+  font-family:var(--font-body);
+}
+.prev-price-row{
+  display:flex;align-items:baseline;gap:4px;
+  margin-bottom:12px;
+}
+.prev-price{
+  font-family:var(--font-display);
+  font-size:32px;
+  color:var(--text);
+}
+.prev-price-period{
+  font-size:13px;color:var(--muted);
+}
+#btnGoLive{
+  width:100%;padding:17px;border-radius:16px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple),var(--magenta));
+  border:none;
+  color:#fff;font-size:16px;font-weight:700;
+  cursor:pointer;font-family:var(--font-body);
+  transition:all .25s;
+  box-shadow:0 4px 24px rgba(0,240,255,.15);
+  animation:glow 3s ease-in-out infinite;
+}
+#btnGoLive:active{transform:scale(.98)}
+@keyframes glow{
+  0%,100%{box-shadow:0 4px 24px rgba(0,240,255,.15)}
+  50%{box-shadow:0 4px 40px rgba(0,240,255,.3),0 0 60px rgba(184,41,221,.15)}
+}
+.prev-legal{
+  text-align:center;
+  font-size:11px;color:var(--muted2);
+  margin-top:10px;
+}
+
+/* Open in tab button */
+#btnOpenTab{
+  position:absolute;right:20px;top:50%;transform:translateY(-50%);
+  padding:6px 12px;border-radius:8px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--muted);font-size:11px;font-weight:500;
+  cursor:pointer;font-family:var(--font-body);
+  transition:all .2s;
+}
+#btnOpenTab:active{border-color:var(--cyan);color:var(--cyan)}
+
+/* ══════════════════════════════════════════
+   PLAN SHEET
+══════════════════════════════════════════ */
+#planSheet{
+  position:fixed;inset:0;z-index:300;
+  display:flex;align-items:flex-end;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:blur(6px);
+  opacity:0;pointer-events:none;
+  transition:opacity .3s;
+}
+#planSheet.open{opacity:1;pointer-events:all}
+#planSheetInner{
+  width:100%;
+  background:var(--surface);
+  border-radius:20px 20px 0 0;
+  padding:24px 24px calc(24px + env(safe-area-inset-bottom));
+  transform:translateY(100%);
+  transition:transform .4s cubic-bezier(.4,0,.2,1);
+}
+#planSheet.open #planSheetInner{transform:translateY(0)}
+.sheet-handle{
+  width:36px;height:4px;border-radius:2px;
+  background:var(--muted2);margin:0 auto 20px;
+}
+.sheet-title{
+  font-family:var(--font-display);
+  font-size:22px;margin-bottom:20px;
+}
+.plan-row{
+  display:flex;align-items:center;
+  padding:16px 0;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  transition:opacity .2s;
+  gap:16px;
+}
+.plan-row:last-child{border-bottom:none}
+.plan-row:active{opacity:.7}
+.plan-row-sel{
+  width:20px;height:20px;border-radius:50%;
+  border:1.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .2s;
+}
+.plan-row-sel.sel{
+  border-color:var(--cyan);background:var(--cyan);
+}
+.plan-row-sel.sel::after{
+  content:'';width:6px;height:6px;border-radius:50%;background:#000;
+}
+.plan-row-body{flex:1}
+.plan-row-name{font-size:16px;font-weight:600;margin-bottom:3px}
+.plan-row-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.plan-row-price{
+  font-family:var(--font-mono);
+  font-size:15px;color:var(--cyan);
+  flex-shrink:0;
+}
+.plan-badge{
+  display:inline-block;
+  font-size:9px;font-weight:700;letter-spacing:.5px;
+  padding:2px 7px;border-radius:100px;
+  background:rgba(0,240,255,.1);color:var(--cyan);
+  border:1px solid rgba(0,240,255,.2);
+  margin-left:6px;vertical-align:middle;
+}
+
+/* ══════════════════════════════════════════
+   CONFIRM SCREEN
+══════════════════════════════════════════ */
+#screen-confirm{
+  background:var(--bg);
+  padding:60px 24px 40px;
+  overflow-y:auto;
+  gap:0;
+}
+.confirm-back{
+  position:absolute;top:20px;left:20px;
+  font-size:14px;color:var(--muted);cursor:pointer;
+  padding:8px;
+}
+.confirm-back:active{color:var(--text)}
+.confirm-eyebrow{
+  font-family:var(--font-mono);
+  font-size:11px;color:var(--cyan);
+  letter-spacing:1px;margin-bottom:12px;
+  animation:slideUp .4s ease both;
+}
+.confirm-title{
+  font-family:var(--font-display);
+  font-size:clamp(28px,7vw,38px);
+  line-height:1.15;
+  margin-bottom:8px;
+  animation:slideUp .4s .05s ease both;
+}
+.confirm-sub{
+  font-size:14px;color:var(--muted);
+  margin-bottom:28px;
+  animation:slideUp .4s .1s ease both;
+}
+.summary-card{
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  margin-bottom:16px;
+  animation:slideUp .4s .15s ease both;
+}
+.s-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+  font-size:14px;
+}
+.s-row:last-child{border-bottom:none}
+.s-row span{color:var(--muted)}
+.s-row strong{font-weight:600}
+.s-row.hl{
+  background:rgba(0,240,255,.04);
+}
+.s-row.hl strong{color:var(--cyan);font-size:18px}
+.promo-row{
+  display:flex;gap:8px;margin-bottom:8px;
+  animation:slideUp .4s .2s ease both;
+}
+.promo-input{
+  flex:1;background:var(--surface);
+  border:1.5px solid var(--border);border-radius:12px;
+  padding:13px 16px;font-family:var(--font-body);font-size:14px;
+  color:var(--text);outline:none;
+  transition:border-color .2s;
+}
+.promo-input::placeholder{color:var(--muted2)}
+.promo-input:focus{border-color:var(--cyan)}
+.promo-btn{
+  padding:13px 18px;border-radius:12px;
+  background:var(--surface);border:1.5px solid var(--border);
+  color:var(--muted);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font-body);
+  transition:all .2s;white-space:nowrap;
+}
+.promo-btn:active{border-color:var(--cyan);color:var(--cyan)}
+#promoMsg{
+  font-size:13px;margin-bottom:12px;min-height:18px;
+  animation:slideUp .3s ease both;
+}
+#promoMsg.ok{color:var(--green)}
+#promoMsg.err{color:var(--red)}
+#payBtn{
+  width:100%;padding:18px;border-radius:16px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple),var(--magenta));
+  border:none;color:#fff;font-size:16px;font-weight:700;
+  cursor:pointer;font-family:var(--font-body);
+  transition:all .25s;margin-bottom:12px;
+  animation:slideUp .4s .25s ease both;
+  box-shadow:0 4px 24px rgba(0,240,255,.15);
+}
+#payBtn:disabled{opacity:.5;pointer-events:none}
+#payBtn:active{transform:scale(.98)}
+.confirm-legal{
+  text-align:center;font-size:11px;color:var(--muted2);
+  line-height:1.6;
+  animation:slideUp .4s .3s ease both;
+}
+
+@keyframes slideUp{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ══════════════════════════════════════════
+   PROCESSING SCREEN
+══════════════════════════════════════════ */
+#screen-processing{
+  align-items:center;justify-content:center;gap:0;
+  background:var(--bg);
+}
+.proc-wordmark{
+  position:absolute;top:24px;left:24px;
+  font-family:var(--font-display);font-size:20px;
+}
+.proc-wordmark span{color:var(--cyan)}
+.proc-rings{
+  position:relative;width:160px;height:160px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:40px;
+}
+.proc-ring{
+  position:absolute;border-radius:50%;border:1.5px solid transparent;
+  animation:spin linear infinite;
+}
+.proc-ring-1{width:160px;height:160px;border-top-color:var(--green);animation-duration:2.5s}
+.proc-ring-2{width:110px;height:110px;border-top-color:rgba(0,230,118,.4);animation-duration:1.8s;animation-direction:reverse}
+.proc-ring-3{width:68px;height:68px;border-top-color:rgba(0,230,118,.2);animation-duration:1.2s}
+.proc-core{
+  width:32px;height:32px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,230,118,.2),transparent);
+  border:1.5px solid rgba(0,230,118,.3);
+  animation:pulse-core 2s ease-in-out infinite;
+}
+#procStatus{
+  font-family:var(--font-display);
+  font-size:clamp(20px,5vw,26px);
+  text-align:center;margin-bottom:8px;
+}
+#procSub{font-size:14px;color:var(--muted);text-align:center}
+#procAction{
+  display:none;
+  flex-direction:column;align-items:center;gap:10px;
+  margin-top:28px;width:100%;padding:0 40px;
+}
+.btn-proc-retry{
+  width:100%;padding:14px;border-radius:14px;
+  background:var(--surface);border:1.5px solid var(--border);
+  color:var(--text);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font-body);
+}
+.btn-proc-ghost{
+  font-size:13px;color:var(--muted);
+  background:transparent;border:none;cursor:pointer;
+  font-family:var(--font-body);padding:8px;
+}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:140px;left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-size:13px;font-weight:500;
+  padding:10px 20px;border-radius:100px;
+  opacity:0;transition:all .3s;
+  white-space:nowrap;z-index:500;pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:var(--green);color:var(--green)}
+#toast.err{border-color:var(--red);color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════
+     BUILDING SCREEN
+═══════════════════════ -->
+<div class="screen active" id="screen-building">
+  <div class="build-wordmark">Website<span>Hub</span></div>
+  <div class="rings-wrap">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="ring-core"></div>
+  </div>
+  <div class="build-slug" id="buildSlug">building your site</div>
+  <div class="build-status" id="buildStatus">Writing your story</div>
+  <div class="build-sub" id="buildSub">Shaping copy that sounds like you</div>
+  <div id="buildActions">
+    <button class="btn-retry" onclick="retryPoll()">Check again</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════
+     PREVIEW SCREEN
+═══════════════════════ -->
+<div class="screen" id="screen-preview">
+  <div id="prevTopBar">
+    <div class="prev-brand">Website<span>Hub</span></div>
+    <button id="btnOpenTab" onclick="openInTab()">Open ↗</button>
+    <div class="prev-status-pill">
+      <div class="prev-status-dot"></div>
+      PREVIEW READY
+    </div>
+  </div>
+  <iframe id="previewFrame" loading="lazy" allow="clipboard-write"></iframe>
+  <div id="prevBottom">
+    <div class="prev-plan-row">
+      <div class="prev-plan-name" id="prevPlanName">Standard plan</div>
+      <button class="prev-plan-switcher" onclick="openPlanSheet()">Change plan</button>
+    </div>
+    <div class="prev-price-row">
+      <div class="prev-price" id="prevPrice">R699</div>
+      <div class="prev-price-period">/month · no setup fee</div>
+    </div>
+    <button id="btnGoLive" onclick="goToConfirm()">Go live — claim your site →</button>
+    <div class="prev-legal">Free .co.za domain · Cancel anytime · Secure via PayFast</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════
+     CONFIRM SCREEN
+═══════════════════════ -->
+<div class="screen" id="screen-confirm">
+  <div class="confirm-back" onclick="showScreen('preview')">← Back</div>
+  <div class="confirm-eyebrow">ALMOST LIVE</div>
+  <div class="confirm-title">You're one tap<br><em>from live.</em></div>
+  <div class="confirm-sub" id="confirmSub">Free domain + setup included</div>
+  <div class="summary-card">
+    <div class="s-row"><span>Plan</span><strong id="cPlan">Standard</strong></div>
+    <div class="s-row"><span>Build fee</span><strong><s style="color:var(--muted);font-size:12px">R7,000</s> <span style="color:var(--green);font-size:12px;font-weight:700">R0 FREE</span></strong></div>
+    <div class="s-row"><span>Domain</span><strong id="cDomain">—</strong></div>
+    <div class="s-row hl"><span>First month</span><strong id="cPrice">R699</strong></div>
+  </div>
+  <div class="promo-row">
+    <input class="promo-input" id="promoInput" placeholder="Promo code (optional)" oninput="clearPromo()">
+    <button class="promo-btn" onclick="applyPromo()">Apply</button>
+  </div>
+  <div id="promoMsg"></div>
+  <button id="payBtn" onclick="processPayment()">Pay R699 — Go Live →</button>
+  <div class="confirm-legal">Secure payment via PayFast · Cancel anytime · No contracts</div>
+</div>
+
+<!-- ═══════════════════════
+     PROCESSING SCREEN
+═══════════════════════ -->
+<div class="screen" id="screen-processing">
+  <div class="proc-wordmark">Website<span>Hub</span></div>
+  <div class="proc-rings">
+    <div class="proc-ring proc-ring-1"></div>
+    <div class="proc-ring proc-ring-2"></div>
+    <div class="proc-ring proc-ring-3"></div>
+    <div class="proc-core"></div>
+  </div>
+  <div id="procStatus">Confirming payment</div>
+  <div id="procSub">This usually takes a few seconds</div>
+  <div id="procAction">
+    <button class="btn-proc-retry" onclick="retryProcessing()">Check again</button>
+    <button class="btn-proc-ghost" onclick="openManage()">Open dashboard</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════
+     PLAN SHEET
+═══════════════════════ -->
+<div id="planSheet" onclick="closePlanSheet()">
+  <div id="planSheetInner" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Choose your plan</div>
+    <div class="plan-row" onclick="selectPlan('express')">
+      <div class="plan-row-sel" id="sel-express"></div>
+      <div class="plan-row-body">
+        <div class="plan-row-name">Express</div>
+        <div class="plan-row-desc">Single page · Domain · WhatsApp CTA · 1 revision/mo</div>
+      </div>
+      <div class="plan-row-price">R299<span style="font-size:10px;color:var(--muted)">/mo</span></div>
+    </div>
+    <div class="plan-row" onclick="selectPlan('standard')">
+      <div class="plan-row-sel" id="sel-standard"></div>
+      <div class="plan-row-body">
+        <div class="plan-row-name">Standard <span class="plan-badge">POPULAR</span></div>
+        <div class="plan-row-desc">+ Logo · Socials · Analytics · Referral rewards</div>
+      </div>
+      <div class="plan-row-price">R699<span style="font-size:10px;color:var(--muted)">/mo</span></div>
+    </div>
+    <div class="plan-row" onclick="selectPlan('premium')">
+      <div class="plan-row-sel" id="sel-premium"></div>
+      <div class="plan-row-body">
+        <div class="plan-row-name">Premium</div>
+        <div class="plan-row-desc">+ Gallery · Map · GBP · Enquiry form · Unlimited revisions · Email</div>
+      </div>
+      <div class="plan-row-price">R999<span style="font-size:10px;color:var(--muted)">/mo</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────
+const S = {
+  token: null,
+  slug: null,
+  selectedPlan: 'standard',
+  _pollTimer: null,
+  _msgTimer: null,
+  _msgIdx: 0,
+};
+
+const PLANS = {
+  express:  { name:'Express',  monthly:299,  label:'Express plan' },
+  standard: { name:'Standard', monthly:699,  label:'Standard plan' },
+  premium:  { name:'Premium',  monthly:999,  label:'Premium plan' },
+};
+
+const PROMO_CODES = { BETA: 1.0, LAUNCH: 0.5, HUB20: 0.2 };
+
+const BUILD_MSGS = [
+  { s:'Writing your story',         b:'Shaping copy that sounds like you' },
+  { s:'Designing your layout',      b:'Picking a look that fits your industry' },
+  { s:'Finding your photos',        b:'Sourcing imagery that matches your vibe' },
+  { s:'Polishing the details',      b:'Every section checked and refined' },
+  { s:'Almost there',               b:'Final touches on your site' },
+];
+
+function el(id){ return document.getElementById(id) }
+function isDev(){ return !S.token; }
+
+// ── SCREENS ──────────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const scr = el('screen-' + name);
+  if (scr) {
+    scr.classList.add('active');
+    if (name === 'preview')    onPreview();
+    if (name === 'confirm')    onConfirm();
+    if (name === 'processing') onProcessing();
+  }
+}
+
+// ── BOOTSTRAP ────────────────────────────────────────────────────
+async function bootstrap() {
+  const path = location.pathname;
+  const token = (path.match(/\/preview\/([^/]+)/) || [])[1]
+    || window.__WH_TOKEN__
+    || null;
+
+  if (token) {
+    S.token = token;
+    try {
+      const d = await apiFetch(`/build-status?token=${token}`, {}, { silent: true });
+      S.slug = d.slug;
+      if (d.slug) el('buildSlug').textContent = d.slug + '.co.za';
+      if (d.package) selectPlanSilent(d.package);
+
+      if (d.status === 'preview_ready') {
+        showScreen('preview');
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // Still building — start polling
+  startBuildPoll();
+  rotateBuildMsgs();
+}
+
+// ── BUILD POLL ───────────────────────────────────────────────────
+function startBuildPoll() {
+  if (isDev()) {
+    // Dev mode — simulate completion after 4s
+    setTimeout(() => showScreen('preview'), 4000);
+    return;
+  }
+
+  clearInterval(S._pollTimer);
+  const deadline = Date.now() + 360000; // 6 min max
+  let failStreak = 0;
+
+  S._pollTimer = setInterval(async () => {
+    try {
+      const d = await apiFetch(`/build-status?token=${S.token}`, {}, { silent: true });
+      failStreak = 0;
+      if (d.slug) {
+        S.slug = d.slug;
+        el('buildSlug').textContent = d.slug + '.co.za';
+      }
+      if (d.status === 'preview_ready') {
+        clearInterval(S._pollTimer);
+        clearInterval(S._msgTimer);
+        showScreen('preview');
+      }
+    } catch {
+      if (++failStreak >= 4) {
+        clearInterval(S._pollTimer);
+        el('buildActions').style.display = 'flex';
+      }
+    }
+    if (Date.now() > deadline) {
+      clearInterval(S._pollTimer);
+      el('buildActions').style.display = 'flex';
+    }
+  }, 3000);
+}
+
+function rotateBuildMsgs() {
+  setBuildMsg(0);
+  S._msgTimer = setInterval(() => {
+    S._msgIdx = (S._msgIdx + 1) % BUILD_MSGS.length;
+    const status = el('buildStatus');
+    const sub    = el('buildSub');
+    status.classList.add('fade');
+    sub.classList.add('fade');
+    setTimeout(() => {
+      setBuildMsg(S._msgIdx);
+      status.classList.remove('fade');
+      sub.classList.remove('fade');
+    }, 300);
+  }, 3500);
+}
+
+function setBuildMsg(i) {
+  const m = BUILD_MSGS[i];
+  el('buildStatus').textContent = m.s;
+  el('buildSub').textContent = m.b;
+}
+
+function retryPoll() {
+  el('buildActions').style.display = 'none';
+  startBuildPoll();
+}
+
+// ── PREVIEW ──────────────────────────────────────────────────────
+function onPreview() {
+  if (!S.slug) return;
+  const frame = el('previewFrame');
+  if (frame) frame.src = '/site/' + S.slug + '/';
+
+  const p = PLANS[S.selectedPlan] || PLANS.standard;
+  el('prevPrice').textContent = 'R' + p.monthly;
+  el('prevPlanName').textContent = p.label;
+  updatePlanSelectors();
+}
+
+function openInTab() {
+  if (S.slug) window.open('/site/' + S.slug + '/', '_blank');
+}
+
+// ── PLAN ─────────────────────────────────────────────────────────
+function selectPlan(plan) {
+  S.selectedPlan = plan;
+  const p = PLANS[plan];
+  el('prevPrice').textContent = 'R' + p.monthly;
+  el('prevPlanName').textContent = p.label;
+  updatePlanSelectors();
+  closePlanSheet();
+  toast(`Switched to ${p.name}`, 'ok');
+}
+
+function selectPlanSilent(plan) {
+  if (PLANS[plan]) S.selectedPlan = plan;
+}
+
+function updatePlanSelectors() {
+  ['express','standard','premium'].forEach(p => {
+    const s = el('sel-' + p);
+    if (s) s.classList.toggle('sel', p === S.selectedPlan);
+  });
+}
+
+function openPlanSheet()  { el('planSheet').classList.add('open'); }
+function closePlanSheet() { el('planSheet').classList.remove('open'); }
+
+// ── CONFIRM ──────────────────────────────────────────────────────
+function goToConfirm() { showScreen('confirm'); }
+
+function onConfirm() {
+  const p = PLANS[S.selectedPlan] || PLANS.standard;
+  el('cPlan').textContent = p.name;
+  el('cDomain').textContent = S.slug ? `${S.slug}.co.za` : '—';
+  el('cPrice').textContent = 'R' + p.monthly;
+  el('payBtn').textContent = `Pay R${p.monthly} — Go Live →`;
+  el('confirmSub').textContent = S.slug
+    ? `${S.slug}.co.za — free domain included`
+    : 'Free domain included';
+}
+
+function clearPromo() {
+  el('promoMsg').textContent = '';
+  el('promoMsg').className = '';
+}
+
+function applyPromo() {
+  const code = el('promoInput').value.trim().toUpperCase();
+  const m = el('promoMsg');
+  const p = PLANS[S.selectedPlan];
+
+  if (PROMO_CODES[code] !== undefined) {
+    const disc = PROMO_CODES[code];
+    const newPrice = disc === 1.0 ? 0 : Math.round(p.monthly * (1 - disc));
+    el('cPrice').textContent = newPrice === 0 ? 'Free' : 'R' + newPrice;
+    el('payBtn').textContent = newPrice === 0 ? 'Activate — Go Live →' : `Pay R${newPrice} — Go Live →`;
+    m.textContent = disc === 1.0 ? 'First month free!' : `${Math.round(disc * 100)}% off applied`;
+    m.className = 'ok';
+  } else {
+    m.textContent = 'Code not recognised';
+    m.className = 'err';
+  }
+}
+
+async function processPayment() {
+  if (isDev()) { showScreen('processing'); return; }
+
+  const btn = el('payBtn');
+  const orig = btn.textContent;
+  btn.textContent = 'Connecting to PayFast…';
+  btn.disabled = true;
+
+  const p = PLANS[S.selectedPlan];
+
+  try {
+    const d = await apiFetch('/go-live-link', {
+      method: 'POST',
+      body: JSON.stringify({
+        token: S.token,
+        slug: S.slug,
+        plan: S.selectedPlan,
+        retainer: p.monthly,
+        billing: 'monthly',
+      })
+    });
+    if (d.redirectUrl) {
+      window.location.href = d.redirectUrl;
+    } else {
+      throw new Error('No redirect URL');
+    }
+  } catch(err) {
+    btn.textContent = orig;
+    btn.disabled = false;
+    toast("Couldn't reach PayFast — check connection", 'err');
+  }
+}
+
+// ── PROCESSING ───────────────────────────────────────────────────
+function onProcessing() {
+  el('procStatus').textContent = 'Confirming payment';
+  el('procSub').textContent = 'This usually takes a few seconds';
+  el('procAction').style.display = 'none';
+
+  if (isDev()) {
+    setTimeout(() => openManage(), 2500);
+    return;
+  }
+
+  let attempts = 0;
+  const timer = setInterval(async () => {
+    attempts++;
+    try {
+      const d = await apiFetch(`/client-status?token=${S.token}`, {}, { silent: true });
+      if (d.slug) S.slug = d.slug;
+      if (d.status === 'live') {
+        clearInterval(timer);
+        openManage();
+        return;
+      }
+      if (d.status === 'failed') {
+        clearInterval(timer);
+        el('procStatus').textContent = 'Payment not confirmed';
+        el('procSub').textContent = 'Something went wrong — tap to try again';
+        el('procAction').style.display = 'flex';
+      }
+    } catch {}
+    if (attempts >= 40) {
+      clearInterval(timer);
+      el('procStatus').textContent = 'Still confirming';
+      el('procSub').textContent = "We'll WhatsApp you when ready. You can close this.";
+      el('procAction').style.display = 'flex';
+    }
+  }, 3000);
+}
+
+function retryProcessing() {
+  el('procAction').style.display = 'none';
+  onProcessing();
+}
+
+function openManage() {
+  if (S.token) window.location.href = `/manage/${S.token}`;
+}
+
+// ── API ──────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    ...opts,
+  });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
+
+// ── TOAST ────────────────────────────────────────────────────────
+let _toastTimer;
+function toast(msg, type = '') {
+  const t = el('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.className = '', 2800);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+bootstrap();
+</script>
+</body>
+</html>
