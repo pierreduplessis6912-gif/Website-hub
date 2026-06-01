@@ -167,8 +167,11 @@ export default {
         if (path === '/admin/health')          return handleAdminHealth(env);
         if (path === '/admin/clients')         return handleAdminClients(env);
         if (path === '/admin/set-config'  && method === 'POST') return handleAdminSetConfig(request, env);
-        if (path === '/admin/bootstrap-pwa'   && method === 'POST') return handleAdminBootstrapPwa(request, env);
-        if (path === '/admin/bootstrap-start' && method === 'POST') return handleAdminBootstrapStart(request, env);
+        if (path === '/admin/bootstrap-pwa'     && method === 'POST') return handleAdminBootstrapPwa(request, env);
+        if (path === '/admin/bootstrap-start'   && method === 'POST') return handleAdminBootstrapStart(request, env);
+        if (path === '/admin/bootstrap-intake'  && method === 'POST') return handleAdminBootstrapIntake(request, env);
+        if (path === '/admin/bootstrap-preview' && method === 'POST') return handleAdminBootstrapPreview(request, env);
+        if (path === '/admin/bootstrap-manage'  && method === 'POST') return handleAdminBootstrapManage(request, env);
         if (path === '/admin/migrate'         && method === 'POST') return handleAdminMigrate(request, env);
         if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
         if (path === '/admin/build-detail'     && method === 'GET')  return handleAdminBuildDetail(url, env);
@@ -200,11 +203,14 @@ export default {
       // ── TRIGGER SUBSTANCE BUILD ──────────────────────────────
       if (path === '/trigger-rebuild' && method === 'POST') return handleTriggerRebuild(request, env);
 
-      // ── PWA SHELL ────────────────────────────────────────────
-      if (path === '/start') return servePwa(env, 'app:start-v2');
-      if (path.startsWith('/manage/'))     return servePwa(env, 'app:pwa');
-      if (path.startsWith('/experience/')) return servePwa(env, 'app:pwa');
-      if (path.startsWith('/verify/'))     return servePwa(env, 'app:pwa');
+      // ── PWA SHELLS ───────────────────────────────────────────
+      if (path === '/start')               return servePwa(env, 'app:start-v2');
+      if (path.startsWith('/intake/'))     return servePwa(env, 'app:intake');
+      if (path.startsWith('/preview/'))    return servePwa(env, 'app:preview');
+      if (path.startsWith('/manage/'))     return servePwa(env, 'app:manage');
+      // Legacy routes — keep for backwards compatibility
+      if (path.startsWith('/experience/')) return servePwa(env, 'app:intake');
+      if (path.startsWith('/verify/'))     return servePwa(env, 'app:manage');
 
       // ── BUILT SITE SERVING ───────────────────────────────────
       return serveBuiltSite(url, path, request, env);
@@ -275,6 +281,27 @@ async function handleAdminBootstrapPwa(request, env) {
   const html = await request.text();
   if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
   await env.SITES.put('app:pwa', html);
+  return jsonResponse({ success: true, size: html.length });
+}
+
+async function handleAdminBootstrapIntake(request, env) {
+  const html = await request.text();
+  if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
+  await env.SITES.put('app:intake', html);
+  return jsonResponse({ success: true, size: html.length });
+}
+
+async function handleAdminBootstrapPreview(request, env) {
+  const html = await request.text();
+  if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
+  await env.SITES.put('app:preview', html);
+  return jsonResponse({ success: true, size: html.length });
+}
+
+async function handleAdminBootstrapManage(request, env) {
+  const html = await request.text();
+  if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
+  await env.SITES.put('app:manage', html);
   return jsonResponse({ success: true, size: html.length });
 }
 
