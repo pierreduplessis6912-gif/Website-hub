@@ -61,7 +61,6 @@ import {
   slugify, escapeHtml, nextMonthDate, todayDateString, md5, constantTimeCompare,
   callClaudeInternal,
   sendWhatsApp, normaliseSaPhone,
-  createZohoInvoice,
   logActivity, logHealth, getFlag,
 } from './shared-services.js';
 
@@ -96,7 +95,7 @@ export default {
     if (path === '/suspend-site')     return handleSuspendSite(request, env);
     if (path === '/reinstate-site')   return handleReinstateSite(request, env);
     if (path === '/upgrade')          return handleUpgrade(request, env);
-    if (path === '/zoho-auth')        return handleZohoAuth(url, env);
+    // /zoho-auth removed — Zoho replaced by D1 invoicing + CF Email Routing
     if (path === '/google-auth')      return handleGoogleAuth(url, env);
     if (path === '/google-profile')   return handleGoogleProfile(request, env, ctx);
     if (path === '/health')           return handleHealth(env);
@@ -592,14 +591,16 @@ async function handleUpgradePayment(airtableId, customStr2, paymentId, amount, e
     status:             'building',
   }, env);
 
-  ctx.waitUntil(createZohoInvoice({
+  ctx.waitUntil(createInvoice({
+    clientId:    airtableId,
     clientName:  client.client_name,
     email:       client.email,
     amount:      expectedDelta,
     description: `${client.business_name} — Upgrade to ${newPackage}`,
     invoiceNum:  `WH-UPG-${Date.now()}`,
-    markPaid:    true,
-  }, env).catch(e => console.warn('Zoho upgrade invoice failed:', e?.message || e)));
+    type:        'upgrade',
+    status:      'paid',
+  }, env).catch(e => console.warn('Invoice creation failed:', e?.message || e)));
 
   await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: airtableId, isOutbound: false });
 
@@ -642,14 +643,16 @@ async function handleRevisionPayment(airtableId, customStr2, paymentId, amount, 
   const client = await getClientById(airtableId, env);
   if (!client) throw new Error(`Client not found: ${airtableId}`);
 
-  await createZohoInvoice({
+  await createInvoice({
+    clientId:    airtableId,
     clientName:  client.client_name,
     email:       client.email,
     amount:      PRICING.addons.revision,
     description: `${client.business_name} — Additional revision request`,
     invoiceNum:  `WH-REV-${Date.now()}`,
-    markPaid:    true,
-  }, env).catch(e => console.warn('Zoho revision invoice failed:', e?.message || e));
+    type:        'revision',
+    status:      'paid',
+  }, env).catch(e => console.warn('Invoice creation failed:', e?.message || e));
 
   // Forward to patch-worker — it owns the pending revision payload
   const patchUrl = env.WORKER_URL_PATCH;
@@ -820,10 +823,10 @@ async function handleGoLiveInternal(clientId, client, env) {
     );
   }
 
-  // ── 6. Zoho email provisioning (non-fatal) ───────────────────
-  if (caps.email) {
-    provisionZohoEmails(clientId, client, domain, env).catch(e => {
-      console.warn('Zoho email provisioning failed (non-fatal):', e?.message || e);
+  // ── 6. Cloudflare Email Routing (non-fatal) ─────────────────
+  if (caps.email && client.email) {
+    provisionEmailRouting(domain, client.email, env).catch(e => {
+      console.warn('Email routing setup failed (non-fatal):', e?.message || e);
     });
   }
 
@@ -1315,7 +1318,96 @@ function generateTempPassword() {
 }
 
 // ============================================================
-// ROUTE: /zoho-auth — one-time OAuth setup
+
+// ── CLOUDFLARE EMAIL ROUTING ──────────────────────────────────────────────────
+// Sets up email forwarding: hello@{domain} → client's personal email
+async function provisionEmailRouting(domain, forwardTo, env) {
+  const zoneId  = env.CF_ZONE_ID;
+  const cfToken = env.CF_API_TOKEN;
+  if (!zoneId || !cfToken) {
+    console.warn('CF Email Routing: missing CF_ZONE_ID or CF_API_TOKEN');
+    return;
+  }
+
+  // Create email routing rule: hello@{domain} → client email
+  const emailAddress = `hello@${domain}`;
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${zoneId}/email/routing/rules`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${cfToken}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        name:    `${domain} routing`,
+        enabled: true,
+        matchers: [{ type: 'literal', field: 'to', value: emailAddress }],
+        actions:  [{ type: 'forward', value: [forwardTo] }],
+      }),
+    }
+  );
+
+  const data = await res.json();
+  if (!res.ok) {
+    console.warn('CF Email Routing failed:', JSON.stringify(data));
+    return;
+  }
+
+  await logActivity(env, 'email_routing_provisioned', { domain, emailAddress, forwardTo });
+  return emailAddress;
+}
+
+// ── D1 INVOICE SYSTEM ─────────────────────────────────────────────────────────
+// Creates an invoice record in D1 and sends via Resend
+async function createInvoice({ clientId, clientName, email, amount, description, invoiceNum, type = 'retainer', status = 'pending' }, env) {
+  // Store in D1
+  await env.DB.prepare(`
+    INSERT INTO invoices (id, client_id, invoice_num, amount, description, type, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+  `).bind(generateUUID(), clientId, invoiceNum, amount, description, type, status).run().catch(() => null);
+
+  // Send invoice email via Resend if email provided and not test mode
+  if (email && !isTestMode(env) && env.RESEND_API_KEY) {
+    const invoiceHtml = buildInvoiceHtml({ clientName, amount, description, invoiceNum, status });
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        from:    'invoices@websitehub.co.za',
+        to:      [email],
+        subject: `${status === 'paid' ? 'Receipt' : 'Invoice'} ${invoiceNum} — Website Hub`,
+        html:    invoiceHtml,
+      }),
+    }).catch(e => console.warn('Resend invoice email failed:', e?.message));
+  }
+}
+
+function buildInvoiceHtml({ clientName, amount, description, invoiceNum, status }) {
+  const isPaid = status === 'paid';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 20px;color:#1a1814">
+    <div style="margin-bottom:32px">
+      <div style="font-size:24px;font-weight:700;color:#009aa5">Website Hub</div>
+      <div style="font-size:13px;color:#8a8780">websitehub.co.za</div>
+    </div>
+    <div style="background:${isPaid ? '#f0fdf4' : '#f7f6f3'};border:1px solid ${isPaid ? '#bbf7d0' : '#e5e2dc'};border-radius:12px;padding:24px;margin-bottom:24px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:${isPaid ? '#00a86b' : '#8a8780'};margin-bottom:8px">${isPaid ? 'RECEIPT' : 'INVOICE'} · ${invoiceNum}</div>
+      <div style="font-size:32px;font-weight:700;color:#1a1814;margin-bottom:4px">R${amount.toLocaleString()}</div>
+      <div style="font-size:14px;color:#8a8780">${description}</div>
+    </div>
+    <div style="font-size:13px;color:#8a8780;line-height:1.6">
+      Hi ${clientName || 'there'},<br><br>
+      ${isPaid ? 'Thank you for your payment. This is your receipt.' : 'Please find your invoice attached.'}<br><br>
+      Questions? WhatsApp us anytime.<br><br>
+      — Website Hub Team
+    </div>
+  </body></html>`;
+}
+
+// ZOHO REMOVED — /zoho-auth — one-time OAuth setup
 // Visit this URL once to set up Zoho Books refresh token.
 // Step 1: Visit /zoho-auth (no params) → see the consent URL
 // Step 2: Click consent URL → sign in with Zoho admin account
