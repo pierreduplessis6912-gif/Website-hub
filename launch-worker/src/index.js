@@ -100,6 +100,10 @@ export default {
     if (path === '/google-auth')      return handleGoogleAuth(url, env);
     if (path === '/google-profile')   return handleGoogleProfile(request, env, ctx);
     if (path === '/health')           return handleHealth(env);
+    if (path === '/manage-panel')     return handleManagePanel(request, url, env);
+    if (path === '/client-status')    return handleClientStatus(url, env);
+    if (path === '/submit-revision')  return handleSubmitRevision(request, env);
+    if (path === '/cancel-site')      return handleCancelSite(request, env);
 
     return jsonResponse({ error: 'Not found', path }, 404);
   },
@@ -160,6 +164,176 @@ async function handleHealth(env) {
 // ── /go-live-link — server-side PayFast link generation (Fix B) ──────────────
 // Called by preview-manage.html handleGoLive(). Generates signed PayFast URL
 // server-side so signature includes passphrase and sandbox mode is respected.
+// ── /manage-panel — dashboard data for manage.html ───────────────────────────
+async function handleManagePanel(request, url, env) {
+  const token = url.searchParams.get('token');
+  if (!token) return jsonResponse({ error: 'token_required' }, 400);
+
+  const client = await getClientByToken(token, env);
+  if (!client) return jsonResponse({ error: 'not_found' }, 404);
+  if (client.status !== 'live') return jsonResponse({ error: 'not_live', status: client.status }, 403);
+
+  const slug = client.slug;
+  const pkg  = (client.package || 'standard').toLowerCase();
+  const caps = getPackageCaps(pkg);
+  const tier = getPricingTier(pkg);
+
+  // Revisions used this month
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const revRow = await env.DB.prepare(
+    `SELECT COUNT(*) as cnt FROM revisions WHERE client_id=? AND created_at>=? AND type='free'`
+  ).bind(client.id, monthStart).first().catch(() => ({ cnt: 0 }));
+  const revUsed = revRow?.cnt || 0;
+  const revLimit = caps.revisionsPerMonth ?? 2;
+
+  // Analytics — visits this month
+  const visits  = await getMonthlyVisits(env, client.id).catch(() => 0);
+  const waTaps  = 0; // future — track separately
+
+  // Referral data
+  const refRow = await env.DB.prepare(
+    `SELECT COUNT(*) as sent FROM clients WHERE referral_slug=?`
+  ).bind(slug).first().catch(() => ({ sent: 0 }));
+  const convRow = await env.DB.prepare(
+    `SELECT COUNT(*) as conversions FROM clients WHERE referral_slug=? AND status='live'`
+  ).bind(slug).first().catch(() => ({ conversions: 0 }));
+  const conversions = convRow?.conversions || 0;
+  const creditEarned = conversions * (tier?.retainer || 0);
+
+  // Leaderboard — top 10 by conversions
+  const lbRows = await env.DB.prepare(`
+    SELECT c.referral_slug as slug, COUNT(*) as conversions
+    FROM clients c
+    WHERE c.status='live' AND c.referral_slug IS NOT NULL AND c.referral_slug != ''
+    GROUP BY c.referral_slug
+    ORDER BY conversions DESC
+    LIMIT 10
+  `).all().catch(() => ({ results: [] }));
+
+  const leaderboard = (lbRows.results || []).map((row, i) => ({
+    rank: i + 1,
+    name: row.slug,
+    conversions: row.conversions,
+    credit: row.conversions * (tier?.retainer || 0),
+    isYou: row.slug === slug,
+  }));
+  if (!leaderboard.find(r => r.isYou) && conversions > 0) {
+    leaderboard.push({
+      rank: leaderboard.length + 1,
+      name: slug,
+      conversions,
+      credit: creditEarned,
+      isYou: true,
+    });
+  }
+
+  // Upgrade offers
+  const upgradeOffers = [];
+  const planRank = { express:1, standard:2, premium:3 };
+  if ((planRank[pkg] || 1) < 2) upgradeOffers.push({ to:'standard', delta: 400 });
+  if ((planRank[pkg] || 1) < 3) upgradeOffers.push({ to:'premium',  delta: pkg === 'express' ? 700 : 300 });
+
+  // Email
+  const emailActive = caps.email && client.email_provisioned;
+  const emailAddress = emailActive ? `hello@${client.domain || slug + '.co.za'}` : null;
+
+  const domain = client.domain || `${slug}.co.za`;
+  const liveUrl = `https://${domain}`;
+
+  return jsonResponse({
+    businessName:    client.business_name,
+    slug,
+    domain,
+    liveUrl,
+    package:         pkg,
+    status:          client.status,
+    retainer:        tier?.retainer || 0,
+    nextInvoiceDate: client.next_invoice_date,
+    revisions: {
+      used:  revUsed,
+      limit: revLimit === -1 ? null : revLimit,
+    },
+    analytics: { visits, waTaps },
+    email: {
+      active:  !!emailActive,
+      address: emailAddress,
+    },
+    referral: {
+      active:       caps.referral || false,
+      link:         `https://websitehub.co.za?ref=${slug}`,
+      sent:         refRow?.sent || 0,
+      conversions,
+      creditEarned,
+      leaderboard,
+    },
+    upgradeOffers,
+  });
+}
+
+// ── /client-status — lightweight status check for processing screen ───────────
+async function handleClientStatus(url, env) {
+  const token = url.searchParams.get('token');
+  if (!token) return jsonResponse({ error: 'token_required' }, 400);
+  const client = await getClientByToken(token, env);
+  if (!client) return jsonResponse({ error: 'not_found' }, 404);
+  return jsonResponse({ status: client.status, slug: client.slug, domain: client.domain });
+}
+
+// ── /submit-revision — log revision request ───────────────────────────────────
+async function handleSubmitRevision(request, env) {
+  const { token, message, type = 'free' } = await request.json().catch(() => ({}));
+  if (!token || !message) return jsonResponse({ error: 'missing_fields' }, 400);
+
+  const client = await getClientByToken(token, env);
+  if (!client) return jsonResponse({ error: 'not_found' }, 404);
+
+  const caps = getPackageCaps(client.package || 'standard');
+  const revLimit = caps.revisionsPerMonth ?? 2;
+
+  if (revLimit !== -1) {
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const used = await env.DB.prepare(
+      `SELECT COUNT(*) as cnt FROM revisions WHERE client_id=? AND created_at>=? AND type='free'`
+    ).bind(client.id, monthStart).first().catch(() => ({ cnt: 0 }));
+    if ((used?.cnt || 0) >= revLimit) {
+      return jsonResponse({ success: false, paymentRequired: true });
+    }
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO revisions (id, client_id, message, type, status, created_at)
+     VALUES (?, ?, ?, ?, 'pending', datetime('now'))`
+  ).bind(generateUUID(), client.id, message, type).run().catch(() => null);
+
+  await sendWhatsApp(
+    env.WH_PHONE,
+    `✏️ Revision request\n${client.business_name} (${client.slug})\n\n"${message}"`,
+    env
+  ).catch(() => null);
+
+  return jsonResponse({ success: true });
+}
+
+// ── /cancel-site — flag for cancellation ─────────────────────────────────────
+async function handleCancelSite(request, env) {
+  const { token } = await request.json().catch(() => ({}));
+  if (!token) return jsonResponse({ error: 'token_required' }, 400);
+
+  const client = await getClientByToken(token, env);
+  if (!client) return jsonResponse({ error: 'not_found' }, 404);
+
+  await updateClient(env, client.id, { status: 'cancellation_requested' });
+
+  await sendWhatsApp(
+    env.WH_PHONE,
+    `⚠️ Cancellation request\n${client.business_name} (${client.slug})\nPlan: ${client.package}\nRetainer: R${client.retainer}/mo`,
+    env
+  ).catch(() => null);
+
+  return jsonResponse({ success: true });
+}
+
 async function handleGoLiveLink(request, env, ctx) {
   if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
@@ -1521,3 +1695,4 @@ function industryToGoogleCategory(industry) {
 // ============================================================
 // End of launch-worker.js
 // ============================================================
+
