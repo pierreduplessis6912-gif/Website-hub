@@ -306,6 +306,8 @@ async function handleTestWhatsapp(request, env) {
   const evoKey = env.EVOLUTION_API_KEY;
   const evoInstance = env.EVOLUTION_INSTANCE || 'wa1';
   if (!evoUrl || !evoKey) return jsonResponse({ error: 'Evolution API not configured', evoUrl: !!evoUrl, evoKey: !!evoKey }, 500);
+  // Debug: return first/last 3 chars of key so we can verify without exposing it
+  const keyHint = evoKey ? evoKey.slice(0,3) + '...' + evoKey.slice(-3) : 'EMPTY';
   try {
     const res = await fetch(`${evoUrl}/message/sendText/${evoInstance}`, {
       method: 'POST',
@@ -313,7 +315,7 @@ async function handleTestWhatsapp(request, env) {
       body: JSON.stringify({ number: to, textMessage: { text: message || 'Test from Website Hub ✅' } }),
     });
     const data = await res.json().catch(() => ({}));
-    return jsonResponse({ status: res.status, ok: res.ok, data, evoUrl, evoInstance });
+    return jsonResponse({ status: res.status, ok: res.ok, data, evoUrl, evoInstance, keyHint });
   } catch(e) {
     return jsonResponse({ error: e.message, evoUrl, evoInstance }, 500);
   }
