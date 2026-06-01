@@ -7,6 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="manifest" id="pwaManifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Website Hub">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -579,7 +584,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 <div id="topBar">
   <div class="top-brand">Website<span>Hub</span></div>
   <div class="top-biz" id="topBiz">Your Business</div>
-  <div class="top-live-pill"><div class="live-dot"></div>LIVE</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button id="btnInstall" onclick="installApp()" style="display:none;padding:5px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body)">
+      Add to home
+    </button>
+    <div class="top-live-pill"><div class="live-dot"></div>LIVE</div>
+  </div>
 </div>
 
 <div id="content">
@@ -705,28 +715,37 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   <div class="tab-panel" id="tab-email">
 
     <div class="section-lbl">Business email</div>
+
+    <!-- Standard/Premium — email active -->
     <div id="emailActive" style="display:none">
-      <div class="email-card">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Your business email</div>
-        <div class="email-addr" id="emailAddr">hello@domain.co.za</div>
-        <button class="btn-email-open" onclick="openWebmail()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          Open webmail
-        </button>
+      <div id="emailAddresses"></div>
+      <div class="email-card" style="margin-top:10px">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">How it works</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7">
+          Emails sent to your business address arrive in your personal inbox automatically — no new app, no new login needed.<br><br>
+          To reply from your business address, tap <strong>Compose</strong> in your mail app and change the "From" field.
+        </div>
       </div>
-      <div class="email-card">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Set up on your phone</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.6">Add your business email to the Mail app. WhatsApp us and we'll walk you through the setup in under 5 minutes.</div>
+      <div class="email-card" style="margin-top:10px">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">Open your inbox</div>
+        <button class="btn-email-open" onclick="openPersonalEmail()" id="btnOpenEmail">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Open email inbox
+        </button>
       </div>
     </div>
 
+    <!-- Express — upsell -->
     <div id="emailGate" style="display:none">
-      <div class="email-coming">
-        <div class="email-coming-icon">
-          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;text-align:center;margin-bottom:12px">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         </div>
-        <div style="font-family:var(--font-display);font-size:20px;margin-bottom:8px">Business email</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.6;max-width:260px;margin:0 auto 20px">Get hello@yourdomain.co.za included with Standard and Premium</div>
+        <div style="font-family:var(--font-display);font-size:20px;margin-bottom:8px">Get a business email</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">
+          <span id="emailGateDomain" style="font-family:var(--font-mono);color:var(--cyan-dark)">hello@yourdomain.co.za</span><br>
+          Forwards to your personal inbox. No new app needed.
+        </div>
       </div>
       <div class="upgrade-card" id="emailUpgradeCard"></div>
     </div>
@@ -741,7 +760,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       <div class="ref-hero">
         <div class="ref-hero-amount"><span>R</span><span id="refCreditVal">0</span></div>
         <div class="ref-hero-label">credit earned</div>
-        <div class="ref-hero-sub">1 free month per referral who goes live on your plan or higher</div>
+        <div class="ref-hero-sub" id="refHeroSub">1 free month credit per referral who goes live on your plan or higher. Vests after 30 days.</div>
       </div>
 
       <div class="section-lbl">Your numbers</div>
@@ -790,12 +809,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
     <div id="refGate" style="display:none">
       <div class="ref-gate">
-        <div class="ref-gate-amount">R999</div>
-        <div class="ref-gate-label">credit per referral — Premium only</div>
+        <div class="ref-gate-amount" id="refGateAmount">R699</div>
+        <div class="ref-gate-label">credit per referral you send live</div>
         <div class="ref-gate-rule">
-          Premium members earn one free month of their plan for every person they refer who goes live on Standard or higher. Credit is applied automatically.
+          Share your link. When someone signs up and goes live on your plan or higher, you earn one free month automatically. Credit vests after 30 days and arrives as a promo code via WhatsApp.
         </div>
-        <div class="upgrade-card" id="refUpgradeCard"></div>
       </div>
     </div>
 
@@ -1272,7 +1290,78 @@ function toast(msg, type='') {
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
+// ── PWA INSTALL ───────────────────────────────────────────────
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); _installPrompt = e;
+  const btn = el('btnInstall'); if (btn) btn.style.display = 'block';
+});
+window.addEventListener('appinstalled', () => {
+  const btn = el('btnInstall'); if (btn) btn.style.display = 'none';
+  toast('Added to home screen ✓', 'ok');
+});
+function installApp() {
+  if (_installPrompt) {
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(r => {
+      _installPrompt = null;
+      const btn = el('btnInstall'); if (btn) btn.style.display = 'none';
+      if (r.outcome === 'accepted') toast('Added to home screen ✓', 'ok');
+    });
+  } else {
+    el('sheetContent').innerHTML = `<div style="text-align:center;margin-bottom:20px"><div style="font-family:var(--font-display);font-size:20px;margin-bottom:12px">Add to Home Screen</div><div style="font-size:13px;color:var(--muted);line-height:1.8"><strong>iPhone:</strong> Tap Share ⎙ in Safari → <strong>Add to Home Screen</strong><br><br><strong>Android:</strong> Tap menu ⋮ in Chrome → <strong>Add to Home Screen</strong></div></div><button onclick="closeSheet()" style="width:100%;padding:14px;border-radius:14px;background:var(--text);border:none;color:var(--white);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-body)">Got it</button>`;
+    openSheet();
+  }
+}
+function generateManifest(businessName) {
+  const m = {name:businessName+' — Website Hub',short_name:'My Site',start_url:location.href,display:'standalone',background_color:'#ffffff',theme_color:'#009aa5',icons:[{src:'https://websitehub.co.za/icon-192.png',sizes:'192x192',type:'image/png'},{src:'https://websitehub.co.za/icon-512.png',sizes:'512x512',type:'image/png'}]};
+  const link = el('pwaManifest');
+  if (link) link.href = URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/json'}));
+}
+
+// ── EMAIL HELPERS ─────────────────────────────────────────────
+function renderEmailAddresses(d) {
+  const pkg = (d.package||'express').toLowerCase();
+  const rank = PLAN_RANK[pkg]||1;
+  const domain = d.domain||(d.slug+'.co.za');
+  const fwdTo = d.email?.forwardTo||d.email?.address||null;
+  if (rank < 2) {
+    el('emailActive').style.display='none'; el('emailGate').style.display='block';
+    const g=el('emailGateDomain'); if(g) g.textContent=`hello@${domain}`;
+    el('emailUpgradeCard').innerHTML=upgradeCardHTML('standard',400,pkg); return;
+  }
+  el('emailActive').style.display='block'; el('emailGate').style.display='none';
+  const addrs = rank>=3 ? [`hello@${domain}`,`info@${domain}`,`bookings@${domain}`] : [`hello@${domain}`];
+  const c=el('emailAddresses');
+  if(c) c.innerHTML=addrs.map(a=>`<div class="email-card" style="margin-bottom:10px"><div style="font-size:11px;color:var(--muted);font-weight:500;margin-bottom:4px">BUSINESS EMAIL</div><div class="email-addr">${a}</div>${fwdTo?`<div style="font-size:12px;color:var(--muted);margin-top:4px">→ forwards to <strong>${fwdTo}</strong></div>`:''}</div>`).join('');
+  const btn=el('btnOpenEmail');
+  if(btn&&fwdTo) btn.onclick=()=>window.open(`mailto:${fwdTo}`,'_blank');
+}
+function openPersonalEmail() {
+  const e=S.data?.email?.forwardTo||S.data?.email?.address;
+  if(e) window.open(`mailto:${e}`,'_blank'); else toast('No email on file','err');
+}
+
+// ── REFERRAL — PACKAGE SPECIFIC ───────────────────────────────
+function renderReferralTab(d) {
+  const pkg=(d.package||'express').toLowerCase();
+  const tier=PLANS[pkg]; const ref=d.referral||{};
+  const g=el('refGateAmount'); if(g) g.textContent=`R${tier?.monthly||699}`;
+  const h=el('refHeroSub'); if(h) h.textContent=`Refer someone who goes live on ${tier?.name||'your'} plan or higher — earn 1 free month (R${tier?.monthly||699} credit). Vests after 30 days.`;
+  el('refActive').style.display='block'; el('refGate').style.display='none';
+  el('refCreditVal').textContent=(ref.creditEarned||0).toLocaleString();
+  el('refSent').textContent=ref.sent||0; el('refConv').textContent=ref.conversions||0; el('refMonths').textContent=ref.conversions||0;
+  el('refLink').textContent=ref.link||'—';
+  if((ref.creditEarned||0)>0){el('creditBadge').style.display='flex';el('creditBadgeVal').textContent=`R${ref.creditEarned.toLocaleString()} credit`;}
+  const lb=ref.leaderboard||[];
+  el('refLeaderboard').innerHTML=lb.length
+    ? `<div class="lb-header"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><div class="lb-header-title">Referral leaderboard</div></div>`+lb.map(e=>{const mc=e.rank===1?'gold':e.rank===2?'silver':e.rank===3?'bronze':'';const ml=e.rank<=3?['1st','2nd','3rd'][e.rank-1]:e.rank+'.';return`<div class="lb-row${e.isYou?' you':''}"><div class="lb-rank-badge ${mc}">${ml}</div><div class="lb-name">${e.name}${e.isYou?'<span class="lb-you-tag">YOU</span>':''}</div><div><div class="lb-credit">R${e.credit.toLocaleString()}</div><div class="lb-conv">${e.conversions} referral${e.conversions!==1?'s':''}</div></div></div>`;}).join('')
+    : `<div class="lb-header"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><div class="lb-header-title">Referral leaderboard</div></div><div style="padding:24px;text-align:center;font-size:13px;color:var(--muted)">No referrals yet — share your link and get on the board</div>`;
+}
+
 bootstrap();
+const _orig=renderDash;
+window.renderDash=function(d){_orig(d);renderEmailAddresses(d);renderReferralTab(d);generateManifest(d.businessName||'My Business');};
 </script>
 </body>
 </html>
