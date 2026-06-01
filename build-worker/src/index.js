@@ -173,6 +173,7 @@ export default {
         if (path === '/admin/bootstrap-preview' && method === 'POST') return handleAdminBootstrapPreview(request, env);
         if (path === '/admin/bootstrap-manage'  && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-admin'   && method === 'POST') return handleAdminBootstrapAdmin(request, env);
+      if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin' || path === '/admin/')                  return servePwa(env, 'app:admin');
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
@@ -499,6 +500,47 @@ async function handleTestWhatsapp(request, env) {
   } catch(e) {
     return jsonResponse({ error: e.message, evoUrl, evoInstance }, 500);
   }
+}
+
+async function handleRunMigration(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const { migration } = body;
+  if (!migration) return jsonResponse({ error: 'migration name required' }, 400);
+
+  const migrations = {
+    '0002': [
+      `CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL, description TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_by TEXT DEFAULT 'admin')`,
+      `INSERT OR IGNORE INTO config (key, value, description) VALUES ('outbound_enabled','false','Master outbound switch')`,
+      `INSERT OR IGNORE INTO config (key, value, description) VALUES ('daily_scrape_limit','20','Max prospects scraped per cron run')`,
+      `INSERT OR IGNORE INTO config (key, value, description) VALUES ('daily_send_limit','10','Max WhatsApps sent per day')`,
+      `INSERT OR IGNORE INTO config (key, value, description) VALUES ('send_window_start','09:00','Earliest send time SAST')`,
+      `INSERT OR IGNORE INTO config (key, value, description) VALUES ('send_window_end','17:00','Latest send time SAST')`,
+      `INSERT OR IGNORE INTO config (key, value, description) VALUES ('outbound_mode','manual','manual = you approve | auto = fire and forget')`,
+      `INSERT OR IGNORE INTO config (key, value, description) VALUES ('target_provinces','["KZN","GP","WC"]','Active scrape provinces')`,
+      `INSERT OR IGNORE INTO config (key, value, description) VALUES ('target_industries','["plumber","electrician","builder","painter","salon","barber","nails","restaurant","cleaning","landscaping","mechanic"]','Active scrape industries')`,
+      `CREATE TABLE IF NOT EXISTS referral_credits (id TEXT PRIMARY KEY, client_id TEXT NOT NULL, referral_id INTEGER, promo_code TEXT UNIQUE NOT NULL, credit_amount INTEGER NOT NULL, status TEXT DEFAULT 'vested', vested_at DATETIME DEFAULT CURRENT_TIMESTAMP, used_at DATETIME, expires_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+      `CREATE INDEX IF NOT EXISTS idx_config_key ON config(key)`,
+      `CREATE INDEX IF NOT EXISTS idx_ref_credits_client ON referral_credits(client_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_ref_credits_code ON referral_credits(promo_code)`,
+      `CREATE INDEX IF NOT EXISTS idx_ref_credits_status ON referral_credits(status)`,
+    ]
+  };
+
+  const stmts = migrations[migration];
+  if (!stmts) return jsonResponse({ error: 'Unknown migration: ' + migration }, 400);
+
+  const results = [];
+  for (const sql of stmts) {
+    try {
+      await env.DB.prepare(sql).run();
+      results.push({ ok: true, sql: sql.slice(0, 60) + '...' });
+    } catch(e) {
+      results.push({ ok: false, sql: sql.slice(0, 60) + '...', error: e.message });
+    }
+  }
+
+  const failed = results.filter(r => !r.ok);
+  return jsonResponse({ success: failed.length === 0, results, failed: failed.length });
 }
 
 async function handleAdminBootstrapAdmin(request, env) {
