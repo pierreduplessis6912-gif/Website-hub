@@ -2,10 +2,14 @@ name = "wh-patch"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 account_id = "4c559b9dff9fae56803b9c275b518597"
+workers_dev = true
 
 [vars]
 TEST_MODE = "false"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
+WORKER_URL_LAUNCH = "https://wh-launch.pierreduplessis6912.workers.dev"
+WORKER_URL_PATCH = "https://wh-patch.pierreduplessis6912.workers.dev"
+ASSETS_DOMAIN_READY = "false"
 
 [[routes]]
 pattern = "preview.websitehub.co.za/manage-panel"
@@ -37,7 +41,6 @@ database_name = "website-hub-db"
 database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
 migrations_dir = "../migrations"
 
-send_email = [{binding = "EMAIL", destination_address = "updates@websitehub.co.za"}]
-WORKER_URL_LAUNCH = "https://wh-launch.pierreduplessis6912.workers.dev"
-WORKER_URL_PATCH = "https://wh-patch.pierreduplessis6912.workers.dev"
-ASSETS_DOMAIN_READY = "false"
+[[queues.producers]]
+queue = "build-queue"
+binding = "BUILD_QUEUE"
