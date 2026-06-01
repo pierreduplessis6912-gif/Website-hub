@@ -590,7 +590,7 @@ async function handleIntake(request, env) {
 
     await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: false });
 
-    return jsonResponse({ slug, manage_token, clientId: id, redirectUrl: `https://${PREVIEW_DOMAIN}/manage/${manage_token}` });
+    return jsonResponse({ slug, manage_token, clientId: id, redirectUrl: `https://${PREVIEW_DOMAIN}/intake/${manage_token}` });
 
   } catch (err) {
     console.error('Intake error:', err.message, err.stack);
@@ -855,7 +855,7 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
     if (!isOutbound) {
       await sendWhatsApp(client.phone,
-        `🎉 Your website preview is ready!\n\nTap here to personalise it:\nhttps://${PREVIEW_DOMAIN}/manage/${client.manage_token}`,
+        `🎉 Your website preview is ready!\n\nTap here to personalise it:\nhttps://${PREVIEW_DOMAIN}/intake/${client.manage_token}`,
         env
       ).catch(() => {});
     }
@@ -973,7 +973,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     // Inject the token into the PWA shell so /{slug} always routes back into the managed flow
     const managedShell = pwaTpl.replace(
       '</head>',
-      `<script>window.__WH_TOKEN__="${client.manage_token}";window.__WH_SLUG__="${slug}";</script></head>`
+      `<script>window.__WH_TOKEN__="${client.manage_token}";window.__WH_SLUG__="${slug}";if(location.pathname.startsWith("/intake/"))location.replace("/preview/${client.manage_token}");</script></head>`
     );
     await env.SITES.put(`preview:${slug}`, managedShell, { expirationTtl: PREVIEW_TTL });
   }
@@ -1839,7 +1839,7 @@ ${renderSections(sectionFlow, { aboutSection, servicesSection, gallerySection, w
 }
 
 function addWatermark(html, client, env, isOutbound = false) {
-  const claimLink = `https://${PREVIEW_DOMAIN}/manage/${client.manage_token}`;
+  const claimLink = `https://${PREVIEW_DOMAIN}/intake/${client.manage_token}`;
 
   // Inject claim link into skeleton preview bar — replaces __CLAIM_LINK__ placeholder
   // For outbound builds, swap the entire claim bar CTA text too
