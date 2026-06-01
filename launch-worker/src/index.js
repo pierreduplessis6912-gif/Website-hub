@@ -511,6 +511,12 @@ async function handleGoLivePayment(clientId, paymentId, amount, env, ctx) {
       `UPDATE clients SET payfast_payment_id=?, payment_date=?, next_invoice_date=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
     ).bind(paymentId || '', todayDateString(), nextMonthDate(), clientId).run();
 
+    // Mark pending invoice as paid
+    await env.DB.prepare(
+      `UPDATE invoices SET status='paid', paid_at=datetime('now'), payfast_id=?
+       WHERE client_id=? AND status='pending' ORDER BY created_at DESC LIMIT 1`
+    ).bind(paymentId || '', clientId).run().catch(() => null);
+
     const name = client.client_name?.split(' ')[0] || 'there';
     await sendWhatsApp(client.phone,
       `✅ Thanks ${name} — payment received for *${client.business_name}*.\n\nNext invoice: ${nextMonthDate()}\n— Website Hub`,
