@@ -28,6 +28,10 @@
 //   winback_sent:{airtableId}, referral_credited:{referredId},
 //   monthly_summary_sent:{airtableId}:{YYYY-MM}, etc.
 //
+// ENV VARS NEEDED:
+//   RESEND_API_KEY        — for invoice emails
+//   WORKER_URL_LAUNCH     — for suspend-site calls
+//
 // TEST_MODE behaviour:
 //   Cron still runs. WhatsApp messages get redirected to WH_PHONE by
 //   sendWhatsApp. Zoho credit notes get logged to KV by createZohoCreditNote.
@@ -236,6 +240,7 @@ async function runDailyCron(env) {
 
   const sequences = [
     { name: 'message_queue',         fn: () => processMessageQueue(env) },
+    { name: 'monthly_invoicing',      fn: () => runMonthlyInvoicing(env, today) },
     { name: 'late_payment_dunning',  fn: () => runLatePaymentDunning(env, today) },
     { name: 'post_golive',           fn: () => runPostGoLiveSequences(env, today) },
     { name: 'win_back',              fn: () => runWinBackCron(env, today) },
@@ -273,6 +278,246 @@ async function runDailyCron(env) {
 // Idempotency: dunning_sent:{airtableId}:{stage} KV with 21-day TTL.
 // Suspension at D14 calls launch-worker /suspend-site server-to-server.
 // ============================================================
+
+// ============================================================
+// SEQUENCE: monthly invoicing
+// Fires on the day next_invoice_date = today.
+// Generates invoice in D1, sends HTML email via Resend,
+// sends PayFast payment link via WhatsApp.
+// ============================================================
+
+async function runMonthlyInvoicing(env, today) {
+  // Find live clients whose invoice is due TODAY (exact match — dunning handles overdue)
+  const clients = await queryClients(env, `status='live' AND next_invoice_date=?`, [today]).catch(() => []);
+
+  let processed = 0;
+
+  for (const client of clients) {
+    const guardKey = `invoice_sent:${client.id}:${today}`;
+    const alreadySent = await env.SITES.get(guardKey).catch(() => null);
+    if (alreadySent) continue;
+
+    try {
+      const tier       = getPricingTier(client.package || 'standard');
+      const retainer   = tier?.retainer || 699;
+      const invoiceNum = `WH-${today.replace(/-/g, '')}-${client.slug.toUpperCase().slice(0, 6)}`;
+      const nextDate   = nextMonthDateFrom(today);
+
+      // Check for vested promo code
+      const promoRow = await env.DB.prepare(
+        `SELECT promo_code, credit_amount FROM referral_credits 
+         WHERE client_id=? AND status='vested' AND used_at IS NULL LIMIT 1`
+      ).bind(client.id).first().catch(() => null);
+
+      const creditAmount = promoRow?.credit_amount || 0;
+      const amountDue    = Math.max(0, retainer - creditAmount);
+      const promoCode    = promoRow?.promo_code || null;
+
+      // Generate PayFast link
+      const payLink = buildPayFastLink(
+        amountDue || retainer, // never send R0 to PayFast
+        'Website Hub Monthly Subscription',
+        client.id,
+        env,
+        {
+          notifyUrl: env.WORKER_URL_LAUNCH ? `${env.WORKER_URL_LAUNCH}/payfast-webhook` : undefined,
+          customStr2: `retainer:${client.package}`,
+        }
+      );
+
+      // Store invoice in D1
+      await env.DB.prepare(`
+        INSERT OR IGNORE INTO invoices 
+        (id, client_id, slug, invoice_num, amount, credit_applied, promo_code_used, description, type, status, due_date, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'retainer', 'pending', ?, datetime('now'))
+      `).bind(
+        crypto.randomUUID(), client.id, client.slug, invoiceNum,
+        amountDue, creditAmount, promoCode,
+        `${client.business_name} — ${(client.package || 'standard').charAt(0).toUpperCase() + (client.package || 'standard').slice(1)} Plan Monthly Retainer`,
+        today
+      ).run().catch(() => null);
+
+      // Mark promo as used
+      if (promoRow) {
+        await env.DB.prepare(
+          `UPDATE referral_credits SET used_at=datetime('now'), status='redeemed' WHERE promo_code=?`
+        ).bind(promoCode).run().catch(() => null);
+      }
+
+      // Send HTML invoice email via Resend
+      if (client.email && env.RESEND_API_KEY) {
+        const invoiceHtml = buildInvoiceEmail({
+          clientName:   client.client_name || client.business_name,
+          businessName: client.business_name,
+          slug:         client.slug,
+          invoiceNum,
+          retainer,
+          creditAmount,
+          amountDue,
+          promoCode,
+          dueDate:      today,
+          nextDate,
+          payLink,
+          plan:         client.package || 'standard',
+        });
+
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type':  'application/json',
+          },
+          body: JSON.stringify({
+            from:    'invoices@websitehub.co.za',
+            to:      [client.email],
+            subject: `Invoice ${invoiceNum} — R${amountDue} due today`,
+            html:    invoiceHtml,
+          }),
+        }).catch(e => console.warn('Resend invoice failed:', e?.message));
+      }
+
+      // Send WhatsApp payment link
+      const name = (client.client_name || client.business_name || '').split(' ')[0] || 'there';
+      let waMsg = `Hi ${name} 👋
+
+`;
+      waMsg += `Your *${client.business_name}* monthly invoice is ready.
+
+`;
+      if (creditAmount > 0) {
+        waMsg += `✨ Referral credit applied: -R${creditAmount}
+`;
+        waMsg += `💳 Amount due: *R${amountDue}*
+
+`;
+      } else {
+        waMsg += `💳 Amount due: *R${retainer}*
+
+`;
+      }
+      waMsg += `Pay here: ${payLink}
+
+`;
+      waMsg += `Invoice: ${invoiceNum} · Due today
+— Website Hub`;
+
+      await sendWhatsApp(client.phone, waMsg, env).catch(() => null);
+
+      // Update next invoice date
+      await env.DB.prepare(
+        `UPDATE clients SET next_invoice_date=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+      ).bind(nextDate, client.id).run().catch(() => null);
+
+      // Guard key — don't send twice
+      await env.SITES.put(guardKey, invoiceNum, { expirationTtl: 60 * 60 * 24 * 35 });
+
+      await logActivity(env, 'monthly_invoice_sent', {
+        clientId: client.id, slug: client.slug, invoiceNum, amountDue, creditAmount
+      });
+
+      processed++;
+    } catch (err) {
+      console.warn(`Monthly invoice failed for ${client.slug}:`, err?.message || err);
+    }
+  }
+
+  return { processed };
+}
+
+function nextMonthDateFrom(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  return d.toISOString().split('T')[0];
+}
+
+function buildInvoiceEmail({ clientName, businessName, slug, invoiceNum, retainer, creditAmount, amountDue, promoCode, dueDate, nextDate, payLink, plan }) {
+  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+  const hasCreditect = creditAmount > 0;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invoice ${invoiceNum}</title>
+</head>
+<body style="margin:0;padding:0;background:#f7f6f3;font-family:'Helvetica Neue',Arial,sans-serif">
+<div style="max-width:560px;margin:0 auto;padding:32px 16px">
+
+  <!-- Header -->
+  <div style="margin-bottom:32px">
+    <div style="font-size:22px;font-weight:800;color:#009aa5;letter-spacing:-0.5px">Website<span style="color:#1a1814">Hub</span></div>
+    <div style="font-size:12px;color:#8a8780;margin-top:2px">websitehub.co.za</div>
+  </div>
+
+  <!-- Invoice card -->
+  <div style="background:#ffffff;border-radius:16px;padding:28px;margin-bottom:16px;border:1px solid #e5e2dc">
+    
+    <!-- Invoice meta -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#8a8780;margin-bottom:4px">INVOICE</div>
+        <div style="font-size:13px;font-weight:600;color:#1a1814;font-family:'Courier New',monospace">${invoiceNum}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#8a8780;margin-bottom:2px">Due date</div>
+        <div style="font-size:13px;font-weight:600;color:#1a1814">${dueDate}</div>
+      </div>
+    </div>
+
+    <!-- Bill to -->
+    <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid #f0ede8">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#8a8780;margin-bottom:6px">BILL TO</div>
+      <div style="font-size:15px;font-weight:600;color:#1a1814">${businessName}</div>
+      <div style="font-size:13px;color:#8a8780;margin-top:2px;font-family:'Courier New',monospace">${slug}.co.za</div>
+    </div>
+
+    <!-- Line items -->
+    <div style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0ede8">
+        <div>
+          <div style="font-size:14px;font-weight:500;color:#1a1814">${planLabel} Plan — Monthly Retainer</div>
+          <div style="font-size:12px;color:#8a8780;margin-top:2px">Next billing: ${nextDate}</div>
+        </div>
+        <div style="font-size:14px;font-weight:600;color:#1a1814;white-space:nowrap;margin-left:16px">R${retainer}</div>
+      </div>
+      ${hasCreditect ? `
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0ede8">
+        <div>
+          <div style="font-size:14px;font-weight:500;color:#00a86b">Referral credit${promoCode ? ` (${promoCode})` : ''}</div>
+          <div style="font-size:12px;color:#8a8780;margin-top:2px">1 free month earned</div>
+        </div>
+        <div style="font-size:14px;font-weight:600;color:#00a86b;white-space:nowrap;margin-left:16px">-R${creditAmount}</div>
+      </div>` : ''}
+    </div>
+
+    <!-- Total -->
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#f7f6f3;border-radius:10px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:700;color:#1a1814;letter-spacing:0.3px">TOTAL DUE</div>
+      <div style="font-size:24px;font-weight:800;color:#1a1814">R${amountDue}</div>
+    </div>
+  </div>
+
+  <!-- Pay button -->
+  <div style="text-align:center;margin-bottom:16px">
+    <a href="${payLink}" 
+       style="display:inline-block;background:linear-gradient(135deg,#009aa5,#7b2fbe);color:#ffffff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:14px;text-decoration:none;letter-spacing:-0.3px">
+      Pay R${amountDue} →
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;font-size:12px;color:#8a8780;line-height:1.6;padding:0 16px">
+    Secure payment via PayFast · Cancel anytime · No contracts<br>
+    Questions? WhatsApp us at websitehub.co.za<br><br>
+    <span style="font-size:11px;color:#c0bdb7">Invoice ${invoiceNum} · ${slug} · Website Hub SA</span>
+  </div>
+
+</div>
+</body>
+</html>`;
+}
+
 
 async function runLatePaymentDunning(env, today) {
   // Pull all Live clients with a Next Invoice Date <= today
