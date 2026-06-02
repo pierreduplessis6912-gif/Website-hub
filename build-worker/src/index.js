@@ -174,7 +174,6 @@ export default {
         if (path === '/admin/bootstrap-manage'  && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-admin'   && method === 'POST') return handleAdminBootstrapAdmin(request, env);
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
-      if (path === '/admin' || path === '/admin/')                  return servePwa(env, 'app:admin');
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
@@ -212,6 +211,9 @@ export default {
 
       // ── TRIGGER SUBSTANCE BUILD ──────────────────────────────
       if (path === '/trigger-rebuild' && method === 'POST') return handleTriggerRebuild(request, env);
+
+      // ── ADMIN (no auth required — page handles its own auth) ──
+      if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
 
       // ── PWA SHELLS ───────────────────────────────────────────
       if (path === '/start')               return servePwa(env, 'app:start-v2');
