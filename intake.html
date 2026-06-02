@@ -487,10 +487,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <!-- CARD 0: INDUSTRY -->
       <div class="card" data-card="industry">
         <div class="card-q">What is your<br><em>business?</em></div>
-        <div class="card-hint">Pick the closest match — you can refine later</div>
+        <div class="card-hint">Search or pick the closest match</div>
+        <input class="input-field" id="indSearch" placeholder="Search industries…" autocomplete="off"
+          oninput="filterIndustries(this.value)" style="margin-bottom:12px">
         <div class="ind-grid" id="indGrid"></div>
-        <input class="input-field" id="indCustom" placeholder="Or type your industry…" autocomplete="off"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();handleCustomIndustry()}">
+        <input class="input-field" id="indCustom" placeholder="Not listed? Type your industry…" autocomplete="off"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();handleCustomIndustry()}" style="margin-top:8px">
       </div>
 
       <!-- CARD 1: AREA -->
@@ -511,7 +513,38 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <input class="input-field" id="ctaInput" placeholder="Main call-to-action e.g. Get a Quote" autocomplete="off">
       </div>
 
-      <!-- CARD 3: SOCIAL — Standard gate -->
+      <!-- CARD 3: HERO PHOTO — Open to all plans -->
+      <div class="card" data-card="hero-photo">
+        <div class="card-q">Add your<br><em>hero photo.</em></div>
+        <div class="card-hint">This is the first thing visitors see. Upload a great shot of your work, team, or premises — or skip and we'll choose one for you.</div>
+        <div class="upload-row">
+          <div class="upload-zone" onclick="document.getElementById('heroFile').click()">
+            <svg class="uz-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+            <div class="uz-title">Upload photo</div>
+            <div class="uz-sub">From gallery</div>
+          </div>
+          <div class="upload-zone" onclick="document.getElementById('heroCam').click()">
+            <svg class="uz-icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <div class="uz-title">Take photo</div>
+            <div class="uz-sub">Camera now</div>
+          </div>
+        </div>
+        <input type="file" id="heroFile" accept="image/*" style="display:none" onchange="handleHeroUpload(this)">
+        <input type="file" id="heroCam" accept="image/*" capture="environment" style="display:none" onchange="handleHeroUpload(this)">
+        <div id="heroPreviewWrap" style="display:none;margin-top:10px">
+          <img id="heroPreviewImg" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover" alt="hero preview">
+          <div style="font-size:12px;color:var(--green);margin-top:6px;font-weight:600">✓ Hero photo ready</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.15);border-radius:10px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div style="font-size:11px;color:var(--muted)">Open to all plans · Stored securely under your domain</div>
+        </div>
+        <button onclick="cardNext()" style="padding:14px;border-radius:12px;background:transparent;border:1.5px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;font-family:var(--font-body);transition:all .2s;margin-top:8px;width:100%">
+          Skip — we'll choose a photo for you
+        </button>
+      </div>
+
+      <!-- CARD 4: SOCIAL — Standard gate -->
       <div class="card" data-card="social" style="position:relative">
         <div class="card-q">Where can<br><em>they find you?</em></div>
         <div class="card-hint">Add your social handles — they'll appear on your site</div>
@@ -709,7 +742,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
   <!-- Plan strip -->
   <div id="planStrip">
-    <div class="plan-chip sel" data-plan="express" onclick="openPlanPopover()">Express · R299/mo</div>
+    <div class="plan-chip sel" data-plan="express" onclick="openPlanPopover()">Express · R399/mo</div>
     <div class="plan-chip" data-plan="standard" onclick="openPlanPopover()">Standard · R699/mo</div>
     <div class="plan-chip" data-plan="premium" onclick="openPlanPopover()">Premium · R999/mo</div>
   </div>
@@ -774,7 +807,7 @@ const S = {
   _upgradePrompted: {},
 };
 
-const CARDS = ['industry','area','services','social','logo','about','gallery','map','gbp','contact-form'];
+const CARDS = ['industry','area','services','hero-photo','about','social','logo','gallery','map','gbp','contact-form'];
 
 const CARD_GATES = {
   'social':        { plan: 'standard', label: 'Standard' },
@@ -788,30 +821,60 @@ const CARD_GATES = {
 const PLAN_RANK = { express: 1, standard: 2, premium: 3 };
 
 const INDUSTRIES = [
-  { l:'Plumber',      i:'plumber'    },
-  { l:'Electrician',  i:'electrician'},
-  { l:'Builder',      i:'builder'    },
-  { l:'Painter',      i:'painter'    },
-  { l:'Salon',        i:'salon'      },
-  { l:'Barber',       i:'barber'     },
-  { l:'Nails',        i:'nails'      },
-  { l:'Spa',          i:'spa'        },
-  { l:'Restaurant',   i:'restaurant' },
-  { l:'Bakery',       i:'bakery'     },
-  { l:'Catering',     i:'catering'   },
-  { l:'Coffee',       i:'coffee'     },
-  { l:'Flooring',     i:'flooring'   },
-  { l:'Cleaning',     i:'cleaning'   },
-  { l:'Landscaping',  i:'landscaping'},
-  { l:'HVAC',         i:'hvac'       },
-  { l:'Doctor',       i:'doctor'     },
-  { l:'Dentist',      i:'dentist'    },
-  { l:'Accountant',   i:'accountant' },
-  { l:'Photographer', i:'photographer'},
-  { l:'Mechanic',     i:'mechanic'   },
-  { l:'Estate Agent', i:'estate'     },
-  { l:'Lawyer',       i:'lawyer'     },
-  { l:'Tutor',        i:'tutor'      },
+  { l:'Plumber',           i:'plumber'       },
+  { l:'Electrician',       i:'electrician'   },
+  { l:'Builder',           i:'builder'       },
+  { l:'Painter',           i:'painter'       },
+  { l:'Roofer',            i:'roofer'        },
+  { l:'Tiler',             i:'tiler'         },
+  { l:'Welder',            i:'welder'        },
+  { l:'Carpenter',         i:'carpenter'     },
+  { l:'Glazier',           i:'glazier'       },
+  { l:'Salon',             i:'salon'         },
+  { l:'Barber',            i:'barber'        },
+  { l:'Nails',             i:'nails'         },
+  { l:'Spa',               i:'spa'           },
+  { l:'Makeup Artist',     i:'makeup'        },
+  { l:'Tattoo Artist',     i:'tattoo'        },
+  { l:'Restaurant',        i:'restaurant'    },
+  { l:'Bakery',            i:'bakery'        },
+  { l:'Catering',          i:'catering'      },
+  { l:'Coffee Shop',       i:'coffee'        },
+  { l:'Food Truck',        i:'foodtruck'     },
+  { l:'Butchery',          i:'butchery'      },
+  { l:'Flooring',          i:'flooring'      },
+  { l:'Cleaning',          i:'cleaning'      },
+  { l:'Landscaping',       i:'landscaping'   },
+  { l:'HVAC',              i:'hvac'          },
+  { l:'Pest Control',      i:'pestcontrol'   },
+  { l:'Pool Service',      i:'pool'          },
+  { l:'Doctor',            i:'doctor'        },
+  { l:'Dentist',           i:'dentist'       },
+  { l:'Physiotherapist',   i:'physio'        },
+  { l:'Optometrist',       i:'optometrist'   },
+  { l:'Veterinarian',      i:'vet'           },
+  { l:'Accountant',        i:'accountant'    },
+  { l:'Lawyer',            i:'lawyer'        },
+  { l:'Financial Advisor', i:'financial'     },
+  { l:'Estate Agent',      i:'estate'        },
+  { l:'Photographer',      i:'photographer'  },
+  { l:'Videographer',      i:'videographer'  },
+  { l:'Graphic Designer',  i:'designer'      },
+  { l:'IT Support',        i:'it'            },
+  { l:'Web Developer',     i:'webdev'        },
+  { l:'Mechanic',          i:'mechanic'      },
+  { l:'Panel Beater',      i:'panelbeater'   },
+  { l:'Tyre Shop',         i:'tyreshop'      },
+  { l:'Car Wash',          i:'carwash'       },
+  { l:'Driving School',    i:'drivingschool' },
+  { l:'Gym / Trainer',     i:'gym'           },
+  { l:'Tutor',             i:'tutor'         },
+  { l:'Wedding Planner',   i:'wedding'       },
+  { l:'Event Venue',       i:'venue'         },
+  { l:'Security',          i:'security'      },
+  { l:'Transport',         i:'transport'     },
+  { l:'Furniture',         i:'furniture'     },
+  { l:'Hardware',          i:'hardware'      },
 ];
 
 // Industry SVG icons (line style, no emoji)
@@ -928,6 +991,37 @@ function buildIndGrid() {
     });
     g.appendChild(t);
   });
+}
+
+function filterIndustries(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.ind-tile').forEach(t => {
+    const match = t.textContent.toLowerCase().includes(q) || q === '';
+    t.style.display = match ? '' : 'none';
+  });
+}
+
+function handleHeroUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  S.cards.hero_file = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    el('heroPreviewImg').src = e.target.result;
+    el('heroPreviewWrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+
+  if (isDev()) return;
+  const fd = new FormData();
+  fd.append('slug', S.slug || '');
+  fd.append('token', S.token || '');
+  fd.append('type', 'hero');
+  fd.append('file', file);
+  fetch('/upload-assets', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => { if (d.url) S.cards.hero_url = d.url; })
+    .catch(() => {});
 }
 
 function handleCustomIndustry() {
@@ -1075,6 +1169,9 @@ function gatherCard() {
       break;
     case 'services':
       S.cards.cta = el('ctaInput').value.trim() || 'Get a Quote';
+      break;
+    case 'hero-photo':
+      // hero upload handled inline via handleHeroUpload
       break;
     case 'about':
       S.cards.diff1 = el('diff1').value.trim();
