@@ -1056,9 +1056,23 @@ async function serveBuiltSite(url, path, request, env) {
   if (path.startsWith('/site/')) {
     const slug = path.replace(/^\/site\//, '').split('/')[0];
     if (!slug) return new Response('Not found', { status: 404 });
-    const html = await env.SITES.get(`site:${slug}`) ||
-                 await env.SITES.get(`preview:${slug}`);
-    if (!html) return new Response(siteNotFound(slug), { status: 404, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+
+    let html = await env.SITES.get(`site:${slug}`);
+
+    // Only fall back to preview:{slug} if it's raw site HTML, not the PWA shell
+    if (!html) {
+      const fallback = await env.SITES.get(`preview:${slug}`);
+      if (fallback && !fallback.includes('__WH_TOKEN__') && !fallback.includes('bootstrap()')) {
+        html = fallback;
+      }
+    }
+
+    if (!html) {
+      // Build hasn't stored site:{slug} yet — show a loading placeholder
+      return new Response(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="5"></head><body style="font-family:Arial;background:#0a0a0a;color:#f0ede8;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center"><p style="color:rgba(240,237,232,.5)">Building your site...</p></body></html>`,
+        { status: 200, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+    }
+
     return new Response(html, {
       headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache', 'X-Frame-Options': 'SAMEORIGIN' },
     });
