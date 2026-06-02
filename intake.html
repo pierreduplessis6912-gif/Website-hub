@@ -958,9 +958,17 @@ async function bootstrap() {
         return;
       }
 
-      // If building — redirect to preview which shows spinner
+      // If building — redirect to preview which shows the spinner
       if (d.status === 'building') {
         window.location.replace(`/preview/${token}`);
+        return;
+      }
+
+      // If build was triggered (cards submitted) — lock the form
+      if (d.status === 'building' || d._buildQueued) {
+        el('btnNext').textContent = 'Building your site…';
+        el('btnNext').disabled = true;
+        el('btnBack').disabled = true;
         return;
       }
 
@@ -1315,8 +1323,15 @@ async function triggerRebuild() {
     return;
   }
 
-  el('btnNext').textContent = 'Building…';
+  // Lock immediately — no going back once triggered
+  el('btnNext').textContent = 'Building your site…';
   el('btnNext').disabled = true;
+  el('btnBack').disabled = true;
+  // Disable all inputs so nothing is editable
+  document.querySelectorAll('.input-field, .chip, .ind-tile, .upload-zone').forEach(el => {
+    el.style.pointerEvents = 'none';
+    el.style.opacity = '0.5';
+  });
 
   try {
     await apiFetch('/trigger-rebuild', {
