@@ -951,17 +951,30 @@ async function bootstrap() {
       S.slug = d.slug;
       if (d.slug) el('topSlug').textContent = d.slug + '.co.za';
       if (d.package) selectPlanSilent(d.package);
-      // Pre-fill from meta
-      const m = await apiFetch(`/preview-meta?slug=${d.slug}`, {}, { silent: true }).catch(() => null);
-      if (m) {
-        if (m.area)     { el('areaInput').value = m.area; S.cards.area = m.area; }
-        if (m.industry) {
-          S.cards.industry = m.industry.toLowerCase();
+
+      // If already preview_ready — redirect to preview screen
+      if (d.status === 'preview_ready') {
+        window.location.replace(`/preview/${token}`);
+        return;
+      }
+
+      // If building — redirect to preview which shows spinner
+      if (d.status === 'building') {
+        window.location.replace(`/preview/${token}`);
+        return;
+      }
+
+      // Restore previous card answers
+      const r = await apiFetch(`/resume-build?token=${token}`).catch(() => null);
+      if (r?.cards) {
+        if (r.cards.industry) {
+          S.cards.industry = r.cards.industry.toLowerCase();
           document.querySelectorAll('.ind-tile').forEach(t => {
             t.classList.toggle('sel', t.dataset.ind === S.cards.industry);
           });
-          populateSvc(m.industry.toLowerCase());
+          populateSvc(r.cards.industry.toLowerCase());
         }
+        if (r.cards.area) { el('areaInput').value = r.cards.area; S.cards.area = r.cards.area; }
       }
     } catch(e) {}
   }
