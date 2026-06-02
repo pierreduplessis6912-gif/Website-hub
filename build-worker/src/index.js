@@ -210,8 +210,7 @@ export default {
       if (path === '/preview-choices' && method === 'POST') return handlePreviewChoices(request, env);
 
       // ── TRIGGER SUBSTANCE BUILD ──────────────────────────────
-      if (path === '/trigger-rebuild' && method === 'POST') return handleTriggerRebuild(request, env)
-      if (path === '/resume-build'     && method === 'GET')  return handleResumeBuild(url, env);;
+      if (path === '/trigger-rebuild' && method === 'POST') return handleTriggerRebuild(request, env);
 
       // ── ADMIN (no auth required — page handles its own auth) ──
       if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
@@ -915,33 +914,6 @@ async function handleIntake(request, env) {
   }
 }
 
-
-// ── /resume-build — restores intake state for returning customers ─────────────
-async function handleResumeBuild(url, env) {
-  const token = url.searchParams.get('token');
-  if (!token) return jsonResponse({ error: 'token required' }, 400);
-
-  const client = await getClientByToken(token, env);
-  if (!client) return jsonResponse({ error: 'not_found' }, 404);
-
-  // Parse existing card data from client record
-  let services = [];
-  try { services = client.services ? JSON.parse(client.services) : []; } catch {}
-
-  return jsonResponse({
-    slug:        client.slug,
-    status:      client.status,
-    package:     client.package || 'standard',
-    // Pre-fill card values from what we have
-    cards: {
-      industry:   client.industry || '',
-      area:       client.area || '',
-      services,
-      cta:        'Get a Quote',
-    }
-  });
-}
-
 // ── BUILD STATUS ──────────────────────────────────────────────
 
 async function handleBuildStatus(url, env) {
@@ -1056,23 +1028,9 @@ async function serveBuiltSite(url, path, request, env) {
   if (path.startsWith('/site/')) {
     const slug = path.replace(/^\/site\//, '').split('/')[0];
     if (!slug) return new Response('Not found', { status: 404 });
-
-    let html = await env.SITES.get(`site:${slug}`);
-
-    // Only fall back to preview:{slug} if it's raw site HTML, not the PWA shell
-    if (!html) {
-      const fallback = await env.SITES.get(`preview:${slug}`);
-      if (fallback && !fallback.includes('__WH_TOKEN__') && !fallback.includes('bootstrap()')) {
-        html = fallback;
-      }
-    }
-
-    if (!html) {
-      // Build hasn't stored site:{slug} yet — show a loading placeholder
-      return new Response(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="5"></head><body style="font-family:Arial;background:#0a0a0a;color:#f0ede8;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center"><p style="color:rgba(240,237,232,.5)">Building your site...</p></body></html>`,
-        { status: 200, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
-    }
-
+    const html = await env.SITES.get(`site:${slug}`) ||
+                 await env.SITES.get(`preview:${slug}`);
+    if (!html) return new Response(siteNotFound(slug), { status: 404, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
     return new Response(html, {
       headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache', 'X-Frame-Options': 'SAMEORIGIN' },
     });
@@ -1185,7 +1143,6 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
   const finalHtml = addWatermark(html, client, env, isOutbound);
 
   // ── STORE ──────────────────────────────────────────────────
-  await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL }).catch(e => console.warn('site KV write failed:', e.message));
   await env.SITES.put(`preview:${slug}`, finalHtml, { expirationTtl: PREVIEW_TTL });
   await env.SITES.put(`content:${slug}`, JSON.stringify(contentTokens), { expirationTtl: PREVIEW_TTL });
 
@@ -1213,9 +1170,8 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
     ).catch(() => {});
 
     if (!isOutbound) {
-      // Send preview link — WhatsApp will render OG card from the slug URL
       await sendWhatsApp(client.phone,
-        `🎉 *${client.business_name}* — your website is ready!\n\nhttps://${PREVIEW_DOMAIN}/${slug}\n\nTap to claim your site — no card needed.`,
+        `🎉 Your website preview is ready!\n\nTap here to personalise it:\nhttps://${PREVIEW_DOMAIN}/intake/${client.manage_token}`,
         env
       ).catch(() => {});
     }
@@ -1229,19 +1185,6 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 async function triggerSubstanceBuild(clientId, cards, env) {
   const client = await getClientById(clientId, env);
   if (!client) throw new Error(`Client not found: ${clientId}`);
-
-  // ── FALLBACK: if cards missing, synthesize from existing client data ──
-  if (!cards || Object.keys(cards).length === 0) {
-    console.warn(`triggerSubstanceBuild: no cards for ${clientId} — synthesizing from client data`);
-    cards = {
-      industry:    client.industry || client.business_type || '',
-      area:        client.area || '',
-      services:    client.services ? (typeof client.services === 'string' ? JSON.parse(client.services) : client.services) : [],
-      cta:         'Get a Quote',
-      diff1:       '', diff2: '', diff3: '',
-      testimonial: '',
-    };
-  }
 
   const slug  = client.slug;
   const pkg   = pkgKey(client.package);
@@ -1380,12 +1323,10 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     // Client message — show the wife 😄
     const firstName = (client.client_name || client.business_name || '').split(' ')[0] || 'there';
     const previewLink = `https://${PREVIEW_DOMAIN}/preview/${client.manage_token}`;
-    const siteLink   = `https://${PREVIEW_DOMAIN}/${slug}`;
-    // Send site URL first so WhatsApp renders OG card, then follow with CTA
     await sendWhatsApp(client.phone,
-      `✨ *${client.business_name}* — your full site is built!\n\n` +
-      `${siteLink}\n\n` +
-      `👉 Ready to go live? Tap here:\n${previewLink}\n\n` +
+      `🎉 *${client.business_name}* — your site is ready!\n\n` +
+      `Have a look, share it around, and when you're ready to go live tap the button:\n\n` +
+      `👉 ${previewLink}\n\n` +
       `No card needed until you go live.\n— Website Hub`,
       env
     ).catch(() => {});
@@ -1598,7 +1539,6 @@ Return only failing fields. Empty {} if all pass.`;
 // ── HTML GENERATORS ───────────────────────────────────────────
 
 function generateSkeletonHTML(t, cssBlock, heroUrl, client) {
-  const heroImageUrl = heroUrl || '';
   const phone  = client.phone?.replace(/\D/g, '');
   const domain = client.domain || `${client.slug}.co.za`;
   const waLink = `https://wa.me/${phone}`;
@@ -1621,16 +1561,6 @@ function generateSkeletonHTML(t, cssBlock, heroUrl, client) {
 <title>${esc(heroH1)} | ${esc(client.area)}</title>
 <meta name="description" content="${esc(tagline)}">
 <meta name="robots" content="noindex">
-<meta property="og:type" content="website">
-<meta property="og:title" content="${esc(heroH1)}">
-<meta property="og:description" content="${esc(tagline)}">
-<meta property="og:image" content="${heroImageUrl}">
-<meta property="og:url" content="https://${PREVIEW_DOMAIN}/${slug}">
-<meta property="og:site_name" content="${esc(client.business_name)}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${esc(heroH1)}">
-<meta name="twitter:description" content="${esc(tagline)}">
-<meta name="twitter:image" content="${heroImageUrl}">
 ${cssBlock}
 <style>
 /* ── PREVIEW RESET ───────────────────────────── */
@@ -2044,7 +1974,6 @@ function renderHero(heroLayout, openingStrategy, t, client, waLink, heroUrl, ima
 }
 
 function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg, heroLayout = 'cinematic_left', openingStrategy = 'proof_first', imageTreatment = {}) {
-  const heroImageUrl = heroUrl || '';
   const phone   = client.phone?.replace(/\D/g, '');
   const domain  = client.domain || `${client.slug}.co.za`;
   const waLink  = `https://wa.me/${phone}`;
@@ -2201,16 +2130,6 @@ function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg, hero
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(t.page_title || client.business_name)}</title>
 <meta name="description" content="${esc(t.meta_description || '')}">
-<meta property="og:type" content="website">
-<meta property="og:title" content="${esc(t.page_title || client.business_name)}">
-<meta property="og:description" content="${esc(t.meta_description || t.hero_subline || '')}">
-<meta property="og:image" content="${heroImageUrl}">
-<meta property="og:url" content="https://${slug}.co.za">
-<meta property="og:site_name" content="${esc(client.business_name)}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${esc(t.page_title || client.business_name)}">
-<meta name="twitter:description" content="${esc(t.meta_description || '')}">
-<meta name="twitter:image" content="${heroImageUrl}">
 ${cssBlock}
 <style>${STRUCTURAL_CSS}</style>
 </head>
