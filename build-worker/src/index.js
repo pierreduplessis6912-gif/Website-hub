@@ -210,7 +210,8 @@ export default {
       if (path === '/preview-choices' && method === 'POST') return handlePreviewChoices(request, env);
 
       // ── TRIGGER SUBSTANCE BUILD ──────────────────────────────
-      if (path === '/trigger-rebuild' && method === 'POST') return handleTriggerRebuild(request, env);
+      if (path === '/trigger-rebuild' && method === 'POST') return handleTriggerRebuild(request, env)
+      if (path === '/resume-build'     && method === 'GET')  return handleResumeBuild(url, env);;
 
       // ── ADMIN (no auth required — page handles its own auth) ──
       if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
@@ -914,6 +915,33 @@ async function handleIntake(request, env) {
   }
 }
 
+
+// ── /resume-build — restores intake state for returning customers ─────────────
+async function handleResumeBuild(url, env) {
+  const token = url.searchParams.get('token');
+  if (!token) return jsonResponse({ error: 'token required' }, 400);
+
+  const client = await getClientByToken(token, env);
+  if (!client) return jsonResponse({ error: 'not_found' }, 404);
+
+  // Parse existing card data from client record
+  let services = [];
+  try { services = client.services ? JSON.parse(client.services) : []; } catch {}
+
+  return jsonResponse({
+    slug:        client.slug,
+    status:      client.status,
+    package:     client.package || 'standard',
+    // Pre-fill card values from what we have
+    cards: {
+      industry:   client.industry || '',
+      area:       client.area || '',
+      services,
+      cta:        'Get a Quote',
+    }
+  });
+}
+
 // ── BUILD STATUS ──────────────────────────────────────────────
 
 async function handleBuildStatus(url, env) {
@@ -1186,6 +1214,19 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 async function triggerSubstanceBuild(clientId, cards, env) {
   const client = await getClientById(clientId, env);
   if (!client) throw new Error(`Client not found: ${clientId}`);
+
+  // ── FALLBACK: if cards missing, synthesize from existing client data ──
+  if (!cards || Object.keys(cards).length === 0) {
+    console.warn(`triggerSubstanceBuild: no cards for ${clientId} — synthesizing from client data`);
+    cards = {
+      industry:    client.industry || client.business_type || '',
+      area:        client.area || '',
+      services:    client.services ? (typeof client.services === 'string' ? JSON.parse(client.services) : client.services) : [],
+      cta:         'Get a Quote',
+      diff1:       '', diff2: '', diff3: '',
+      testimonial: '',
+    };
+  }
 
   const slug  = client.slug;
   const pkg   = pkgKey(client.package);
