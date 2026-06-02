@@ -582,6 +582,7 @@ async function handleRunMigration(request, env) {
       `INSERT OR IGNORE INTO config (key, value, description) VALUES ('outbound_mode','manual','manual = you approve | auto = fire and forget')`,
       `INSERT OR IGNORE INTO config (key, value, description) VALUES ('target_provinces','["KZN","GP","WC"]','Active scrape provinces')`,
       `INSERT OR IGNORE INTO config (key, value, description) VALUES ('target_industries','["plumber","electrician","builder","painter","salon","barber","nails","restaurant","cleaning","landscaping","mechanic"]','Active scrape industries')`,
+      `INSERT OR IGNORE INTO config (key, value, description) VALUES ('dry_run','true','Scrape without building or sending — review quality first')`,
       `CREATE TABLE IF NOT EXISTS referral_credits (id TEXT PRIMARY KEY, client_id TEXT NOT NULL, referral_id INTEGER, promo_code TEXT UNIQUE NOT NULL, credit_amount INTEGER NOT NULL, status TEXT DEFAULT 'vested', vested_at DATETIME DEFAULT CURRENT_TIMESTAMP, used_at DATETIME, expires_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
       `CREATE INDEX IF NOT EXISTS idx_config_key ON config(key)`,
       `CREATE INDEX IF NOT EXISTS idx_ref_credits_client ON referral_credits(client_id)`,
