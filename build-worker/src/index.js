@@ -1185,9 +1185,7 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
   const finalHtml = addWatermark(html, client, env, isOutbound);
 
   // ── STORE ──────────────────────────────────────────────────
-  // site:{slug} = raw skeleton HTML (served in PWA iframe at /site/{slug})
-  await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL });
-  // preview:{slug} = watermarked skeleton (served at /{slug} with claim bar)
+  await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL }).catch(e => console.warn('site KV write failed:', e.message));
   await env.SITES.put(`preview:${slug}`, finalHtml, { expirationTtl: PREVIEW_TTL });
   await env.SITES.put(`content:${slug}`, JSON.stringify(contentTokens), { expirationTtl: PREVIEW_TTL });
 
