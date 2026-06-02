@@ -77,6 +77,10 @@ jobs:
             WH_PHONE
             ADMIN_KEY
             CF_API_TOKEN
+            RESEND_API_KEY
+            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET
+            GOOGLE_REFRESH_TOKEN
         env:
           PAYFAST_MERCHANT_KEY: ${{ secrets.PAYFAST_MERCHANT_KEY }}
           PAYFAST_PASSPHRASE: ${{ secrets.PAYFAST_PASSPHRASE }}
