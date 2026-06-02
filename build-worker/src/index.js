@@ -215,13 +215,8 @@ export default {
       // ── ADMIN (no auth required — page handles its own auth) ──
       if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
 
-      // ── GOOGLE AUTH — proxy to launch-worker ──────────────────
-      if (path === '/google-auth') {
-        const launchUrl = `https://wh-launch.pierreduplessis6912.workers.dev/google-auth?${url.searchParams.toString()}`;
-        const resp = await fetch(launchUrl, { headers: { 'x-forwarded-host': url.host } });
-        const html = await resp.text();
-        return new Response(html, { status: resp.status, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
-      }
+      // ── GOOGLE AUTH — one-time OAuth setup ───────────────────
+      if (path === '/google-auth') return handleGoogleAuth(url, env);
 
       // ── PWA SHELLS ───────────────────────────────────────────
       if (path === '/start')               return servePwa(env, 'app:start-v2');
@@ -466,6 +461,65 @@ async function triggerOutboundBuild(prospect, env) {
     .bind(id, prospect.id).run();
 
   await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: true });
+}
+
+
+// ── GOOGLE AUTH — one-time refresh token setup ───────────────────────────────
+async function handleGoogleAuth(url, env) {
+  const code        = url.searchParams.get('code');
+  const redirectUri = `https://${url.host}/google-auth`;
+
+  if (!code) {
+    const scopes  = [
+      'https://www.googleapis.com/auth/business.manage',
+      'https://www.googleapis.com/auth/places',
+    ].join(' ');
+    const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+      `client_id=${encodeURIComponent(env.GOOGLE_CLIENT_ID)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=code` +
+      `&scope=${encodeURIComponent(scopes)}` +
+      `&access_type=offline` +
+      `&prompt=consent`;
+
+    return new Response(`<!DOCTYPE html><html><body style="font-family:Arial;padding:40px;max-width:600px;background:#0a0a0f;color:#e8e8f0">
+      <h2 style="color:#00f0ff">Google Auth Setup</h2>
+      <p>Click to authorise Website Hub to access Google Business and Places:</p>
+      <a href="${authUrl}" style="display:inline-block;margin:16px 0;padding:14px 28px;background:linear-gradient(135deg,#00f0ff,#b829dd);color:#000;font-weight:700;border-radius:10px;text-decoration:none">Sign in with Google →</a>
+      <p style="color:#8888aa;font-size:12px;margin-top:24px">Redirect URI registered in Google Console:<br>
+      <code style="background:#161616;padding:4px 8px;border-radius:4px;color:#00f0ff">${redirectUri}</code></p>
+    </body></html>`, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+  }
+
+  try {
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    new URLSearchParams({
+        code,
+        client_id:     env.GOOGLE_CLIENT_ID,
+        client_secret: env.GOOGLE_CLIENT_SECRET,
+        redirect_uri:  redirectUri,
+        grant_type:    'authorization_code',
+      }),
+    });
+    const tokenData = await tokenRes.json();
+
+    if (tokenData.refresh_token) {
+      return new Response(`<!DOCTYPE html><html><body style="font-family:Arial;padding:40px;max-width:600px;background:#0a0a0f;color:#e8e8f0">
+        <h2 style="color:#00ff88">✅ Authorised! Copy your refresh token:</h2>
+        <pre style="background:#161616;border:1px solid rgba(0,255,136,.2);padding:16px;border-radius:10px;word-break:break-all;font-size:13px;color:#00ff88">${tokenData.refresh_token}</pre>
+        <p style="color:#8888aa">Run from Termux:<br>
+        <code style="background:#161616;padding:8px 12px;border-radius:6px;display:block;margin-top:8px;color:#00f0ff">echo -n "PASTE_TOKEN_HERE" | gh secret set GOOGLE_REFRESH_TOKEN</code></p>
+      </body></html>`, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+    }
+
+    return new Response(`<pre style="padding:40px;color:red">${JSON.stringify(tokenData, null, 2)}</pre>`,
+      { status: 400, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+  } catch(e) {
+    return new Response(`<pre style="padding:40px;color:red">${e.message}</pre>`,
+      { status: 500, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+  }
 }
 
 
