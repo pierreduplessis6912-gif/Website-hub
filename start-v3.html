@@ -305,6 +305,24 @@ body::after{
         <input class="field-input" id="nameInput" type="text" placeholder="e.g. Thabo" autocomplete="name" autocapitalize="words">
       </div>
       <div class="field-group">
+        <label class="field-label">What do you do?</label>
+        <select class="field-input" id="industryInput">
+          <option value="">Select your industry...</option>
+          <option>Plumber</option><option>Electrician</option><option>Builder</option><option>Painter</option>
+          <option>Salon</option><option>Barber</option><option>Nails</option><option>Spa</option>
+          <option>Restaurant</option><option>Bakery</option><option>Catering</option><option>Coffee Shop</option>
+          <option>Flooring</option><option>Cleaning</option><option>Landscaping</option><option>HVAC</option>
+          <option>Doctor</option><option>Dentist</option><option>Accountant</option><option>Photographer</option>
+          <option>Mechanic</option><option>Estate Agent</option><option>Lawyer</option><option>Tutor</option>
+          <option>Gym / Personal Trainer</option><option>Physiotherapist</option><option>Optometrist</option>
+          <option>Veterinarian</option><option>Driving School</option><option>Security</option>
+          <option>Courier / Delivery</option><option>IT Support</option><option>Graphic Designer</option>
+          <option>Tattoo Artist</option><option>Makeup Artist</option><option>Wedding Planner</option>
+          <option>Event Venue</option><option>Car Wash</option><option>Panel Beater</option>
+          <option>Tyre Shop</option><option>Furniture</option><option>Hardware</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field-group">
         <label class="field-label">WhatsApp number</label>
         <input class="field-input" id="phoneInput" type="tel" placeholder="e.g. 082 123 4567" autocomplete="tel">
       </div>
@@ -512,6 +530,7 @@ async function submitIntake() {
       headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({
         business_name:    S.biz,
+        industry:         document.getElementById('industryInput')?.value || '',
         client_name:      name,
         phone:            normalisePhone(phone),
         email:            email,
