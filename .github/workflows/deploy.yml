@@ -86,6 +86,10 @@ jobs:
           WH_PHONE: ${{ secrets.WH_PHONE }}
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
 
   deploy-pulse:
     name: Deploy wh-pulse
