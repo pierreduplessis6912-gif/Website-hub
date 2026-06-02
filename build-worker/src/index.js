@@ -1817,7 +1817,7 @@ ${svcNames.length > 0 ? `
 <!-- ── CLAIM BAR ──────────────────────────────────────────── -->
 <div class="claim-bar">
   <div class="claim-domain"><strong>${esc(domain)}</strong> is yours to claim</div>
-  <a href="__CLAIM_LINK__" class="claim-btn">Claim &amp; build your site free →</a>
+  <a href="__CLAIM_LINK__" class="claim-btn" onclick="window.top.location.href=this.href;return false;">Claim &amp; build your site free →</a>
   <div class="claim-sub">No build fee &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Live in 2 minutes</div>
 </div>
 
