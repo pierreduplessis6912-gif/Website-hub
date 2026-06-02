@@ -589,7 +589,7 @@ const INDUSTRIES = ['Plumber','Electrician','Builder','Painter','Salon','Barber'
 
 // ── STATE ──────────────────────────────────────────────────────
 let clients = [], events = [], activeFilter = 'all', searchQ = '';
-const P = { masterOn:false, mode:'manual', scrapeLimit:20, sendLimit:10, windowStart:'09:00', windowEnd:'17:00', provinces:{}, industries:{}, queue:[], sLimit:20 };
+const P = { masterOn:false, dryRun:true, mode:'manual', scrapeLimit:20, sendLimit:10, windowStart:'09:00', windowEnd:'17:00', provinces:{}, industries:{}, queue:[], sLimit:20 };
 
 function el(id){ return document.getElementById(id) }
 
@@ -651,6 +651,7 @@ async function loadConfig() {
     const r = await api('/admin/get-config');
     const c = r.config||{};
     P.masterOn    = c.outbound_enabled===true||c.outbound_enabled==='true';
+    P.dryRun      = c.dry_run===true||c.dry_run==='true'||c.dry_run===undefined;
     P.mode        = c.outbound_mode||'manual';
     P.scrapeLimit = parseInt(c.daily_scrape_limit)||20;
     P.sendLimit   = parseInt(c.daily_send_limit)||10;
@@ -665,6 +666,16 @@ async function loadConfig() {
 function applyConfig(){
   updateMasterUI();
   el('modeManual').classList.toggle('active',P.mode==='manual');
+  // Dry run
+  if(el('dryRunLabel')){
+    const on=P.dryRun;
+    el('dryRunLabel').textContent=on?'DRY RUN ON':'DRY RUN OFF';
+    el('dryRunLabel').style.color=on?'var(--green)':'var(--amber)';
+    el('dryRunToggle').style.borderColor=on?'var(--green)':'var(--amber)';
+    el('dryRunToggle').style.background=on?'rgba(0,255,136,.1)':'rgba(255,196,0,.1)';
+    el('dryRunKnob').style.background=on?'var(--green)':'var(--amber)';
+    el('dryRunKnob').style.left=on?'calc(100% - 23px)':'3px';
+  }
   el('modeAuto').classList.toggle('active',P.mode==='auto');
   el('modeDesc').textContent=P.mode==='manual'?'Manual — you approve each WhatsApp before it sends.':'Auto — scrape → build → send. Hands off.';
   el('scrapeVal').textContent=P.scrapeLimit;
@@ -803,6 +814,19 @@ function prosTab(t){
   ['control','scrape','queue','morning'].forEach(x=>{ el('pp-'+x).style.display=x===t?'block':'none'; el('pt-'+x).classList.toggle('active',x===t); });
   if(t==='queue') loadQueue();
   if(t==='morning') loadMorning();
+}
+
+async function toggleDryRun(){
+  P.dryRun = !P.dryRun;
+  const on = P.dryRun;
+  el('dryRunLabel').textContent = on ? 'DRY RUN ON' : 'DRY RUN OFF';
+  el('dryRunLabel').style.color = on ? 'var(--green)' : 'var(--amber)';
+  el('dryRunToggle').style.borderColor = on ? 'var(--green)' : 'var(--amber)';
+  el('dryRunToggle').style.background = on ? 'rgba(0,255,136,.1)' : 'rgba(255,196,0,.1)';
+  el('dryRunKnob').style.background = on ? 'var(--green)' : 'var(--amber)';
+  el('dryRunKnob').style.left = on ? 'calc(100% - 23px)' : '3px';
+  await saveConfig('dry_run', on);
+  toast(on ? '🔍 Dry run — scraping only' : '🚀 Live mode — builds will fire');
 }
 
 async function setMode(m){
