@@ -112,7 +112,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--fg);overflow-
 
 const DEFAULT_CONFIG = {
   pricing: {
-    express:  { retainer: 299 },
+    express:  { retainer: 399 },
     standard: { retainer: 699 },
     premium:  { retainer: 999 },
   },
@@ -1355,7 +1355,7 @@ Output this JSON exactly:
   "hero_angle": "the specific angle that makes this business feel real",
   "tagline_candidates": ["option 1", "option 2", "option 3"],
   "trust_signals": ["signal 1", "signal 2", "signal 3"],
-  "unsplash_query": "specific Unsplash search — industry + mood + south africa"
+  "unsplash_query": "specific Unsplash search — industry + mood + setting, no text overlays, photographic quality"
 }`;
 }
 
@@ -2356,13 +2356,25 @@ function slugify(name) {
 }
 
 async function uniqueSlug(name, env) {
-  const slug = slugify(name);
-  // D1 UNIQUE constraint is absolute — check ALL clients regardless of status
+  const base = slugify(name);
+
+  // Try clean slug first
   const existing = await env.DB.prepare(
     `SELECT slug FROM clients WHERE slug = ? LIMIT 1`
-  ).bind(slug).first();
-  if (!existing) return slug;
-  return slug + '-' + Math.random().toString(36).slice(2, 6);
+  ).bind(base).first().catch(() => null);
+  if (!existing) return base;
+
+  // Try with number suffix: zululandflooring2, zululandflooring3...
+  for (let i = 2; i <= 9; i++) {
+    const candidate = base + i;
+    const ex = await env.DB.prepare(
+      `SELECT slug FROM clients WHERE slug = ? LIMIT 1`
+    ).bind(candidate).first().catch(() => null);
+    if (!ex) return candidate;
+  }
+
+  // Last resort — random 4-char suffix
+  return base + '-' + Math.random().toString(36).slice(2, 6);
 }
 
 function pkgKey(pkg) {
