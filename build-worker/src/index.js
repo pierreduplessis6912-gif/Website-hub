@@ -215,6 +215,14 @@ export default {
       // ── ADMIN (no auth required — page handles its own auth) ──
       if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
 
+      // ── GOOGLE AUTH — proxy to launch-worker ──────────────────
+      if (path === '/google-auth') {
+        const launchUrl = `https://wh-launch.pierreduplessis6912.workers.dev/google-auth?${url.searchParams.toString()}`;
+        const resp = await fetch(launchUrl, { headers: { 'x-forwarded-host': url.host } });
+        const html = await resp.text();
+        return new Response(html, { status: resp.status, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+      }
+
       // ── PWA SHELLS ───────────────────────────────────────────
       if (path === '/start')               return servePwa(env, 'app:start-v2');
       if (path.startsWith('/intake/'))     return servePwa(env, 'app:intake');
