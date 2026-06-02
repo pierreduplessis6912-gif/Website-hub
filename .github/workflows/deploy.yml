@@ -24,6 +24,9 @@ jobs:
             EVOLUTION_API_KEY
             EVOLUTION_INSTANCE
             ADMIN_KEY
+            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET
+            GOOGLE_REFRESH_TOKEN
         env:
           ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
@@ -32,6 +35,9 @@ jobs:
           EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
           EVOLUTION_INSTANCE: ${{ secrets.EVOLUTION_INSTANCE }}
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
 
   deploy-patch:
     name: Deploy wh-patch
