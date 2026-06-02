@@ -246,6 +246,7 @@ async function runDailyCron(env) {
     { name: 'win_back',              fn: () => runWinBackCron(env, today) },
     { name: 'prospect_followup',     fn: () => runProspectLimboFollowUp(env, today) },
     { name: 'referral_vesting',      fn: () => runReferralVesting(env, today) },
+    { name: 'outbound_scrape',        fn: () => runOutboundScrape(env) },
     { name: 'leaderboard_cache',     fn: () => precomputeLeaderboard(env, monthStr) },
   ];
 
@@ -741,6 +742,98 @@ async function runWinBackCron(env, today) {
 }
 
 // ============================================================
+
+// ── OUTBOUND SCRAPE — daily prospect sourcing from Google Places ──────────────
+async function runOutboundScrape(env) {
+  // Read config from D1
+  const cfg = await getConfig(env);
+  if (!cfg.outbound_enabled || cfg.outbound_enabled === 'false') return { skipped: 'outbound disabled' };
+
+  // Check send window (SAST = UTC+2)
+  const nowHour = new Date().getUTCHours() + 2;
+  const [startH] = (cfg.send_window_start || '09:00').split(':').map(Number);
+  const [endH]   = (cfg.send_window_end   || '17:00').split(':').map(Number);
+  if (nowHour < startH || nowHour >= endH) return { skipped: 'outside send window' };
+
+  // Guard — only run once per day
+  const today = new Date().toISOString().split('T')[0];
+  const guardKey = `scrape_guard:${today}`;
+  const alreadyRan = await env.SITES.get(guardKey);
+  if (alreadyRan) return { skipped: 'already ran today' };
+  await env.SITES.put(guardKey, '1', { expirationTtl: 60 * 60 * 26 });
+
+  const dryRun    = cfg.dry_run === 'true' || cfg.dry_run === true;
+  const limit     = parseInt(cfg.daily_scrape_limit) || 20;
+  const provinces = JSON.parse(cfg.target_provinces || '["KZN"]');
+  const industries = JSON.parse(cfg.target_industries || '["plumber"]');
+
+  let totalInserted = 0;
+
+  // Pick one random province + industry combo per run to spread coverage
+  const province = provinces[Math.floor(Math.random() * provinces.length)];
+  const industry = industries[Math.floor(Math.random() * industries.length)];
+
+  try {
+    // Call build-worker scrape endpoint
+    const res = await fetch(`https://preview.websitehub.co.za/admin/scrape`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': env.ADMIN_KEY },
+      body: JSON.stringify({ industry, province, limit }),
+    });
+    const data = await res.json().catch(() => ({}));
+    totalInserted = data.inserted || 0;
+
+    await logEvent(env, null, 'pulse', 'outbound_scrape_complete', 'success', {
+      metadata: { province, industry, inserted: totalInserted, dryRun }
+    });
+  } catch(e) {
+    await logEvent(env, null, 'pulse', 'outbound_scrape_error', 'error', {
+      metadata: { error: e.message }
+    });
+  }
+
+  // If dry run — stop here, don't build anything
+  if (dryRun) {
+    return { dryRun: true, inserted: totalInserted, province, industry };
+  }
+
+  // Auto mode — approve and build pending prospects up to send limit
+  const sendLimit = parseInt(cfg.daily_send_limit) || 10;
+  const mode = cfg.outbound_mode || 'manual';
+  if (mode !== 'auto') return { manual: true, inserted: totalInserted };
+
+  // Auto approve and trigger builds
+  const pending = await env.DB.prepare(
+    `SELECT * FROM prospects WHERE status='pending' ORDER BY created_at DESC LIMIT ?`
+  ).bind(sendLimit).all().catch(() => ({ results: [] }));
+
+  let built = 0;
+  for (const prospect of (pending.results || [])) {
+    try {
+      await fetch(`https://preview.websitehub.co.za/admin/approve-prospect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': env.ADMIN_KEY },
+        body: JSON.stringify({ id: prospect.id }),
+      });
+      built++;
+    } catch(e) { console.warn('Auto approve failed:', e.message); }
+  }
+
+  return { inserted: totalInserted, built, province, industry };
+}
+
+// ── GET CONFIG — reads all D1 config keys into an object ─────────────────────
+async function getConfig(env) {
+  try {
+    const rows = await env.DB.prepare(`SELECT key, value FROM config`).all();
+    const cfg = {};
+    for (const r of (rows.results || [])) {
+      try { cfg[r.key] = JSON.parse(r.value); } catch { cfg[r.key] = r.value; }
+    }
+    return cfg;
+  } catch { return {}; }
+}
+
 // SEQUENCE: prospect limbo follow-up
 // Outbound prospects sent their template > PROSPECT_FOLLOWUP_DAY ago
 // with no reply → one final nudge. After that, prospect_cooldown:{phone}
