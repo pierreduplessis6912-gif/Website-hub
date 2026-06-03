@@ -151,7 +151,7 @@ export const PERSONALITY_GENOMES = {
 
   transformation: {
     label: 'Transformation',
-    hero_layouts: ['cinematic_left','trade_authority'],
+    hero_layouts: ['trade_authority','cinematic_left'],
     opening_strategies: ['before_after','proof_first'],
     typography_mode: 'bold_statement',
     spacing_rhythm: 'airy',
@@ -187,7 +187,7 @@ export const PERSONALITY_GENOMES = {
 
   wellness: {
     label: 'Wellness',
-    hero_layouts: ['trade_authority','cinematic_left'],
+    hero_layouts: ['quiet_premium','cinematic_left'],
     opening_strategies: ['emotional_story','manifesto'],
     typography_mode: 'bold_statement',
     spacing_rhythm: 'airy',
@@ -223,7 +223,7 @@ export const PERSONALITY_GENOMES = {
 
   community_local: {
     label: 'Community Local',
-    hero_layouts: ['cinematic_left','trade_authority'],
+    hero_layouts: ['trade_authority','cinematic_left'],
     opening_strategies: ['local_hero','emotional_story'],
     typography_mode: 'modern_professional',
     spacing_rhythm: 'airy',
@@ -277,7 +277,7 @@ export const PERSONALITY_GENOMES = {
 
   retail_utility: {
     label: 'Retail Utility',
-    hero_layouts: ['cinematic_left','trade_authority'],
+    hero_layouts: ['trade_authority','cinematic_left'],
     opening_strategies: ['direct_offer','local_hero'],
     typography_mode: 'modern_professional',
     spacing_rhythm: 'compact',
@@ -313,7 +313,7 @@ export const PERSONALITY_GENOMES = {
 
   mobility: {
     label: 'Mobility',
-    hero_layouts: ['cinematic_left','trade_authority'],
+    hero_layouts: ['trade_authority','cinematic_left'],
     opening_strategies: ['direct_offer','local_hero'],
     typography_mode: 'bold_statement',
     spacing_rhythm: 'compact',
