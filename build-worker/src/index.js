@@ -1507,10 +1507,11 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   const accentColour  = brandBrief?.accent_colour || null;
   const cssBlock      = buildCssVariables(brief.palette, brief.typography, primaryColour, accentColour);
 
-  // ── PERSONALITY — Claude confirms or overrides genome ──────
-  const heroLayout       = brandBrief?.hero_layout       || brief.personality?.hero_layouts?.[0]       || 'cinematic_left';
-  const openingStrategy  = brandBrief?.opening_strategy  || brief.personality?.opening_strategies?.[0] || 'proof_first';
-  const personalityCategory = brandBrief?.personality_category?.split(' ')[0] || brief.personality?.category || 'trade_authority';
+  // ── PERSONALITY — genome drives layout, Claude refines colour/voice only ──
+  // Use personality genome directly — don't let Claude override layout
+  const heroLayout       = brief.personality?.hero_layouts?.[0]       || 'cinematic_left';
+  const openingStrategy  = brief.personality?.opening_strategies?.[0] || 'proof_first';
+  const personalityCategory = brief.personality?.category || 'trade_authority';
 
   // ── GALLERY PHOTOS from D1 (Premium only) ──────────────────
   const caps        = PACKAGE_CAPS[pkg] || PACKAGE_CAPS.standard;
