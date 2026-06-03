@@ -813,6 +813,8 @@ function applyPromo() {
   if (PROMO_CODES[code] !== undefined) {
     const disc = PROMO_CODES[code];
     const newPrice = disc === 1.0 ? 0 : Math.round(p.monthly * (1 - disc));
+    S.promoDiscount = disc;
+    S.promoCode = code;
     el('cPrice').textContent = newPrice === 0 ? 'Free' : 'R' + newPrice;
     el('payBtn').textContent = newPrice === 0 ? 'Activate — Go Live →' : `Pay R${newPrice} — Go Live →`;
     m.textContent = disc === 1.0 ? 'First month free!' : `${Math.round(disc * 100)}% off applied`;
@@ -828,11 +830,40 @@ async function processPayment() {
 
   const btn = el('payBtn');
   const orig = btn.textContent;
-  btn.textContent = 'Connecting to PayFast…';
   btn.disabled = true;
 
   const p = PLANS[S.selectedPlan];
+  const promoDisc = S.promoDiscount || 0;
+  const finalAmount = Math.round(p.monthly * (1 - promoDisc));
 
+  // If fully free (BETA or 100% promo) — skip PayFast, go live directly
+  if (finalAmount === 0) {
+    btn.textContent = 'Activating…';
+    try {
+      const d = await apiFetch('/activate-free', {
+        method: 'POST',
+        body: JSON.stringify({
+          token: S.token,
+          slug: S.slug,
+          plan: S.selectedPlan,
+          promoCode: S.promoCode || 'BETA',
+        })
+      });
+      if (d.success) {
+        showScreen('processing');
+      } else {
+        throw new Error(d.error || 'Activation failed');
+      }
+    } catch(err) {
+      btn.textContent = orig;
+      btn.disabled = false;
+      toast('Activation failed — try again', 'err');
+    }
+    return;
+  }
+
+  // Normal PayFast flow
+  btn.textContent = 'Connecting to PayFast…';
   try {
     const d = await apiFetch('/go-live-link', {
       method: 'POST',
