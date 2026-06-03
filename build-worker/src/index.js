@@ -985,8 +985,8 @@ async function handleIntake(request, env) {
 }
 
 
-// ── GBP RESOLVE — fetch by place_id, fall back to searchText if geocode ──
-const GBP_FIELD_MASK = 'id,displayName,formattedAddress,shortFormattedAddress,nationalPhoneNumber,internationalPhoneNumber,websiteUri,regularOpeningHours,currentOpeningHours,primaryTypeDisplayName,types,editorialSummary,reviews,rating,userRatingCount,photos,priceLevel,paymentOptions,goodForChildren,goodForGroups,liveMusic,servesBeer,servesCocktails,servesWine,servesVegetarianFood,outdoorSeating,reservable,takeout,delivery,dineIn,parkingOptions';
+// ── GBP RESOLVE — fetch by place_id, fall back to proximity searchText if geocode ──
+const GBP_FIELD_MASK = 'id,displayName,formattedAddress,shortFormattedAddress,location,nationalPhoneNumber,internationalPhoneNumber,websiteUri,regularOpeningHours,currentOpeningHours,primaryTypeDisplayName,types,editorialSummary,reviews,rating,userRatingCount,photos,priceLevel,paymentOptions,goodForChildren,goodForGroups,liveMusic,servesBeer,servesCocktails,servesWine,servesVegetarianFood,outdoorSeating,reservable,takeout,delivery,dineIn,parkingOptions';
 const GBP_SEARCH_MASK = GBP_FIELD_MASK.split(',').map(f => 'places.' + f).join(',');
 
 // A real business listing has reviews, a phone, or business types.
@@ -1003,20 +1003,33 @@ function isRealEstablishment(data) {
 
 async function resolveGbp(env, place_id, businessName, area) {
   let data = null;
+  let coord = null;
+
   if (place_id) {
     data = await callPlacesProxy(env,
       `https://places.googleapis.com/v1/places/${place_id}`,
       'GET', null, { 'X-Goog-FieldMask': GBP_FIELD_MASK }
     ).catch(() => null);
+    // Even a geocode hands us a coordinate — capture it for proximity bias
+    if (data?.location) coord = data.location;
   }
-  // If the place_id was a geocode (street/area), re-resolve by name + area
+
+  // If the tapped place was a geocode (street/suburb/shared address),
+  // re-resolve the business by name, biased to a tight circle around
+  // the tapped coordinate. Name narrows "what", coordinate narrows "where".
   if (!isRealEstablishment(data) && businessName) {
-    const query = [businessName, area].filter(Boolean).join(' ');
+    const body = {
+      textQuery:  [businessName, area].filter(Boolean).join(' '),
+      regionCode: 'ZA',
+    };
+    if (coord) {
+      body.locationBias = {
+        circle: { center: { latitude: coord.latitude, longitude: coord.longitude }, radius: 500.0 },
+      };
+    }
     const search = await callPlacesProxy(env,
       'https://places.googleapis.com/v1/places:searchText',
-      'POST',
-      { textQuery: query, regionCode: 'ZA' },
-      { 'X-Goog-FieldMask': GBP_SEARCH_MASK }
+      'POST', body, { 'X-Goog-FieldMask': GBP_SEARCH_MASK }
     ).catch(() => null);
     const best = search?.places?.[0];
     if (isRealEstablishment(best)) data = best;
