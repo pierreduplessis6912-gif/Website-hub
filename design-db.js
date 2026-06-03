@@ -94,6 +94,9 @@ export const INDUSTRY_PERSONALITY = {
   // Community Local
   childcare:'community_local', tutoring:'community_local',
   cleaning:'community_local', laundry:'community_local',
+  optometrist:'medical_health', vet:'medical_health', driving_school:'community_local',
+  tattoo:'beauty_wellness', tiling:'trade_authority', glazier:'trade_authority',
+  furniture:'trade_authority', butchery:'food_beverage',
 
   // Professional Trust
   legal:'professional_trust', accounting:'professional_trust', property:'professional_trust',
@@ -599,6 +602,25 @@ function normaliseIndustryKey(industry) {
   if (/tutor|teach|educat/.test(k))       return 'tutoring';
   if (/funeral/.test(k))                  return 'funeral';
   if (/ai.consult/.test(k))               return 'ai_consulting';
+
+  // ── INTAKE LIST ADDITIONS ─────────────────────────────────
+  if (/optom|optical|eye.care|eyewear/.test(k))  return 'optometrist';
+  if (/vet(?:erinarian)?|animal.clinic|pet.care/.test(k)) return 'vet';
+  if (/driving.school|drive.school/.test(k))     return 'driving_school';
+  if (/tattoo|piercing/.test(k))                 return 'tattoo';
+  if (/makeup.artist/.test(k))                   return 'makeup';
+  if (/event.venue|venue/.test(k))               return 'events';
+  if (/wedding.plan/.test(k))                    return 'wedding';
+  if (/furniture/.test(k))                       return 'furniture';
+  if (/butch/.test(k))                           return 'butchery';
+  if (/food.truck/.test(k))                      return 'street_food';
+  if (/pool.service|pool.clean/.test(k))         return 'cleaning';
+  if (/tiler|tiling/.test(k))                    return 'tiling';
+  if (/glazier|glass/.test(k))                   return 'glazier';
+  if (/financial.advis|wealth/.test(k))          return 'accounting';
+  if (/videograph/.test(k))                      return 'photography';
+  if (/web.dev|web.design/.test(k))              return 'it_support';
+  if (/courier|deliver/.test(k))                 return 'transport';
 
   return 'general';
 }
