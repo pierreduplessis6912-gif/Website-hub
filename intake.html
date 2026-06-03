@@ -544,26 +544,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         </button>
       </div>
 
-      <!-- CARD 3b: GBP LINK — Open to all plans -->
-      <div class="card" data-card="gbp-link">
-        <div class="card-q">Are you on<br><em>Google Maps?</em></div>
-        <div class="card-hint">Paste your Google Business link and we'll pull in your reviews, description and hours automatically. This makes your site much richer.</div>
-        <div style="background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.15);border-radius:12px;padding:12px 14px;margin-bottom:12px">
-          <div style="font-size:11px;color:var(--cyan);font-weight:600;margin-bottom:6px">How to find your link:</div>
-          <div style="font-size:12px;color:var(--muted);line-height:1.7">1. Open Google Maps<br>2. Search your business name<br>3. Tap <strong>Share</strong> → Copy link<br>4. Paste it below</div>
-        </div>
-        <input class="input-field" id="gbpUrlInput" type="url" placeholder="https://maps.app.goo.gl/..." autocomplete="off"
-          oninput="validateGbpUrl(this.value)">
-        <div id="gbpStatus" style="font-size:11px;margin-top:6px;min-height:16px"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:rgba(0,240,255,.04);border:1px solid var(--border);border-radius:10px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <div style="font-size:11px;color:var(--muted)">Open to all plans · Optional — tap skip if you're not on Google Maps</div>
-        </div>
-        <button onclick="cardNext()" style="padding:14px;border-radius:12px;background:transparent;border:1.5px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;font-family:var(--font-body);transition:all .2s;margin-top:8px;width:100%">
-          Skip — I'm not on Google Maps
-        </button>
-      </div>
-
       <!-- CARD 4: SOCIAL — Standard gate -->
       <div class="card" data-card="social" style="position:relative">
         <div class="card-q">Where can<br><em>they find you?</em></div>
@@ -827,7 +807,7 @@ const S = {
   _upgradePrompted: {},
 };
 
-const CARDS = ['industry','area','services','hero-photo','about','gbp-link','social','logo','gallery','map','gbp','contact-form'];
+const CARDS = ['industry','area','services','hero-photo','about','social','logo','gallery','map','gbp','contact-form'];
 
 const CARD_GATES = {
   'social':        { plan: 'standard', label: 'Standard' },
