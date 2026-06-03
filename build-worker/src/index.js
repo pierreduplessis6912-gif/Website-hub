@@ -337,8 +337,16 @@ async function handleScrape(request, env) {
   const searchArea = area || province;
   const query = `${industry} in ${searchArea} South Africa`;
 
-  const scrapeUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${accessToken}&language=en&region=za`;
-  const res = await fetch(scrapeUrl);
+  // Route through domain proxy — Cloudflare datacenter IPs are blocked by Google Places
+  const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${accessToken}&language=en&region=za`;
+  const res = await fetch('https://websitehub.co.za/domain-proxy.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Proxy-Secret': env.DOMAIN_PROXY_SECRET || 'wh-proxy-d8f3a1b9c2e4f7d6a5b8c3e1f9d2a4b7',
+    },
+    body: JSON.stringify({ action: 'fetch_url', url: placesUrl }),
+  });
 
   if (!res.ok) {
     const err = await res.text();
