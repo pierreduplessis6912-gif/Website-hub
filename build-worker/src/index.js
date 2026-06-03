@@ -1002,22 +1002,23 @@ function isRealEstablishment(data) {
 }
 
 async function resolveGbp(env, place_id, businessName, area) {
-  let data = null;
-  let coord = null;
+  // PRINCIPLE: the business name identifies the business. The tapped place
+  // only supplies a coordinate to bias proximity. The address never decides
+  // *which* business — it only says "look near here." This is robust against
+  // shared plaza addresses, wrong pins, geocodes, and anchor-tenant taps.
 
+  // Step 1: get a coordinate from the tapped place (works for geocode OR business)
+  let coord = null;
   if (place_id) {
-    data = await callPlacesProxy(env,
+    const tapped = await callPlacesProxy(env,
       `https://places.googleapis.com/v1/places/${place_id}`,
-      'GET', null, { 'X-Goog-FieldMask': GBP_FIELD_MASK }
+      'GET', null, { 'X-Goog-FieldMask': 'id,location' }
     ).catch(() => null);
-    // Even a geocode hands us a coordinate — capture it for proximity bias
-    if (data?.location) coord = data.location;
+    if (tapped?.location) coord = tapped.location;
   }
 
-  // If the tapped place was a geocode (street/suburb/shared address),
-  // re-resolve the business by name, biased to a tight circle around
-  // the tapped coordinate. Name narrows "what", coordinate narrows "where".
-  if (!isRealEstablishment(data) && businessName) {
+  // Step 2: identify the business by NAME, biased to the tapped coordinate
+  if (businessName) {
     const body = {
       textQuery:  [businessName, area].filter(Boolean).join(' '),
       regionCode: 'ZA',
@@ -1032,9 +1033,20 @@ async function resolveGbp(env, place_id, businessName, area) {
       'POST', body, { 'X-Goog-FieldMask': GBP_SEARCH_MASK }
     ).catch(() => null);
     const best = search?.places?.[0];
-    if (isRealEstablishment(best)) data = best;
+    if (isRealEstablishment(best)) return best;
   }
-  return data;
+
+  // Step 3: last resort — if name search found nothing but the tapped place
+  // itself was a real establishment, use it rather than returning empty.
+  if (place_id) {
+    const tapped = await callPlacesProxy(env,
+      `https://places.googleapis.com/v1/places/${place_id}`,
+      'GET', null, { 'X-Goog-FieldMask': GBP_FIELD_MASK }
+    ).catch(() => null);
+    if (isRealEstablishment(tapped)) return tapped;
+  }
+
+  return null;
 }
 
 function shapeGbp(data, business_name) {
