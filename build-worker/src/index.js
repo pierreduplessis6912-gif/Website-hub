@@ -339,11 +339,11 @@ async function handleScrape(request, env) {
 
   // Route through VPS proxy — Cloudflare IPs blocked by Google Places
   const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${accessToken}&language=en&region=za`;
-  const res = await fetch('http://84.8.128.245:3001', {
+  const res = await fetch('https://places-proxy.websitehub.co.za', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-proxy-secret': 'mysecretkey123',
+      'x-proxy-secret': env.PLACES_PROXY_SECRET || 'mysecretkey123',
     },
     body: JSON.stringify({ url: placesUrl }),
   });
