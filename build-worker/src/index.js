@@ -349,7 +349,7 @@ async function handleScrape(request, env) {
       method: 'POST',
       headers: {
         'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.shortFormattedAddress',
-        'X-Goog-Api-Key': accessToken,
+        'X-Goog-Api-Key': 'AIzaSyD167Z_n41uqRjqZx1k1vtc0Q0Ev2brDG8',
       },
       postBody: {
         textQuery: query,
