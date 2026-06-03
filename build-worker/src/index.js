@@ -199,6 +199,7 @@ export default {
 
       // ── BUILD STATUS (polling) ───────────────────────────────
       if (path === '/build-status'  && method === 'GET') return handleBuildStatus(url, env);
+      if (path === '/address-suggest' && method === 'GET')  return handleAddressSuggest(url, env);
       if (path === '/client-status' && method === 'GET') return handleClientStatus(url, env);
 
       // ── PREVIEW META (prefetch for intake screen) ────────────
@@ -612,6 +613,10 @@ async function handleRunMigration(request, env) {
       `CREATE INDEX IF NOT EXISTS idx_ref_credits_client ON referral_credits(client_id)`,
       `CREATE INDEX IF NOT EXISTS idx_ref_credits_code ON referral_credits(promo_code)`,
       `CREATE INDEX IF NOT EXISTS idx_ref_credits_status ON referral_credits(status)`,
+    ],
+    '0003': [
+      `ALTER TABLE clients ADD COLUMN gbp_place_id TEXT`,
+      `ALTER TABLE clients ADD COLUMN gbp_data TEXT`,
     ]
   };
 
@@ -867,7 +872,7 @@ async function handleIntake(request, env) {
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
 
-  const { business_name, client_name, phone, email, package: pkg, area, industry } = body;
+  const { business_name, client_name, phone, email, package: pkg, area, industry, place_id, address } = body;
   if (!business_name || !phone)
     return jsonResponse({ error: 'business_name and phone required' }, 400);
 
@@ -929,6 +934,20 @@ async function handleIntake(request, env) {
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
 
+    // Background GBP lookup — store result in D1 before pre-build fires
+    if (place_id) {
+      env.ctx?.waitUntil?.(
+        fetchGbpData(`https://maps.google.com/?q=place_id:${place_id}`, env)
+          .then(async gbp => {
+            if (gbp) {
+              await env.DB.prepare(
+                `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
+              ).bind(JSON.stringify(gbp), place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run().catch(() => {});
+            }
+          }).catch(() => {})
+      );
+    }
+
     await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: false });
 
     return jsonResponse({ slug, manage_token, clientId: id, redirectUrl: `https://${PREVIEW_DOMAIN}/intake/${manage_token}` });
@@ -936,6 +955,44 @@ async function handleIntake(request, env) {
   } catch (err) {
     console.error('Intake error:', err.message, err.stack);
     return jsonResponse({ error: 'intake_failed', detail: err.message }, 500);
+  }
+}
+
+
+// ── ADDRESS AUTOCOMPLETE — Google Places autocomplete for start page ──────────
+async function handleAddressSuggest(url, env) {
+  const q = url.searchParams.get('q');
+  if (!q || q.length < 3) return jsonResponse({ suggestions: [] });
+
+  const accessToken = await getGoogleAccessToken(env);
+  if (!accessToken) return jsonResponse({ suggestions: [] });
+
+  try {
+    const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text',
+      },
+      body: JSON.stringify({
+        input: q,
+        includedRegionCodes: ['ZA'],
+        languageCode: 'en',
+      }),
+    });
+
+    if (!res.ok) return jsonResponse({ suggestions: [] });
+    const data = await res.json();
+
+    const suggestions = (data.suggestions || []).slice(0, 5).map(s => ({
+      place_id:    s.placePrediction?.placeId || '',
+      description: s.placePrediction?.text?.text || '',
+    })).filter(s => s.place_id);
+
+    return jsonResponse({ suggestions });
+  } catch(e) {
+    return jsonResponse({ suggestions: [] });
   }
 }
 
@@ -1311,11 +1368,15 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     cards?.vibe || client.vibe
   );
 
-  // Fetch GBP data if customer provided a link
-  const gbpData = cards?.gbp_url
-    ? await fetchGbpData(cards.gbp_url, env).catch(() => null)
-    : null;
-  if (gbpData) console.log(`GBP data fetched for ${slug}: ${gbpData.name}, ${gbpData.reviewCount} reviews`);
+  // Use GBP data — from background lookup (place_id) or manual link (gbp_url)
+  let gbpData = null;
+  if (client.gbp_data) {
+    try { gbpData = JSON.parse(client.gbp_data); } catch {}
+  }
+  if (!gbpData && cards?.gbp_url) {
+    gbpData = await fetchGbpData(cards.gbp_url, env).catch(() => null);
+  }
+  if (gbpData) console.log(`GBP data for ${slug}: ${gbpData.name}, ${gbpData.reviewCount} reviews`);
 
   // Load pre-build voice profile as anchor
   const previewProfile = await env.SITES.get(`content:${slug}`, 'json').catch(() => null);
