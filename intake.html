@@ -952,17 +952,19 @@ async function bootstrap() {
       if (d.slug) el('topSlug').textContent = d.slug + '.co.za';
       if (d.package) selectPlanSilent(d.package);
 
-      // If already preview_ready — redirect to preview screen
-      if (d.status === 'preview_ready') {
-        window.location.replace(`/preview/${token}`);
-        return;
-      }
-
-      // If building — redirect to preview which shows the spinner
+      // If substance build already fired — redirect to preview spinner
       if (d.status === 'building') {
         window.location.replace(`/preview/${token}`);
         return;
       }
+
+      // If substance build complete — redirect to preview go-live screen
+      if (d.status === 'substance_ready' || d.status === 'live') {
+        window.location.replace(`/preview/${token}`);
+        return;
+      }
+
+      // preview_ready = skeleton done, waiting for intake cards — show cards normally
 
       // If build was triggered (cards submitted) — lock the form
       if (d.status === 'building' || d._buildQueued) {
