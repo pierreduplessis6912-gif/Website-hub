@@ -92,6 +92,7 @@ export default {
     if (path === '/payfast-webhook')  return handlePayfastWebhook(request, env, ctx);
     if (path === '/go-live')          return handleGoLive(request, env, ctx);
     if (path === '/go-live-link')     return handleGoLiveLink(request, env, ctx);
+    if (path === '/activate-free')    return handleActivateFree(request, env, ctx);
     if (path === '/suspend-site')     return handleSuspendSite(request, env);
     if (path === '/reinstate-site')   return handleReinstateSite(request, env);
     if (path === '/upgrade')          return handleUpgrade(request, env);
@@ -331,6 +332,27 @@ async function handleCancelSite(request, env) {
   ).catch(() => null);
 
   return jsonResponse({ success: true });
+}
+
+
+// ── /activate-free — skip PayFast for 100% promo codes ───────────────────────
+async function handleActivateFree(request, env, ctx) {
+  if (request.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
+
+  const { token, plan, promoCode } = await request.json().catch(() => ({}));
+  if (!token) return Response.json({ error: 'token required' }, { status: 400 });
+
+  const client = await env.DB.prepare(
+    `SELECT * FROM clients WHERE manage_token=? LIMIT 1`
+  ).bind(token).first();
+  if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
+
+  const pkg = plan || client.package || 'express';
+
+  // Trigger go-live internally
+  ctx.waitUntil(handleGoLiveInternal(client.id, client, env));
+
+  return Response.json({ success: true });
 }
 
 async function handleGoLiveLink(request, env, ctx) {
