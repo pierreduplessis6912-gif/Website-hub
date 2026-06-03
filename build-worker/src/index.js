@@ -456,7 +456,7 @@ async function triggerOutboundBuild(prospect, env) {
     INSERT INTO clients (id, business_name, slug, phone, industry, area, vibe, manage_token, referral_slug, status, source, package, retainer)
     VALUES (?,?,?,?,?,?,?,?,?,'lead','outbound','standard',?)
   `).bind(id, prospect.business_name, slug, prospect.phone || '', prospect.industry || '',
-      prospect.area || '', 'professional', manage_token, referral_slug, PRICING.standard.retainer).run();
+      prospect.area || '', 'professional', manage_token, referral_slug, PRICING.express.retainer).run();
 
   await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
     .bind(id, prospect.id).run();
@@ -922,7 +922,7 @@ async function handleIntake(request, env) {
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?)
     `).bind(
       id, business_name, client_name || null, slug, normPhone, email || null,
-      packageKey, PRICING[packageKey]?.retainer || 699,
+      packageKey, PRICING[packageKey]?.retainer || 399,
       industry || '', area || '', 'professional', manage_token, referral_slug,
       body.business_type || ''
     ).run();
@@ -1024,7 +1024,7 @@ async function handleTriggerRebuild(request, env) {
       updated_at=CURRENT_TIMESTAMP
     WHERE id=?
   `).bind(
-    packageKey, PRICING[packageKey]?.retainer || 699,
+    packageKey, PRICING[packageKey]?.retainer || 399,
     cards.industry || client.industry,
     cards.area     || client.area,
     cards.vibe     || client.vibe,
@@ -2005,7 +2005,7 @@ function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg, hero
   const domain  = client.domain || `${client.slug}.co.za`;
   const waLink  = `https://wa.me/${phone}`;
   const svcs    = t.services || [];
-  const tier    = pkgKey(pkg || client.package || 'standard');
+  const tier    = pkgKey(pkg || client.package || 'express');
   const isExp   = tier === 'express';
   const isStd   = tier === 'standard';
   const isPrem  = tier === 'premium';
@@ -2295,7 +2295,7 @@ async function handleCron(env) {
            referral_slug, status, source, package, retainer)
         VALUES (?,?,?,?,?,?,?,?,?,'lead','outbound','standard',?)
       `).bind(id, p.business_name, slug, p.phone || '', p.industry || '', p.area || '',
-          'professional', manage_token, referral_slug, PRICING.standard.retainer).run();
+          'professional', manage_token, referral_slug, PRICING.express.retainer).run();
 
       await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
         .bind(id, p.id).run();
@@ -2405,9 +2405,9 @@ async function uniqueSlug(name, env) {
 }
 
 function pkgKey(pkg) {
-  const p = (pkg || 'standard').toLowerCase().trim();
+  const p = (pkg || 'express').toLowerCase().trim();
   if (p === 'express' || p === 'standard' || p === 'premium') return p;
-  return 'standard';
+  return 'express';
 }
 
 function parseJson(raw) {
