@@ -323,6 +323,12 @@ body::after{
         </select>
       </div>
       <div class="field-group">
+        <label class="field-label">Business address</label>
+        <input class="field-input" id="addressInput" type="text" placeholder="e.g. 14 High Street, Cape Town" autocomplete="off"
+          oninput="onAddressInput(this.value)" onblur="hideAddressSuggestions()">
+        <div id="addressSuggestions" style="display:none;position:absolute;z-index:100;width:calc(100% - 32px);background:#1e1e1e;border:1.5px solid rgba(0,240,255,.3);border-radius:12px;margin-top:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
+      </div>
+      <div class="field-group">
         <label class="field-label">WhatsApp number</label>
         <input class="field-input" id="phoneInput" type="tel" placeholder="e.g. 082 123 4567" autocomplete="tel">
       </div>
@@ -363,7 +369,7 @@ body::after{
 <script>
 'use strict';
 
-var S = { biz:'', slug:'', domain:'', confirmed:false, token:null };
+var S = { biz:'', slug:'', domain:'', confirmed:false, token:null, placeId:null, address:null, area:null };
 
 // Pre-fill from URL params (?biz=Zululand+Flooring&domain=zululand-flooring.co.za)
 // Comes from landing page when domain is already confirmed available
@@ -507,6 +513,53 @@ function useSuggestion(domain) {
 }
 
 /* ── SUBMIT INTAKE ───────────────────────────────────────── */
+let _addressTimer = null;
+let _suggestions = [];
+
+async function onAddressInput(val) {
+  clearTimeout(_addressTimer);
+  if (val.length < 3) { hideAddressSuggestions(); return; }
+  _addressTimer = setTimeout(() => fetchAddressSuggestions(val), 350);
+}
+
+async function fetchAddressSuggestions(query) {
+  try {
+    const r = await fetch(`/address-suggest?q=${encodeURIComponent(query)}`);
+    const d = await r.json();
+    _suggestions = d.suggestions || [];
+    showAddressSuggestions(_suggestions);
+  } catch(e) {}
+}
+
+function showAddressSuggestions(suggestions) {
+  const box = document.getElementById('addressSuggestions');
+  if (!suggestions.length) { box.style.display = 'none'; return; }
+  box.innerHTML = suggestions.map((s, i) => `
+    <div onclick="selectAddress(${i})" style="padding:12px 16px;font-size:13px;color:#e8e8f0;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);transition:background .15s"
+      onmouseover="this.style.background='rgba(0,240,255,.08)'" onmouseout="this.style.background=''">${s.description}</div>
+  `).join('');
+  box.style.display = 'block';
+}
+
+function selectAddress(idx) {
+  const s = _suggestions[idx];
+  if (!s) return;
+  document.getElementById('addressInput').value = s.description;
+  S.placeId = s.place_id;
+  S.address = s.description;
+  // Extract city/area from description
+  const parts = s.description.split(',');
+  S.area = parts.length > 1 ? parts[parts.length - 2].trim() : parts[0].trim();
+  hideAddressSuggestions();
+}
+
+function hideAddressSuggestions() {
+  setTimeout(() => {
+    const box = document.getElementById('addressSuggestions');
+    if (box) box.style.display = 'none';
+  }, 200);
+}
+
 async function submitIntake() {
   if (!S.confirmed) return;
 
@@ -531,6 +584,9 @@ async function submitIntake() {
       body: JSON.stringify({
         business_name:    S.biz,
         industry:         document.getElementById('industryInput')?.value || '',
+        address:          S.address || document.getElementById('addressInput')?.value || '',
+        area:             S.area || '',
+        place_id:         S.placeId || '',
         client_name:      name,
         phone:            normalisePhone(phone),
         email:            email,
