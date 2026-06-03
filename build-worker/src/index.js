@@ -951,65 +951,23 @@ async function handleIntake(request, env) {
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
 
-    // GBP lookup — awaited before pre-build fires so data is in D1
-    if (place_id) {
+    // GBP lookup — resolve by place_id, fall back to name+area if geocode.
+    // Awaited before pre-build fires so data is in D1.
+    if (place_id || business_name) {
       try {
-        const data = await callPlacesProxy(env,
-          `https://places.googleapis.com/v1/places/${place_id}`,
-          'GET', null,
-          { 'X-Goog-FieldMask': 'id,displayName,formattedAddress,shortFormattedAddress,nationalPhoneNumber,internationalPhoneNumber,websiteUri,regularOpeningHours,currentOpeningHours,primaryTypeDisplayName,types,editorialSummary,reviews,rating,userRatingCount,photos,priceLevel,paymentOptions,goodForChildren,goodForGroups,liveMusic,servesBeer,servesCocktails,servesWine,servesVegetarianFood,outdoorSeating,reservable,takeout,delivery,dineIn,parkingOptions' }
-        );
-        // DIAGNOSTIC: capture raw proxy outcome
+        const data = await resolveGbp(env, place_id, business_name, area);
         await logEvent(env, id, 'build', 'gbp_diag', 'success', { metadata: {
           place_id,
-          data_null: data === null,
-          has_error: !!(data && data.error),
-          keys: data ? Object.keys(data).slice(0,8).join(',') : 'NULL',
+          resolved: !!data,
           name_found: data?.displayName?.text || 'NONE',
+          reviews: data?.userRatingCount || 0,
+          real: isRealEstablishment(data),
         }});
-        if (data && !data.error) {
-          const gbp = {
-              name:         data.displayName?.text || business_name,
-              address:      data.formattedAddress || '',
-              shortAddress: data.shortFormattedAddress || '',
-              phone:        data.nationalPhoneNumber || '',
-              website:      data.websiteUri || '',
-              rating:       data.rating || null,
-              reviewCount:  data.userRatingCount || 0,
-              priceLevel:   data.priceLevel || null,
-              category:     data.primaryTypeDisplayName?.text || '',
-              types:        data.types || [],
-              description:  data.editorialSummary?.text || '',
-              hours:        data.regularOpeningHours?.weekdayDescriptions || [],
-              reviews:      (data.reviews || []).slice(0,5).map(r => ({
-                text:   r.text?.text || '',
-                rating: r.rating || 0,
-                author: r.authorAttribution?.displayName || '',
-              })),
-              photos:       (data.photos || []).slice(0,6).map(p => p.name || ''),
-              amenities: {
-                goodForChildren:      data.goodForChildren || false,
-                goodForGroups:        data.goodForGroups || false,
-                liveMusic:            data.liveMusic || false,
-                servesBeer:           data.servesBeer || false,
-                servesCocktails:      data.servesCocktails || false,
-                servesWine:           data.servesWine || false,
-                servesVegetarianFood: data.servesVegetarianFood || false,
-                outdoorSeating:       data.outdoorSeating || false,
-                reservable:           data.reservable || false,
-                takeout:              data.takeout || false,
-                delivery:             data.delivery || false,
-                dineIn:               data.dineIn || false,
-              },
-              payment: {
-                acceptsCreditCards: data.paymentOptions?.acceptsCreditCards || false,
-                acceptsDebitCards:  data.paymentOptions?.acceptsDebitCards || false,
-                acceptsCashOnly:    data.paymentOptions?.acceptsCashOnly || false,
-              },
-            };
+        if (isRealEstablishment(data)) {
+          const gbp = shapeGbp(data, business_name);
           await env.DB.prepare(
             `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
-          ).bind(JSON.stringify(gbp), place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run()
+          ).bind(JSON.stringify(gbp), gbp.placeId || place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run()
             .then(() => logEvent(env, id, 'build', 'gbp_write', 'success', { metadata: { wrote: gbp.name, reviews: gbp.reviewCount } }))
             .catch(e => logEvent(env, id, 'build', 'gbp_write', 'error', { error: e.message }));
         }
@@ -1027,6 +985,88 @@ async function handleIntake(request, env) {
 }
 
 
+// ── GBP RESOLVE — fetch by place_id, fall back to searchText if geocode ──
+const GBP_FIELD_MASK = 'id,displayName,formattedAddress,shortFormattedAddress,nationalPhoneNumber,internationalPhoneNumber,websiteUri,regularOpeningHours,currentOpeningHours,primaryTypeDisplayName,types,editorialSummary,reviews,rating,userRatingCount,photos,priceLevel,paymentOptions,goodForChildren,goodForGroups,liveMusic,servesBeer,servesCocktails,servesWine,servesVegetarianFood,outdoorSeating,reservable,takeout,delivery,dineIn,parkingOptions';
+const GBP_SEARCH_MASK = GBP_FIELD_MASK.split(',').map(f => 'places.' + f).join(',');
+
+// A real business listing has reviews, a phone, or business types.
+// A geocode (street/suburb) has none of these — detect and re-resolve.
+function isRealEstablishment(data) {
+  if (!data) return false;
+  if (data.userRatingCount > 0) return true;
+  if (data.nationalPhoneNumber) return true;
+  const types = data.types || [];
+  return types.some(t => t !== 'geocode' && t !== 'route' && t !== 'street_address'
+    && t !== 'premise' && t !== 'subpremise' && t !== 'political'
+    && !t.startsWith('administrative_area') && !t.startsWith('locality'));
+}
+
+async function resolveGbp(env, place_id, businessName, area) {
+  let data = null;
+  if (place_id) {
+    data = await callPlacesProxy(env,
+      `https://places.googleapis.com/v1/places/${place_id}`,
+      'GET', null, { 'X-Goog-FieldMask': GBP_FIELD_MASK }
+    ).catch(() => null);
+  }
+  // If the place_id was a geocode (street/area), re-resolve by name + area
+  if (!isRealEstablishment(data) && businessName) {
+    const query = [businessName, area].filter(Boolean).join(' ');
+    const search = await callPlacesProxy(env,
+      'https://places.googleapis.com/v1/places:searchText',
+      'POST',
+      { textQuery: query, regionCode: 'ZA' },
+      { 'X-Goog-FieldMask': GBP_SEARCH_MASK }
+    ).catch(() => null);
+    const best = search?.places?.[0];
+    if (isRealEstablishment(best)) data = best;
+  }
+  return data;
+}
+
+function shapeGbp(data, business_name) {
+  return {
+    name:         data.displayName?.text || business_name,
+    placeId:      data.id || '',
+    address:      data.formattedAddress || '',
+    shortAddress: data.shortFormattedAddress || '',
+    phone:        data.nationalPhoneNumber || '',
+    website:      data.websiteUri || '',
+    rating:       data.rating || null,
+    reviewCount:  data.userRatingCount || 0,
+    priceLevel:   data.priceLevel || null,
+    category:     data.primaryTypeDisplayName?.text || '',
+    types:        data.types || [],
+    description:  data.editorialSummary?.text || '',
+    hours:        data.regularOpeningHours?.weekdayDescriptions || [],
+    reviews:      (data.reviews || []).slice(0,5).map(r => ({
+      text:   r.text?.text || '',
+      rating: r.rating || 0,
+      author: r.authorAttribution?.displayName || '',
+    })),
+    photos:       (data.photos || []).slice(0,6).map(p => p.name || ''),
+    amenities: {
+      goodForChildren:      data.goodForChildren || false,
+      goodForGroups:        data.goodForGroups || false,
+      liveMusic:            data.liveMusic || false,
+      servesBeer:           data.servesBeer || false,
+      servesCocktails:      data.servesCocktails || false,
+      servesWine:           data.servesWine || false,
+      servesVegetarianFood: data.servesVegetarianFood || false,
+      outdoorSeating:       data.outdoorSeating || false,
+      reservable:           data.reservable || false,
+      takeout:              data.takeout || false,
+      delivery:             data.delivery || false,
+      dineIn:               data.dineIn || false,
+    },
+    payment: {
+      acceptsCreditCards: data.paymentOptions?.acceptsCreditCards || false,
+      acceptsDebitCards:  data.paymentOptions?.acceptsDebitCards || false,
+      acceptsCashOnly:    data.paymentOptions?.acceptsCashOnly || false,
+    },
+  };
+}
+
 // ── ADDRESS AUTOCOMPLETE — Google Places autocomplete for start page ──────────
 async function handleAddressSuggest(url, env) {
   const q = url.searchParams.get('q');
@@ -1038,7 +1078,7 @@ async function handleAddressSuggest(url, env) {
     const data = await callPlacesProxy(env,
       'https://places.googleapis.com/v1/places:autocomplete',
       'POST',
-      { input: q, includedRegionCodes: ['ZA'], languageCode: 'en' },
+      { input: q, includedRegionCodes: ['ZA'], languageCode: 'en', includedPrimaryTypes: ['establishment'] },
       { 'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text' }
     );
     if (!data) return jsonResponse({ suggestions: [] });
