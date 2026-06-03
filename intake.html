@@ -495,14 +495,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
           onkeydown="if(event.key==='Enter'){event.preventDefault();handleCustomIndustry()}" style="margin-top:8px">
       </div>
 
-      <!-- CARD 1: AREA -->
-      <div class="card" data-card="area">
-        <div class="card-q">Where are<br><em>you based?</em></div>
-        <div class="card-hint">This shapes how your site reads to local customers</div>
-        <input class="input-field" id="areaInput" placeholder="e.g. Cape Town, KZN North Coast" autocomplete="off">
-        <input class="input-field" id="audienceInput" placeholder="Who are your main customers?" autocomplete="off">
-      </div>
-
       <!-- CARD 2: SERVICES -->
       <div class="card" data-card="services">
         <div class="card-q">What do<br><em>you sell?</em></div>
@@ -807,14 +799,13 @@ const S = {
   _upgradePrompted: {},
 };
 
-const CARDS = ['industry','area','services','hero-photo','about','social','logo','gallery','map','gbp','contact-form'];
+const CARDS = ['industry','services','hero-photo','about','social','logo','gallery','map','contact-form'];
 
 const CARD_GATES = {
   'social':        { plan: 'standard', label: 'Standard' },
   'logo':          { plan: 'standard', label: 'Standard' },
   'gallery':       { plan: 'premium',  label: 'Premium' },
   'map':           { plan: 'premium',  label: 'Premium' },
-  'gbp':           { plan: 'premium',  label: 'Premium' },
   'contact-form':  { plan: 'premium',  label: 'Premium' },
 };
 
