@@ -177,6 +177,12 @@ export default {
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
+      if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
+        has_maps_key: !!env.GOOGLE_MAPS_API_KEY,
+        maps_key_prefix: env.GOOGLE_MAPS_API_KEY?.slice(0,10) || 'MISSING',
+        has_anthropic: !!env.ANTHROPIC_KEY,
+        has_google_refresh: !!env.GOOGLE_REFRESH_TOKEN,
+      });
       if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
       if (path === '/admin/scrape'             && method === 'POST') return handleScrape(request, env);
       if (path === '/admin/approve-prospect'   && method === 'POST') return handleApproveProspect(request, env);
