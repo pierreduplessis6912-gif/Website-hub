@@ -951,17 +951,32 @@ async function handleIntake(request, env) {
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
 
-    // Background GBP lookup — store result in D1 before pre-build fires
+    // Background GBP lookup — call proxy directly with place_id
     if (place_id) {
       env.ctx?.waitUntil?.(
-        fetchGbpData(`https://maps.google.com/?q=place_id:${place_id}`, env)
-          .then(async gbp => {
-            if (gbp) {
-              await env.DB.prepare(
-                `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
-              ).bind(JSON.stringify(gbp), place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run().catch(() => {});
-            }
-          }).catch(() => {})
+        callPlacesProxy(env,
+          `https://places.googleapis.com/v1/places/${place_id}`,
+          'GET', null,
+          { 'X-Goog-FieldMask': 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,primaryTypeDisplayName,editorialSummary,reviews,rating,userRatingCount,shortFormattedAddress' }
+        ).then(async data => {
+          if (data && !data.error) {
+            const gbp = {
+              name:        data.displayName?.text || business_name,
+              address:     data.formattedAddress || '',
+              phone:       data.nationalPhoneNumber || '',
+              website:     data.websiteUri || '',
+              rating:      data.rating || null,
+              reviewCount: data.userRatingCount || 0,
+              category:    data.primaryTypeDisplayName?.text || '',
+              description: data.editorialSummary?.text || '',
+              hours:       data.regularOpeningHours?.weekdayDescriptions || [],
+              reviews:     (data.reviews || []).map(r => ({ text: r.text?.text || '', rating: r.rating || 0 })),
+            };
+            await env.DB.prepare(
+              `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
+            ).bind(JSON.stringify(gbp), place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run().catch(() => {});
+          }
+        }).catch(() => {})
       );
     }
 
