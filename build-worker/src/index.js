@@ -338,14 +338,22 @@ async function handleScrape(request, env) {
   const query = `${industry} in ${searchArea} South Africa`;
 
   // Route through VPS proxy — Cloudflare IPs blocked by Google Places
-  const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${accessToken}&language=en&region=za`;
   const res = await fetch('https://places-proxy.websitehub.co.za', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-proxy-secret': env.PLACES_PROXY_SECRET || 'mysecretkey123',
     },
-    body: JSON.stringify({ url: placesUrl }),
+    body: JSON.stringify({
+      url: `https://places.googleapis.com/v1/places:searchText?key=${accessToken}`,
+      method: 'POST',
+      postBody: {
+        textQuery: query,
+        maxResultCount: Math.min(limit, 20),
+        regionCode: 'ZA',
+        languageCode: 'en',
+      }
+    }),
   });
 
   if (!res.ok) {
