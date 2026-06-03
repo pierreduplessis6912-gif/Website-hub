@@ -272,7 +272,7 @@ async function handleAdminHealth(env) {
   try { await env.DB.prepare('SELECT 1').first(); d1 = 'ok'; } catch { d1 = 'error'; }
 
   const recentEvents = await env.DB.prepare(
-    `SELECT worker, event_type, status, created_at FROM events ORDER BY created_at DESC LIMIT 20`
+    `SELECT worker, event_type, status, error, metadata, created_at FROM events ORDER BY created_at DESC LIMIT 20`
   ).all().then(r => r.results).catch(() => []);
 
   const recentBuilds = await env.DB.prepare(
