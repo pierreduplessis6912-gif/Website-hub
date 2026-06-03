@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Sync design and photo databases
+        run: |
+          cp design-db.js build-worker/src/design-db.js
+          cp photo-db.js build-worker/src/photo-db.js
       - name: Deploy wh-build
         uses: cloudflare/wrangler-action@v3
         with:
