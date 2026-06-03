@@ -1281,18 +1281,19 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
 // ── PLACES PROXY HELPER — routes all Google Places calls through VPS ─────────
 async function callPlacesProxy(env, url, method = 'GET', postBody = null, extraHeaders = {}) {
-  const apiKey = 'AIzaSyD167Z_n41uqRjqZx1k1vtc0Q0Ev2brDG8';
-  const headers = {
-    'X-Goog-Api-Key': apiKey,
-    ...extraHeaders,
-  };
+  // API key is hardcoded in VPS proxy — Cloudflare Tunnel strips custom headers
   const res = await fetch('https://places-proxy.websitehub.co.za', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-proxy-secret': 'mysecretkey123',
     },
-    body: JSON.stringify({ url, method, headers, postBody }),
+    body: JSON.stringify({
+      url,
+      method,
+      postBody,
+      fieldMask: extraHeaders['X-Goog-FieldMask'] || null,
+    }),
   });
   if (!res.ok) return null;
   const data = await res.json();
