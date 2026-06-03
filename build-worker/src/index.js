@@ -347,6 +347,7 @@ async function handleScrape(request, env) {
     body: JSON.stringify({
       url: `https://places.googleapis.com/v1/places:searchText?key=${accessToken}`,
       method: 'POST',
+      headers: { 'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.shortFormattedAddress' },
       postBody: {
         textQuery: query,
         maxResultCount: Math.min(limit, 20),
