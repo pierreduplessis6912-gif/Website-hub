@@ -1209,6 +1209,97 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
 // ── SUBSTANCE BUILD PIPELINE ──────────────────────────────────
 
+
+// ── GBP DATA FETCHER — extracts rich business data from Google Business Profile ──
+async function fetchGbpData(gbpUrl, env) {
+  if (!gbpUrl || !env.GOOGLE_CLIENT_ID) return null;
+
+  try {
+    // Step 1: Resolve short URLs (maps.app.goo.gl, g.page)
+    let resolvedUrl = gbpUrl;
+    if (gbpUrl.includes('goo.gl') || gbpUrl.includes('g.page')) {
+      const resp = await fetch(gbpUrl, { method: 'HEAD', redirect: 'follow' });
+      resolvedUrl = resp.url || gbpUrl;
+    }
+
+    // Step 2: Extract place identifier
+    let placeId = null;
+    let searchQuery = null;
+
+    // Try to extract place ID from URL formats
+    const placeMatch = resolvedUrl.match(/place\/([^/@]+)/);
+    const cidMatch   = resolvedUrl.match(/[?&]cid=(\d+)/);
+    const dataMatch  = resolvedUrl.match(/!1s([^!]+)!8m/);
+
+    if (dataMatch) {
+      placeId = decodeURIComponent(dataMatch[1]);
+    } else if (placeMatch) {
+      searchQuery = decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
+    } else if (cidMatch) {
+      searchQuery = `cid:${cidMatch[1]}`;
+    }
+
+    // Step 3: Get fresh access token
+    const accessToken = await getGoogleAccessToken(env);
+    if (!accessToken) return null;
+
+    let place = null;
+
+    // Step 4a: Direct lookup by place ID
+    if (placeId && placeId.startsWith('ChIJ')) {
+      const resp = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,primaryTypeDisplayName,editorialSummary,reviews,photos,rating,userRatingCount,shortFormattedAddress',
+        }
+      });
+      if (resp.ok) place = await resp.json();
+    }
+
+    // Step 4b: Text search fallback
+    if (!place && searchQuery) {
+      const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.regularOpeningHours,places.primaryTypeDisplayName,places.editorialSummary,places.reviews,places.rating,places.userRatingCount,places.shortFormattedAddress',
+        },
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: 1, regionCode: 'ZA' })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        place = data.places?.[0] || null;
+      }
+    }
+
+    if (!place) return null;
+
+    // Step 5: Extract useful data
+    const reviews = (place.reviews || []).slice(0, 3).map(r => ({
+      text: r.text?.text || '',
+      rating: r.rating || 5,
+    }));
+
+    return {
+      name:         place.displayName?.text || null,
+      address:      place.formattedAddress || place.shortFormattedAddress || null,
+      phone:        place.nationalPhoneNumber || null,
+      website:      place.websiteUri || null,
+      category:     place.primaryTypeDisplayName?.text || null,
+      description:  place.editorialSummary?.text || null,
+      rating:       place.rating || null,
+      reviewCount:  place.userRatingCount || 0,
+      reviews,
+      hours:        place.regularOpeningHours?.weekdayDescriptions || [],
+      placeId:      place.id || null,
+    };
+  } catch(e) {
+    console.warn('GBP fetch failed:', e.message);
+    return null;
+  }
+}
+
 async function triggerSubstanceBuild(clientId, cards, env) {
   const client = await getClientById(clientId, env);
   if (!client) throw new Error(`Client not found: ${clientId}`);
@@ -1219,6 +1310,12 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     cards?.industry || client.industry || client.business_type || client.business_name,
     cards?.vibe || client.vibe
   );
+
+  // Fetch GBP data if customer provided a link
+  const gbpData = cards?.gbp_url
+    ? await fetchGbpData(cards.gbp_url, env).catch(() => null)
+    : null;
+  if (gbpData) console.log(`GBP data fetched for ${slug}: ${gbpData.name}, ${gbpData.reviewCount} reviews`);
 
   // Load pre-build voice profile as anchor
   const previewProfile = await env.SITES.get(`content:${slug}`, 'json').catch(() => null);
@@ -1236,7 +1333,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   try {
     const raw = await callClaudeInternal(
       substancePass1System(brief),
-      [{ role: 'user', content: substancePass1User(client, cards, brief, previewProfile) }],
+      [{ role: 'user', content: substancePass1User(client, cards, brief, previewProfile, gbpData) }],
       env, { maxTokens: PASS_TOKENS.sub_1 }
     );
     brandBrief = parseJson(raw);
@@ -1453,7 +1550,18 @@ Colour guidance: The baseline palette is a starting point. Choose a primary colo
 Output only valid JSON — no markdown.`;
 }
 
-function substancePass1User(client, cards, brief, previewProfile) {
+function substancePass1User(client, cards, brief, previewProfile, gbpData) {
+  const gbpBlock = gbpData ? `
+Google Business Profile data (use this as primary source of truth):
+Business name: ${gbpData.name || ''}
+Address: ${gbpData.address || ''}
+Category: ${gbpData.category || ''}
+Description: ${gbpData.description || ''}
+Rating: ${gbpData.rating || ''} stars from ${gbpData.reviewCount || 0} reviews
+Hours: ${(gbpData.hours || []).join(' | ')}
+${gbpData.reviews?.length ? `Customer reviews:\n${gbpData.reviews.map(r => `- "${r.text}" (${r.rating}/5)`).join('\n')}` : ''}
+` : '';
+
   return `Business: ${client.business_name}
 Area: ${client.area}
 Industry: ${cards?.industry || client.industry}
@@ -1464,7 +1572,7 @@ Differentiator 1: ${cards?.diff1 || ''}
 Differentiator 2: ${cards?.diff2 || ''}
 Differentiator 3: ${cards?.diff3 || ''}
 Testimonial seed: ${cards?.testimonial || ''}
-${previewProfile ? `\nExisting skeleton content (build forward from this, don't contradict):\nHero: ${previewProfile.hero_h1 || ''} — ${previewProfile.hero_subline || ''}` : ''}
+${gbpBlock}${previewProfile ? `\nExisting skeleton content (build forward from this, don't contradict):\nHero: ${previewProfile.hero_h1 || ''} — ${previewProfile.hero_subline || ''}` : ''}
 
 Output this JSON exactly:
 {
