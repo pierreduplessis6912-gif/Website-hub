@@ -1281,12 +1281,7 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
 // ── PLACES PROXY HELPER — routes all Google Places calls through VPS ─────────
 async function callPlacesProxy(env, url, method = 'GET', postBody = null, extraHeaders = {}) {
-  // Read from D1 config — env secret gets corrupted in transit
-  let apiKey = env.GOOGLE_MAPS_API_KEY;
-  try {
-    const row = await env.DB.prepare(`SELECT value FROM config WHERE key='google_maps_key' LIMIT 1`).first().catch(() => null);
-    if (row?.value) apiKey = row.value;
-  } catch {}
+  const apiKey = 'AIzaSyD167Z_n41uqRjqZx1k1vtc0Q0Ev2brDG8';
   const headers = {
     'X-Goog-Api-Key': apiKey,
     ...extraHeaders,
