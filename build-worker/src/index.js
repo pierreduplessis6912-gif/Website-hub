@@ -1009,7 +1009,9 @@ async function handleIntake(request, env) {
             };
           await env.DB.prepare(
             `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
-          ).bind(JSON.stringify(gbp), place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run().catch(() => {});
+          ).bind(JSON.stringify(gbp), place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run()
+            .then(() => logEvent(env, id, 'build', 'gbp_write', 'success', { metadata: { wrote: gbp.name, reviews: gbp.reviewCount } }))
+            .catch(e => logEvent(env, id, 'build', 'gbp_write', 'error', { error: e.message }));
         }
       } catch(e) { console.warn('GBP lookup failed:', e.message); }
     }
