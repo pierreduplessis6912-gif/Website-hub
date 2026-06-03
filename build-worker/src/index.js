@@ -339,7 +339,7 @@ async function handleScrape(request, env) {
 
   // Route through domain proxy — Cloudflare datacenter IPs are blocked by Google Places
   const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${accessToken}&language=en&region=za`;
-  const res = await fetch('https://websitehub.co.za/domain-proxy.php', {
+  const res = await fetch('https://156.38.165.210/domain-proxy.php', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
