@@ -762,6 +762,56 @@ const PHOTO_DB = {
 
   // ── FALLBACK ─────────────────────────────────────────────────
   // Clean, aspirational, professional — works for anything
+  optometrist: [
+    'optometrist eye exam professional clinic',
+    'optical store glasses frames professional',
+    'eye care professional optometry clinic',
+    'optician glasses professional modern',
+    'vision care eye test professional',
+    'optical glasses frames retail clean',
+  ],
+  vet: [
+    'veterinarian dog cat professional clinic',
+    'vet animal clinic professional care',
+    'veterinary practice professional pet care',
+    'animal doctor professional clinic warm',
+    'vet professional dog examination',
+  ],
+  driving_school: [
+    'driving lesson instructor car professional',
+    'driving school car lesson road',
+    'driving instructor professional car lesson',
+    'learner driver lesson professional road',
+  ],
+  tattoo: [
+    'tattoo artist professional studio work',
+    'tattoo studio professional artist close',
+    'tattoo work professional artist detail',
+    'body art tattoo professional studio',
+  ],
+  furniture: [
+    'furniture store interior design modern',
+    'furniture showroom modern professional',
+    'furniture workshop craftsman wood professional',
+    'modern furniture design interior professional',
+  ],
+  butchery: [
+    'butchery meat professional counter fresh',
+    'butcher shop professional meat counter',
+    'fresh meat butchery professional counter',
+    'artisan butchery professional meat fresh',
+  ],
+  tiling: [
+    'tile installation professional bathroom floor',
+    'tiler professional tile floor work',
+    'bathroom tile installation professional',
+    'floor tile professional installation work',
+  ],
+  glazier: [
+    'glass installation professional window',
+    'glazier professional glass window work',
+    'glass window professional installation',
+  ],
   general: [
     'professional business person confident',
     'modern professional workspace laptop',
