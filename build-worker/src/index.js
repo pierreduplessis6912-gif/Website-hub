@@ -959,6 +959,14 @@ async function handleIntake(request, env) {
           'GET', null,
           { 'X-Goog-FieldMask': 'id,displayName,formattedAddress,shortFormattedAddress,nationalPhoneNumber,internationalPhoneNumber,websiteUri,regularOpeningHours,currentOpeningHours,primaryTypeDisplayName,types,editorialSummary,reviews,rating,userRatingCount,photos,priceLevel,paymentOptions,goodForChildren,goodForGroups,liveMusic,servesBeer,servesCocktails,servesWine,servesVegetarianFood,outdoorSeating,reservable,takeout,delivery,dineIn,parkingOptions' }
         );
+        // DIAGNOSTIC: capture raw proxy outcome
+        await logEvent(env, id, 'build', 'gbp_diag', 'success', { metadata: {
+          place_id,
+          data_null: data === null,
+          has_error: !!(data && data.error),
+          keys: data ? Object.keys(data).slice(0,8).join(',') : 'NULL',
+          name_found: data?.displayName?.text || 'NONE',
+        }});
         if (data && !data.error) {
           const gbp = {
               name:         data.displayName?.text || business_name,
