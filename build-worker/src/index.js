@@ -1676,14 +1676,18 @@ Output only valid JSON — no markdown.`;
 
 function substancePass1User(client, cards, brief, previewProfile, gbpData) {
   const gbpBlock = gbpData ? `
-Google Business Profile data (use this as primary source of truth):
-Business name: ${gbpData.name || ''}
+Google Business Profile (use as primary source of truth for all copy):
+Business: ${gbpData.name || ''}
 Address: ${gbpData.address || ''}
 Category: ${gbpData.category || ''}
 Description: ${gbpData.description || ''}
-Rating: ${gbpData.rating || ''} stars from ${gbpData.reviewCount || 0} reviews
+Rating: ${gbpData.rating || ''} stars · ${gbpData.reviewCount || 0} reviews
 Hours: ${(gbpData.hours || []).join(' | ')}
-${gbpData.reviews?.length ? `Customer reviews:\n${gbpData.reviews.map(r => `- "${r.text}" (${r.rating}/5)`).join('\n')}` : ''}
+${gbpData.priceLevel ? `Price level: ${gbpData.priceLevel}` : ''}
+${Object.entries(gbpData.amenities || {}).filter(([,v])=>v).map(([k])=>k.replace(/([A-Z])/g,' $1').toLowerCase()).join(', ')}
+${gbpData.payment?.acceptsCreditCards ? 'Accepts credit cards' : ''}${gbpData.payment?.acceptsCashOnly ? ' · Cash only' : ''}
+${gbpData.reviews?.length ? `Real customer reviews:\n${gbpData.reviews.map(r => `- "${r.text}" — ${r.author} (${r.rating}/5)`).join('\n')}` : ''}
+${gbpData.photos?.length ? `Has ${gbpData.photos.length} real business photos available` : ''}
 ` : '';
 
   return `Business: ${client.business_name}
