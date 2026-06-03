@@ -953,6 +953,8 @@ async function handleBuildStatus(url, env) {
   return jsonResponse({
     status:     client.status,
     slug:       client.slug,
+    package:    client.package || 'standard',
+    retainer:   client.retainer || 699,
     previewUrl: client.preview_url || null,
     domain:     client.domain || null,
   });
