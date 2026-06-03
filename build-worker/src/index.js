@@ -345,9 +345,12 @@ async function handleScrape(request, env) {
       'x-proxy-secret': env.PLACES_PROXY_SECRET || 'mysecretkey123',
     },
     body: JSON.stringify({
-      url: `https://places.googleapis.com/v1/places:searchText?key=${accessToken}`,
+      url: 'https://places.googleapis.com/v1/places:searchText',
       method: 'POST',
-      headers: { 'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.shortFormattedAddress' },
+      headers: {
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.shortFormattedAddress',
+        'X-Goog-Api-Key': accessToken,
+      },
       postBody: {
         textQuery: query,
         maxResultCount: Math.min(limit, 20),
