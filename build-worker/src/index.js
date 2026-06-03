@@ -331,7 +331,7 @@ async function handleScrape(request, env) {
   const searchArea = area || province;
   const query = `${industry} in ${searchArea} South Africa`;
 
-  const res = await fetch('https://places.googleapis.com/v1/places:searchText?key=' + accessToken, {
+  const res = await fetch(`https://places.googleapis.com/v1/places:searchText?key=${accessToken}`, {
     method: 'POST',
     headers: {
       'Content-Type':     'application/json',
