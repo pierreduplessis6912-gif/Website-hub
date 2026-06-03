@@ -323,19 +323,18 @@ async function handleScrape(request, env) {
   const { industry, province, area, limit = 20 } = await request.json().catch(() => ({}));
   if (!industry || !province) return jsonResponse({ error: 'industry and province required' }, 400);
 
-  // Get fresh Google access token
-  const accessToken = await getGoogleAccessToken(env);
-  if (!accessToken) return jsonResponse({ error: 'Google auth failed — check GOOGLE_REFRESH_TOKEN' }, 500);
+  // Use Maps Platform API key
+  const accessToken = env.GOOGLE_MAPS_API_KEY;
+  if (!accessToken) return jsonResponse({ error: 'Google auth failed — check GOOGLE_MAPS_API_KEY' }, 500);
 
   // Build search query
   const searchArea = area || province;
   const query = `${industry} in ${searchArea} South Africa`;
 
-  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+  const res = await fetch('https://places.googleapis.com/v1/places:searchText?key=' + accessToken, {
     method: 'POST',
     headers: {
       'Content-Type':     'application/json',
-      'Authorization':    `Bearer ${accessToken}`,
       'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.shortFormattedAddress',
     },
     body: JSON.stringify({
@@ -964,14 +963,13 @@ async function handleAddressSuggest(url, env) {
   const q = url.searchParams.get('q');
   if (!q || q.length < 3) return jsonResponse({ suggestions: [] });
 
-  const accessToken = await getGoogleAccessToken(env);
-  if (!accessToken) return jsonResponse({ suggestions: [] });
+  const apiKey = env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey) return jsonResponse({ suggestions: [] });
 
   try {
-    const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+    const res = await fetch(`https://places.googleapis.com/v1/places:autocomplete?key=${apiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text',
       },
@@ -1296,29 +1294,26 @@ async function fetchGbpData(gbpUrl, env) {
       searchQuery = `cid:${cidMatch[1]}`;
     }
 
-    // Step 3: Get fresh access token
-    const accessToken = await getGoogleAccessToken(env);
-    if (!accessToken) return null;
+    // Use Maps Platform API key for Places calls
+    const apiKey = env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return null;
 
     let place = null;
 
     // Step 4a: Direct lookup by place ID
     if (placeId && placeId.startsWith('ChIJ')) {
-      const resp = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'X-Goog-FieldMask': 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,primaryTypeDisplayName,editorialSummary,reviews,photos,rating,userRatingCount,shortFormattedAddress',
-        }
+      const fields = 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,primaryTypeDisplayName,editorialSummary,reviews,rating,userRatingCount,shortFormattedAddress';
+      const resp = await fetch(`https://places.googleapis.com/v1/places/${placeId}?key=${apiKey}&languageCode=en`, {
+        headers: { 'X-Goog-FieldMask': fields }
       });
       if (resp.ok) place = await resp.json();
     }
 
     // Step 4b: Text search fallback
     if (!place && searchQuery) {
-      const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      const resp = await fetch(`https://places.googleapis.com/v1/places:searchText?key=${apiKey}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
           'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.regularOpeningHours,places.primaryTypeDisplayName,places.editorialSummary,places.reviews,places.rating,places.userRatingCount,places.shortFormattedAddress',
         },
