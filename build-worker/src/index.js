@@ -337,19 +337,8 @@ async function handleScrape(request, env) {
   const searchArea = area || province;
   const query = `${industry} in ${searchArea} South Africa`;
 
-  const res = await fetch(`https://places.googleapis.com/v1/places:searchText?key=${accessToken}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type':     'application/json',
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.shortFormattedAddress',
-    },
-    body: JSON.stringify({
-      textQuery:  query,
-      maxResultCount: Math.min(limit, 20),
-      regionCode: 'ZA',
-      languageCode: 'en',
-    }),
-  });
+  const scrapeUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${accessToken}&language=en&region=za`;
+  const res = await fetch(scrapeUrl);
 
   if (!res.ok) {
     const err = await res.text();
@@ -357,7 +346,19 @@ async function handleScrape(request, env) {
   }
 
   const data = await res.json();
-  const places = data.places || [];
+  if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+    return jsonResponse({ error: 'Places API error', detail: data.status }, 502);
+  }
+
+  const places = (data.results || []).map(p => ({
+    id: p.place_id,
+    displayName: { text: p.name },
+    formattedAddress: p.formatted_address,
+    shortFormattedAddress: p.vicinity || p.formatted_address,
+    nationalPhoneNumber: p.formatted_phone_number || '',
+    websiteUri: p.website || '',
+    primaryTypeDisplayName: { text: p.types?.[0]?.replace(/_/g,' ') || '' },
+  }));
 
   // Filter: no website = our target
   const targets = places.filter(p => !p.websiteUri);
