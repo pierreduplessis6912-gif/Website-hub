@@ -174,6 +174,7 @@ export default {
         if (path === '/admin/bootstrap-manage'  && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-admin'   && method === 'POST') return handleAdminBootstrapAdmin(request, env);
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
+      if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
@@ -564,6 +565,29 @@ async function handleTestWhatsapp(request, env) {
   } catch(e) {
     return jsonResponse({ error: e.message, evoUrl, evoInstance }, 500);
   }
+}
+
+
+async function handleDeleteClient(request, env) {
+  const { slug } = await request.json().catch(() => ({}));
+  if (!slug) return jsonResponse({ error: 'slug required' }, 400);
+
+  const client = await env.DB.prepare(`SELECT id FROM clients WHERE slug=?`).bind(slug).first().catch(() => null);
+  if (!client) return jsonResponse({ error: 'not found' }, 404);
+
+  const id = client.id;
+  const tables = ['invoices','referrals','referral_credits','visits','events','builds','revisions'];
+  for (const t of tables) {
+    await env.DB.prepare(`DELETE FROM ${t} WHERE client_id=?`).bind(id).run().catch(() => {});
+  }
+  await env.DB.prepare(`DELETE FROM clients WHERE id=?`).bind(id).run();
+
+  // Also clear KV
+  await env.SITES.delete(`preview:${slug}`).catch(() => {});
+  await env.SITES.delete(`site:${slug}`).catch(() => {});
+  await env.SITES.delete(`content:${slug}`).catch(() => {});
+
+  return jsonResponse({ success: true, slug, id });
 }
 
 async function handleRunMigration(request, env) {
