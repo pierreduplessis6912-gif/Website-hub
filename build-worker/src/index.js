@@ -951,33 +951,32 @@ async function handleIntake(request, env) {
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
 
-    // Background GBP lookup — call proxy directly with place_id
+    // GBP lookup — awaited before pre-build fires so data is in D1
     if (place_id) {
-      env.ctx?.waitUntil?.(
-        callPlacesProxy(env,
+      try {
+        const data = await callPlacesProxy(env,
           `https://places.googleapis.com/v1/places/${place_id}`,
           'GET', null,
           { 'X-Goog-FieldMask': 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,primaryTypeDisplayName,editorialSummary,reviews,rating,userRatingCount,shortFormattedAddress' }
-        ).then(async data => {
-          if (data && !data.error) {
-            const gbp = {
-              name:        data.displayName?.text || business_name,
-              address:     data.formattedAddress || '',
-              phone:       data.nationalPhoneNumber || '',
-              website:     data.websiteUri || '',
-              rating:      data.rating || null,
-              reviewCount: data.userRatingCount || 0,
-              category:    data.primaryTypeDisplayName?.text || '',
-              description: data.editorialSummary?.text || '',
-              hours:       data.regularOpeningHours?.weekdayDescriptions || [],
-              reviews:     (data.reviews || []).map(r => ({ text: r.text?.text || '', rating: r.rating || 0 })),
-            };
-            await env.DB.prepare(
-              `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
-            ).bind(JSON.stringify(gbp), place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run().catch(() => {});
-          }
-        }).catch(() => {})
-      );
+        );
+        if (data && !data.error) {
+          const gbp = {
+            name:        data.displayName?.text || business_name,
+            address:     data.formattedAddress || '',
+            phone:       data.nationalPhoneNumber || '',
+            website:     data.websiteUri || '',
+            rating:      data.rating || null,
+            reviewCount: data.userRatingCount || 0,
+            category:    data.primaryTypeDisplayName?.text || '',
+            description: data.editorialSummary?.text || '',
+            hours:       data.regularOpeningHours?.weekdayDescriptions || [],
+            reviews:     (data.reviews || []).map(r => ({ text: r.text?.text || '', rating: r.rating || 0 })),
+          };
+          await env.DB.prepare(
+            `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
+          ).bind(JSON.stringify(gbp), place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run().catch(() => {});
+        }
+      } catch(e) { console.warn('GBP lookup failed:', e.message); }
     }
 
     await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: false });
