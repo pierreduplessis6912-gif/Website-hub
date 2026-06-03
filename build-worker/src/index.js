@@ -957,21 +957,48 @@ async function handleIntake(request, env) {
         const data = await callPlacesProxy(env,
           `https://places.googleapis.com/v1/places/${place_id}`,
           'GET', null,
-          { 'X-Goog-FieldMask': 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,primaryTypeDisplayName,editorialSummary,reviews,rating,userRatingCount,shortFormattedAddress' }
+          { 'X-Goog-FieldMask': 'id,displayName,formattedAddress,shortFormattedAddress,nationalPhoneNumber,internationalPhoneNumber,websiteUri,regularOpeningHours,currentOpeningHours,primaryTypeDisplayName,types,editorialSummary,reviews,rating,userRatingCount,photos,priceLevel,paymentOptions,goodForChildren,goodForGroups,liveMusic,servesBeer,servesCocktails,servesWine,servesVegetarianFood,outdoorSeating,reservable,takeout,delivery,dineIn,parkingOptions' }
         );
         if (data && !data.error) {
           const gbp = {
-            name:        data.displayName?.text || business_name,
-            address:     data.formattedAddress || '',
-            phone:       data.nationalPhoneNumber || '',
-            website:     data.websiteUri || '',
-            rating:      data.rating || null,
-            reviewCount: data.userRatingCount || 0,
-            category:    data.primaryTypeDisplayName?.text || '',
-            description: data.editorialSummary?.text || '',
-            hours:       data.regularOpeningHours?.weekdayDescriptions || [],
-            reviews:     (data.reviews || []).map(r => ({ text: r.text?.text || '', rating: r.rating || 0 })),
-          };
+              name:         data.displayName?.text || business_name,
+              address:      data.formattedAddress || '',
+              shortAddress: data.shortFormattedAddress || '',
+              phone:        data.nationalPhoneNumber || '',
+              website:      data.websiteUri || '',
+              rating:       data.rating || null,
+              reviewCount:  data.userRatingCount || 0,
+              priceLevel:   data.priceLevel || null,
+              category:     data.primaryTypeDisplayName?.text || '',
+              types:        data.types || [],
+              description:  data.editorialSummary?.text || '',
+              hours:        data.regularOpeningHours?.weekdayDescriptions || [],
+              reviews:      (data.reviews || []).slice(0,5).map(r => ({
+                text:   r.text?.text || '',
+                rating: r.rating || 0,
+                author: r.authorAttribution?.displayName || '',
+              })),
+              photos:       (data.photos || []).slice(0,6).map(p => p.name || ''),
+              amenities: {
+                goodForChildren:      data.goodForChildren || false,
+                goodForGroups:        data.goodForGroups || false,
+                liveMusic:            data.liveMusic || false,
+                servesBeer:           data.servesBeer || false,
+                servesCocktails:      data.servesCocktails || false,
+                servesWine:           data.servesWine || false,
+                servesVegetarianFood: data.servesVegetarianFood || false,
+                outdoorSeating:       data.outdoorSeating || false,
+                reservable:           data.reservable || false,
+                takeout:              data.takeout || false,
+                delivery:             data.delivery || false,
+                dineIn:               data.dineIn || false,
+              },
+              payment: {
+                acceptsCreditCards: data.paymentOptions?.acceptsCreditCards || false,
+                acceptsDebitCards:  data.paymentOptions?.acceptsDebitCards || false,
+                acceptsCashOnly:    data.paymentOptions?.acceptsCashOnly || false,
+              },
+            };
           await env.DB.prepare(
             `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
           ).bind(JSON.stringify(gbp), place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run().catch(() => {});
