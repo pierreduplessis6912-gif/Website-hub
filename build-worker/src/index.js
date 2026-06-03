@@ -349,7 +349,7 @@ async function handleScrape(request, env) {
       method: 'POST',
       headers: {
         'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.shortFormattedAddress',
-        'X-Goog-Api-Key': 'AIzaSyD167Z_n41uqRjqZx1k1vtc0Q0Ev2brDG8',
+        'X-Goog-Api-Key': accessToken,
       },
       postBody: {
         textQuery: query,
@@ -984,25 +984,16 @@ async function handleAddressSuggest(url, env) {
   const q = url.searchParams.get('q');
   if (!q || q.length < 3) return jsonResponse({ suggestions: [] });
 
-  const apiKey = env.GOOGLE_MAPS_API_KEY;
-  if (!apiKey) return jsonResponse({ suggestions: [] });
+  if (!env.GOOGLE_MAPS_API_KEY) return jsonResponse({ suggestions: [] });
 
   try {
-    const res = await fetch(`https://places.googleapis.com/v1/places:autocomplete?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text',
-      },
-      body: JSON.stringify({
-        input: q,
-        includedRegionCodes: ['ZA'],
-        languageCode: 'en',
-      }),
-    });
-
-    if (!res.ok) return jsonResponse({ suggestions: [] });
-    const data = await res.json();
+    const data = await callPlacesProxy(env,
+      'https://places.googleapis.com/v1/places:autocomplete',
+      'POST',
+      { input: q, includedRegionCodes: ['ZA'], languageCode: 'en' },
+      { 'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text' }
+    );
+    if (!data) return jsonResponse({ suggestions: [] });
 
     const suggestions = (data.suggestions || []).slice(0, 5).map(s => ({
       place_id:    s.placePrediction?.placeId || '',
@@ -1287,8 +1278,30 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
 
 // ── GBP DATA FETCHER — extracts rich business data from Google Business Profile ──
+
+// ── PLACES PROXY HELPER — routes all Google Places calls through VPS ─────────
+async function callPlacesProxy(env, url, method = 'GET', postBody = null, extraHeaders = {}) {
+  const apiKey = env.GOOGLE_MAPS_API_KEY;
+  const headers = {
+    'X-Goog-Api-Key': apiKey,
+    ...extraHeaders,
+  };
+  const res = await fetch('https://places-proxy.websitehub.co.za', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-proxy-secret': 'mysecretkey123',
+    },
+    body: JSON.stringify({ url, method, headers, postBody }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data.error) return null;
+  return data;
+}
+
 async function fetchGbpData(gbpUrl, env) {
-  if (!gbpUrl || !env.GOOGLE_CLIENT_ID) return null;
+  if (!gbpUrl || !env.GOOGLE_MAPS_API_KEY) return null;
 
   try {
     // Step 1: Resolve short URLs (maps.app.goo.gl, g.page)
@@ -1315,35 +1328,30 @@ async function fetchGbpData(gbpUrl, env) {
       searchQuery = `cid:${cidMatch[1]}`;
     }
 
-    // Use Maps Platform API key for Places calls
-    const apiKey = env.GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return null;
+    if (!env.GOOGLE_MAPS_API_KEY) return null;
 
     let place = null;
+    const fieldMask = 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.regularOpeningHours,places.primaryTypeDisplayName,places.editorialSummary,places.reviews,places.rating,places.userRatingCount,places.shortFormattedAddress';
 
     // Step 4a: Direct lookup by place ID
     if (placeId && placeId.startsWith('ChIJ')) {
-      const fields = 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,primaryTypeDisplayName,editorialSummary,reviews,rating,userRatingCount,shortFormattedAddress';
-      const resp = await fetch(`https://places.googleapis.com/v1/places/${placeId}?key=${apiKey}&languageCode=en`, {
-        headers: { 'X-Goog-FieldMask': fields }
-      });
-      if (resp.ok) place = await resp.json();
+      const data = await callPlacesProxy(env,
+        `https://places.googleapis.com/v1/places/${placeId}`,
+        'GET', null,
+        { 'X-Goog-FieldMask': fieldMask.replace('places.','') }
+      );
+      if (data && !data.error) place = data;
     }
 
     // Step 4b: Text search fallback
     if (!place && searchQuery) {
-      const resp = await fetch(`https://places.googleapis.com/v1/places:searchText?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.regularOpeningHours,places.primaryTypeDisplayName,places.editorialSummary,places.reviews,places.rating,places.userRatingCount,places.shortFormattedAddress',
-        },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: 1, regionCode: 'ZA' })
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        place = data.places?.[0] || null;
-      }
+      const data = await callPlacesProxy(env,
+        'https://places.googleapis.com/v1/places:searchText',
+        'POST',
+        { textQuery: searchQuery, maxResultCount: 1, regionCode: 'ZA' },
+        { 'X-Goog-FieldMask': fieldMask }
+      );
+      place = data?.places?.[0] || null;
     }
 
     if (!place) return null;
