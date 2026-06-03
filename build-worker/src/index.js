@@ -366,19 +366,13 @@ async function handleScrape(request, env) {
   }
 
   const data = await res.json();
-  if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-    return jsonResponse({ error: 'Places API error', detail: data.status }, 502);
+
+  // Places API New returns { places: [...] } — no status field
+  if (data.error) {
+    return jsonResponse({ error: 'Places API error', detail: JSON.stringify(data.error) }, 502);
   }
 
-  const places = (data.results || []).map(p => ({
-    id: p.place_id,
-    displayName: { text: p.name },
-    formattedAddress: p.formatted_address,
-    shortFormattedAddress: p.vicinity || p.formatted_address,
-    nationalPhoneNumber: p.formatted_phone_number || '',
-    websiteUri: p.website || '',
-    primaryTypeDisplayName: { text: p.types?.[0]?.replace(/_/g,' ') || '' },
-  }));
+  const places = (data.places || []);
 
   // Filter: no website = our target
   const targets = places.filter(p => !p.websiteUri);
