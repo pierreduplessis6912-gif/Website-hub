@@ -27,6 +27,7 @@ jobs:
             GOOGLE_CLIENT_ID
             GOOGLE_CLIENT_SECRET
             GOOGLE_REFRESH_TOKEN
+            GOOGLE_MAPS_API_KEY
         env:
           ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
@@ -38,6 +39,8 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+            GOOGLE_MAPS_API_KEY
 
   deploy-patch:
     name: Deploy wh-patch
@@ -81,6 +84,7 @@ jobs:
             GOOGLE_CLIENT_ID
             GOOGLE_CLIENT_SECRET
             GOOGLE_REFRESH_TOKEN
+            GOOGLE_MAPS_API_KEY
         env:
           PAYFAST_MERCHANT_KEY: ${{ secrets.PAYFAST_MERCHANT_KEY }}
           PAYFAST_PASSPHRASE: ${{ secrets.PAYFAST_PASSPHRASE }}
@@ -94,6 +98,8 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+            GOOGLE_MAPS_API_KEY
 
   deploy-pulse:
     name: Deploy wh-pulse
