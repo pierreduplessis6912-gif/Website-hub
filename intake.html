@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Build Your Site — Website Hub</title>
+<title>Customise Your Site — Website Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -29,715 +29,655 @@
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-body)}
 
-/* ── PROGRESS LINE ── */
+/* ── PROGRESS ── */
 #progressLine{
   position:fixed;top:0;left:0;height:2px;width:0%;
   background:linear-gradient(90deg,var(--cyan),var(--magenta));
   transition:width .6s cubic-bezier(.4,0,.2,1);
-  z-index:100;
-  box-shadow:0 0 12px var(--cyan);
+  z-index:100;box-shadow:0 0 12px var(--cyan);
 }
 
 /* ── TOP BAR ── */
 #topBar{
   position:fixed;top:0;left:0;right:0;
   display:flex;align-items:center;justify-content:space-between;
-  padding:18px 24px 0;
-  z-index:50;
+  padding:16px 20px 0;z-index:50;
 }
-#topBar .brand{
-  font-family:var(--font-display);
-  font-size:18px;
-  letter-spacing:-.3px;
-}
+#topBar .brand{font-family:var(--font-display);font-size:17px;letter-spacing:-.3px}
 #topBar .brand span{color:var(--cyan)}
-#topBar .slug{
-  font-family:var(--font-mono);
-  font-size:11px;
-  color:var(--muted);
-  letter-spacing:.5px;
-}
+#topBar .slug{font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:.5px}
 
-/* ── MAIN STAGE ── */
-#stage{
-  position:fixed;inset:0;
-  display:flex;flex-direction:column;
-  overflow:hidden;
-}
+/* ── STAGE ── */
+#stage{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}
 
 /* ── CARD VIEWPORT ── */
-#cardViewport{
-  flex:1;
-  overflow:hidden;
-  position:relative;
-  margin-top:52px;
-  margin-bottom:120px;
-}
+#cardViewport{flex:1;overflow:hidden;position:relative;margin-top:52px}
+#cardsTrack{display:flex;width:100%;height:100%;transition:transform .45s cubic-bezier(.77,0,.175,1)}
 
-#cardsTrack{
-  display:flex;
-  width:100%;
-  height:100%;
-  transition:transform .45s cubic-bezier(.77,0,.175,1);
-}
-
+/* ── CARDS ── */
 .card{
-  flex:0 0 100%;
-  width:100%;
-  height:100%;
-  overflow-y:auto;
-  padding:32px 24px 24px;
-  display:flex;
-  flex-direction:column;
-  gap:20px;
+  flex:0 0 100%;width:100%;height:100%;
+  overflow-y:auto;padding:28px 24px 120px;
+  display:flex;flex-direction:column;
   -webkit-overflow-scrolling:touch;
 }
 
-/* ── QUESTION ── */
-.card-q{
+/* ── EXPERIENCE CARDS (welcome, dashboard, plan cards) ── */
+.exp-card{
+  flex:0 0 100%;width:100%;height:100%;
+  overflow-y:auto;padding:0;
+  display:flex;flex-direction:column;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* ── WELCOME CARD ── */
+.welcome-wrap{
+  display:flex;flex-direction:column;
+  justify-content:center;min-height:100%;
+  padding:60px 28px 40px;text-align:center;
+}
+.welcome-icon{font-size:48px;margin-bottom:24px;animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both}
+.welcome-title{
   font-family:var(--font-display);
-  font-size:clamp(28px,7vw,40px);
-  line-height:1.15;
-  letter-spacing:-.5px;
-  color:var(--text);
-  animation:slideUp .4s ease both;
+  font-size:clamp(32px,8vw,44px);
+  line-height:1.1;letter-spacing:-.5px;
+  margin-bottom:20px;
+  animation:slideUp .5s .1s ease both;
 }
-.card-hint{
-  font-size:14px;
-  color:var(--muted);
-  line-height:1.6;
-  margin-top:-12px;
-  animation:slideUp .4s .05s ease both;
+.welcome-title em{color:var(--cyan);font-style:normal}
+.welcome-body{
+  font-size:16px;color:var(--muted);line-height:1.7;
+  max-width:340px;margin:0 auto 32px;
+  animation:slideUp .5s .2s ease both;
+}
+.welcome-steps{
+  display:flex;flex-direction:column;gap:12px;
+  text-align:left;margin-bottom:40px;
+  animation:slideUp .5s .3s ease both;
+}
+.welcome-step{
+  display:flex;align-items:center;gap:14px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;font-size:14px;
+}
+.welcome-step-num{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#000;flex-shrink:0;
+}
+.welcome-cta{
+  width:100%;padding:18px;border-radius:16px;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  border:none;color:#000;font-size:16px;font-weight:700;
+  font-family:var(--font-body);cursor:pointer;
+  animation:slideUp .5s .4s ease both;
 }
 
-@keyframes slideUp{
-  from{opacity:0;transform:translateY(16px)}
-  to{opacity:1;transform:translateY(0)}
+/* ── PLAN CARDS (express/standard/premium) ── */
+.plan-wrap{
+  display:flex;flex-direction:column;
+  min-height:100%;padding:28px 24px 120px;
 }
+.plan-eyebrow{
+  font-size:11px;font-weight:700;letter-spacing:2px;
+  color:var(--muted);text-transform:uppercase;margin-bottom:8px;
+}
+.plan-title{
+  font-family:var(--font-display);
+  font-size:clamp(28px,7vw,38px);
+  line-height:1.1;letter-spacing:-.4px;
+  margin-bottom:6px;
+}
+.plan-title em{color:var(--cyan);font-style:normal}
+.plan-hook{
+  font-size:15px;color:var(--muted);
+  line-height:1.6;margin-bottom:20px;
+}
+.plan-price-row{
+  display:flex;align-items:baseline;gap:8px;
+  margin-bottom:6px;
+}
+.plan-price-main{
+  font-size:42px;font-weight:700;
+  font-family:var(--font-mono);color:var(--text);
+  line-height:1;
+}
+.plan-price-sub{font-size:14px;color:var(--muted)}
+.plan-no-fee{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);
+  border-radius:8px;padding:6px 12px;
+  font-size:12px;font-weight:600;color:var(--green);
+  margin-bottom:20px;
+}
+.plan-features{
+  display:flex;flex-direction:column;gap:10px;
+  margin-bottom:20px;
+}
+.plan-feat{
+  display:flex;align-items:flex-start;gap:10px;
+  font-size:14px;line-height:1.5;
+}
+.plan-feat-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.plan-feat-text{color:var(--text)}
+.plan-feat-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.plan-facts{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:16px;margin-bottom:24px;
+}
+.plan-fact{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:8px 0;border-bottom:1px solid var(--border);
+  font-size:13px;color:var(--muted);line-height:1.5;
+}
+.plan-fact:last-child{border-bottom:none;padding-bottom:0}
+.plan-fact-stat{
+  font-size:20px;font-weight:700;font-family:var(--font-mono);
+  color:var(--cyan);flex-shrink:0;min-width:48px;
+}
+.plan-btns{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-top:16px}
+.btn-yes{
+  width:100%;padding:17px;border-radius:14px;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  border:none;color:#000;font-size:15px;font-weight:700;
+  font-family:var(--font-body);cursor:pointer;
+}
+.btn-skip{
+  width:100%;padding:14px;border-radius:14px;
+  background:transparent;border:1.5px solid var(--border);
+  color:var(--muted);font-size:14px;font-weight:500;
+  font-family:var(--font-body);cursor:pointer;
+}
+.btn-skip:active,.btn-yes:active{transform:scale(.98)}
 
-/* ── INDUSTRY GRID ── */
-.ind-grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:10px;
-  animation:slideUp .4s .1s ease both;
+/* ── DASHBOARD CARD ── */
+.dash-wrap{
+  display:flex;flex-direction:column;
+  min-height:100%;padding:28px 24px 120px;
 }
-.ind-tile{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:10px;
-  padding:18px 12px;
-  background:var(--surface);
-  border:1.5px solid var(--border);
-  border-radius:14px;
-  cursor:pointer;
-  transition:all .2s;
-  font-size:13px;
-  font-weight:500;
-  color:var(--muted);
-  text-align:center;
-  -webkit-user-select:none;user-select:none;
+.dash-title{
+  font-family:var(--font-display);
+  font-size:clamp(26px,6.5vw,36px);
+  line-height:1.15;letter-spacing:-.4px;
+  margin-bottom:8px;
 }
-.ind-tile:active{transform:scale(.97)}
-.ind-tile.sel{
-  border-color:var(--cyan);
-  color:var(--text);
-  background:rgba(0,240,255,.06);
-  box-shadow:0 0 0 1px var(--cyan) inset, 0 0 20px rgba(0,240,255,.08);
+.dash-title em{color:var(--cyan);font-style:normal}
+.dash-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:20px}
+.dash-features{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.dash-feat{
+  display:flex;align-items:flex-start;gap:12px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:14px;
 }
-.ind-tile svg{opacity:.6;transition:opacity .2s}
-.ind-tile.sel svg{opacity:1}
+.dash-feat-icon{font-size:20px;flex-shrink:0}
+.dash-feat-label{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+.dash-feat-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.dash-referral-box{
+  background:rgba(0,240,255,.05);
+  border:1px solid rgba(0,240,255,.2);
+  border-radius:14px;padding:16px;margin-bottom:24px;
+}
+.dash-referral-title{
+  font-size:13px;font-weight:700;color:var(--cyan);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;
+}
+.dash-referral-text{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* ── INLINE REVEAL ── */
+.inline-reveal{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:14px;padding:20px;margin-top:12px;
+  display:none;flex-direction:column;gap:14px;
+  animation:slideUp .3s ease both;
+}
+.inline-reveal.show{display:flex}
+.reveal-title{
+  font-size:13px;font-weight:700;color:var(--text);
+  text-transform:uppercase;letter-spacing:.8px;
+}
 
 /* ── INPUTS ── */
 .input-field{
-  width:100%;
-  background:var(--surface);
-  border:1.5px solid var(--border);
-  border-radius:12px;
-  padding:16px 18px;
-  font-family:var(--font-body);
-  font-size:15px;
-  color:var(--text);
-  outline:none;
+  width:100%;background:var(--surface2);
+  border:1.5px solid var(--border);border-radius:12px;
+  padding:14px 16px;font-family:var(--font-body);font-size:15px;
+  color:var(--text);outline:none;
   transition:border-color .2s,box-shadow .2s;
   -webkit-appearance:none;
-  animation:slideUp .4s .1s ease both;
 }
 .input-field::placeholder{color:var(--muted2)}
-.input-field:focus{
-  border-color:var(--cyan);
-  box-shadow:0 0 0 3px rgba(0,240,255,.08);
-}
-
-/* ── CHIPS ── */
-.chips{
-  display:flex;flex-wrap:wrap;gap:8px;
-  animation:slideUp .4s .1s ease both;
-}
-.chip{
-  padding:8px 16px;
-  border-radius:100px;
-  border:1.5px solid var(--border);
-  background:var(--surface);
-  font-size:13px;
-  font-weight:500;
-  color:var(--muted);
-  cursor:pointer;
-  transition:all .2s;
-  -webkit-user-select:none;user-select:none;
-}
-.chip:active{transform:scale(.96)}
-.chip.sel{
-  border-color:var(--cyan);
-  color:var(--cyan);
-  background:rgba(0,240,255,.06);
-}
+.input-field:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,240,255,.08)}
 
 /* ── SOCIAL FIELDS ── */
 .social-row{
   display:flex;align-items:center;gap:12px;
-  background:var(--surface);
-  border:1.5px solid var(--border);
-  border-radius:12px;
-  padding:4px 4px 4px 16px;
-  transition:border-color .2s;
-  animation:slideUp .4s .1s ease both;
+  background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:12px;padding:4px 16px 4px 12px;
 }
-.social-row:focus-within{border-color:var(--cyan)}
-.soc-icon{display:flex;align-items:center;flex-shrink:0}
 .social-row input{
-  flex:1;
-  background:transparent;
-  border:none;
-  outline:none;
-  font-family:var(--font-body);
-  font-size:14px;
-  color:var(--text);
-  padding:12px 0;
+  flex:1;background:transparent;border:none;
+  padding:12px 0;font-family:var(--font-body);
+  font-size:14px;color:var(--text);outline:none;
 }
 .social-row input::placeholder{color:var(--muted2)}
 
-/* ── UPLOAD ZONES ── */
-.upload-row{display:flex;gap:10px;animation:slideUp .4s .1s ease both}
+/* ── UPLOAD ZONE ── */
 .upload-zone{
-  flex:1;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:8px;
-  padding:24px 12px;
-  background:var(--surface);
-  border:1.5px dashed var(--border);
-  border-radius:14px;
-  cursor:pointer;
-  transition:all .2s;
-  text-align:center;
+  border:2px dashed var(--border);border-radius:14px;
+  padding:28px;text-align:center;cursor:pointer;
+  transition:all .2s;background:var(--surface2);
 }
-.upload-zone:active{transform:scale(.98);border-color:var(--cyan)}
-.upload-zone.has-file{border-color:var(--green);border-style:solid}
-.uz-icon{width:36px;height:36px;stroke:var(--muted);fill:none}
-.uz-title{font-size:13px;font-weight:600;color:var(--muted)}
-.uz-sub{font-size:11px;color:var(--muted2)}
+.upload-zone:active{border-color:var(--cyan);background:rgba(0,240,255,.04)}
+.upload-zone-icon{font-size:28px;margin-bottom:8px}
+.upload-zone-label{font-size:14px;color:var(--muted)}
+.upload-preview{
+  width:100%;max-height:160px;object-fit:cover;
+  border-radius:10px;display:none;
+}
 
-/* ── PHOTO STRIP ── */
-.photo-strip{
-  display:flex;gap:8px;flex-wrap:wrap;
-  animation:slideUp .4s .15s ease both;
-}
-.photo-thumb{
-  width:72px;height:72px;
-  object-fit:cover;
-  border-radius:10px;
-  border:1px solid var(--border);
-}
-.photo-add{
-  width:72px;height:72px;
+/* ── INDUSTRY GRID ── */
+.ind-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.ind-tile{
   display:flex;align-items:center;justify-content:center;
-  border-radius:10px;
-  border:1.5px dashed var(--border);
-  font-size:24px;color:var(--muted);
-  cursor:pointer;
-  transition:all .2s;
+  padding:14px 10px;background:var(--surface);
+  border:1.5px solid var(--border);border-radius:12px;
+  cursor:pointer;transition:all .2s;font-size:12px;
+  font-weight:500;color:var(--muted);text-align:center;
+  -webkit-user-select:none;user-select:none;line-height:1.3;
 }
-.photo-add:active{border-color:var(--cyan);color:var(--cyan)}
+.ind-tile:active{transform:scale(.97)}
+.ind-tile.sel{
+  border-color:var(--cyan);color:var(--text);
+  background:rgba(0,240,255,.06);
+  box-shadow:0 0 0 1px var(--cyan) inset;
+}
 
-/* ── FEATURE CARD (GBP, toggle) ── */
-.feature-card{
-  display:flex;align-items:center;gap:16px;
-  background:var(--surface);
-  border:1.5px solid var(--border);
-  border-radius:14px;
-  padding:18px;
-  animation:slideUp .4s .1s ease both;
+/* ── CHIPS ── */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  padding:8px 16px;border-radius:100px;
+  border:1.5px solid var(--border);background:var(--surface);
+  font-size:13px;font-weight:500;color:var(--muted);
+  cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none;
 }
-.feature-card-icon{
-  width:44px;height:44px;
-  display:flex;align-items:center;justify-content:center;
-  border-radius:10px;
-  background:rgba(0,240,255,.08);
-  flex-shrink:0;
-}
-.feature-card-icon svg{stroke:var(--cyan);fill:none;width:22px;height:22px}
-.feature-card-body{flex:1}
-.feature-card-body strong{font-size:15px;font-weight:600;display:block;margin-bottom:4px}
-.feature-card-body p{font-size:12px;color:var(--muted);line-height:1.5}
+.chip:active{transform:scale(.96)}
+.chip.sel{border-color:var(--cyan);color:var(--cyan);background:rgba(0,240,255,.06)}
 
-/* ── TOGGLE ── */
-.toggle{
-  width:48px;height:26px;border-radius:13px;
-  background:var(--surface2);border:1.5px solid var(--border);
-  position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;
-}
-.toggle.on{background:var(--cyan);border-color:var(--cyan)}
-.toggle-dot{
-  width:18px;height:18px;border-radius:50%;
-  background:var(--muted);
-  position:absolute;top:3px;left:3px;
-  transition:all .25s cubic-bezier(.4,0,.2,1);
-}
-.toggle.on .toggle-dot{left:23px;background:#000}
-
-/* ── LOCK GATE ── */
-.lock-gate{
-  position:absolute;inset:0;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:16px;
-  padding:32px 24px;
-  background:rgba(13,13,13,.92);
-  backdrop-filter:blur(8px);
-  border-radius:14px;
-  text-align:center;
-  opacity:0;pointer-events:none;
-  transition:opacity .25s;
-}
-.lock-gate.visible{opacity:1;pointer-events:all}
-.lock-gate-icon{
-  width:52px;height:52px;
-  border-radius:14px;
-  background:rgba(245,166,35,.1);
-  border:1.5px solid rgba(245,166,35,.3);
-  display:flex;align-items:center;justify-content:center;
-}
-.lock-gate-icon svg{stroke:var(--amber);fill:none;width:24px;height:24px}
-.lock-gate h3{
+/* ── CARD QUESTION STYLES (for industry/services cards) ── */
+.card-q{
   font-family:var(--font-display);
-  font-size:22px;
-  color:var(--text);
+  font-size:clamp(26px,6.5vw,36px);
+  line-height:1.15;letter-spacing:-.4px;
+  color:var(--text);margin-bottom:6px;
 }
-.lock-gate p{font-size:13px;color:var(--muted);line-height:1.6;max-width:260px}
-.lock-gate-btns{display:flex;gap:10px;width:100%}
-.btn-skip{
-  flex:1;padding:13px;border-radius:12px;
-  background:transparent;border:1.5px solid var(--border);
-  color:var(--muted);font-size:14px;font-weight:500;
-  cursor:pointer;font-family:var(--font-body);
-  transition:all .2s;
-}
-.btn-skip:active{border-color:var(--text);color:var(--text)}
-.btn-unlock{
-  flex:2;padding:13px;border-radius:12px;
-  background:linear-gradient(135deg,var(--amber),#e8922a);
-  border:none;color:#000;font-size:14px;font-weight:600;
-  cursor:pointer;font-family:var(--font-body);
-  transition:all .2s;
-}
-.btn-unlock:active{transform:scale(.98)}
-.btn-unlock-confirm{
-  background:linear-gradient(135deg,var(--cyan),var(--magenta)) !important;
-}
+.card-hint{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px}
 
 /* ── BOTTOM NAV ── */
 #bottomNav{
   position:fixed;bottom:0;left:0;right:0;
-  padding:16px 24px calc(16px + env(safe-area-inset-bottom));
-  background:linear-gradient(transparent,var(--bg) 30%);
-  z-index:50;
+  padding:12px 20px max(20px,env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--bg) 70%,transparent);
+  z-index:40;
 }
 .nav-row{display:flex;gap:10px}
-#btnBack{
-  padding:16px 20px;border-radius:14px;
-  background:var(--surface);border:1.5px solid var(--border);
-  color:var(--muted);font-size:15px;font-weight:500;
-  cursor:pointer;font-family:var(--font-body);
-  transition:all .2s;flex-shrink:0;
+.nav-row button{
+  flex:1;padding:15px;border-radius:13px;
+  font-family:var(--font-body);font-size:14px;font-weight:600;
+  cursor:pointer;transition:all .2s;border:none;
 }
+#btnBack{background:var(--surface);color:var(--muted);border:1.5px solid var(--border)}
 #btnBack:disabled{opacity:.3;pointer-events:none}
-#btnBack:active{border-color:var(--text)}
-#btnNext{
-  flex:1;padding:16px 20px;border-radius:14px;
-  background:var(--surface);border:1.5px solid var(--border);
-  color:var(--text);font-size:15px;font-weight:600;
-  cursor:pointer;font-family:var(--font-body);
-  transition:all .25s;
-}
-#btnNext:active{transform:scale(.98)}
+#btnNext{background:var(--text);color:var(--bg)}
 #btnNext.build{
-  background:linear-gradient(135deg,var(--cyan),var(--purple),var(--magenta));
-  border-color:transparent;
-  color:#fff;
-  animation:pulse 2s infinite;
-  box-shadow:0 0 24px rgba(0,240,255,.2);
-}
-@keyframes pulse{
-  0%,100%{box-shadow:0 0 24px rgba(0,240,255,.2)}
-  50%{box-shadow:0 0 40px rgba(0,240,255,.35)}
-}
-
-/* ── LOGO PREVIEW ── */
-#logoPreviewWrap{
-  display:flex;align-items:center;gap:12px;
-  background:var(--surface);border:1.5px solid var(--green);
-  border-radius:12px;padding:12px 16px;
-}
-#logoPreviewWrap img{max-height:48px;max-width:80px;object-fit:contain;border-radius:6px}
-.logo-ok{font-size:12px;color:var(--green);font-weight:500}
-
-/* ── ADDRESS INPUT WRAPPER ── */
-.input-wrap{position:relative;animation:slideUp .4s .1s ease both}
-
-/* ── PLAN STRIP ── */
-#planStrip{
-  position:fixed;bottom:88px;left:0;right:0;
-  padding:0 24px;z-index:49;
-  display:flex;gap:8px;
-  overflow-x:auto;
-  -webkit-overflow-scrolling:touch;
-  scrollbar-width:none;
-}
-#planStrip::-webkit-scrollbar{display:none}
-.plan-chip{
-  flex-shrink:0;
-  padding:8px 14px;border-radius:100px;
-  background:var(--surface);border:1.5px solid var(--border);
-  font-size:12px;font-weight:600;color:var(--muted);
-  cursor:pointer;transition:all .2s;white-space:nowrap;
-  font-family:var(--font-body);
-}
-.plan-chip.sel{
-  border-color:var(--cyan);color:var(--cyan);
-  background:rgba(0,240,255,.06);
+  background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  color:#000;font-size:15px;
 }
 
 /* ── TOAST ── */
 #toast{
-  position:fixed;bottom:160px;left:50%;transform:translateX(-50%) translateY(20px);
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
   background:var(--surface2);border:1px solid var(--border);
-  color:var(--text);font-size:13px;font-weight:500;
-  padding:10px 20px;border-radius:100px;
-  opacity:0;transition:all .3s;
-  white-space:nowrap;z-index:200;pointer-events:none;
+  border-radius:10px;padding:10px 20px;font-size:13px;
+  opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:200;
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{border-color:var(--green);color:var(--green)}
 #toast.err{border-color:var(--red);color:var(--red)}
 
-/* ── PLAN POPOVER ── */
-#planPopover{
-  position:fixed;inset:0;z-index:300;
-  display:flex;align-items:flex-end;
-  background:rgba(0,0,0,.7);
-  backdrop-filter:blur(4px);
-  opacity:0;pointer-events:none;transition:opacity .25s;
-}
-#planPopover.open{opacity:1;pointer-events:all}
-#planPopoverInner{
-  width:100%;background:var(--surface);
-  border-radius:20px 20px 0 0;
-  padding:24px 24px calc(24px + env(safe-area-inset-bottom));
-  transform:translateY(100%);
-  transition:transform .35s cubic-bezier(.4,0,.2,1);
-}
-#planPopover.open #planPopoverInner{transform:translateY(0)}
-.plan-option{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:16px 0;border-bottom:1px solid var(--border);
-  cursor:pointer;transition:opacity .2s;
-}
-.plan-option:last-child{border-bottom:none}
-.plan-option:active{opacity:.7}
-.plan-name{font-size:17px;font-weight:600}
-.plan-price{font-family:var(--font-mono);font-size:15px;color:var(--cyan)}
-.plan-desc{font-size:12px;color:var(--muted);margin-top:3px}
-.plan-badge{
-  font-size:10px;font-weight:700;letter-spacing:.5px;
-  padding:3px 8px;border-radius:100px;background:rgba(0,240,255,.1);
-  color:var(--cyan);border:1px solid rgba(0,240,255,.2);
-  margin-left:8px;
-}
-.pop-handle{
-  width:36px;height:4px;border-radius:2px;
-  background:var(--muted2);margin:0 auto 20px;
-}
-.pop-title{
-  font-family:var(--font-display);font-size:20px;
-  margin-bottom:16px;
-}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
 </style>
 </head>
 <body>
-
 <div id="progressLine"></div>
 
 <div id="topBar">
   <div class="brand">Website<span>Hub</span></div>
-  <div class="slug" id="topSlug">your-domain.co.za</div>
+  <div class="slug" id="topSlug"></div>
 </div>
 
 <div id="stage">
   <div id="cardViewport">
     <div id="cardsTrack">
 
-      <!-- CARD 0: INDUSTRY -->
-      <div class="card" data-card="industry">
-        <div class="card-q">What is your<br><em>business?</em></div>
+      <!-- ═══════════════════════════════════════
+           CARD 0: WELCOME
+      ════════════════════════════════════════ -->
+      <div class="exp-card" data-card="welcome">
+        <div class="welcome-wrap">
+          <div class="welcome-icon">🎉</div>
+          <div class="welcome-title">Your site is <em>ready.</em><br>Now let's make it yours.</div>
+          <div class="welcome-body">This takes about 2 minutes. We'll show you what you've got, what you could add, and let you decide. No pressure. No surprises.</div>
+          <div class="welcome-steps">
+            <div class="welcome-step">
+              <div class="welcome-step-num">1</div>
+              <div>See your dashboard and what's included on every plan</div>
+            </div>
+            <div class="welcome-step">
+              <div class="welcome-step-num">2</div>
+              <div>Choose the features that make sense for your business</div>
+            </div>
+            <div class="welcome-step">
+              <div class="welcome-step-num">3</div>
+              <div>Go live — no build fee, no contracts, cancel anytime</div>
+            </div>
+          </div>
+          <button class="welcome-cta" onclick="cardNext()">Let's customise your free site →</button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           CARD 1: DASHBOARD
+      ════════════════════════════════════════ -->
+      <div class="exp-card" data-card="dashboard">
+        <div class="dash-wrap">
+          <div class="plan-eyebrow">Every plan includes</div>
+          <div class="dash-title">Your site comes with a <em>control panel.</em></div>
+          <div class="dash-sub">From the moment you go live, you get access to your personal Website Hub dashboard. It's yours on every plan. Forever.</div>
+
+          <div class="dash-features">
+            <div class="dash-feat">
+              <div class="dash-feat-icon">📅</div>
+              <div>
+                <div class="dash-feat-label">Billing & invoices</div>
+                <div class="dash-feat-desc">See your next invoice date, payment history, and current plan at a glance</div>
+              </div>
+            </div>
+            <div class="dash-feat">
+              <div class="dash-feat-icon">✏️</div>
+              <div>
+                <div class="dash-feat-label">Request revisions</div>
+                <div class="dash-feat-desc">Your site, your changes. Submit updates directly from your dashboard</div>
+              </div>
+            </div>
+            <div class="dash-feat">
+              <div class="dash-feat-icon">⬆️</div>
+              <div>
+                <div class="dash-feat-label">Upgrade anytime</div>
+                <div class="dash-feat-desc">Move up a tier when you're ready. No contracts, no penalties</div>
+              </div>
+            </div>
+            <div class="dash-feat">
+              <div class="dash-feat-icon">📧</div>
+              <div>
+                <div class="dash-feat-label">Business email add-on</div>
+                <div class="dash-feat-desc">Add a professional hello@yourbusiness.co.za address — available on any plan</div>
+              </div>
+            </div>
+            <div class="dash-feat">
+              <div class="dash-feat-icon">➕</div>
+              <div>
+                <div class="dash-feat-label">Extra pages add-on</div>
+                <div class="dash-feat-desc">Add an About, Menu, Gallery or Services page — available on any plan</div>
+              </div>
+            </div>
+            <div class="dash-feat">
+              <div class="dash-feat-icon">💬</div>
+              <div>
+                <div class="dash-feat-label">Support</div>
+                <div class="dash-feat-desc">Contact our team directly from your dashboard whenever you need us</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-referral-box">
+            <div class="dash-referral-title">🏆 Referral Rewards</div>
+            <div class="dash-referral-text">Refer another business to Website Hub. When they go live on your plan or higher, you earn <strong style="color:var(--text)">one free month</strong>. No cap on how many you can earn.<br><br>Track your referrals and see where you rank on the leaderboard — all from your dashboard.</div>
+          </div>
+
+          <button class="btn-yes" onclick="cardNext()">Got it — show me the plans →</button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           CARD 2: EXPRESS
+      ════════════════════════════════════════ -->
+      <div class="exp-card" data-card="express-plan">
+        <div class="plan-wrap">
+          <div class="plan-eyebrow">Plan 1 of 3</div>
+          <div class="plan-title">You're already <em>ahead.</em></div>
+          <div class="plan-hook">72% of South African small businesses have no website. Their customers search online, find nothing, and call someone else. That stops today.</div>
+
+          <div class="plan-price-row">
+            <div class="plan-price-main">R399</div>
+            <div class="plan-price-sub">/month</div>
+          </div>
+          <div class="plan-no-fee">✓ No build fee &nbsp;·&nbsp; No setup cost &nbsp;·&nbsp; Cancel anytime</div>
+
+          <div class="plan-features">
+            <div class="plan-feat"><div class="plan-feat-icon">🌐</div><div><div class="plan-feat-text">Professional single-page website</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">🔗</div><div><div class="plan-feat-text">Free .co.za domain — yours to keep forever</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">💬</div><div><div class="plan-feat-text">WhatsApp button — one tap and they're talking to you</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">📸</div><div><div class="plan-feat-text">Hero photo that stops the scroll</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">📋</div><div><div class="plan-feat-text">Services + contact — everything a customer needs</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">✏️</div><div><div class="plan-feat-text">1 revision per month included</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">🏆</div><div><div class="plan-feat-text">Referral programme — earn free months</div></div></div>
+          </div>
+
+          <div class="plan-facts">
+            <div class="plan-fact">
+              <div class="plan-fact-stat">400%</div>
+              <div>Google ranks businesses with websites 400% higher in local search than those without</div>
+            </div>
+            <div class="plan-fact">
+              <div class="plan-fact-stat">3×</div>
+              <div>The average South African checks 3 sources before spending money. If you're not one of them, someone else is</div>
+            </div>
+            <div class="plan-fact">
+              <div class="plan-fact-stat">72%</div>
+              <div>Of SA small businesses have no website. Your customers are searching for someone like you — and finding your competitor instead</div>
+            </div>
+          </div>
+
+          <div class="plan-btns">
+            <button class="btn-skip" onclick="selectPlanAndNext('express')">This is enough for me — continue →</button>
+            <button class="btn-yes" onclick="cardNext()">Show me what else is possible →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           CARD 3: STANDARD
+      ════════════════════════════════════════ -->
+      <div class="exp-card" data-card="standard-plan">
+        <div class="plan-wrap">
+          <div class="plan-eyebrow">Plan 2 of 3</div>
+          <div class="plan-title">Make it look like you <em>mean business.</em></div>
+          <div class="plan-hook">The difference between a website and a brand is the details. Your logo. Your socials. Your story told consistently.</div>
+
+          <div class="plan-price-row">
+            <div class="plan-price-main">R699</div>
+            <div class="plan-price-sub">/month</div>
+          </div>
+          <div class="plan-no-fee">✓ No build fee &nbsp;·&nbsp; +R300 from Express &nbsp;·&nbsp; Cancel anytime</div>
+
+          <div class="plan-features">
+            <div class="plan-feat"><div class="plan-feat-icon">✓</div><div><div class="plan-feat-text">Everything in Express</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">🎨</div><div><div class="plan-feat-text">Your logo on your site — instant credibility</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">📱</div><div><div class="plan-feat-text">Instagram, Facebook, TikTok links</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">📊</div><div><div class="plan-feat-text">Monthly analytics — see who's visiting and from where</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">✏️</div><div><div class="plan-feat-text">3 revisions per month</div></div></div>
+          </div>
+
+          <div class="plan-facts">
+            <div class="plan-fact">
+              <div class="plan-fact-stat">70%</div>
+              <div>Of consumers judge a business's credibility by its website design. Your logo is the first signal</div>
+            </div>
+            <div class="plan-fact">
+              <div class="plan-fact-stat">34%</div>
+              <div>Businesses with active social links see 34% longer time on page — more time means more trust</div>
+            </div>
+            <div class="plan-fact">
+              <div class="plan-fact-stat">#1</div>
+              <div>Word of mouth is still the top driver of new business in SA. Our referral programme turns that into real credit</div>
+            </div>
+          </div>
+
+          <!-- Standard inline reveal -->
+          <div class="inline-reveal" id="standard-reveal">
+            <div class="reveal-title">Add your logo</div>
+            <div class="upload-zone" onclick="document.getElementById('logoInput').click()">
+              <div class="upload-zone-icon">🎨</div>
+              <div class="upload-zone-label">Tap to upload your logo<br><span style="font-size:11px;color:var(--muted2)">PNG or JPG · Clear background preferred</span></div>
+              <img id="logoPreview" class="upload-preview">
+            </div>
+            <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+            <div class="reveal-title" style="margin-top:4px">Your socials</div>
+            <div class="social-row">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="ig1" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#ffd600"/><stop offset="50%" stop-color="#ff0069"/><stop offset="100%" stop-color="#7638fa"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig1)"/><path d="M12 7.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9zm0 7.4a2.9 2.9 0 110-5.8 2.9 2.9 0 010 5.8zm5.8-8.1a1.1 1.1 0 10-2.2 0 1.1 1.1 0 002.2 0z" fill="#fff"/></svg>
+              <input id="instagram" placeholder="Instagram @handle" autocorrect="off" autocapitalize="off">
+            </div>
+            <div class="social-row">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#1877F2"/><path d="M16 12h-2.5v7h-3v-7H9V9.5h1.5V8c0-2 1.2-3 2.9-3 .8 0 1.6.1 2.4.2v2.4h-1.4c-.7 0-.9.4-.9.9v1h2.3L16 12z" fill="#fff"/></svg>
+              <input id="facebook" placeholder="Facebook page name" autocorrect="off">
+            </div>
+            <div class="social-row">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#000"/><path d="M17.5 6.5h-2.9L12 10.2 9.4 6.5H6l4.5 6.3L6 18h2.9l2.8-3.9 2.8 3.9H18l-4.7-6.5 4.2-5z" fill="#fff"/></svg>
+              <input id="tiktok" placeholder="TikTok / X @handle" autocorrect="off" autocapitalize="off">
+            </div>
+          </div>
+
+          <div class="plan-btns">
+            <button class="btn-yes" id="btn-standard-yes" onclick="toggleStandardUpgrade()">Yes — add these features →</button>
+            <button class="btn-skip" onclick="selectPlanAndNext(S.selectedPlan)">Not right now →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           CARD 4: PREMIUM
+      ════════════════════════════════════════ -->
+      <div class="exp-card" data-card="premium-plan">
+        <div class="plan-wrap">
+          <div class="plan-eyebrow">Plan 3 of 3</div>
+          <div class="plan-title">Be the business they <em>can't ignore.</em></div>
+          <div class="plan-hook">Premium turns your website into a lead machine. Your Google Business Profile feeds into your site. Enquiries land in your inbox. Customers find you on the map.</div>
+
+          <div class="plan-price-row">
+            <div class="plan-price-main">R999</div>
+            <div class="plan-price-sub">/month</div>
+          </div>
+          <div class="plan-no-fee">✓ No build fee &nbsp;·&nbsp; +R300 from Standard &nbsp;·&nbsp; Cancel anytime</div>
+
+          <div class="plan-features">
+            <div class="plan-feat"><div class="plan-feat-icon">✓</div><div><div class="plan-feat-text">Everything in Standard</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">🖼️</div><div><div class="plan-feat-text">Photo gallery — show your work before they call</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">📍</div><div><div class="plan-feat-text">Map embed — no confusion, no excuses, just directions</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">⭐</div><div><div class="plan-feat-text">Google Business Profile integration — your reviews and hours on your site</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">📩</div><div><div class="plan-feat-text">Enquiry form — leads land in your inbox while you sleep</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">✏️</div><div><div class="plan-feat-text">5 revisions per month</div></div></div>
+            <div class="plan-feat"><div class="plan-feat-icon">📧</div><div><div class="plan-feat-text">Email accounts included</div></div></div>
+          </div>
+
+          <div class="plan-facts">
+            <div class="plan-fact">
+              <div class="plan-fact-stat">88%</div>
+              <div>Of consumers who search for a local business on their phone visit or call within 24 hours</div>
+            </div>
+            <div class="plan-fact">
+              <div class="plan-fact-stat">2.3×</div>
+              <div>Businesses with an enquiry form receive 2.3x more leads than those with only a phone number</div>
+            </div>
+            <div class="plan-fact">
+              <div class="plan-fact-stat">45%</div>
+              <div>Adding a gallery increases conversion by up to 45% — people buy what they can already picture</div>
+            </div>
+            <div class="plan-fact">
+              <div class="plan-fact-stat">67%</div>
+              <div>Of customers say finding a business on Google Maps makes them more likely to visit</div>
+            </div>
+          </div>
+
+          <!-- Premium inline reveal -->
+          <div class="inline-reveal" id="premium-reveal">
+            <div class="reveal-title">Upload gallery photos</div>
+            <div class="upload-zone" onclick="document.getElementById('galleryInput').click()" style="padding:20px">
+              <div class="upload-zone-icon">🖼️</div>
+              <div class="upload-zone-label">Tap to upload photos<br><span style="font-size:11px;color:var(--muted2)">Up to 6 photos · JPG or PNG</span></div>
+            </div>
+            <input type="file" id="galleryInput" accept="image/*" multiple style="display:none" onchange="handleGalleryUpload(this)">
+            <div id="galleryPreviews" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+            <div class="reveal-title" style="margin-top:4px">Business address for map</div>
+            <input class="input-field" id="businessAddress" placeholder="e.g. 14 Main Street, Durban" autocomplete="off">
+          </div>
+
+          <div class="plan-btns">
+            <button class="btn-yes" id="btn-premium-yes" onclick="togglePremiumUpgrade()">Yes — I want everything →</button>
+            <button class="btn-skip" onclick="selectPlanAndNext(S.selectedPlan)">I'm good where I am →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           CARD 5: INDUSTRY (for substance build)
+      ════════════════════════════════════════ -->
+      <div class="card" data-card="industry" style="padding-bottom:120px">
+        <div class="card-q">What is your<br><em style="font-style:italic;color:var(--cyan)">business?</em></div>
         <div class="card-hint">Search or pick the closest match</div>
         <input class="input-field" id="indSearch" placeholder="Search industries…" autocomplete="off"
           oninput="filterIndustries(this.value)" style="margin-bottom:12px">
         <div class="ind-grid" id="indGrid"></div>
         <input class="input-field" id="indCustom" placeholder="Not listed? Type your industry…" autocomplete="off"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();handleCustomIndustry()}" style="margin-top:8px">
+          style="margin-top:12px">
       </div>
 
-      <!-- CARD 2: SERVICES -->
-      <div class="card" data-card="services">
-        <div class="card-q">What do<br><em>you sell?</em></div>
-        <div class="card-hint">Tap to select — add your own if needed</div>
-        <div class="chips" id="servicesChips"></div>
-        <input class="input-field" id="svcCustom" placeholder="Add a service — tap Enter" autocomplete="off"
-          onkeydown="addCustomService(event)">
-        <input class="input-field" id="ctaInput" placeholder="Main call-to-action e.g. Get a Quote" autocomplete="off">
-      </div>
-
-      <!-- CARD 3: HERO PHOTO — Open to all plans -->
-      <div class="card" data-card="hero-photo">
-        <div class="card-q">Add your<br><em>hero photo.</em></div>
-        <div class="card-hint">This is the first thing visitors see. Upload a great shot of your work, team, or premises — or skip and we'll choose one for you.</div>
-        <div class="upload-row">
-          <div class="upload-zone" onclick="document.getElementById('heroFile').click()">
-            <svg class="uz-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
-            <div class="uz-title">Upload photo</div>
-            <div class="uz-sub">From gallery</div>
-          </div>
-          <div class="upload-zone" onclick="document.getElementById('heroCam').click()">
-            <svg class="uz-icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <div class="uz-title">Take photo</div>
-            <div class="uz-sub">Camera now</div>
-          </div>
-        </div>
-        <input type="file" id="heroFile" accept="image/*" style="display:none" onchange="handleHeroUpload(this)">
-        <input type="file" id="heroCam" accept="image/*" capture="environment" style="display:none" onchange="handleHeroUpload(this)">
-        <div id="heroPreviewWrap" style="display:none;margin-top:10px">
-          <img id="heroPreviewImg" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover" alt="hero preview">
-          <div style="font-size:12px;color:var(--green);margin-top:6px;font-weight:600">✓ Hero photo ready</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.15);border-radius:10px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <div style="font-size:11px;color:var(--muted)">Open to all plans · Stored securely under your domain</div>
-        </div>
-        <button onclick="cardNext()" style="padding:14px;border-radius:12px;background:transparent;border:1.5px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;font-family:var(--font-body);transition:all .2s;margin-top:8px;width:100%">
-          Skip — we'll choose a photo for you
-        </button>
-      </div>
-
-      <!-- CARD 4: SOCIAL — Standard gate -->
-      <div class="card" data-card="social" style="position:relative">
-        <div class="card-q">Where can<br><em>they find you?</em></div>
-        <div class="card-hint">Add your social handles — they'll appear on your site</div>
-        <div class="social-row">
-          <div class="soc-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="ig1" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#ffd600"/><stop offset="50%" stop-color="#ff0069"/><stop offset="100%" stop-color="#7638fa"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig1)"/><path d="M12 7.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9zm0 7.4a2.9 2.9 0 110-5.8 2.9 2.9 0 010 5.8zm5.8-8.1a1.1 1.1 0 10-2.2 0 1.1 1.1 0 002.2 0z" fill="#fff"/></svg>
-          </div>
-          <input id="instagram" placeholder="Instagram @handle" autocorrect="off" autocapitalize="off">
-        </div>
-        <div class="social-row">
-          <div class="soc-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#1877F2"/><path d="M16 12h-2.5v7h-3v-7H9V9.5h1.5V8c0-2 1.2-3 2.9-3 .8 0 1.6.1 2.4.2v2.4h-1.4c-.7 0-.9.4-.9.9v1h2.3L16 12z" fill="#fff"/></svg>
-          </div>
-          <input id="facebook" placeholder="Facebook page name" autocorrect="off">
-        </div>
-        <div class="social-row">
-          <div class="soc-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#000"/><path d="M17.5 6.5h-2.9L12 10.2 9.4 6.5H6l4.5 6.3L6 18h2.9l2.8-3.9 2.8 3.9H18l-4.7-6.5 4.2-5z" fill="#fff"/></svg>
-          </div>
-          <input id="tiktok" placeholder="TikTok / X @handle" autocorrect="off" autocapitalize="off">
-        </div>
-        <div class="card-hint">All optional — add what you have, skip the rest</div>
-        <div class="lock-gate" id="lock-social">
-          <div class="lock-gate-icon">
-            <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
-          </div>
-          <h3>Standard feature</h3>
-          <p>Social links appear on your site with Standard or Premium</p>
-          <div class="lock-gate-btns">
-            <button class="btn-skip" onclick="skipLockedCard()">Skip</button>
-            <button class="btn-unlock" id="unlock-btn-social" onclick="attemptUnlock('social')">Upgrade to Standard →</button>
-          </div>
+      <!-- ═══════════════════════════════════════
+           CARD 6: SERVICES
+      ════════════════════════════════════════ -->
+      <div class="card" data-card="services" style="padding-bottom:120px">
+        <div class="card-q">What do<br><em style="font-style:italic;color:var(--cyan)">you offer?</em></div>
+        <div class="card-hint">Select or add your main services</div>
+        <div class="chips" id="serviceChips"></div>
+        <input class="input-field" id="customSvc" placeholder="Add a custom service…" autocomplete="off"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomSvc()}">
+        <div class="card-hint" style="margin-top:4px">What should your main button say?</div>
+        <div class="chips" id="ctaChips">
+          <div class="chip" data-cta="Book Now" onclick="selectCta(this)">Book Now</div>
+          <div class="chip" data-cta="Get a Quote" onclick="selectCta(this)">Get a Quote</div>
+          <div class="chip" data-cta="Call Us" onclick="selectCta(this)">Call Us</div>
+          <div class="chip" data-cta="WhatsApp Us" onclick="selectCta(this)">WhatsApp Us</div>
+          <div class="chip" data-cta="Order Now" onclick="selectCta(this)">Order Now</div>
+          <div class="chip" data-cta="Find Us" onclick="selectCta(this)">Find Us</div>
         </div>
       </div>
 
-      <!-- CARD 4: LOGO — Standard gate -->
-      <div class="card" data-card="logo" style="position:relative">
-        <div class="card-q">Got a<br><em>logo?</em></div>
-        <div class="card-hint">Upload your logo or business card — we'll pull your brand colours automatically</div>
-        <div class="upload-row">
-          <div class="upload-zone" onclick="document.getElementById('logoFile').click()">
-            <svg class="uz-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
-            <div class="uz-title">Upload logo</div>
-            <div class="uz-sub">Or business card</div>
-          </div>
-          <div class="upload-zone" onclick="document.getElementById('logoCam').click()">
-            <svg class="uz-icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <div class="uz-title">Take photo</div>
-            <div class="uz-sub">Camera now</div>
-          </div>
-        </div>
-        <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
-        <input type="file" id="logoCam" accept="image/*" capture="environment" style="display:none" onchange="handleLogoUpload(this)">
-        <div id="logoPreviewWrap" style="display:none">
-          <img id="logoPreviewImg" alt="logo preview">
-          <div class="logo-ok">Logo uploaded — colours extracted automatically</div>
-        </div>
-        <button onclick="skipLogoCard()" style="padding:14px;border-radius:12px;background:transparent;border:1.5px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;font-family:var(--font-body);transition:all .2s">
-          Skip — Website Hub will decide
-        </button>
-        <div class="lock-gate" id="lock-logo">
-          <div class="lock-gate-icon">
-            <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
-          </div>
-          <h3>Standard feature</h3>
-          <p>Upload your logo and let us extract your brand colours automatically</p>
-          <div class="lock-gate-btns">
-            <button class="btn-skip" onclick="skipLockedCard()">Skip</button>
-            <button class="btn-unlock" id="unlock-btn-logo" onclick="attemptUnlock('logo')">Upgrade to Standard →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 5: ABOUT / DIFFERENTIATORS -->
-      <div class="card" data-card="about">
-        <div class="card-q">Why choose<br><em>you?</em></div>
-        <div class="card-hint">Three things that make you different — be specific</div>
-        <input class="input-field" id="diff1" placeholder="e.g. 15 years experience" autocomplete="off">
-        <input class="input-field" id="diff2" placeholder="e.g. Free site visits" autocomplete="off">
-        <input class="input-field" id="diff3" placeholder="e.g. Manufacturer warranties" autocomplete="off">
-        <input class="input-field" id="testimonial" placeholder="What would a happy customer say?" autocomplete="off">
-      </div>
-
-      <!-- CARD 6: GALLERY — Premium gate -->
-      <div class="card" data-card="gallery" style="position:relative">
-        <div class="card-q">Show your<br><em>work.</em></div>
-        <div class="card-hint">Photos of your work, premises, or team</div>
-        <div class="upload-row">
-          <div class="upload-zone" onclick="document.getElementById('photoFile').click()">
-            <svg class="uz-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
-            <div class="uz-title">Upload photos</div>
-            <div class="uz-sub">From gallery</div>
-          </div>
-          <div class="upload-zone" onclick="document.getElementById('photoCam').click()">
-            <svg class="uz-icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <div class="uz-title">Take photo</div>
-            <div class="uz-sub">Camera now</div>
-          </div>
-        </div>
-        <input type="file" id="photoFile" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(this)">
-        <input type="file" id="photoCam" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(this)">
-        <div class="photo-strip" id="photoStrip">
-          <div class="photo-add" onclick="document.getElementById('photoFile').click()">+</div>
-        </div>
-        <div class="card-hint">Skip for now — add photos later from your dashboard</div>
-        <div class="lock-gate" id="lock-gallery">
-          <div class="lock-gate-icon">
-            <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
-          </div>
-          <h3>Premium feature</h3>
-          <p>Show your work with a full photo gallery on your site</p>
-          <div class="lock-gate-btns">
-            <button class="btn-skip" onclick="skipLockedCard()">Skip</button>
-            <button class="btn-unlock" id="unlock-btn-gallery" onclick="attemptUnlock('gallery')">Upgrade to Premium →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 7: MAP — Premium gate -->
-      <div class="card" data-card="map" style="position:relative">
-        <div class="card-q">Where are<br><em>your premises?</em></div>
-        <div class="card-hint">We'll add a Google Maps link so customers can find you</div>
-        <input class="input-field" id="businessAddress" placeholder="e.g. 12 Main St, Richards Bay, 3900" autocomplete="street-address">
-        <div class="card-hint">Skip if you don't have fixed premises — add it later</div>
-        <div class="lock-gate" id="lock-map">
-          <div class="lock-gate-icon">
-            <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
-          </div>
-          <h3>Premium feature</h3>
-          <p>Add your map location so customers can find you</p>
-          <div class="lock-gate-btns">
-            <button class="btn-skip" onclick="skipLockedCard()">Skip</button>
-            <button class="btn-unlock" id="unlock-btn-map" onclick="attemptUnlock('map')">Upgrade to Premium →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 8: GBP — Premium gate -->
-      <div class="card" data-card="gbp" style="position:relative">
-        <div class="card-q">Get found<br><em>on Google.</em></div>
-        <div class="card-hint">We automatically create your Google Business Profile at go-live</div>
-        <div class="feature-card">
-          <div class="feature-card-icon">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-          </div>
-          <div class="feature-card-body">
-            <strong>Google Business Profile</strong>
-            <p>Auto-created at go-live using your business name, area, category and phone. You appear in Search and Maps — no extra steps.</p>
-          </div>
-        </div>
-        <div class="lock-gate" id="lock-gbp">
-          <div class="lock-gate-icon">
-            <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
-          </div>
-          <h3>Premium feature</h3>
-          <p>Automatic Google Business Profile setup — appear in Maps and Search from day one</p>
-          <div class="lock-gate-btns">
-            <button class="btn-skip" onclick="skipLockedCard()">Skip</button>
-            <button class="btn-unlock" id="unlock-btn-gbp" onclick="attemptUnlock('gbp')">Upgrade to Premium →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 9: CONTACT FORM — Premium gate -->
-      <div class="card" data-card="contact-form" style="position:relative">
-        <div class="card-q">Add an<br><em>enquiry form?</em></div>
-        <div class="card-hint">Customers submit their name and message — delivered straight to your WhatsApp</div>
-        <div class="feature-card" onclick="toggleContactForm()" style="cursor:pointer">
-          <div class="feature-card-icon">
-            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          </div>
-          <div class="feature-card-body">
-            <strong>Enable enquiry form</strong>
-            <p id="contactFormStatus">Tap to enable</p>
-          </div>
-          <div class="toggle" id="contactFormToggle">
-            <div class="toggle-dot"></div>
-          </div>
-        </div>
-        <div class="lock-gate" id="lock-contact-form">
-          <div class="lock-gate-icon">
-            <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
-          </div>
-          <h3>Premium feature</h3>
-          <p>Add an enquiry form — customer messages go straight to your WhatsApp</p>
-          <div class="lock-gate-btns">
-            <button class="btn-skip" onclick="skipLockedCard()">Skip</button>
-            <button class="btn-unlock" id="unlock-btn-contact-form" onclick="attemptUnlock('contact-form')">Upgrade to Premium →</button>
-          </div>
-        </div>
+      <!-- ═══════════════════════════════════════
+           CARD 7: ABOUT
+      ════════════════════════════════════════ -->
+      <div class="card" data-card="about" style="padding-bottom:120px">
+        <div class="card-q">What makes you <em style="font-style:italic;color:var(--cyan)">different?</em></div>
+        <div class="card-hint">Three things that set you apart — the more specific, the better</div>
+        <input class="input-field" id="diff1" placeholder="e.g. 15 years experience in Richards Bay" autocomplete="off">
+        <input class="input-field" id="diff2" placeholder="e.g. We come to you — free callout within 10km" autocomplete="off">
+        <input class="input-field" id="diff3" placeholder="e.g. All work guaranteed for 12 months" autocomplete="off">
+        <div class="card-hint" style="margin-top:4px">Got a great review or testimonial?</div>
+        <textarea class="input-field" id="testimonial" placeholder="Paste a real review here — it'll appear on your site" rows="3" style="resize:none"></textarea>
       </div>
 
     </div><!-- /cardsTrack -->
   </div><!-- /cardViewport -->
-
-  <!-- Plan strip -->
-  <div id="planStrip">
-    <div class="plan-chip sel" data-plan="express" onclick="openPlanPopover()">Express · R399/mo</div>
-    <div class="plan-chip" data-plan="standard" onclick="openPlanPopover()">Standard · R699/mo</div>
-    <div class="plan-chip" data-plan="premium" onclick="openPlanPopover()">Premium · R999/mo</div>
-  </div>
 
   <!-- Bottom nav -->
   <div id="bottomNav">
@@ -748,69 +688,29 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   </div>
 </div>
 
-<!-- Plan popover -->
-<div id="planPopover" onclick="closePlanPopover()">
-  <div id="planPopoverInner" onclick="event.stopPropagation()">
-    <div class="pop-handle"></div>
-    <div class="pop-title">Choose your plan</div>
-    <div class="plan-option" onclick="selectPlan('express');closePlanPopover()">
-      <div>
-        <div class="plan-name">Express</div>
-        <div class="plan-desc">Single page · Domain · WhatsApp CTA · 1 revision/mo</div>
-      </div>
-      <div class="plan-price">R399<span style="font-size:11px;color:var(--muted)">/mo</span></div>
-    </div>
-    <div class="plan-option" onclick="selectPlan('standard');closePlanPopover()">
-      <div>
-        <div class="plan-name">Standard <span class="plan-badge">POPULAR</span></div>
-        <div class="plan-desc">+ Logo · Socials · Analytics · Referral rewards</div>
-      </div>
-      <div class="plan-price">R699<span style="font-size:11px;color:var(--muted)">/mo</span></div>
-    </div>
-    <div class="plan-option" onclick="selectPlan('premium');closePlanPopover()">
-      <div>
-        <div class="plan-name">Premium</div>
-        <div class="plan-desc">+ Gallery · Map · GBP · Enquiry form · Unlimited revisions · Email accounts</div>
-      </div>
-      <div class="plan-price">R999<span style="font-size:11px;color:var(--muted)">/mo</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- Toast -->
 <div id="toast"></div>
 
 <script>
-// ── STATE ─────────────────────────────────────────────────────────
+// ── STATE ──────────────────────────────────────────────────────────
 const S = {
-  token: null,
-  slug: null,
+  token: null, slug: null,
   currentCard: 0,
   selectedPlan: 'express',
   cards: {
-    industry: null, area: null, audience: null,
-    services: [], cta: null,
+    industry: null, services: [], cta: null,
     instagram: null, facebook: null, tiktok: null,
     logo: null, logo_file: null,
     diff1: null, diff2: null, diff3: null, testimonial: null,
     photos: [], address: null,
-    contactFormEnabled: false,
   },
-  _upgradePrompted: {},
 };
 
-const CARDS = ['industry','services','hero-photo','about','social','logo','gallery','map','contact-form'];
-
-const CARD_GATES = {
-  'social':        { plan: 'standard', label: 'Standard' },
-  'logo':          { plan: 'standard', label: 'Standard' },
-  'gallery':       { plan: 'premium',  label: 'Premium' },
-  'map':           { plan: 'premium',  label: 'Premium' },
-  'contact-form':  { plan: 'premium',  label: 'Premium' },
-};
-
+// Card order — experience cards first, then substance cards
+const CARDS = ['welcome','dashboard','express-plan','standard-plan','premium-plan','industry','services','about'];
+const EXPERIENCE_CARDS = new Set(['welcome','dashboard','express-plan','standard-plan','premium-plan']);
 const PLAN_RANK = { express: 1, standard: 2, premium: 3 };
 
+// ── INDUSTRIES ────────────────────────────────────────────────────
 const INDUSTRIES = [
   // Trades & Construction
   { l:'Plumber',              i:'plumbing'          },
@@ -929,7 +829,6 @@ const INDUSTRIES = [
   { l:'Pet Shop',             i:'pet_shop'          },
   { l:'Pharmacy / Chemist',   i:'pharmacy'          },
   { l:'Spaza / Tuck Shop',    i:'spaza'             },
-  { l:'Toy Shop',             i:'toys'              },
   { l:'Books / Stationery',   i:'books'             },
   // Automotive
   { l:'Mechanic',             i:'mechanic'          },
@@ -962,507 +861,259 @@ const INDUSTRIES = [
   { l:'Coding / STEM School', i:'coding_school'     },
 ];
 
-// Industry SVG icons (line style, no emoji)
-const IND_ICONS = {
-  plumber:      `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>`,
-  electrician:  `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
-  builder:      `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-  painter:      `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z"/><path d="M12 2v9M7 7l5-5 5 5"/></svg>`,
-  salon:        `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M8.5 8.5L12 12l3.5-3.5M12 12l-3.5 9.5M12 12l3.5 9.5"/></svg>`,
-  barber:       `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><line x1="20" y1="20" x2="4" y2="4"/><line x1="4" y1="20" x2="20" y2="4"/></svg>`,
-  nails:        `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2"/></svg>`,
-  spa:          `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-  restaurant:   `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>`,
-  bakery:       `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>`,
-  catering:     `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>`,
-  coffee:       `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>`,
-  flooring:     `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>`,
-  cleaning:     `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 11-4 0V4a2 2 0 014 0z"/></svg>`,
-  landscaping:  `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12M12 12C12 12 7 8 7 4a5 5 0 0110 0c0 4-5 8-5 8z"/></svg>`,
-  hvac:         `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>`,
-  doctor:       `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
-  dentist:      `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 00-5 5c0 2.5 1 4 1 4s-1 5 0 8c.5 1.5 2 2 2 2s0-4 2-4 2 4 2 4 1.5-.5 2-2c1-3 0-8 0-8s1-1.5 1-4a5 5 0 00-5-5z"/></svg>`,
-  accountant:   `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
-  photographer: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
-  mechanic:     `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>`,
-  estate:       `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-  lawyer:       `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-  tutor:        `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>`,
+// Services per industry
+const SVC_MAP = {
+  plumbing:['Burst pipe repair','Geyser installation','Drain unblocking','Bathroom plumbing','Leak detection','General maintenance'],
+  electrical:['Fault finding','DB board upgrades','Lighting installation','Electrical certificates','Solar wiring','General repairs'],
+  building:['Residential builds','Renovations','Extensions','Foundations','Brick & mortar','Project management'],
+  painting:['Interior painting','Exterior painting','Waterproofing','Roof painting','Texture finishes','Colour consulting'],
+  roofing:['Roof repairs','Re-roofing','Waterproofing','Leak detection','Fascia & gutters','Insulation'],
+  barber:['Haircuts','Fades','Beard trims','Line-ups','Hot towel shave','Kids cuts'],
+  hair_salon:['Cuts & styling','Colouring','Highlights','Keratin treatment','Braids','Extensions'],
+  restaurant:['Dine-in','Takeaways','Group bookings','Private functions','Catering','Online orders'],
+  bakery:['Artisan breads','Custom cakes','Pastries','Wedding cakes','Daily specials','Orders & delivery'],
+  butchery:['Fresh cuts','Custom orders','Braai packs','Biltong','Bulk orders','Delivery'],
+  mechanic:['Full services','Engine diagnostics','Brakes','Clutch & gearbox','Tyres','Roadworthy'],
+  panel_beater:['Panel beating','Spray painting','Accident repairs','Structural repairs','Insurance quotes','Touch-ups'],
+  cleaning:['Home cleaning','Office cleaning','Deep cleans','After-builders clean','Carpet cleaning','Regular maintenance'],
+  general:['Consultation','On-site service','Emergency callouts','Free quotes','Maintenance','Repairs'],
 };
 
-const SVC_DEFAULTS = {
-  plumber:['Burst pipes','Leak repairs','Drain unblocking','Geyser installation','Bathroom plumbing','General maintenance'],
-  electrician:['Fault finding','DB board upgrades','Lighting installation','Outdoor wiring','Solar installation','Certificate of compliance'],
-  builder:['Renovations','New builds','Additions','Waterproofing','Roofing','Tiling'],
-  painter:['Interior painting','Exterior painting','Damp treatment','Wallpaper removal','Roof painting','Textured finishes'],
-  salon:['Cuts & styling','Colour & highlights','Keratin treatments','Blow-dries','Extensions','Bridal hair'],
-  barber:['Cuts','Fades','Beard trims','Line-ups','Hot towel shave','Kids cuts'],
-  nails:['Gel nails','Acrylics','Nail art','Manicure','Pedicure','Nail repairs'],
-  spa:['Massages','Facials','Body wraps','Waxing','Hot stone therapy','Aromatherapy'],
-  restaurant:['Dine-in','Takeaways','Private functions','Catering','Breakfast','Lunch & dinner'],
-  bakery:['Artisan bread','Custom cakes','Pastries','Corporate orders','Wedding cakes','Daily specials'],
-  catering:['Corporate events','Weddings','Private functions','Buffet service','Drop-off catering','Cocktail events'],
-  coffee:['Specialty coffee','Espresso drinks','Filter coffee','Teas','Pastries','Loyalty programme'],
-  flooring:['Laminate','Vinyl','Timber','Tiles','Carpeting','Waterproofing'],
-  cleaning:['Residential cleaning','Office cleaning','Deep cleans','Move-in/out cleans','Window cleaning','Carpet cleaning'],
-  landscaping:['Garden design','Lawn care','Tree felling','Irrigation','Paving','Garden maintenance'],
-  hvac:['AC installation','AC servicing','Heating systems','Duct cleaning','Emergency repairs','Annual maintenance'],
-  doctor:['General consultations','Chronic disease management','Preventive care','Vaccinations','Script renewals','Home visits'],
-  dentist:['Check-ups','Fillings','Extractions','Teeth whitening','Crowns & bridges','Orthodontics'],
-  accountant:['Tax returns','Bookkeeping','Payroll','Financial statements','Tax planning','Business advisory'],
-  photographer:['Portraits','Events','Weddings','Commercial','Headshots','Photo editing'],
-  mechanic:['Full service','Engine repairs','Brake service','Tyres','Electrical','Diagnostic checks'],
-  estate:['Buying','Selling','Rentals','Property management','Valuations','Commercial property'],
-  lawyer:['Contracts','Property law','Labour law','Wills & estates','Business law','Litigation'],
-  tutor:['Maths','Science','English','Exam prep','Online tutoring','Home tutoring'],
-  _:['Service 1','Service 2','Service 3','Service 4','Service 5','Service 6'],
-};
-
-function el(id){ return document.getElementById(id) }
-
-function isDev(){ return !S.token; }
-
-// ── BOOTSTRAP ────────────────────────────────────────────────────
-async function bootstrap() {
-  const path = location.pathname;
-  const token = (path.match(/\/intake\/([^/]+)/) || [])[1]
-    || window.__WH_TOKEN__
-    || null;
-
-  if (token) {
-    S.token = token;
-    try {
-      const d = await apiFetch(`/build-status?token=${token}`, {}, { silent: true });
-      S.slug = d.slug;
-      if (d.slug) el('topSlug').textContent = d.slug + '.co.za';
-      if (d.package) selectPlanSilent(d.package);
-
-      // If substance build already fired — redirect to preview spinner
-      if (d.status === 'building') {
-        window.location.replace(`/preview/${token}`);
-        return;
-      }
-
-      // If substance build complete — redirect to preview go-live screen
-      if (d.status === 'substance_ready' || d.status === 'live') {
-        window.location.replace(`/preview/${token}`);
-        return;
-      }
-
-      // preview_ready = skeleton done, waiting for intake cards — show cards normally
-
-      // If build was triggered (cards submitted) — lock the form
-      if (d.status === 'building' || d._buildQueued) {
-        el('btnNext').textContent = 'Building your site…';
-        el('btnNext').disabled = true;
-        el('btnBack').disabled = true;
-        return;
-      }
-
-      // Restore previous card answers
-      const r = await apiFetch(`/resume-build?token=${token}`).catch(() => null);
-      if (r?.cards) {
-        if (r.cards.industry) {
-          S.cards.industry = r.cards.industry.toLowerCase();
-          document.querySelectorAll('.ind-tile').forEach(t => {
-            t.classList.toggle('sel', t.dataset.ind === S.cards.industry);
-          });
-          populateSvc(r.cards.industry.toLowerCase());
-        }
-        if (r.cards.area) { el('areaInput').value = r.cards.area; S.cards.area = r.cards.area; }
-      }
-    } catch(e) {}
-  }
-
-  buildIndGrid();
-  populateSvc('_');
-  updateUI();
+function getServices(ind) {
+  return SVC_MAP[ind] || SVC_MAP['general'];
 }
 
-// ── INDUSTRY GRID ────────────────────────────────────────────────
-function buildIndGrid() {
-  const g = el('indGrid');
-  if (!g) return;
-  g.innerHTML = '';
-  INDUSTRIES.forEach(({ l, i }) => {
-    const t = document.createElement('div');
-    t.className = 'ind-tile';
-    t.dataset.ind = l.toLowerCase();
-    t.innerHTML = `${IND_ICONS[i] || IND_ICONS.plumber}<div>${l}</div>`;
-    if (S.cards.industry === l.toLowerCase()) t.classList.add('sel');
-    t.addEventListener('click', () => {
-      document.querySelectorAll('.ind-tile').forEach(x => x.classList.remove('sel'));
-      t.classList.add('sel');
-      S.cards.industry = l.toLowerCase();
-      el('indCustom').value = '';
-      populateSvc(l.toLowerCase());
-    });
-    g.appendChild(t);
-  });
-}
+// ── NAVIGATION ────────────────────────────────────────────────────
+function el(id) { return document.getElementById(id); }
 
-function filterIndustries(query) {
-  const q = query.toLowerCase().trim();
-  document.querySelectorAll('.ind-tile').forEach(t => {
-    const match = t.textContent.toLowerCase().includes(q) || q === '';
-    t.style.display = match ? '' : 'none';
-  });
-}
-
-function validateGbpUrl(val) {
-  const status = document.getElementById('gbpStatus');
-  if (!val) { status.textContent = ''; return; }
-  const isValid = val.includes('maps.app.goo.gl') || val.includes('google.com/maps') || val.includes('g.page') || val.includes('goo.gl');
-  if (isValid) {
-    status.textContent = '✓ Google Maps link detected';
-    status.style.color = 'var(--green)';
-    S.cards.gbp_url = val;
-  } else {
-    status.textContent = 'Paste a link from Google Maps';
-    status.style.color = 'var(--muted)';
-  }
-}
-
-function handleHeroUpload(input) {
-  const file = input.files[0];
-  if (!file) return;
-  S.cards.hero_file = file;
-  const reader = new FileReader();
-  reader.onload = e => {
-    el('heroPreviewImg').src = e.target.result;
-    el('heroPreviewWrap').style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-
-  if (isDev()) return;
-  const fd = new FormData();
-  fd.append('slug', S.slug || '');
-  fd.append('token', S.token || '');
-  fd.append('type', 'hero');
-  fd.append('file', file);
-  fetch('/upload-assets', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => { if (d.url) S.cards.hero_url = d.url; })
-    .catch(() => {});
-}
-
-function handleCustomIndustry() {
-  const v = el('indCustom').value.trim();
-  if (!v) return;
-  document.querySelectorAll('.ind-tile').forEach(x => x.classList.remove('sel'));
-  S.cards.industry = v.toLowerCase();
-  populateSvc('_');
-}
-
-function populateSvc(ind) {
-  const svcs = SVC_DEFAULTS[ind] || SVC_DEFAULTS._;
-  S.cards.services = svcs.slice(0, 3);
-  const wrap = el('servicesChips');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  svcs.forEach((s, i) => {
-    const c = document.createElement('div');
-    const pre = i < 3;
-    c.className = pre ? 'chip sel' : 'chip';
-    c.textContent = s;
-    c.addEventListener('click', () => {
-      c.classList.toggle('sel');
-      if (c.classList.contains('sel')) {
-        if (!S.cards.services.includes(s)) S.cards.services.push(s);
-      } else {
-        S.cards.services = S.cards.services.filter(x => x !== s);
-      }
-    });
-    wrap.appendChild(c);
-  });
-}
-
-function addCustomService(e) {
-  if (e.key !== 'Enter') return;
-  const v = e.target.value.trim();
-  if (!v) return;
-  S.cards.services.push(v);
-  const wrap = el('servicesChips');
-  const c = document.createElement('div');
-  c.className = 'chip sel';
-  c.textContent = v;
-  c.addEventListener('click', () => {
-    c.classList.toggle('sel');
-    if (!c.classList.contains('sel')) S.cards.services = S.cards.services.filter(x => x !== v);
-  });
-  wrap.appendChild(c);
-  e.target.value = '';
-}
-
-// ── PLAN ─────────────────────────────────────────────────────────
-function selectPlan(plan) {
-  S.selectedPlan = plan;
-  document.querySelectorAll('.plan-chip').forEach(c => {
-    c.classList.toggle('sel', c.dataset.plan === plan);
-  });
-  updateUI(); // refresh lock gates
-  toast(`Upgraded to ${plan.charAt(0).toUpperCase()+plan.slice(1)}`, 'ok');
-}
-
-function selectPlanSilent(plan) {
-  S.selectedPlan = plan;
-  document.querySelectorAll('.plan-chip').forEach(c => {
-    c.classList.toggle('sel', c.dataset.plan === plan);
-  });
-}
-
-function openPlanPopover()  { el('planPopover').classList.add('open'); }
-function closePlanPopover() { el('planPopover').classList.remove('open'); }
-
-function isCardLocked(name) {
-  const gate = CARD_GATES[name];
-  if (!gate) return false;
-  return PLAN_RANK[S.selectedPlan] < PLAN_RANK[gate.plan];
-}
-
-// ── CARD NAVIGATION ──────────────────────────────────────────────
 function slideCardsTo(idx) {
-  const track = el('cardsTrack');
-  if (track) track.style.transform = `translateX(-${idx * 100}%)`;
+  el('cardsTrack').style.transform = 'translateX(-' + (idx * 100) + '%)';
+  const progress = (idx / (CARDS.length - 1)) * 100;
+  el('progressLine').style.width = progress + '%';
 }
 
-function updateUI() {
+function updateNav() {
   const idx = S.currentCard;
-  const tot = CARDS.length;
-  const pct = ((idx + 1) / tot) * 100;
+  const card = CARDS[idx];
+  const isExp = EXPERIENCE_CARDS.has(card);
+  const isLast = idx === CARDS.length - 1;
 
-  el('progressLine').style.width = pct + '%';
+  // Back button — hide on welcome, dashboard, exp plan cards (use their own buttons)
+  el('btnBack').disabled = idx === 0 || isExp;
+  el('bottomNav').style.display = isExp ? 'none' : 'block';
 
-  el('btnBack').disabled = idx === 0;
-
-  const name = CARDS[idx];
-  const locked = isCardLocked(name);
-
-  // Lock gates
-  document.querySelectorAll('.lock-gate').forEach(g => g.classList.remove('visible'));
-  if (locked) {
-    const gate = el('lock-' + name);
-    if (gate) gate.classList.add('visible');
-  }
-
-  const next = el('btnNext');
-  if (idx >= tot - 1) {
-    next.textContent = 'Build my site →';
-    next.classList.add('build');
+  if (isLast) {
+    el('btnNext').textContent = 'Build my site →';
+    el('btnNext').className = 'build';
   } else {
-    next.textContent = 'Next →';
-    next.classList.remove('build');
+    el('btnNext').textContent = 'Next →';
+    el('btnNext').className = '';
   }
 }
 
 function cardNext() {
   gatherCard();
-  const idx = S.currentCard;
-  if (idx >= CARDS.length - 1) {
+  if (S.currentCard >= CARDS.length - 1) {
     triggerRebuild();
     return;
   }
-  S.currentCard = idx + 1;
+  S.currentCard++;
   slideCardsTo(S.currentCard);
-  updateUI();
+  updateNav();
+  onCardEnter(CARDS[S.currentCard]);
 }
 
 function cardBack() {
   if (S.currentCard <= 0) return;
   S.currentCard--;
   slideCardsTo(S.currentCard);
-  updateUI();
+  updateNav();
 }
 
-function skipLockedCard() {
+function onCardEnter(card) {
+  if (card === 'industry') populateIndustries();
+  if (card === 'services') populateServices();
+}
+
+// ── PLAN SELECTION ────────────────────────────────────────────────
+function selectPlanAndNext(plan) {
+  S.selectedPlan = plan;
   cardNext();
 }
 
+function toggleStandardUpgrade() {
+  const already = S.selectedPlan === 'standard' || S.selectedPlan === 'premium';
+  if (!already) {
+    S.selectedPlan = 'standard';
+    el('btn-standard-yes').textContent = '✓ Standard added — continue →';
+    el('standard-reveal').classList.add('show');
+  }
+  cardNext();
+}
+
+function togglePremiumUpgrade() {
+  const already = S.selectedPlan === 'premium';
+  if (!already) {
+    S.selectedPlan = 'premium';
+    el('btn-premium-yes').textContent = '✓ Premium added — continue →';
+    el('premium-reveal').classList.add('show');
+  }
+  cardNext();
+}
+
+// ── GATHER CARD DATA ──────────────────────────────────────────────
 function gatherCard() {
-  const name = CARDS[S.currentCard];
-  switch (name) {
-    case 'industry':
-      const custom = el('indCustom').value.trim();
-      if (custom) S.cards.industry = custom.toLowerCase();
-      break;
-    case 'area':
-      S.cards.area = el('areaInput').value.trim();
-      S.cards.audience = el('audienceInput').value.trim();
-      break;
-    case 'services':
-      S.cards.cta = el('ctaInput').value.trim() || 'Get a Quote';
-      break;
-    case 'hero-photo':
-      // hero upload handled inline via handleHeroUpload
-      break;
-    case 'gbp-link':
-      const gbpVal = document.getElementById('gbpUrlInput')?.value?.trim();
-      if (gbpVal) S.cards.gbp_url = gbpVal;
-      break;
-    case 'about':
-      S.cards.diff1 = el('diff1').value.trim();
-      S.cards.diff2 = el('diff2').value.trim();
-      S.cards.diff3 = el('diff3').value.trim();
-      S.cards.testimonial = el('testimonial').value.trim();
-      break;
-    case 'social':
-      S.cards.instagram = el('instagram')?.value.trim() || null;
-      S.cards.facebook  = el('facebook')?.value.trim()  || null;
-      S.cards.tiktok    = el('tiktok')?.value.trim()    || null;
-      break;
-    case 'map':
-      S.cards.address = el('businessAddress')?.value.trim() || null;
-      break;
-    case 'contact-form':
-      S.cards.contactFormEnabled = el('contactFormToggle')?.dataset.on === 'true';
-      break;
+  const card = CARDS[S.currentCard];
+  if (card === 'industry') {
+    const custom = el('indCustom').value.trim();
+    if (custom) S.cards.industry = custom.toLowerCase();
+  }
+  if (card === 'services') {
+    S.cards.cta = document.querySelector('.chip.sel[data-cta]')?.dataset.cta || 'Get a Quote';
+  }
+  if (card === 'standard-plan') {
+    S.cards.instagram = el('instagram')?.value.trim() || null;
+    S.cards.facebook  = el('facebook')?.value.trim()  || null;
+    S.cards.tiktok    = el('tiktok')?.value.trim()    || null;
+  }
+  if (card === 'premium-plan') {
+    S.cards.address = el('businessAddress')?.value.trim() || null;
+  }
+  if (card === 'about') {
+    S.cards.diff1       = el('diff1').value.trim();
+    S.cards.diff2       = el('diff2').value.trim();
+    S.cards.diff3       = el('diff3').value.trim();
+    S.cards.testimonial = el('testimonial').value.trim();
   }
 }
 
-// ── UPGRADE LOCK ─────────────────────────────────────────────────
-function attemptUnlock(cardName) {
-  const gate = CARD_GATES[cardName];
-  if (!gate) return;
-  const btn = el('unlock-btn-' + cardName);
-
-  if (!S._upgradePrompted[cardName]) {
-    S._upgradePrompted[cardName] = true;
-    if (btn) {
-      btn.textContent = `Confirm upgrade to ${gate.label} →`;
-      btn.classList.add('btn-unlock-confirm');
-    }
-  } else {
-    S._upgradePrompted[cardName] = false;
-    selectPlan(gate.plan);
-  }
+// ── INDUSTRY ──────────────────────────────────────────────────────
+function populateIndustries() {
+  const grid = el('indGrid');
+  grid.innerHTML = '';
+  INDUSTRIES.forEach(({ l, i }) => {
+    const t = document.createElement('div');
+    t.className = 'ind-tile';
+    t.dataset.ind = i;
+    t.textContent = l;
+    if (S.cards.industry === i) t.classList.add('sel');
+    t.onclick = () => {
+      document.querySelectorAll('.ind-tile').forEach(x => x.classList.remove('sel'));
+      t.classList.add('sel');
+      S.cards.industry = i;
+      populateServices();
+    };
+    grid.appendChild(t);
+  });
 }
 
-// ── LOGO ─────────────────────────────────────────────────────────
+function filterIndustries(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.ind-tile').forEach(t => {
+    t.style.display = (!q || t.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+}
+
+// ── SERVICES ──────────────────────────────────────────────────────
+function populateServices() {
+  const industry = S.cards.industry || 'general';
+  const svcs = getServices(industry);
+  const container = el('serviceChips');
+  if (!container) return;
+  container.innerHTML = '';
+  svcs.forEach(svc => {
+    const c = document.createElement('div');
+    c.className = 'chip' + (S.cards.services.includes(svc) ? ' sel' : '');
+    c.textContent = svc;
+    c.onclick = () => {
+      c.classList.toggle('sel');
+      if (c.classList.contains('sel')) S.cards.services.push(svc);
+      else S.cards.services = S.cards.services.filter(s => s !== svc);
+    };
+    container.appendChild(c);
+  });
+}
+
+function addCustomSvc() {
+  const inp = el('customSvc');
+  const val = inp.value.trim();
+  if (!val) return;
+  S.cards.services.push(val);
+  inp.value = '';
+  populateServices();
+}
+
+function selectCta(el) {
+  document.querySelectorAll('.chip[data-cta]').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+// ── LOGO UPLOAD ───────────────────────────────────────────────────
 function handleLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
   S.cards.logo_file = file;
   const reader = new FileReader();
   reader.onload = e => {
-    el('logoPreviewImg').src = e.target.result;
-    el('logoPreviewWrap').style.display = 'flex';
+    S.cards.logo = e.target.result;
+    const prev = el('logoPreview');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
   };
   reader.readAsDataURL(file);
 }
 
-function skipLogoCard() {
-  S.cards.logo_file = null;
-  cardNext();
-}
-
-// ── CONTACT FORM TOGGLE ──────────────────────────────────────────
-function toggleContactForm() {
-  const toggle = el('contactFormToggle');
-  const status = el('contactFormStatus');
-  if (!toggle) return;
-  const isOn = toggle.dataset.on !== 'true';
-  toggle.dataset.on = String(isOn);
-  toggle.classList.toggle('on', isOn);
-  if (status) status.textContent = isOn ? 'Enquiry form enabled' : 'Tap to enable';
-  S.cards.contactFormEnabled = isOn;
-}
-
-// ── PHOTO UPLOAD ─────────────────────────────────────────────────
-function handlePhotoUpload(input) {
-  const files = Array.from(input.files);
-  files.forEach(f => {
-    if (f.size > 5 * 1024 * 1024) { toast(`"${f.name}" too large — max 5MB`, 'err'); return; }
-    const r = new FileReader();
-    r.onload = e => {
-      const strip = el('photoStrip');
+// ── GALLERY UPLOAD ────────────────────────────────────────────────
+function handleGalleryUpload(input) {
+  const files = Array.from(input.files).slice(0, 6);
+  const container = el('galleryPreviews');
+  container.innerHTML = '';
+  S.cards.photos = [];
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      S.cards.photos.push(e.target.result);
       const img = document.createElement('img');
-      img.className = 'photo-thumb';
       img.src = e.target.result;
-      strip.insertBefore(img, strip.firstChild);
+      img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1.5px solid var(--border)';
+      container.appendChild(img);
     };
-    r.readAsDataURL(f);
-
-    if (isDev()) return;
-    const fd = new FormData();
-    fd.append('slug', S.slug);
-    fd.append('token', S.token || '');
-    fd.append('type', 'photo');
-    fd.append('file', f);
-    fetch('/upload-assets', { method: 'POST', body: fd })
-      .then(r => r.json())
-      .then(d => { if (d.url) S.cards.photos.push(d.url); })
-      .catch(() => {});
+    reader.readAsDataURL(file);
   });
 }
 
-// ── SWIPE ────────────────────────────────────────────────────────
-(function initSwipe() {
-  let sx = 0, sy = 0, st = 0;
-  const wrap = el('cardViewport');
-  if (!wrap) return;
-  wrap.addEventListener('touchstart', e => {
-    if (e.touches.length !== 1) return;
-    sx = e.touches[0].clientX;
-    sy = e.touches[0].clientY;
-    st = Date.now();
-  }, { passive: true });
-  wrap.addEventListener('touchend', e => {
-    if (!sx) return;
-    const dx = e.changedTouches[0].clientX - sx;
-    const dy = e.changedTouches[0].clientY - sy;
-    const dt = Date.now() - st;
-    sx = 0;
-    if (Math.abs(dx) < Math.abs(dy)) return;
-    if (Math.abs(dx) < 50 || dt > 500) return;
-    if (dx < 0) cardNext();
-    else cardBack();
-  }, { passive: true });
-})();
-
-// ── TRIGGER REBUILD ──────────────────────────────────────────────
+// ── BUILD TRIGGER ─────────────────────────────────────────────────
 async function triggerRebuild() {
   gatherCard();
-
-  if (isDev()) {
-    toast('Dev mode — no build triggered', 'ok');
-    return;
-  }
-
-  // Lock immediately — no going back once triggered
   el('btnNext').textContent = 'Building your site…';
   el('btnNext').disabled = true;
   el('btnBack').disabled = true;
-  // Disable all inputs so nothing is editable
-  document.querySelectorAll('.input-field, .chip, .ind-tile, .upload-zone').forEach(el => {
-    el.style.pointerEvents = 'none';
-    el.style.opacity = '0.5';
-  });
 
   try {
     await apiFetch('/trigger-rebuild', {
       method: 'POST',
       body: JSON.stringify({
-        token: S.token,
+        token:   S.token,
         package: S.selectedPlan,
-        cards: { ...S.cards },
+        cards:   { ...S.cards },
       })
     });
-    // Redirect to preview screen which polls for completion
-    window.location.href = `/preview/${S.token}`;
+    window.location.href = '/preview/' + S.token;
   } catch (err) {
     toast("Couldn't start build — check connection", 'err');
     el('btnNext').textContent = 'Build my site →';
     el('btnNext').disabled = false;
+    el('btnBack').disabled = false;
   }
 }
 
-// ── API FETCH ────────────────────────────────────────────────────
-async function apiFetch(path, opts = {}, meta = {}) {
+// ── API ───────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
   const res = await fetch(path, {
     headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
     ...opts,
   });
-  if (!res.ok) throw new Error(`${res.status}`);
+  if (!res.ok) throw new Error(res.status);
   return res.json();
 }
 
@@ -1476,7 +1127,38 @@ function toast(msg, type = '') {
   _toastTimer = setTimeout(() => t.className = '', 2800);
 }
 
-// ── INIT ─────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────
+async function bootstrap() {
+  const token = location.pathname.split('/intake/')[1]?.split('/')[0];
+  if (!token) return;
+  S.token = token;
+
+  try {
+    const d = await apiFetch('/build-status?token=' + token, {}, { silent: true });
+    S.slug = d.slug;
+    if (d.slug) {
+      el('topSlug').textContent = d.slug + '.co.za';
+    }
+    if (d.package) S.selectedPlan = d.package;
+
+    // If already building or done — redirect
+    if (d.status === 'building' || d.status === 'substance_ready' || d.status === 'live') {
+      window.location.replace('/preview/' + token);
+      return;
+    }
+
+    // Restore previous card answers if any
+    const r = await apiFetch('/resume-build?token=' + token).catch(() => null);
+    if (r?.cards) {
+      if (r.cards.industry) S.cards.industry = r.cards.industry.toLowerCase();
+      if (r.cards.services) S.cards.services = r.cards.services;
+    }
+  } catch(e) {}
+
+  slideCardsTo(0);
+  updateNav();
+}
+
 bootstrap();
 </script>
 </body>
