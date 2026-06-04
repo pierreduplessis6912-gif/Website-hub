@@ -93,6 +93,7 @@ export default {
     if (path === '/go-live')          return handleGoLive(request, env, ctx);
     if (path === '/go-live-link')     return handleGoLiveLink(request, env, ctx);
     if (path === '/activate-free')    return handleActivateFree(request, env, ctx);
+    if (path === '/internal-golive')  return handleInternalGoLive(request, env, ctx);
     if (path === '/suspend-site')     return handleSuspendSite(request, env);
     if (path === '/reinstate-site')   return handleReinstateSite(request, env);
     if (path === '/upgrade')          return handleUpgrade(request, env);
@@ -336,6 +337,19 @@ async function handleCancelSite(request, env) {
 
 
 // ── /activate-free — skip PayFast for 100% promo codes ───────────────────────
+async function handleInternalGoLive(request, env, ctx) {
+  const { clientId, slug } = await request.json().catch(() => ({}));
+  if (!clientId && !slug) return Response.json({ error: 'clientId or slug required' }, { status: 400 });
+
+  const client = clientId
+    ? await env.DB.prepare(`SELECT * FROM clients WHERE id=? LIMIT 1`).bind(clientId).first()
+    : await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
+  if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
+
+  ctx.waitUntil(handleGoLiveInternal(client.id, client, env));
+  return Response.json({ success: true });
+}
+
 async function handleActivateFree(request, env, ctx) {
   if (request.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
 
