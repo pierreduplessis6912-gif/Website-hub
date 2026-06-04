@@ -347,7 +347,7 @@ async function handleInternalGoLive(request, env, ctx) {
   if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
 
   ctx.waitUntil(handleGoLiveInternal(client.id, client, env));
-  return Response.json({ success: true });
+  return Response.json({ success: true, clientId: client.id, slug: client.slug });
 }
 
 async function handleActivateFree(request, env, ctx) {
