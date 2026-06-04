@@ -176,7 +176,6 @@ export default {
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
       if (path === '/admin/reset-build'        && method === 'POST') return handleAdminResetBuild(request, env);
-      if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
@@ -598,6 +597,17 @@ async function handleTestWhatsapp(request, env) {
   }
 }
 
+
+async function handleAdminQuery(request, env) {
+  const { sql } = await request.json().catch(() => ({}));
+  if (!sql || !sql.trim().toUpperCase().startsWith('SELECT')) return jsonResponse({ error: 'Only SELECT queries allowed' }, 400);
+  try {
+    const result = await env.DB.prepare(sql).all();
+    return jsonResponse({ results: result.results });
+  } catch (err) {
+    return jsonResponse({ error: err.message }, 500);
+  }
+}
 
 async function handleAdminResetBuild(request, env) {
   const body = await request.json().catch(() => ({}));
