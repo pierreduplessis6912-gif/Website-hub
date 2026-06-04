@@ -206,6 +206,7 @@ export default {
       // ── BUILD STATUS (polling) ───────────────────────────────
       if (path === '/build-status'  && method === 'GET') return handleBuildStatus(url, env);
       if (path === '/address-suggest' && method === 'GET')  return handleAddressSuggest(url, env);
+      if (path === '/showcase'       && method === 'GET') return handleShowcase(env);
       if (path === '/client-status' && method === 'GET') return handleClientStatus(url, env);
 
       // ── PREVIEW META (prefetch for intake screen) ────────────
@@ -1096,6 +1097,65 @@ function shapeGbp(data, business_name) {
       acceptsCashOnly:    data.paymentOptions?.acceptsCashOnly || false,
     },
   };
+}
+
+// ── SHOWCASE — live site carousel feed ───────────────────────────
+async function handleShowcase(env) {
+  try {
+    const raw   = await env.SITES.get('showcase:queue');
+    const queue = JSON.parse(raw || '[]');
+    if (!queue.length) return new Response('[]', {
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    });
+
+    const sites = await Promise.all(
+      queue.map(async slug => {
+        const c = await env.DB.prepare(
+          `SELECT slug, business_name, industry, area, domain, hero_url, voice_profile
+           FROM clients WHERE slug=? AND status='live' LIMIT 1`
+        ).bind(slug).first().catch(() => null);
+        if (!c) return null;
+
+        // Extract accent colour from voice_profile palette if available
+        let accent = '#00e8f5';
+        try {
+          const vp = JSON.parse(c.voice_profile || '{}');
+          if (vp.primary_colour) accent = vp.primary_colour;
+        } catch {}
+
+        // Extract services from voice_profile
+        let services = [];
+        try {
+          const vp = JSON.parse(c.voice_profile || '{}');
+          if (Array.isArray(vp.services)) {
+            services = vp.services.slice(0, 3).map(s => s.name || s).filter(Boolean);
+          }
+        } catch {}
+
+        return {
+          slug:     c.slug,
+          business: c.business_name,
+          industry: c.industry || '',
+          location: c.area || '',
+          services,
+          accent,
+          domain:   c.domain || (c.slug + '.co.za'),
+          hero_url: c.hero_url || '',
+        };
+      })
+    );
+
+    const clean = sites.filter(Boolean);
+    return new Response(JSON.stringify(clean), {
+      headers: {
+        'Content-Type':                'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control':               'public, max-age=300',
+      }
+    });
+  } catch(e) {
+    return new Response('[]', { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+  }
 }
 
 // ── ADDRESS AUTOCOMPLETE — Google Places autocomplete for start page ──────────
