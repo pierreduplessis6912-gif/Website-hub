@@ -17,6 +17,7 @@ import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING
 import { getDesignBrief, buildCssVariables, UX_RULES, getPersonality, SECTION_FLOWS, SPACING_RHYTHMS } from '../../design-db.js';
 import { getHeroPhotoQuery, getHeroPhotoQueryByKey, getIndustryKey } from '../../photo-db.js';
 import { generateExperienceHTML } from './archetypes/experience.js';
+import { generateEmergencyHTML } from './archetypes/emergency.js';
 
 // ── CONSTANTS ─────────────────────────────────────────────────
 
@@ -1742,6 +1743,8 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   let html;
   if (archetype === 'experience') {
     html = generateExperienceHTML(contentTokens, heroUrl, client, cards, pkg, gbpData, brandBrief);
+  } else if (archetype === 'emergency') {
+    html = generateEmergencyHTML(contentTokens, heroUrl, client, cards, pkg, gbpData, brandBrief);
   } else {
     html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
   }
