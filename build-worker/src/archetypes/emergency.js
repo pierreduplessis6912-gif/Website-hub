@@ -31,6 +31,11 @@ export function generateEmergencyHTML(t, heroUrl, client, cards, pkg, gbpData, b
   const address     = gbpData?.address || cards?.address || client.address || '';
   const galleryPhotos = (client.gallery_photos || []).slice(0, 6);
 
+  // Format phone for display — strip country code, add leading zero
+  const phoneDisplay = client.phone
+    ? client.phone.replace(/^\+?27/, '0').replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')
+    : '';
+
   function esc(s) {
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
@@ -219,12 +224,12 @@ body::before{
 
 /* Rating stamp */
 .hero-stamp{
-  position:absolute;bottom:60px;right:24px;
+  position:absolute;bottom:140px;right:24px;
   border:2px solid var(--rust);
   border-radius:4px;padding:12px;
   text-align:center;z-index:2;
   animation:snapIn .3s .8s ease both;
-  background:rgba(10,9,8,.6);
+  background:rgba(10,9,8,.7);
   backdrop-filter:blur(4px);
   min-width:72px;
 }
@@ -570,7 +575,7 @@ body::before{
 <!-- Always-visible phone strip -->
 <div class="phone-strip">
   <span class="phone-strip-label">${esc(availability)}</span>
-  <a href="${esc(callLink)}">📞 ${esc(client.phone || '')}</a>
+  <a href="${esc(callLink)}">📞 ${esc(phoneDisplay || client.phone || '')}</a>
 </div>
 
 <!-- Nav -->
