@@ -43,9 +43,9 @@ export const SEND_WINDOW = Object.freeze({
 // PRICING — locked per battle plan (May 11 2026). Single source of truth.
 // All other workers import this; no other file may redefine pricing.
 export const PRICING = Object.freeze({
-  express:  { build: 0, retainer:  699 },
-  standard: { build: 0, retainer:  999 },
-  premium:  { build: 0, retainer: 1499 },
+  express:  { build: 0, retainer:  399 },
+  standard: { build: 0, retainer:  699 },
+  premium:  { build: 0, retainer:  999 },
   upgrade: {
     expressToStandard: 300, // 999 - 699
     expressToPremium:  800, // 1499 - 699
