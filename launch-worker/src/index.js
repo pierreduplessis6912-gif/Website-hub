@@ -833,6 +833,15 @@ async function handleGoLiveInternal(clientId, client, env) {
     `UPDATE clients SET status='live', go_live_date=?, next_invoice_date=?, domain=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
   ).bind(today, nextInvoice, domain, clientId).run();
 
+  // ── 3b. Push to showcase queue (keep newest 5) ───────────────
+  try {
+    const queueRaw = await env.SITES.get('showcase:queue');
+    const queue = JSON.parse(queueRaw || '[]');
+    queue.unshift(slug);
+    const unique = [...new Set(queue)].slice(0, 5);
+    await env.SITES.put('showcase:queue', JSON.stringify(unique));
+  } catch(e) { console.warn('showcase queue push failed:', e.message); }
+
   const manageUrl = `https://preview.websitehub.co.za/manage/${client.manage_token}`;
 
   // ── 4. Cloudflare hostname binding (non-fatal) ───────────────
