@@ -639,7 +639,7 @@ async function handleAdminForceLive(request, env) {
   const launchUrl = env.WORKER_URL_LAUNCH || 'https://wh-launch.pierreduplessis6912.workers.dev';
   fetch(`${launchUrl}/internal-golive`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-internal-key': env.ADMIN_KEY },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ clientId: client.id, slug }),
   }).catch(e => console.warn('Internal go-live trigger failed:', e?.message));
 
