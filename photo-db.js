@@ -949,13 +949,6 @@ const PHOTO_DB = {
     'healthy smoothie fresh colourful',
     'juice bar counter fresh bright',
   ],
-  tattoo: [
-    'tattoo artist working close professional',
-    'tattoo studio professional clean',
-    'tattoo needle close professional',
-    'tattoo artist studio professional',
-    'fresh tattoo close professional studio',
-  ],
   skincare: [
     'skincare treatment professional close',
     'facial treatment spa professional close',
