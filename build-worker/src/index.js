@@ -1813,19 +1813,12 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   }
 
   // ── STORE ──────────────────────────────────────────────────
-  // Raw HTML at site:{slug} — served inside PWA iframe at /site/{slug}
+  // Raw HTML at site:{slug} — served at /site/{slug}
   await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL });
 
-  // PWA shell at preview:{slug} — served at /{slug}, always the managed experience
-  const pwaTpl = await env.SITES.get('app:preview');
-  if (pwaTpl && client.manage_token) {
-    // Inject the token into the PWA shell so /{slug} always routes back into the managed flow
-    const managedShell = pwaTpl.replace(
-      '</head>',
-      `<script>window.__WH_TOKEN__="${client.manage_token}";window.__WH_SLUG__="${slug}";if(location.pathname.startsWith("/intake/"))location.replace("/preview/${client.manage_token}");</script></head>`
-    );
-    await env.SITES.put(`preview:${slug}`, managedShell, { expirationTtl: PREVIEW_TTL });
-  }
+  // preview:{slug} — served at /{slug} — always the built site
+  // This is what the customer sees when they tap the WhatsApp link
+  await env.SITES.put(`preview:${slug}`, html, { expirationTtl: PREVIEW_TTL });
 
   await env.SITES.put(`content:${slug}`, JSON.stringify(contentTokens), { expirationTtl: PREVIEW_TTL });
 
