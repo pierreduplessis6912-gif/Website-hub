@@ -603,7 +603,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--text);over
 <body>
 
 <nav class="nav" id="nav">
-  <a href="#" class="nav-brand">${esc(client.business_name)}</a>
+  <a href="#" class="nav-brand">${esc(t.short_name || client.business_name)}</a>
   <div class="nav-links">
     ${!isExp ? `<a href="#about" class="nav-link">About</a>` : ''}
     <a href="#services" class="nav-link">Services</a>
@@ -776,7 +776,7 @@ ${t.testimonial_quote && !isExp ? `
 
 <!-- Footer -->
 <footer class="footer">
-  <a href="#" class="footer-brand">${esc(client.business_name)}</a>
+  <a href="#" class="footer-brand">${esc(t.short_name || client.business_name)}</a>
   <div class="footer-links">
     <a href="${esc(waLink)}" class="footer-link">WhatsApp</a>
     ${client.instagram ? `<a href="https://instagram.com/${esc((client.instagram||'').replace('@',''))}" class="footer-link" target="_blank">Instagram</a>` : ''}
