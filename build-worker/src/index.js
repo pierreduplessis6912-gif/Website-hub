@@ -175,7 +175,6 @@ export default {
       if (path === '/admin/bootstrap-admin'   && method === 'POST') return handleAdminBootstrapAdmin(request, env);
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
-      if (path === '/admin/reset-build'        && method === 'POST') return handleAdminResetBuild(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
@@ -252,21 +251,13 @@ export default {
   async queue(batch, env) {
     for (const msg of batch.messages) {
       try {
-        const { type, clientId, isOutbound } = msg.body;
+        const { type, clientId, cardPayload, isOutbound } = msg.body;
         if (type === 'pre_build')       await triggerPreBuild(clientId, env, isOutbound);
-        if (type === 'substance_build') await triggerSubstanceBuild(clientId, env);
+        if (type === 'substance_build') await triggerSubstanceBuild(clientId, cardPayload, env);
         msg.ack();
       } catch (err) {
         console.error('Queue message failed:', err);
-        const { type, clientId } = msg.body;
-        // Ack substance builds on failure — retrying causes duplicate build cascade
-        // Pre-builds are safe to retry (idempotent)
-        if (type === 'substance_build') {
-          await env.DB.prepare(`UPDATE clients SET status='preview_ready' WHERE id=?`).bind(clientId).run().catch(() => {});
-          msg.ack();
-        } else {
-          msg.retry();
-        }
+        msg.retry();
       }
     }
   },
@@ -598,28 +589,6 @@ async function handleTestWhatsapp(request, env) {
 }
 
 
-async function handleAdminQuery(request, env) {
-  const { sql } = await request.json().catch(() => ({}));
-  if (!sql || !sql.trim().toUpperCase().startsWith('SELECT')) return jsonResponse({ error: 'Only SELECT queries allowed' }, 400);
-  try {
-    const result = await env.DB.prepare(sql).all();
-    return jsonResponse({ results: result.results });
-  } catch (err) {
-    return jsonResponse({ error: err.message }, 500);
-  }
-}
-
-async function handleAdminResetBuild(request, env) {
-  const body = await request.json().catch(() => ({}));
-  const { clientId, slug } = body;
-  const id = clientId || (slug ? (await getClientBySlug(slug, env))?.id : null);
-  if (!id) return jsonResponse({ error: 'clientId or slug required' }, 400);
-  await env.DB.prepare(
-    `UPDATE clients SET status='preview_ready', updated_at=CURRENT_TIMESTAMP WHERE id=?`
-  ).bind(id).run();
-  return jsonResponse({ success: true, clientId: id, status: 'preview_ready' });
-}
-
 async function handleDeleteClient(request, env) {
   const { slug } = await request.json().catch(() => ({}));
   if (!slug) return jsonResponse({ error: 'slug required' }, 400);
@@ -671,9 +640,6 @@ async function handleRunMigration(request, env) {
     ],
     '0004': [
       `ALTER TABLE clients ADD COLUMN hero_url TEXT`,
-    ],
-    '0005': [
-      `ALTER TABLE clients ADD COLUMN billing_cycle TEXT DEFAULT 'monthly'`,
     ]
   };
 
@@ -759,16 +725,11 @@ async function handleAdminBuildDetail(url, env) {
       id:            client.id,
       business_name: client.business_name,
       slug:          client.slug,
-      manage_token:  client.manage_token,
-      phone:         client.phone,
-      status:        client.status,
       industry:      client.industry,
       area:          client.area,
       vibe:          client.vibe,
       services:      client.services,
       palette:       client.palette,
-      gbp_place_id:  client.gbp_place_id,
-      gbp_data:      client.gbp_data ? JSON.parse(client.gbp_data) : null,
       voice_profile: client.voice_profile ? JSON.parse(client.voice_profile) : null,
     },
     build: build ? {
@@ -1238,11 +1199,6 @@ async function handleTriggerRebuild(request, env) {
   const client = await getClientByToken(token, env);
   if (!client) return jsonResponse({ error: 'not found' }, 404);
 
-  // Guard — if already building, don't queue again (prevents duplicate builds from retries)
-  if (client.status === 'building') {
-    return jsonResponse({ success: true, status: 'building', note: 'already queued' });
-  }
-
   // Update package + card fields
   const packageKey = pkgKey(pkg || client.package);
   const differentiator = [cards.diff1, cards.diff2, cards.diff3].filter(Boolean).join(' | ');
@@ -1268,7 +1224,7 @@ async function handleTriggerRebuild(request, env) {
     client.id
   ).run();
 
-  await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: client.id });
+  await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: client.id, cardPayload: cards });
   return jsonResponse({ success: true, status: 'building' });
 }
 
@@ -1598,32 +1554,15 @@ async function fetchGbpData(gbpUrl, env) {
   }
 }
 
-async function triggerSubstanceBuild(clientId, env) {
+async function triggerSubstanceBuild(clientId, cards, env) {
   const client = await getClientById(clientId, env);
   if (!client) throw new Error(`Client not found: ${clientId}`);
-
-  // Read card data from D1 — not from queue message (avoids 128KB queue limit)
-  const cards = {
-    industry:    client.industry,
-    area:        client.area,
-    vibe:        client.vibe,
-    services:    (() => { try { return JSON.parse(client.services || '[]'); } catch { return []; } })(),
-    cta:         client.primary_cta,
-    audience:    client.target_audience,
-    testimonial: client.testimonial,
-    logo:        client.logo_url,
-    palette:     client.palette,
-    diff1:       (client.differentiator || '').split(' | ')[0] || '',
-    diff2:       (client.differentiator || '').split(' | ')[1] || '',
-    diff3:       (client.differentiator || '').split(' | ')[2] || '',
-    gbp_url:     client.gbp_url,
-  };
 
   const slug  = client.slug;
   const pkg   = pkgKey(client.package);
   const brief = getDesignBrief(
-    cards.industry || client.business_type || client.business_name,
-    cards.vibe
+    cards?.industry || client.industry || client.business_type || client.business_name,
+    cards?.vibe || client.vibe
   );
 
   // Use GBP data — from background lookup (place_id) or manual link (gbp_url)
@@ -1659,7 +1598,6 @@ async function triggerSubstanceBuild(clientId, env) {
     await logEvent(env, clientId, 'build', 'sub_pass1_complete', 'success', {});
   } catch (e) {
     await updateBuild(env, buildId, { status: 'failed', error: e.message });
-    await logEvent(env, clientId, 'build', 'sub_pass1_failed', 'error', { error: e.message });
     throw new Error(`Substance Pass 1 failed: ${e.message}`);
   }
 
@@ -1729,7 +1667,7 @@ async function triggerSubstanceBuild(clientId, env) {
   await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL });
 
   // PWA shell at preview:{slug} — served at /{slug}, always the managed experience
-  const pwaTpl = await env.SITES.get('app:preview');
+  const pwaTpl = await env.SITES.get('app:pwa');
   if (pwaTpl && client.manage_token) {
     // Inject the token into the PWA shell so /{slug} always routes back into the managed flow
     const managedShell = pwaTpl.replace(
@@ -1902,8 +1840,8 @@ ${gbpBlock}${previewProfile ? `\nExisting skeleton content (build forward from t
 Output this JSON exactly:
 {
   "personality_category": "${brief.personality.category} — confirm or override with: trade_authority|transformation|personal_care|wellness|hospitality|community_local|professional_trust|technical_expertise|retail_utility|event_creative|mobility|medical_trust|memorial_legacy",
-  "hero_layout": "choose from: ${(brief.personality?.hero_layouts || ['cinematic_left']).join('|')}",
-  "opening_strategy": "choose from: ${(brief.personality?.opening_strategies || ['proof_first']).join('|')}",
+  "hero_layout": "choose from: ${brief.personality.hero_layouts.join('|')}",
+  "opening_strategy": "choose from: ${brief.personality.opening_strategies.join('|')}",
   "brand_voice": "one sentence — their specific voice, not a category",
   "story_angle": "the narrative thread tying their differentiators together",
   "emotional_core": "what the customer feels after reading this site",
