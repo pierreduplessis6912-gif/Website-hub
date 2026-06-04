@@ -385,10 +385,8 @@ export const SECTION_FLOWS = {
 // ── PERSONALITY RESOLUTION ────────────────────────────────────
 export function getPersonality(industryKey) {
   const category = INDUSTRY_PERSONALITY[industryKey] || 'trade_authority';
-  return {
-    category,
-    ...PERSONALITY_GENOMES[category],
-  };
+  const genome   = PERSONALITY_GENOMES[category] || PERSONALITY_GENOMES['trade_authority'];
+  return { category, ...genome };
 }
 
 // ── TYPOGRAPHY BY ID ──────────────────────────────────────────
