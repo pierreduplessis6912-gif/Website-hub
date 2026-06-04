@@ -32,13 +32,41 @@ export function generateExperienceHTML(t, heroUrl, client, cards, pkg, gbpData, 
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  const petals = Array.from({length:8}, (_,i) => `
-.petal:nth-child(${i+1}){
-  left:${10+i*11}%;
-  animation-duration:${12+i*2.3}s;
-  animation-delay:${i*1.7}s;
-  width:${5+i%3}px;height:${8+i%4}px;
-}`).join('');
+  // ── PARTICLE SYSTEM — industry aware ─────────────────────────
+  const industry = (cards?.industry || client.industry || '').toLowerCase();
+  const particleType =
+    /florist|flower|nursery|garden|plant/.test(industry)   ? 'petals'     :
+    /wedding|event|venue/.test(industry)                    ? 'confetti'   :
+    /lodge|guest.house|airbnb|camp/.test(industry)          ? 'fireflies'  :
+    /spa|massage|yoga|pilates|wellness/.test(industry)      ? 'orbs'       :
+    /tattoo|piercing/.test(industry)                        ? 'none'       :
+    /restaurant|bakery|cafe|coffee|food/.test(industry)     ? 'none'       :
+    'none'; // default — most businesses look better without particles
+
+  const particleCSS = particleType === 'petals' ? `
+.particle{position:absolute;background:var(--accent);border-radius:50% 50% 50% 0;opacity:0;animation:petalFloat linear infinite;pointer-events:none}
+${Array.from({length:8},(_,i)=>`.particle:nth-child(${i+1}){left:${10+i*11}%;animation-duration:${12+i*2.3}s;animation-delay:${i*1.7}s;width:${5+i%3}px;height:${8+i%4}px}`).join('\n')}
+@keyframes petalFloat{0%{transform:translateY(100vh) rotate(0deg);opacity:0}5%{opacity:.6}90%{opacity:.4}100%{transform:translateY(-20vh) rotate(720deg) translateX(40px);opacity:0}}` :
+
+  particleType === 'fireflies' ? `
+.particle{position:absolute;width:4px;height:4px;background:var(--accent);border-radius:50%;opacity:0;animation:fireflyFloat ease-in-out infinite;pointer-events:none;box-shadow:0 0 6px var(--accent)}
+${Array.from({length:10},(_,i)=>`.particle:nth-child(${i+1}){left:${5+i*9}%;top:${20+i*6}%;animation-duration:${6+i*1.5}s;animation-delay:${i*0.8}s}`).join('\n')}
+@keyframes fireflyFloat{0%,100%{opacity:0;transform:translate(0,0)}25%{opacity:.8;transform:translate(${Math.random()>0.5?'':'-'}12px,-8px)}50%{opacity:.4;transform:translate(8px,4px)}75%{opacity:.7;transform:translate(-6px,-12px)}}` :
+
+  particleType === 'orbs' ? `
+.particle{position:absolute;border-radius:50%;background:radial-gradient(circle,var(--accent),transparent);opacity:0;animation:orbFloat ease-in-out infinite;pointer-events:none}
+${Array.from({length:5},(_,i)=>`.particle:nth-child(${i+1}){width:${40+i*20}px;height:${40+i*20}px;left:${10+i*18}%;top:${30+i*8}%;animation-duration:${8+i*2}s;animation-delay:${i*1.2}s}`).join('\n')}
+@keyframes orbFloat{0%,100%{opacity:0;transform:translateY(0)}50%{opacity:.15;transform:translateY(-20px)}}` :
+
+  particleType === 'confetti' ? `
+.particle{position:absolute;width:6px;height:6px;opacity:0;animation:confettiFall linear infinite;pointer-events:none}
+${Array.from({length:12},(_,i)=>`.particle:nth-child(${i+1}){left:${i*8}%;background:${['var(--primary)','var(--accent)','#fff'][i%3]};border-radius:${i%2?'50%':'2px'};animation-duration:${8+i*1.2}s;animation-delay:${i*0.6}s}`).join('\n')}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:0}10%{opacity:.8}90%{opacity:.5}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}` :
+  ''; // none
+
+  const particleElements = particleType !== 'none'
+    ? Array.from({length: particleType === 'confetti' ? 12 : particleType === 'fireflies' ? 10 : 8}, () => `<div class="particle"></div>`).join('')
+    : '';
 
   const botanicalLeaves = Array.from({length:6}, (_,i) =>
     `<ellipse cx="${70+i*10}" cy="${320-i*40}" rx="${8+i*2}" ry="${4+i}" fill="white" opacity="${(0.2+i*0.05).toFixed(2)}" transform="rotate(${-20+i*8} ${70+i*10} ${320-i*40})"/>`
@@ -90,8 +118,6 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--dark)
 .hero{position:relative;height:100svh;min-height:600px;display:flex;flex-direction:column;justify-content:flex-end;padding:0 28px 80px;overflow:hidden}
 .hero-bg{position:absolute;inset:0;background-image:url('${esc(heroUrl)}');background-size:cover;background-position:center;transform:scale(1.08);animation:heroReveal 1.8s cubic-bezier(.16,1,.3,1) forwards}
 .hero-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(14,12,9,.1) 0%,rgba(14,12,9,.2) 40%,rgba(14,12,9,.78) 100%)}
-.petal{position:absolute;background:var(--accent);border-radius:50% 50% 50% 0;opacity:0;animation:petalFloat linear infinite;pointer-events:none}
-${petals}
 .hero-content{position:relative;z-index:2}
 .hero-label{font-family:var(--font-body);font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:16px;animation:fadeUp .8s .4s ease both}
 .hero-h1{font-family:var(--font-display);font-size:clamp(52px,13vw,88px);font-weight:300;line-height:1;letter-spacing:-1px;color:#fff;margin-bottom:20px;animation:fadeUp .8s .55s ease both}
@@ -221,20 +247,15 @@ ${petals}
 .footer-link:hover{color:var(--accent)}
 .footer-copy{font-size:11px;color:rgba(255,255,255,.2)}
 
-/* WA FLOAT */
-.wa-float{position:fixed;bottom:24px;right:24px;z-index:90;background:#25D366;color:#fff;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.4);transition:transform .2s}
+/* WA FLOAT */{position:fixed;bottom:24px;right:24px;z-index:90;background:#25D366;color:#fff;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.4);transition:transform .2s}
 .wa-float:hover{transform:scale(1.08)}
 
 /* ANIMATIONS */
 @keyframes heroReveal{from{transform:scale(1.08)}to{transform:scale(1)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes petalFloat{
-  0%{transform:translateY(100vh) rotate(0deg);opacity:0}
-  5%{opacity:.6}90%{opacity:.4}
-  100%{transform:translateY(-20vh) rotate(720deg) translateX(40px);opacity:0}
-}
 @keyframes scrollPulse{0%,100%{opacity:.3}50%{opacity:.8}}
+${particleCSS}
 </style>
 </head>
 <body>
@@ -251,7 +272,7 @@ ${petals}
 </nav>
 
 <section class="hero">
-  ${Array.from({length:8}, () => `<div class="petal"></div>`).join('')}
+  ${particleElements}
   <div class="hero-bg"></div>
   ${rating ? `
   <div class="hero-rating">
