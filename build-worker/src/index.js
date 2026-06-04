@@ -1719,7 +1719,7 @@ async function triggerSubstanceBuild(clientId, env) {
   await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL });
 
   // PWA shell at preview:{slug} — served at /{slug}, always the managed experience
-  const pwaTpl = await env.SITES.get('app:pwa');
+  const pwaTpl = await env.SITES.get('app:preview');
   if (pwaTpl && client.manage_token) {
     // Inject the token into the PWA shell so /{slug} always routes back into the managed flow
     const managedShell = pwaTpl.replace(
