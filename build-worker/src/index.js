@@ -175,6 +175,7 @@ export default {
       if (path === '/admin/bootstrap-admin'   && method === 'POST') return handleAdminBootstrapAdmin(request, env);
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
+      if (path === '/admin/reset-build'        && method === 'POST') return handleAdminResetBuild(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
@@ -588,6 +589,17 @@ async function handleTestWhatsapp(request, env) {
   }
 }
 
+
+async function handleAdminResetBuild(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const { clientId, slug } = body;
+  const id = clientId || (slug ? (await getClientBySlug(slug, env))?.id : null);
+  if (!id) return jsonResponse({ error: 'clientId or slug required' }, 400);
+  await env.DB.prepare(
+    `UPDATE clients SET status='preview_ready', updated_at=CURRENT_TIMESTAMP WHERE id=?`
+  ).bind(id).run();
+  return jsonResponse({ success: true, clientId: id, status: 'preview_ready' });
+}
 
 async function handleDeleteClient(request, env) {
   const { slug } = await request.json().catch(() => ({}));
@@ -1201,6 +1213,11 @@ async function handleTriggerRebuild(request, env) {
   if (!token || !cards) return jsonResponse({ error: 'token and cards required' }, 400);
   const client = await getClientByToken(token, env);
   if (!client) return jsonResponse({ error: 'not found' }, 404);
+
+  // Guard — if already building, don't queue again (prevents duplicate builds from retries)
+  if (client.status === 'building') {
+    return jsonResponse({ success: true, status: 'building', note: 'already queued' });
+  }
 
   // Update package + card fields
   const packageKey = pkgKey(pkg || client.package);
