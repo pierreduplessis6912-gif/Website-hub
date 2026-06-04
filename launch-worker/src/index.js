@@ -795,6 +795,8 @@ async function handleGoLiveInternal(clientId, client, env) {
   const pages = caps.pages;
   const tier  = getPricingTier(client.package || 'standard');
 
+  await logActivity(env, 'go_live_started', { clientId, slug, domain });
+
   // ── 1. Apply panel choices to draft KV ──────────────────────
   await applyPanelChoicesToDrafts(slug, pages, env);
 
@@ -808,7 +810,6 @@ async function handleGoLiveInternal(clientId, client, env) {
       const prev = await env.SITES.get(`preview:${slug}:${pageName}`);
       if (prev) pageHtml = removeWatermark(prev);
     }
-    // Fall back to substance build key
     if (!pageHtml) {
       pageHtml = await env.SITES.get(`site:${slug}`);
       if (pageHtml) pageHtml = removeWatermark(pageHtml);
@@ -823,8 +824,12 @@ async function handleGoLiveInternal(clientId, client, env) {
     if (pageName === 'index') homeHtml = pageHtml;
   }
 
-  if (!homeHtml) throw new Error('No built site found in KV — trigger a rebuild first');
+  if (!homeHtml) {
+    await logActivity(env, 'go_live_failed', { clientId, slug, reason: 'no_html_in_kv' });
+    throw new Error('No built site found in KV — trigger a rebuild first');
+  }
   await env.SITES.put(`live:${domain}`, homeHtml);
+  await logActivity(env, 'go_live_kv_written', { clientId, slug, domain });
 
   // ── 3. Update D1 — status → live ────────────────────────────
   const today       = todayDateString();
@@ -832,6 +837,7 @@ async function handleGoLiveInternal(clientId, client, env) {
   await env.DB.prepare(
     `UPDATE clients SET status='live', go_live_date=?, next_invoice_date=?, domain=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
   ).bind(today, nextInvoice, domain, clientId).run();
+  await logActivity(env, 'go_live_d1_updated', { clientId, slug, domain });
 
   // ── 3b. Push to showcase queue (keep newest 5) ───────────────
   try {
@@ -847,6 +853,7 @@ async function handleGoLiveInternal(clientId, client, env) {
   // ── 4. Cloudflare hostname binding (non-fatal) ───────────────
   bindCustomHostname(domain, env).catch(e => {
     console.warn('CF hostname binding failed:', e?.message || e);
+    logActivity(env, 'go_live_cf_hostname_failed', { clientId, domain, error: e?.message });
     sendWhatsApp(env.WH_PHONE,
       `⚠️ CF hostname binding failed for ${domain}: ${e.message}`,
       env, { skipTestRedirect: true },
@@ -857,6 +864,7 @@ async function handleGoLiveInternal(clientId, client, env) {
   if (!isTestMode(env)) {
     registerDomainViaProxy(slug, env).catch(e => {
       console.warn('Domain registration failed (non-fatal):', e?.message || e);
+      logActivity(env, 'go_live_domain_reg_failed', { clientId, domain, error: e?.message });
       sendWhatsApp(env.WH_PHONE,
         `⚠️ Domain reg failed for ${domain}: ${e.message}`,
         env, { skipTestRedirect: true },
@@ -882,14 +890,23 @@ async function handleGoLiveInternal(clientId, client, env) {
   const name = client.client_name?.split(' ')[0] || 'there';
   const tierLabel = (client.package || 'standard').charAt(0).toUpperCase() + (client.package || 'standard').slice(1);
 
-  let goLiveMsg = `🚀 *${client.business_name}* is live!\n\n`;
+  let goLiveMsg = `🎉 *${client.business_name}* is live!\n\n`;
   goLiveMsg += `🌐 https://${domain}\n`;
   goLiveMsg += `📱 Manage your site: ${manageUrl}\n\n`;
   goLiveMsg += `💳 Next invoice: R${tier.retainer} due ${nextInvoice}\n`;
   if (referralLink) goLiveMsg += `\n💡 Refer a friend and earn R${tier.retainer} credit:\n${referralLink}\n`;
   goLiveMsg += `\n— Website Hub`;
 
-  await sendWhatsApp(client.phone, goLiveMsg.trim(), env);
+  if (client.phone) {
+    await sendWhatsApp(client.phone, goLiveMsg.trim(), env).catch(e => {
+      console.warn('Client go-live WhatsApp failed:', e?.message);
+      logActivity(env, 'go_live_whatsapp_client_failed', { clientId, error: e?.message });
+    });
+    await logActivity(env, 'go_live_whatsapp_sent', { clientId, slug });
+  } else {
+    console.warn('No phone number for client — skipping client WhatsApp');
+    await logActivity(env, 'go_live_whatsapp_skipped', { clientId, reason: 'no_phone' });
+  }
 
   // ── 8. Post go-live touch schedule ──────────────────────────
   await env.SITES.put(`post_golive_d1:${clientId}`,   new Date(Date.now() + 1  * 864e5).toISOString());
@@ -899,9 +916,9 @@ async function handleGoLiveInternal(clientId, client, env) {
 
   // ── 9. Owner notification ────────────────────────────────────
   await sendWhatsApp(env.WH_PHONE,
-    `🚀 LIVE: ${client.business_name}\n🌐 https://${domain}\nPlan: ${tierLabel}\nR${tier.retainer}/mo · Next: ${nextInvoice}`,
+    `🚀 LIVE: ${client.business_name}\n🌐 https://${domain}\nPlan: ${tierLabel}\nR${tier.retainer}/mo · Next: ${nextInvoice}\nPhone: ${client.phone || 'MISSING'}`,
     env, { skipTestRedirect: true },
-  );
+  ).catch(e => console.warn('Owner go-live WhatsApp failed:', e?.message));
 
   await logActivity(env, 'site_went_live', { clientId, business: client.business_name, domain });
   await logHealth(env, 'build', 'success');
