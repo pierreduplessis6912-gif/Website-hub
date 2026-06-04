@@ -28,6 +28,7 @@ export function generateExperienceHTML(t, heroUrl, client, cards, pkg, gbpData, 
   const hours       = gbpData?.hours || [];
   const address     = gbpData?.address || cards?.address || client.address || '';
 
+  const phoneDisplay = (client.phone || '').replace(/^\+?27/, '0').replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
   function esc(s) {
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
