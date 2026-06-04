@@ -180,6 +180,9 @@ export default {
       if (path === '/admin/bootstrap-admin'   && method === 'POST') return handleAdminBootstrapAdmin(request, env);
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
+      if (path === '/admin/reset-build'        && method === 'POST') return handleAdminResetBuild(request, env);
+      if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
+      if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
@@ -594,6 +597,57 @@ async function handleTestWhatsapp(request, env) {
   }
 }
 
+
+async function handleAdminResetBuild(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const { clientId, slug } = body;
+  const client = clientId
+    ? await env.DB.prepare(`SELECT * FROM clients WHERE id=? LIMIT 1`).bind(clientId).first()
+    : await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
+  if (!client) return jsonResponse({ error: 'clientId or slug required' }, 400);
+  await env.DB.prepare(`UPDATE clients SET status='preview_ready', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(client.id).run();
+  return jsonResponse({ success: true, clientId: client.id, status: 'preview_ready' });
+}
+
+async function handleAdminForceLive(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const { slug } = body;
+  if (!slug) return jsonResponse({ error: 'slug required' }, 400);
+
+  const client = await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
+  if (!client) return jsonResponse({ error: 'Client not found' }, 404);
+
+  // Get the built HTML from site:{slug}
+  const html = await env.SITES.get(`site:${slug}`);
+  if (!html) return jsonResponse({ error: 'No built HTML found at site:' + slug }, 404);
+
+  const domain = client.domain || `${slug}.co.za`;
+
+  // Write to all the right places
+  await env.SITES.put(`preview:${slug}`, html, { expirationTtl: 60 * 60 * 24 * 35 });
+  await env.SITES.put(`live:${domain}`, html);
+  await env.SITES.put(`live:${domain}:index`, html);
+
+  // Update status to live
+  const today = new Date().toISOString().split('T')[0];
+  const nextMonth = new Date(Date.now() + 30 * 864e5).toISOString().split('T')[0];
+  await env.DB.prepare(
+    `UPDATE clients SET status='live', go_live_date=?, next_invoice_date=?, domain=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+  ).bind(today, nextMonth, domain, client.id).run();
+
+  return jsonResponse({ success: true, slug, domain, status: 'live' });
+}
+
+async function handleAdminQuery(request, env) {
+  const { sql } = await request.json().catch(() => ({}));
+  if (!sql || !sql.trim().toUpperCase().startsWith('SELECT')) return jsonResponse({ error: 'Only SELECT queries allowed' }, 400);
+  try {
+    const result = await env.DB.prepare(sql).all();
+    return jsonResponse({ results: result.results });
+  } catch (err) {
+    return jsonResponse({ error: err.message }, 500);
+  }
+}
 
 async function handleDeleteClient(request, env) {
   const { slug } = await request.json().catch(() => ({}));
