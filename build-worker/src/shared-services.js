@@ -1503,7 +1503,6 @@ export function tokenReplace(html, contentJson, businessFields, ogImage) {
     // ── Local-specific ────────────────────────────────────────
     since_year:    c.since_year    || c.founding_year || '',
     trade:         c.trade         || '',
-    about_tagline: c.about_tagline || '',
     delivery_note: c.delivery_note || '',
     badge1: s(c.badges,0,''), badge2: s(c.badges,1,''), badge3: s(c.badges,2,''), badge4: s(c.badges,3,''),
     community_point1: s(c.community_points,0,''), community_point2: s(c.community_points,1,''),
@@ -1518,7 +1517,6 @@ export function tokenReplace(html, contentJson, businessFields, ogImage) {
     years_active:       c.years_active       || '',
     response_commitment: c.response_commitment || '',
     availability_note:  c.availability_note  || '',
-    about_proof_statement: c.about_proof_statement || '',
 
     case1_client: s(c.case_studies,0,'client'), case1_challenge: s(c.case_studies,0,'challenge'),
     case1_solution: s(c.case_studies,0,'solution'), case1_timeframe: s(c.case_studies,0,'timeframe'),
