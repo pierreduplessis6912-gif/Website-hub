@@ -1987,6 +1987,7 @@ All section labels: 3 words, UPPERCASE
 Output this JSON exactly:
 {
   "page_title": "${client.business_name} | ${client.industry} | ${client.area}",
+  "short_name": "max 3 words — the nav/footer name (e.g. 'Classic Touch' not 'Classic Touch Unisex Hair & Beauty Salon')",
   "meta_description": "max 155 chars",
   "hero_h1_line1": "max 4 words",
   "hero_h1_line2": "max 4 words",
