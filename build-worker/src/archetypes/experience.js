@@ -128,8 +128,8 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--dark)
 .btn-primary:hover{transform:translateY(-1px);opacity:.9}
 .btn-ghost{border:1.5px solid rgba(255,255,255,.35);color:#fff;padding:14px 28px;border-radius:100px;font-size:14px;font-weight:400;text-decoration:none;transition:all .2s}
 .btn-ghost:hover{border-color:rgba(255,255,255,.7);background:rgba(255,255,255,.08)}
-.hero-rating{position:absolute;top:50%;right:28px;transform:translateY(-50%);background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:16px;text-align:center;z-index:2;animation:fadeIn 1s 1.2s ease both}
-.rating-num{font-family:var(--font-display);font-size:36px;font-weight:300;color:#fff;line-height:1}
+.hero-rating{position:absolute;bottom:88px;right:24px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 14px;text-align:center;z-index:2;animation:fadeIn 1s 1.2s ease both;min-width:80px}
+.rating-num{font-family:var(--font-display);font-size:28px;font-weight:300;color:#fff;line-height:1}
 .rating-stars{color:var(--accent);font-size:12px;margin:4px 0}
 .rating-count{font-size:11px;color:rgba(255,255,255,.6)}
 .scroll-hint{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:2;animation:fadeIn 1s 2s ease both}
