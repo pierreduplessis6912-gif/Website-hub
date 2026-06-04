@@ -20,6 +20,7 @@ import { generateExperienceHTML } from './archetypes/experience.js';
 import { generateEmergencyHTML }  from './archetypes/emergency.js';
 import { generateTrustHTML }      from './archetypes/trust.js';
 import { generateLocalHTML }      from './archetypes/local.js';
+import { generateResultsHTML }    from './archetypes/results.js';
 
 // ── CONSTANTS ─────────────────────────────────────────────────
 
@@ -1751,6 +1752,8 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     html = generateTrustHTML(contentTokens, heroUrl, client, cards, pkg, gbpData, brandBrief);
   } else if (archetype === 'local') {
     html = generateLocalHTML(contentTokens, heroUrl, client, cards, pkg, gbpData, brandBrief);
+  } else if (archetype === 'results') {
+    html = generateResultsHTML(contentTokens, heroUrl, client, cards, pkg, gbpData, brandBrief);
   } else {
     html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
   }
