@@ -304,23 +304,11 @@ body::after{
         <label class="field-label">Your name</label>
         <input class="field-input" id="nameInput" type="text" placeholder="e.g. Thabo" autocomplete="name" autocapitalize="words">
       </div>
-      <div class="field-group">
+      <div class="field-group" style="position:relative">
         <label class="field-label">What do you do?</label>
-        <select class="field-input" id="industryInput">
-          <option value="">Select your industry...</option>
-          <option>Plumber</option><option>Electrician</option><option>Builder</option><option>Painter</option>
-          <option>Salon</option><option>Barber</option><option>Nails</option><option>Spa</option>
-          <option>Restaurant</option><option>Bakery</option><option>Catering</option><option>Coffee Shop</option>
-          <option>Flooring</option><option>Cleaning</option><option>Landscaping</option><option>HVAC</option>
-          <option>Doctor</option><option>Dentist</option><option>Accountant</option><option>Photographer</option>
-          <option>Mechanic</option><option>Estate Agent</option><option>Lawyer</option><option>Tutor</option>
-          <option>Gym / Personal Trainer</option><option>Physiotherapist</option><option>Optometrist</option>
-          <option>Veterinarian</option><option>Driving School</option><option>Security</option>
-          <option>Courier / Delivery</option><option>IT Support</option><option>Graphic Designer</option>
-          <option>Tattoo Artist</option><option>Makeup Artist</option><option>Wedding Planner</option>
-          <option>Event Venue</option><option>Car Wash</option><option>Panel Beater</option>
-          <option>Tyre Shop</option><option>Furniture</option><option>Hardware</option><option>Other</option>
-        </select>
+        <input class="field-input" id="industryInput" type="text" placeholder="e.g. Barber, Butchery, Solar..." autocomplete="off"
+          oninput="onIndustryInput(this.value)" onblur="setTimeout(hideIndustrySuggestions,300)">
+        <div id="industrySuggestions" style="display:none;position:absolute;z-index:100;width:100%;background:#1e1e1e;border:1.5px solid rgba(0,240,255,.3);border-radius:12px;margin-top:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);max-height:200px;overflow-y:auto"></div>
       </div>
       <div class="field-group">
         <label class="field-label">Business address</label>
@@ -370,6 +358,58 @@ body::after{
 'use strict';
 
 var S = { biz:'', slug:'', domain:'', confirmed:false, token:null, placeId:null, address:null, area:null };
+
+const ALL_INDUSTRIES = [
+  'Plumber','Electrician','Builder','Painter','Roofer','Tiler / Paver','Welder','Carpenter',
+  'Glazier / Glass','Plasterer','HVAC / Aircon','Handyman','Waterproofing','Pest Control',
+  'Appliance Repair','Signage','CCTV / Alarms','Solar Installation','Locksmith','Gates / Fencing',
+  'Pool Service','Pool Building','Fire Protection','Demolition','Flooring','Renovation',
+  'Interior Design','Panel Beater','Car Wash / Detailing','Landscaping','Garden Services',
+  'Plant Nursery','Florist','Curtains / Blinds','Hair Salon','Barber','Nails','Spa / Massage',
+  'Lashes','Makeup Artist','Tattoo Studio','Waxing / Threading','Skincare / Aesthetics',
+  'Beauty Salon','Gym / Fitness','Personal Trainer','Yoga / Pilates','Physiotherapy',
+  'Chiropractor','Nutritionist','Counsellor / Therapist','Martial Arts','Swim School',
+  'Health Shop','Restaurant','Coffee Shop / Cafe','Bakery / Cake Shop','Catering','Food Truck',
+  'Takeaway / Fast Food','Shisa Nyama / Braai','Butchery','Pizza','Sushi','Pub / Bar / Tavern',
+  'Guest House / B&B','Lodge','Home Industry','Deli / Charcuterie','Farm Stall',
+  'Ice Cream / Desserts','Juice Bar','Cleaning Service','Laundry','Childcare / Creche',
+  'Tutor / Extra Lessons','Driving School','Alterations / Tailor','Shoe Repair',
+  'Funeral Parlour','Beekeeping / Honey','Lawyer / Attorney','Accountant','Tax Consultant',
+  'Estate Agent','Financial Advisor','Bond Originator','Recruitment / HR','Business Consultant',
+  'IT Support','Social Media / Marketing','Graphic Designer','Web Developer','Software Developer',
+  'Security Company','Drone Services','Print Shop','Clothing / Boutique','Shoes / Footwear',
+  'Furniture Store','Hardware Store','Bottle Store / Liquor','Electronics / Phones','Tyre Shop',
+  'Auto Parts / Spares','Pet Shop','Pharmacy / Chemist','Spaza / Tuck Shop','Books / Stationery',
+  'Mechanic','Towing / Recovery','Car Rental','Photographer','Videographer','Wedding Planner',
+  'Event Planning','Function Venue','DJ / Sound','Party Hire','Band / Musician',
+  'Transport / Logistics','Courier / Delivery','Removals / Moving','Kombi / Minibus','Bakkie Hire',
+  'Doctor / GP','Dentist','Optometrist','Veterinarian','Home Care / Nursing','Audiologist / Hearing',
+  'After School Care','Coding / STEM School','Other'
+];
+
+function onIndustryInput(val) {
+  const q = val.toLowerCase().trim();
+  const box = document.getElementById('industrySuggestions');
+  if (!q) { box.style.display = 'none'; return; }
+  const matches = ALL_INDUSTRIES.filter(i => i.toLowerCase().includes(q)).slice(0, 8);
+  if (!matches.length) { box.style.display = 'none'; return; }
+  box.innerHTML = matches.map((m,i) =>
+    `<div onmousedown="event.preventDefault()" onclick="selectIndustry('${m.replace(/'/g,"\\'")}')"
+     style="padding:12px 16px;font-size:13px;color:#e8e8f0;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);transition:background .15s"
+     onmouseover="this.style.background='rgba(0,240,255,.08)'" onmouseout="this.style.background=''">${m}</div>`
+  ).join('');
+  box.style.display = 'block';
+}
+
+function selectIndustry(val) {
+  document.getElementById('industryInput').value = val;
+  hideIndustrySuggestions();
+}
+
+function hideIndustrySuggestions() {
+  const box = document.getElementById('industrySuggestions');
+  if (box) box.style.display = 'none';
+}
 
 // Pre-fill from URL params (?biz=Zululand+Flooring&domain=zululand-flooring.co.za)
 // Comes from landing page when domain is already confirmed available
