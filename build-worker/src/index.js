@@ -1649,6 +1649,7 @@ async function triggerSubstanceBuild(clientId, env) {
     await logEvent(env, clientId, 'build', 'sub_pass1_complete', 'success', {});
   } catch (e) {
     await updateBuild(env, buildId, { status: 'failed', error: e.message });
+    await logEvent(env, clientId, 'build', 'sub_pass1_failed', 'error', { error: e.message });
     throw new Error(`Substance Pass 1 failed: ${e.message}`);
   }
 
