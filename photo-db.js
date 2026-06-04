@@ -817,7 +817,16 @@ const PHOTO_DB = {
     'local business professional warm light',
   ],
 
-  // ── CRITICAL MISSING POOLS ─────────────────────────────────────
+  beauty_salon: [
+    'beauty salon interior elegant warm professional',
+    'hair salon mirror styling chair warm light',
+    'beauty salon styling station professional warm',
+    'salon interior elegant clean professional',
+    'hair beauty salon warm professional interior',
+    'styling salon professional mirror warm',
+    'beauty salon professional clean warm light',
+    'unisex salon interior professional warm',
+  ],
   florist: [
     'florist shop flowers beautiful colourful',
     'flower bouquet fresh colourful close',
