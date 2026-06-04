@@ -176,6 +176,7 @@ export default {
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
       if (path === '/admin/reset-build'        && method === 'POST') return handleAdminResetBuild(request, env);
+      if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
@@ -252,13 +253,21 @@ export default {
   async queue(batch, env) {
     for (const msg of batch.messages) {
       try {
-        const { type, clientId, cardPayload, isOutbound } = msg.body;
+        const { type, clientId, isOutbound } = msg.body;
         if (type === 'pre_build')       await triggerPreBuild(clientId, env, isOutbound);
-        if (type === 'substance_build') await triggerSubstanceBuild(clientId, cardPayload, env);
+        if (type === 'substance_build') await triggerSubstanceBuild(clientId, env);
         msg.ack();
       } catch (err) {
         console.error('Queue message failed:', err);
-        msg.retry();
+        const { type, clientId } = msg.body;
+        // Ack substance builds on failure — retrying causes duplicate build cascade
+        // Pre-builds are safe to retry (idempotent)
+        if (type === 'substance_build') {
+          await env.DB.prepare(`UPDATE clients SET status='preview_ready' WHERE id=?`).bind(clientId).run().catch(() => {});
+          msg.ack();
+        } else {
+          msg.retry();
+        }
       }
     }
   },
@@ -740,11 +749,16 @@ async function handleAdminBuildDetail(url, env) {
       id:            client.id,
       business_name: client.business_name,
       slug:          client.slug,
+      manage_token:  client.manage_token,
+      phone:         client.phone,
+      status:        client.status,
       industry:      client.industry,
       area:          client.area,
       vibe:          client.vibe,
       services:      client.services,
       palette:       client.palette,
+      gbp_place_id:  client.gbp_place_id,
+      gbp_data:      client.gbp_data ? JSON.parse(client.gbp_data) : null,
       voice_profile: client.voice_profile ? JSON.parse(client.voice_profile) : null,
     },
     build: build ? {
@@ -1244,7 +1258,7 @@ async function handleTriggerRebuild(request, env) {
     client.id
   ).run();
 
-  await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: client.id, cardPayload: cards });
+  await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: client.id });
   return jsonResponse({ success: true, status: 'building' });
 }
 
@@ -1574,15 +1588,32 @@ async function fetchGbpData(gbpUrl, env) {
   }
 }
 
-async function triggerSubstanceBuild(clientId, cards, env) {
+async function triggerSubstanceBuild(clientId, env) {
   const client = await getClientById(clientId, env);
   if (!client) throw new Error(`Client not found: ${clientId}`);
+
+  // Read card data from D1 — not from queue message (avoids 128KB queue limit)
+  const cards = {
+    industry:    client.industry,
+    area:        client.area,
+    vibe:        client.vibe,
+    services:    (() => { try { return JSON.parse(client.services || '[]'); } catch { return []; } })(),
+    cta:         client.primary_cta,
+    audience:    client.target_audience,
+    testimonial: client.testimonial,
+    logo:        client.logo_url,
+    palette:     client.palette,
+    diff1:       (client.differentiator || '').split(' | ')[0] || '',
+    diff2:       (client.differentiator || '').split(' | ')[1] || '',
+    diff3:       (client.differentiator || '').split(' | ')[2] || '',
+    gbp_url:     client.gbp_url,
+  };
 
   const slug  = client.slug;
   const pkg   = pkgKey(client.package);
   const brief = getDesignBrief(
-    cards?.industry || client.industry || client.business_type || client.business_name,
-    cards?.vibe || client.vibe
+    cards.industry || client.business_type || client.business_name,
+    cards.vibe
   );
 
   // Use GBP data — from background lookup (place_id) or manual link (gbp_url)
