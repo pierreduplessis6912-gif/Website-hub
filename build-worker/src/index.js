@@ -1892,8 +1892,8 @@ ${gbpBlock}${previewProfile ? `\nExisting skeleton content (build forward from t
 Output this JSON exactly:
 {
   "personality_category": "${brief.personality.category} — confirm or override with: trade_authority|transformation|personal_care|wellness|hospitality|community_local|professional_trust|technical_expertise|retail_utility|event_creative|mobility|medical_trust|memorial_legacy",
-  "hero_layout": "choose from: ${brief.personality.hero_layouts.join('|')}",
-  "opening_strategy": "choose from: ${brief.personality.opening_strategies.join('|')}",
+  "hero_layout": "choose from: ${(brief.personality?.hero_layouts || ['cinematic_left']).join('|')}",
+  "opening_strategy": "choose from: ${(brief.personality?.opening_strategies || ['proof_first']).join('|')}",
   "brand_voice": "one sentence — their specific voice, not a category",
   "story_angle": "the narrative thread tying their differentiators together",
   "emotional_core": "what the customer feels after reading this site",
