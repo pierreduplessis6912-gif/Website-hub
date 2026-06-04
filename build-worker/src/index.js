@@ -298,7 +298,7 @@ async function handleAdminHealth(env) {
 
 async function handleAdminClients(env) {
   const rows = await env.DB.prepare(
-    `SELECT id, business_name, slug, status, package, domain, created_at
+    `SELECT id, business_name, slug, phone, manage_token, status, package, domain, created_at
      FROM clients ORDER BY created_at DESC LIMIT 20`
   ).all();
   return jsonResponse({ clients: rows.results });
@@ -634,6 +634,14 @@ async function handleAdminForceLive(request, env) {
   await env.DB.prepare(
     `UPDATE clients SET status='live', go_live_date=?, next_invoice_date=?, domain=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
   ).bind(today, nextMonth, domain, client.id).run();
+
+  // Trigger domain registration + WhatsApp via launch worker
+  const launchUrl = env.WORKER_URL_LAUNCH || 'https://wh-launch.pierreduplessis6912.workers.dev';
+  fetch(`${launchUrl}/internal-golive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-internal-key': env.ADMIN_KEY },
+    body: JSON.stringify({ clientId: client.id, slug }),
+  }).catch(e => console.warn('Internal go-live trigger failed:', e?.message));
 
   return jsonResponse({ success: true, slug, domain, status: 'live' });
 }
