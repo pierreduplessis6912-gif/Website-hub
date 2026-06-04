@@ -412,6 +412,35 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   animation:slideUp .4s .3s ease both;
 }
 
+/* ── BILLING TOGGLE ── */
+.billing-toggle{
+  display:flex;align-items:center;justify-content:center;
+  gap:0;margin-bottom:20px;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:12px;overflow:hidden;
+  animation:slideUp .4s .18s ease both;
+}
+.billing-opt{
+  flex:1;padding:11px 8px;text-align:center;
+  font-size:13px;font-weight:600;color:var(--muted);
+  cursor:pointer;transition:all .2s;position:relative;
+  font-family:var(--font-body);background:transparent;border:none;
+}
+.billing-opt.sel{
+  background:var(--surface2);color:var(--text);
+}
+.billing-opt .save-badge{
+  display:inline-block;margin-left:6px;
+  background:var(--green);color:#000;
+  font-size:9px;font-weight:800;letter-spacing:.5px;
+  padding:2px 5px;border-radius:4px;vertical-align:middle;
+}
+.annual-saving{
+  text-align:center;font-size:13px;color:var(--green);
+  font-weight:600;margin-bottom:16px;min-height:18px;
+  animation:slideUp .3s ease both;
+}
+
 @keyframes slideUp{
   from{opacity:0;transform:translateY(16px)}
   to{opacity:1;transform:translateY(0)}
@@ -541,11 +570,19 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   <div class="confirm-eyebrow">ALMOST LIVE</div>
   <div class="confirm-title">You're one tap<br><em>from live.</em></div>
   <div class="confirm-sub" id="confirmSub">Free domain + setup included</div>
+
+  <!-- Billing toggle -->
+  <div class="billing-toggle">
+    <button class="billing-opt sel" id="optMonthly" onclick="setBilling('monthly')">Monthly</button>
+    <button class="billing-opt" id="optAnnual" onclick="setBilling('annual')">Annual <span class="save-badge">2 MONTHS FREE</span></button>
+  </div>
+  <div class="annual-saving" id="annualSaving"></div>
+
   <div class="summary-card">
     <div class="s-row"><span>Plan</span><strong id="cPlan">Standard</strong></div>
-    <div class="s-row"><span>Build fee</span><strong><s style="color:var(--muted);font-size:12px">R7,000</s> <span style="color:var(--green);font-size:12px;font-weight:700">R0 FREE</span></strong></div>
+    <div class="s-row"><span>Build fee</span><strong><s id="cBuildFee" style="color:var(--muted);font-size:12px">R8,000</s> <span style="color:var(--green);font-size:12px;font-weight:700">FREE</span></strong></div>
     <div class="s-row"><span>Domain</span><strong id="cDomain">—</strong></div>
-    <div class="s-row hl"><span>First month</span><strong id="cPrice">R699</strong></div>
+    <div class="s-row hl"><span id="cPriceLabel">First month</span><strong id="cPrice">R699</strong></div>
   </div>
   <div class="promo-row">
     <input class="promo-input" id="promoInput" placeholder="Promo code (optional)" oninput="clearPromo()">
@@ -553,7 +590,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   </div>
   <div id="promoMsg"></div>
   <button id="payBtn" onclick="processPayment()">Pay R699 — Go Live →</button>
-  <div class="confirm-legal">Secure payment via PayFast · Cancel anytime · No contracts</div>
+  <div class="confirm-legal" id="confirmLegal">Secure payment via PayFast · Cancel anytime · No contracts</div>
 </div>
 
 <!-- ═══════════════════════
@@ -617,15 +654,16 @@ const S = {
   token: null,
   slug: null,
   selectedPlan: 'express',
+  billing: 'monthly',
   _pollTimer: null,
   _msgTimer: null,
   _msgIdx: 0,
 };
 
 const PLANS = {
-  express:  { name:'Express',  monthly:399,  label:'Express plan' },
-  standard: { name:'Standard', monthly:699,  label:'Standard plan' },
-  premium:  { name:'Premium',  monthly:999,  label:'Premium plan' },
+  express:  { name:'Express',  monthly:399,  label:'Express plan',  buildFee:'R5,000'  },
+  standard: { name:'Standard', monthly:699,  label:'Standard plan', buildFee:'R8,000'  },
+  premium:  { name:'Premium',  monthly:999,  label:'Premium plan',  buildFee:'R15,000' },
 };
 
 const PROMO_CODES = { BETA: 1.0, LAUNCH: 0.5, HUB20: 0.2 };
@@ -789,15 +827,47 @@ function closePlanSheet() { el('planSheet').classList.remove('open'); }
 // ── CONFIRM ──────────────────────────────────────────────────────
 function goToConfirm() { showScreen('confirm'); }
 
+function setBilling(mode) {
+  S.billing = mode;
+  el('optMonthly').classList.toggle('sel', mode === 'monthly');
+  el('optAnnual').classList.toggle('sel', mode === 'annual');
+  updateConfirmPricing();
+}
+
+function updateConfirmPricing() {
+  const p = PLANS[S.selectedPlan] || PLANS.standard;
+  const isAnnual = S.billing === 'annual';
+  const annualTotal = p.monthly * 10;
+  const annualSaving = p.monthly * 2;
+
+  el('cBuildFee').textContent = p.buildFee;
+
+  if (isAnnual) {
+    el('cPrice').textContent = 'R' + annualTotal.toLocaleString('en-ZA');
+    el('cPriceLabel').textContent = 'Annual total';
+    el('annualSaving').textContent = `You save R${annualSaving.toLocaleString('en-ZA')} — 2 months free 🎉`;
+    el('payBtn').textContent = `Pay R${annualTotal.toLocaleString('en-ZA')} — Go Live →`;
+    el('confirmLegal').textContent = 'Billed once yearly · Free .co.za domain · Secure via PayFast';
+  } else {
+    el('cPrice').textContent = 'R' + p.monthly;
+    el('cPriceLabel').textContent = 'First month';
+    el('annualSaving').textContent = '';
+    el('payBtn').textContent = `Pay R${p.monthly} — Go Live →`;
+    el('confirmLegal').textContent = 'Secure payment via PayFast · Cancel anytime · No contracts';
+  }
+}
+
 function onConfirm() {
   const p = PLANS[S.selectedPlan] || PLANS.standard;
+  S.billing = S.billing || 'monthly';
   el('cPlan').textContent = p.name;
   el('cDomain').textContent = S.slug ? `${S.slug}.co.za` : '—';
-  el('cPrice').textContent = 'R' + p.monthly;
-  el('payBtn').textContent = `Pay R${p.monthly} — Go Live →`;
   el('confirmSub').textContent = S.slug
     ? `${S.slug}.co.za — free domain included`
     : 'Free domain included';
+  el('optMonthly').classList.toggle('sel', S.billing === 'monthly');
+  el('optAnnual').classList.toggle('sel', S.billing === 'annual');
+  updateConfirmPricing();
 }
 
 function clearPromo() {
@@ -812,13 +882,19 @@ function applyPromo() {
 
   if (PROMO_CODES[code] !== undefined) {
     const disc = PROMO_CODES[code];
-    const newPrice = disc === 1.0 ? 0 : Math.round(p.monthly * (1 - disc));
     S.promoDiscount = disc;
     S.promoCode = code;
-    el('cPrice').textContent = newPrice === 0 ? 'Free' : 'R' + newPrice;
-    el('payBtn').textContent = newPrice === 0 ? 'Activate — Go Live →' : `Pay R${newPrice} — Go Live →`;
+    updateConfirmPricing();
+    const p = PLANS[S.selectedPlan];
+    const isAnnual = S.billing === 'annual';
+    const base = isAnnual ? p.monthly * 10 : p.monthly;
+    const newPrice = Math.round(base * (1 - disc));
     m.textContent = disc === 1.0 ? 'First month free!' : `${Math.round(disc * 100)}% off applied`;
     m.className = 'ok';
+    if (newPrice === 0) {
+      el('cPrice').textContent = 'Free';
+      el('payBtn').textContent = 'Activate — Go Live →';
+    }
   } else {
     m.textContent = 'Code not recognised';
     m.className = 'err';
@@ -834,7 +910,9 @@ async function processPayment() {
 
   const p = PLANS[S.selectedPlan];
   const promoDisc = S.promoDiscount || 0;
-  const finalAmount = Math.round(p.monthly * (1 - promoDisc));
+  const isAnnual = S.billing === 'annual';
+  const baseAmount = isAnnual ? p.monthly * 10 : p.monthly;
+  const finalAmount = Math.round(baseAmount * (1 - promoDisc));
 
   // If fully free (BETA or 100% promo) — skip PayFast, go live directly
   if (finalAmount === 0) {
@@ -871,8 +949,8 @@ async function processPayment() {
         token: S.token,
         slug: S.slug,
         plan: S.selectedPlan,
-        retainer: p.monthly,
-        billing: 'monthly',
+        retainer: finalAmount,
+        billing: isAnnual ? 'annual' : 'monthly',
       })
     });
     if (d.redirectUrl) {
