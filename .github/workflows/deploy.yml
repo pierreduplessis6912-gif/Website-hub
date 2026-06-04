@@ -20,31 +20,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: build-worker
-          secrets: |
-            ANTHROPIC_KEY
-            UNSPLASH_ACCESS_KEY
-            WH_PHONE
-            EVOLUTION_API_URL
-            EVOLUTION_API_KEY
-            EVOLUTION_INSTANCE
-            ADMIN_KEY
-            GOOGLE_CLIENT_ID
-            GOOGLE_CLIENT_SECRET
-            GOOGLE_REFRESH_TOKEN
-            GOOGLE_MAPS_API_KEY
-        env:
-          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
-          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
-          WH_PHONE: ${{ secrets.WH_PHONE }}
-          EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
-          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
-          EVOLUTION_INSTANCE: ${{ secrets.EVOLUTION_INSTANCE }}
-          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
-            GOOGLE_MAPS_API_KEY
 
   deploy-patch:
     name: Deploy wh-patch
@@ -75,35 +50,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: launch-worker
-          secrets: |
-            PAYFAST_MERCHANT_KEY
-            PAYFAST_PASSPHRASE
-            PAYFAST_SANDBOX_MERCHANT_ID
-            PAYFAST_SANDBOX_MERCHANT_KEY
-            ANTHROPIC_KEY
-            WH_PHONE
-            ADMIN_KEY
-            CF_API_TOKEN
-            RESEND_API_KEY
-            GOOGLE_CLIENT_ID
-            GOOGLE_CLIENT_SECRET
-            GOOGLE_REFRESH_TOKEN
-            GOOGLE_MAPS_API_KEY
-        env:
-          PAYFAST_MERCHANT_KEY: ${{ secrets.PAYFAST_MERCHANT_KEY }}
-          PAYFAST_PASSPHRASE: ${{ secrets.PAYFAST_PASSPHRASE }}
-          PAYFAST_SANDBOX_MERCHANT_ID: ${{ secrets.PAYFAST_SANDBOX_MERCHANT_ID }}
-          PAYFAST_SANDBOX_MERCHANT_KEY: ${{ secrets.PAYFAST_SANDBOX_MERCHANT_KEY }}
-          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
-          WH_PHONE: ${{ secrets.WH_PHONE }}
-          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
-            GOOGLE_MAPS_API_KEY
 
   deploy-pulse:
     name: Deploy wh-pulse
@@ -119,20 +65,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: pulse-worker
-          secrets: |
-            RESEND_API_KEY
-            WH_PHONE
-            ADMIN_KEY
-            EVOLUTION_API_URL
-            EVOLUTION_API_KEY
-            EVOLUTION_INSTANCE
-        env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          WH_PHONE: ${{ secrets.WH_PHONE }}
-          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
-          EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
-          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
-          EVOLUTION_INSTANCE: ${{ secrets.EVOLUTION_INSTANCE }}
 
   deploy-reactivate:
     name: Deploy wh-reactivate
@@ -148,15 +80,3 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: reactivate-worker
-          secrets: |
-            WH_PHONE
-            ADMIN_KEY
-            EVOLUTION_API_URL
-            EVOLUTION_API_KEY
-            EVOLUTION_INSTANCE
-        env:
-          WH_PHONE: ${{ secrets.WH_PHONE }}
-          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
-          EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
-          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
-          EVOLUTION_INSTANCE: ${{ secrets.EVOLUTION_INSTANCE }}
