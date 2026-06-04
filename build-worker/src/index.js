@@ -640,6 +640,9 @@ async function handleRunMigration(request, env) {
     ],
     '0004': [
       `ALTER TABLE clients ADD COLUMN hero_url TEXT`,
+    ],
+    '0005': [
+      `ALTER TABLE clients ADD COLUMN billing_cycle TEXT DEFAULT 'monthly'`,
     ]
   };
 
