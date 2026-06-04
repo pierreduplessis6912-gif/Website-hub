@@ -30,6 +30,7 @@ export function generateTrustHTML(t, heroUrl, client, cards, pkg, gbpData, brand
   const address     = gbpData?.address || cards?.address || client.address || '';
   const galleryPhotos = (client.gallery_photos || []).slice(0, 6);
 
+  const phoneDisplay = (client.phone || '').replace(/^\+?27/, '0').replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
   function esc(s) {
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
