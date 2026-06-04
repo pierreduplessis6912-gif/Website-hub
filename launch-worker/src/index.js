@@ -58,7 +58,7 @@ import {
   PRICING, PACKAGE_CAPS,
   isTestMode, packageKey, getPricingTier, getPackageCaps, getUpgradeDelta, buildPayFastLink,
   jsonResponse, corsResponse, htmlResponse,
-  slugify, escapeHtml, nextMonthDate, todayDateString, md5, constantTimeCompare,
+  slugify, escapeHtml, nextMonthDate, nextYearDate, todayDateString, md5, constantTimeCompare,
   callClaudeInternal,
   sendWhatsApp, normaliseSaPhone,
   logActivity, logHealth, getFlag,
@@ -372,7 +372,8 @@ async function handleGoLiveLink(request, env, ctx) {
   if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
 
   const pkg    = plan || client.package || 'standard';
-  const amount = retainer || client.retainer || 699;
+  const amount = retainer || client.retainer || 399;
+  const isAnnual = billing === 'annual';
   const domain = client.domain || `${client.slug}.co.za`;
 
   const notifyUrl = env.WORKER_URL_LAUNCH
@@ -382,13 +383,17 @@ async function handleGoLiveLink(request, env, ctx) {
   const returnUrl = `https://preview.websitehub.co.za/manage/${token}`;
   const cancelUrl = `https://preview.websitehub.co.za/manage/${token}`;
 
-  // Use client.id as custom_str1 — D1 primary key for webhook routing
-  const url = buildPayFastLink(amount, 'Website Hub Monthly Subscription', client.id, env, {
+  const itemName = isAnnual
+    ? 'Website Hub Annual Subscription'
+    : 'Website Hub Monthly Subscription';
+  const customStr2 = isAnnual ? `${pkg}_annual` : pkg;
+
+  const url = buildPayFastLink(amount, itemName, client.id, env, {
     returnUrl,
     notifyUrl,
     cancelUrl,
-    customStr2: pkg,
-    itemDesc: `${client.business_name} — ${pkg} plan`,
+    customStr2,
+    itemDesc: `${client.business_name} — ${pkg} plan${isAnnual ? ' (annual)' : ''}`,
   });
 
   if (isTestMode(env)) {
@@ -473,8 +478,8 @@ async function handlePayfastWebhook(request, env, ctx) {
     } else if (customStr2.startsWith('revision:')) {
       await handleRevisionPayment(clientId, customStr2, paymentId, amount, env);
     } else {
-      // Default: first-month subscription / go-live
-      await handleGoLivePayment(clientId, paymentId, amount, env, ctx);
+      // Default: first-month subscription / go-live (monthly or annual)
+      await handleGoLivePayment(clientId, paymentId, amount, customStr2, env, ctx);
     }
     await logHealth(env, 'payfast', 'success');
   } catch (err) {
@@ -497,7 +502,7 @@ async function handlePayfastWebhook(request, env, ctx) {
  *   suspended                      → reinstate
  *   live                           → recurring retainer
  */
-async function handleGoLivePayment(clientId, paymentId, amount, env, ctx) {
+async function handleGoLivePayment(clientId, paymentId, amount, customStr2, env, ctx) {
   const client = await env.DB.prepare(
     `SELECT * FROM clients WHERE id=? LIMIT 1`
   ).bind(clientId).first();
@@ -509,12 +514,15 @@ async function handleGoLivePayment(clientId, paymentId, amount, env, ctx) {
     return;
   }
 
+  const isAnnual = (customStr2 || '').endsWith('_annual');
   const tier = getPricingTier(client.package || 'standard');
+  const expectedAmount = isAnnual ? tier.retainer * 10 : tier.retainer;
+  const nextInvoice = isAnnual ? nextYearDate() : nextMonthDate();
 
-  if (Math.abs(amount - tier.retainer) > AMOUNT_TOLERANCE) {
-    await logActivity(env, 'payfast_amount_mismatch', { clientId, amount, expected: tier.retainer });
+  if (Math.abs(amount - expectedAmount) > AMOUNT_TOLERANCE) {
+    await logActivity(env, 'payfast_amount_mismatch', { clientId, amount, expected: expectedAmount, isAnnual });
     await sendWhatsApp(env.WH_PHONE,
-      `⚠️ PayFast amount mismatch\n${client.business_name}\nReceived: R${amount}\nExpected: R${tier.retainer}\nClient: ${clientId}`,
+      `⚠️ PayFast amount mismatch\n${client.business_name}\nReceived: R${amount}\nExpected: R${expectedAmount}${isAnnual ? ' (annual)' : ''}\nClient: ${clientId}`,
       env, { skipTestRedirect: true },
     );
     return;
@@ -530,25 +538,27 @@ async function handleGoLivePayment(clientId, paymentId, amount, env, ctx) {
 
   if (status === 'live') {
     await env.DB.prepare(
-      `UPDATE clients SET payfast_payment_id=?, payment_date=?, next_invoice_date=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
-    ).bind(paymentId || '', todayDateString(), nextMonthDate(), clientId).run();
+      `UPDATE clients SET payfast_payment_id=?, payment_date=?, next_invoice_date=?, billing_cycle=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+    ).bind(paymentId || '', todayDateString(), nextInvoice, isAnnual ? 'annual' : 'monthly', clientId).run();
 
-    // Mark pending invoice as paid
     await env.DB.prepare(
       `UPDATE invoices SET status='paid', paid_at=datetime('now'), payfast_id=?
        WHERE client_id=? AND status='pending' ORDER BY created_at DESC LIMIT 1`
     ).bind(paymentId || '', clientId).run().catch(() => null);
 
     const name = client.client_name?.split(' ')[0] || 'there';
+    const billingMsg = isAnnual
+      ? `Annual subscription confirmed 🎉 Next renewal: ${nextInvoice}`
+      : `Next invoice: ${nextInvoice}`;
     await sendWhatsApp(client.phone,
-      `✅ Thanks ${name} — payment received for *${client.business_name}*.\n\nNext invoice: ${nextMonthDate()}\n— Website Hub`,
+      `✅ Thanks ${name} — payment received for *${client.business_name}*.\n\n${billingMsg}\n— Website Hub`,
       env,
     );
     await sendWhatsApp(env.WH_PHONE,
-      `💰 RETAINER PAID: ${client.business_name} (R${amount})\nNext invoice: ${nextMonthDate()}`,
+      `💰 ${isAnnual ? 'ANNUAL' : 'RETAINER'} PAID: ${client.business_name} (R${amount})\nNext invoice: ${nextInvoice}`,
       env, { skipTestRedirect: true },
     ).catch(() => {});
-    await logActivity(env, 'payment_received', { clientId, business: client.business_name, amount, type: 'recurring_retainer' });
+    await logActivity(env, 'payment_received', { clientId, business: client.business_name, amount, type: isAnnual ? 'annual_subscription' : 'recurring_retainer' });
     return;
   }
 
@@ -563,10 +573,10 @@ async function handleGoLivePayment(clientId, paymentId, amount, env, ctx) {
   }
 
   await env.DB.prepare(
-    `UPDATE clients SET payfast_payment_id=?, payment_date=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
-  ).bind(paymentId || '', todayDateString(), clientId).run();
+    `UPDATE clients SET payfast_payment_id=?, payment_date=?, billing_cycle=?, next_invoice_date=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+  ).bind(paymentId || '', todayDateString(), isAnnual ? 'annual' : 'monthly', nextInvoice, clientId).run();
 
-  await logActivity(env, 'payment_received', { clientId, business: client.business_name, amount, type: 'first_time_subscription' });
+  await logActivity(env, 'payment_received', { clientId, business: client.business_name, amount, type: isAnnual ? 'annual_first_payment' : 'first_time_subscription' });
 
   ctx.waitUntil(handleGoLiveInternal(clientId, client, env)
     .catch(async err => {
