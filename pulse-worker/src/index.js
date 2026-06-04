@@ -248,6 +248,7 @@ async function runDailyCron(env) {
     { name: 'referral_vesting',      fn: () => runReferralVesting(env, today) },
     { name: 'outbound_scrape',        fn: () => runOutboundScrape(env) },
     { name: 'leaderboard_cache',     fn: () => precomputeLeaderboard(env, monthStr) },
+    { name: 'showcase_validation',   fn: () => validateShowcaseQueue(env) },
   ];
 
   // 1st of month: monthly summary + visit totals
@@ -968,6 +969,25 @@ async function runReferralVesting(env, today) {
 // sorts, takes top 10, writes leaderboard:cache:{month}.
 // build-worker's /leaderboard route reads this cache first.
 // ============================================================
+
+async function validateShowcaseQueue(env) {
+  const raw = await env.SITES.get('showcase:queue').catch(() => null);
+  const queue = JSON.parse(raw || '[]');
+  if (!queue.length) return 'empty queue';
+
+  const verified = await Promise.all(
+    queue.map(async slug => {
+      const site = await env.DB.prepare(
+        `SELECT slug FROM clients WHERE slug=? AND status='live' LIMIT 1`
+      ).bind(slug).first().catch(() => null);
+      return site ? slug : null;
+    })
+  );
+
+  const clean = verified.filter(Boolean).slice(0, 5);
+  await env.SITES.put('showcase:queue', JSON.stringify(clean));
+  return { before: queue.length, after: clean.length };
+}
 
 async function precomputeLeaderboard(env, monthStr) {
   const allKeys = await env.SITES.list({ prefix: 'referral:sent:' }).catch(() => ({ keys: [] }));
