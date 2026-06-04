@@ -16,6 +16,7 @@
 import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from './shared-services.js';
 import { getDesignBrief, buildCssVariables, UX_RULES, getPersonality, SECTION_FLOWS, SPACING_RHYTHMS } from '../../design-db.js';
 import { getHeroPhotoQuery, getHeroPhotoQueryByKey, getIndustryKey } from '../../photo-db.js';
+import { generateExperienceHTML } from './archetypes/experience.js';
 
 // ── CONSTANTS ─────────────────────────────────────────────────
 
@@ -1099,6 +1100,23 @@ function shapeGbp(data, business_name) {
   };
 }
 
+// ── ARCHETYPE ROUTING ─────────────────────────────────────────
+function detectArchetypeFromPersonality(personalityCategory, industry) {
+  const k = (industry || '').toLowerCase();
+  // Experience: sensory, immersive businesses
+  if (['hospitality','personal_care','wellness','event_creative'].includes(personalityCategory)) return 'experience';
+  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|florist|flower|lodge|guest.house|wedding|tattoo|yoga|pilates/.test(k)) return 'experience';
+  // Trust: professional services
+  if (['professional_trust','medical_trust'].includes(personalityCategory)) return 'trust';
+  // Results: transformation
+  if (['transformation'].includes(personalityCategory)) return 'results';
+  // Local: community
+  if (['community_local','retail_utility'].includes(personalityCategory)) return 'local';
+  // Emergency: trade
+  if (['trade_authority','technical_expertise'].includes(personalityCategory)) return 'emergency';
+  return 'experience'; // default to experience — it's the most complete template
+}
+
 // ── SHOWCASE — live site carousel feed ───────────────────────────
 async function handleShowcase(env) {
   try {
@@ -1719,15 +1737,21 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     } catch {}
   }
 
-  // ── HTML ───────────────────────────────────────────────────
-  const html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
+  // ── HTML — archetype-routed ────────────────────────────────
+  const archetype = detectArchetypeFromPersonality(brief.personality?.category, cards?.industry || client.industry);
+  let html;
+  if (archetype === 'experience') {
+    html = generateExperienceHTML(contentTokens, heroUrl, client, cards, pkg, gbpData, brandBrief);
+  } else {
+    html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
+  }
 
   // ── STORE ──────────────────────────────────────────────────
   // Raw HTML at site:{slug} — served inside PWA iframe at /site/{slug}
   await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL });
 
   // PWA shell at preview:{slug} — served at /{slug}, always the managed experience
-  const pwaTpl = await env.SITES.get('app:pwa');
+  const pwaTpl = await env.SITES.get('app:preview');
   if (pwaTpl && client.manage_token) {
     // Inject the token into the PWA shell so /{slug} always routes back into the managed flow
     const managedShell = pwaTpl.replace(
