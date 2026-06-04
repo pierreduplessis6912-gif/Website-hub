@@ -921,7 +921,7 @@ const S = {
 };
 
 const PLANS = {
-  express:  { name:'Express',  monthly:299,  features:['Domain','WhatsApp CTA','1 revision/month'] },
+  express:  { name:'Express',  monthly:399,  features:['Domain','WhatsApp CTA','1 revision/month'] },
   standard: { name:'Standard', monthly:699,  features:['Everything in Express','Business email','Logo & socials','Analytics','5 revisions/month'] },
   premium:  { name:'Premium',  monthly:999,  features:['Everything in Standard','Photo gallery','Map location','Google Business Profile','Enquiry form','Unlimited revisions','Referral programme'] },
 };
@@ -1346,8 +1346,8 @@ function openPersonalEmail() {
 function renderReferralTab(d) {
   const pkg=(d.package||'express').toLowerCase();
   const tier=PLANS[pkg]; const ref=d.referral||{};
-  const g=el('refGateAmount'); if(g) g.textContent=`R${tier?.monthly||699}`;
-  const h=el('refHeroSub'); if(h) h.textContent=`Refer someone who goes live on ${tier?.name||'your'} plan or higher — earn 1 free month (R${tier?.monthly||699} credit). Vests after 30 days.`;
+  const g=el('refGateAmount'); if(g) g.textContent=`R${tier?.monthly||399}`;
+  const h=el('refHeroSub'); if(h) h.textContent=`Refer someone who goes live on ${tier?.name||'your'} plan or higher — earn 1 free month (R${tier?.monthly||399} credit). Vests after 30 days.`;
   el('refActive').style.display='block'; el('refGate').style.display='none';
   el('refCreditVal').textContent=(ref.creditEarned||0).toLocaleString();
   el('refSent').textContent=ref.sent||0; el('refConv').textContent=ref.conversions||0; el('refMonths').textContent=ref.conversions||0;
