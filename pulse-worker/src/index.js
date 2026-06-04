@@ -300,9 +300,10 @@ async function runMonthlyInvoicing(env, today) {
 
     try {
       const tier       = getPricingTier(client.package || 'standard');
-      const retainer   = tier?.retainer || 699;
+      const isAnnual   = (client.billing_cycle || 'monthly') === 'annual';
+      const retainer   = isAnnual ? (tier?.retainer || 399) * 10 : (tier?.retainer || 399);
       const invoiceNum = `WH-${today.replace(/-/g, '')}-${client.slug.toUpperCase().slice(0, 6)}`;
-      const nextDate   = nextMonthDateFrom(today);
+      const nextDate   = isAnnual ? nextYearDateFrom(today) : nextMonthDateFrom(today);
 
       // Check for vested promo code
       const promoRow = await env.DB.prepare(
@@ -428,6 +429,12 @@ async function runMonthlyInvoicing(env, today) {
 function nextMonthDateFrom(dateStr) {
   const d = new Date(dateStr + 'T00:00:00Z');
   d.setUTCMonth(d.getUTCMonth() + 1);
+  return d.toISOString().split('T')[0];
+}
+
+function nextYearDateFrom(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCFullYear(d.getUTCFullYear() + 1);
   return d.toISOString().split('T')[0];
 }
 
