@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#080808">
+<title>Website Hub — Free .co.za Site for Your SA Business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   SPATIAL DNA SYSTEM
+   layoutGenome = {
+     heroType: 'manifesto-left',
+     sectionFlow: 'emotional-open → argument → proof-anchor → how → included → testimonials → claim',
+     spacingRhythm: 'elastic — alternates airy / dense / dramatic',
+     asymmetryLevel: 'high — intentional offset columns, staggered grids',
+     densityMode: 'varied — some sections breathe, some pack in',
+     typographyMode: 'editorial — oversized moments + sparse microcopy',
+     surfaceStyle: 'matte — minimal glassmorphism, restrained texture',
+     cardFrequency: 'low — only testimonials, pricing, intake widget',
+     alignmentBias: 'left-dominant with selective center punctuation',
+     contrastEnergy: 'tension-through-type — big/small not colour/colour',
+     transitionStyle: 'directional reveal — staggered, not simultaneous'
+   }
+───────────────────────────────────────────────────────────── */
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+
+:root{
+  /* Surface */
+  --bg:#080808;
+  --bg2:#0e0e0e;
+  --ink:rgba(255,255,255,.04);
+  --ink2:rgba(255,255,255,.07);
+  --rule:rgba(255,255,255,.07);
+  --rule-hi:rgba(255,255,255,.14);
+
+  /* Type */
+  --white:#ede9e4;
+  --dim:rgba(237,233,228,.48);
+  --ghost:rgba(237,233,228,.18);
+
+  /* Accents — used sparingly */
+  --cyan:#00e8f5;
+  --green:#00c97a;
+  --red:#ff3b44;
+  --warm:#f5c842;
+
+  /* Fonts */
+  --f-display:'Syne',sans-serif;
+  --f-body:'DM Sans',sans-serif;
+  --f-mono:'DM Mono',monospace;
+
+  /* Spatial rhythm tokens */
+  --gap-xs:8px;
+  --gap-sm:16px;
+  --gap-md:32px;
+  --gap-lg:64px;
+  --gap-xl:120px;
+  --gap-2xl:180px;
+
+  /* Layout geometry */
+  --max:1080px;
+  --col-narrow:520px;
+  --col-mid:680px;
+
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+
+html,body{
+  min-height:100%;
+  background:var(--bg);
+  color:var(--white);
+  font-family:var(--f-body);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+button{font-family:var(--f-body);cursor:pointer;border:none;background:none;color:inherit;touch-action:manipulation}
+input{font-family:var(--f-body);outline:none;-webkit-appearance:none}
+a{color:inherit;text-decoration:none}
+
+/* ── GRAIN OVERLAY ──────────────────────────────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+  background-size:200px 200px;
+  opacity:.6;
+}
+/* Subtle ambient — muted, not glowing */
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 55% 45% at 90% 5%, rgba(0,232,245,.045) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 55% at 5% 90%, rgba(0,201,122,.03) 0%, transparent 65%);
+}
+
+/* ── UTILITY ────────────────────────────────────────────────── */
+.wrap{width:100%;max-width:var(--max);margin:0 auto;padding:0 28px}
+.wrap-narrow{width:100%;max-width:var(--col-narrow);margin:0 auto;padding:0 28px}
+
+/* ── REVEAL SYSTEM — directional, staggered ────────────────── */
+.r{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)}
+.r.up{opacity:0;transform:translateY(28px)}
+.r.left{opacity:0;transform:translateX(-28px)}
+.r.right{opacity:0;transform:translateX(28px)}
+.r.visible{opacity:1;transform:translate(0,0)}
+.r.d1{transition-delay:.08s}
+.r.d2{transition-delay:.16s}
+.r.d3{transition-delay:.24s}
+.r.d4{transition-delay:.32s}
+.r.d5{transition-delay:.42s}
+
+/* ════════════════════════════════════════════════════════════
+   NAV — minimal, functional
+══════════════════════════════════════════════════════════════ */
+.nav{
+  position:sticky;top:0;z-index:90;
+  border-bottom:1px solid var(--rule);
+  background:rgba(8,8,8,.75);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.nav-inner{
+  max-width:var(--max);margin:0 auto;padding:18px 28px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-logo{
+  font-family:var(--f-display);font-size:17px;font-weight:800;
+  letter-spacing:-.4px;
+}
+.nav-logo span{color:var(--cyan)}
+.nav-cta{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--cyan);
+  border:1px solid rgba(0,232,245,.2);
+  padding:8px 16px;border-radius:3px;
+  transition:background .18s,border-color .18s;
+}
+.nav-cta:active{background:rgba(0,232,245,.08)}
+
+/* ════════════════════════════════════════════════════════════
+   HERO — SHOWCASE archetype
+   Top: compressed manifesto statement + CTA
+   Bottom: 5 live site cards — the actual proof
+   No image background. The work IS the hero.
+══════════════════════════════════════════════════════════════ */
+.hero{
+  position:relative;z-index:1;
+  padding-top:var(--gap-xl);
+  border-bottom:1px solid var(--rule);
+}
+
+.hero-inner{
+  max-width:var(--max);margin:0 auto;padding:0 28px;
+}
+
+/* Top row: headline left, CTA right — compressed, not full-screen */
+.hero-top{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:var(--gap-lg);
+  align-items:end;
+  padding-bottom:var(--gap-xl);
+}
+@media(max-width:620px){
+  .hero-top{grid-template-columns:1fr;gap:var(--gap-md)}
+}
+
+/* Oversized mono label */
+.hero-eyebrow{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--f-mono);font-size:10px;letter-spacing:2.5px;
+  text-transform:uppercase;color:var(--dim);
+  margin-bottom:var(--gap-md);
+}
+.hero-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 6px var(--green);
+  animation:breathe 2.4s ease-in-out infinite;
+}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.3}}
+
+.hero-h1{
+  font-family:var(--f-display);
+  font-size:clamp(40px,7vw,76px);
+  font-weight:800;
+  line-height:.94;
+  letter-spacing:-3px;
+  max-width:560px;
+}
+.hero-h1 .accent{color:var(--cyan)}
+
+.hero-action{
+  display:flex;flex-direction:column;
+  align-items:flex-end;gap:var(--gap-sm);
+  padding-bottom:6px;
+}
+@media(max-width:620px){
+  .hero-action{align-items:flex-start}
+}
+
+.hero-sub{
+  font-size:13px;color:var(--dim);line-height:1.6;
+  font-weight:300;text-align:right;max-width:200px;
+}
+@media(max-width:620px){
+  .hero-sub{text-align:left;max-width:none}
+}
+
+/* ── SHOWCASE STRIP ─────────────────────────────────────── */
+/* Full viewport width, bleeds past the wrap */
+.showcase-strip{
+  width:100vw;
+  margin-left:calc(-50vw + 50%);
+  border-top:1px solid var(--rule);
+  overflow:hidden;
+}
+
+.showcase-track{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  height:340px;
+}
+@media(max-width:900px){
+  .showcase-track{
+    display:flex;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    height:300px;
+    scrollbar-width:none;
+  }
+  .showcase-track::-webkit-scrollbar{display:none}
+}
+
+/* ── SHOWCASE CARD ───────────────────────────────────────── */
+.sc-card{
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  border-right:1px solid var(--rule);
+  flex:0 0 72vw;
+  scroll-snap-align:start;
+  transition:border-color .2s;
+  background:var(--bg2);
+}
+.sc-card:last-child{border-right:none}
+.sc-card:hover{border-color:var(--rule-hi)}
+
+/* Iframe scaled down to fit card — pointer events off so card click works */
+.sc-iframe-wrap{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+}
+.sc-iframe{
+  width:320%;
+  height:320%;
+  border:none;
+  transform:scale(0.3125);
+  transform-origin:top left;
+  pointer-events:none;
+}
+
+/* Transparent click trap — sits over iframe, captures card click */
+.sc-click-trap{
+  position:absolute;
+  inset:0;
+  z-index:2;
+}
+
+/* Dark overlay — heavier at bottom for text legibility */
+.sc-overlay{
+  position:absolute;inset:0;z-index:3;
+  background:linear-gradient(180deg,
+    rgba(8,8,8,.05) 0%,
+    rgba(8,8,8,.3) 50%,
+    rgba(8,8,8,.88) 100%);
+  transition:background .3s;
+}
+.sc-card:hover .sc-overlay{
+  background:linear-gradient(180deg,
+    rgba(8,8,8,.0) 0%,
+    rgba(8,8,8,.2) 50%,
+    rgba(8,8,8,.85) 100%);
+}
+
+/* Accent bar — top edge */
+.sc-accent-bar{
+  position:absolute;top:0;left:0;right:0;
+  height:2px;
+  background:var(--card-accent, var(--cyan));
+  z-index:4;
+}
+
+/* Card content — sits at bottom */
+.sc-content{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:var(--gap-md);
+  z-index:4;
+}
+
+.sc-industry{
+  display:inline-block;
+  font-family:var(--f-mono);font-size:9px;
+  letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--card-accent, var(--cyan));
+  margin-bottom:6px;opacity:.9;
+}
+.sc-name{
+  font-family:var(--f-display);
+  font-size:clamp(15px,2vw,18px);
+  font-weight:700;line-height:1.15;
+  letter-spacing:-.3px;margin-bottom:4px;
+  color:var(--white);
+}
+.sc-location{
+  font-family:var(--f-mono);font-size:9px;
+  letter-spacing:.5px;color:rgba(237,233,228,.4);
+  margin-bottom:var(--gap-sm);
+}
+.sc-services{display:flex;flex-wrap:wrap;gap:4px}
+.sc-tag{
+  font-family:var(--f-mono);font-size:9px;
+  letter-spacing:.3px;padding:2px 7px;border-radius:2px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  color:rgba(237,233,228,.5);
+}
+
+/* View hint on hover */
+.sc-view{
+  position:absolute;top:var(--gap-sm);right:var(--gap-sm);
+  font-family:var(--f-mono);font-size:9px;
+  letter-spacing:1px;text-transform:uppercase;
+  color:var(--white);
+  background:rgba(8,8,8,.6);
+  border:1px solid rgba(255,255,255,.1);
+  padding:4px 8px;border-radius:2px;
+  opacity:0;transition:opacity .2s;
+  z-index:5;
+  backdrop-filter:blur(6px);
+}
+.sc-card:hover .sc-view{opacity:1}
+
+/* Skeleton loading */
+.sc-skeleton{
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,
+    rgba(255,255,255,.03) 0%,
+    rgba(255,255,255,.06) 50%,
+    rgba(255,255,255,.03) 100%);
+  background-size:200% 100%;
+  animation:shimmer 1.6s infinite;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── MODAL ───────────────────────────────────────────────── */
+.modal-bg{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(8,8,8,.88);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  display:none;align-items:center;justify-content:center;
+  padding:var(--gap-md);
+}
+.modal-bg.open{display:flex}
+
+.modal{
+  width:100%;max-width:520px;
+  border:1px solid var(--rule-hi);
+  border-radius:6px;
+  overflow:hidden;
+  background:var(--bg2);
+  position:relative;
+  animation:modalIn .3s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+
+/* Accent top bar */
+.modal-bar{
+  height:3px;
+  background:var(--modal-accent, var(--cyan));
+}
+
+/* Hero photo in modal */
+.modal-photo{
+  width:100%;height:200px;
+  background-size:cover;background-position:center;
+  position:relative;
+}
+.modal-photo-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 50%,var(--bg2) 100%);
+}
+
+.modal-body{
+  padding:var(--gap-md) var(--gap-lg) var(--gap-lg);
+}
+
+.modal-industry{
+  font-family:var(--f-mono);font-size:9px;
+  letter-spacing:2px;text-transform:uppercase;
+  color:var(--modal-accent, var(--cyan));
+  margin-bottom:var(--gap-sm);
+}
+
+.modal-name{
+  font-family:var(--f-display);
+  font-size:clamp(26px,5vw,36px);
+  font-weight:800;
+  letter-spacing:-1.5px;
+  line-height:1;
+  margin-bottom:6px;
+}
+
+.modal-location{
+  font-family:var(--f-mono);font-size:10px;
+  color:var(--dim);letter-spacing:.5px;
+  margin-bottom:var(--gap-md);
+}
+
+.modal-services{
+  display:flex;flex-wrap:wrap;gap:6px;
+  margin-bottom:var(--gap-lg);
+  padding-bottom:var(--gap-md);
+  border-bottom:1px solid var(--rule);
+}
+.modal-tag{
+  font-family:var(--f-mono);font-size:10px;
+  padding:4px 10px;border-radius:2px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--rule-hi);
+  color:var(--dim);
+}
+
+.modal-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:var(--gap-md);
+}
+
+.modal-domain{
+  font-family:var(--f-mono);font-size:11px;
+  color:var(--dim);letter-spacing:.3px;
+}
+.modal-domain span{color:var(--modal-accent,var(--cyan))}
+
+.modal-visit{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--f-mono);font-size:10px;
+  letter-spacing:1.2px;text-transform:uppercase;
+  color:#080808;
+  background:var(--white);
+  padding:10px 16px;border-radius:3px;
+  transition:opacity .15s;
+  white-space:nowrap;
+}
+.modal-visit:active{opacity:.8}
+
+.modal-close{
+  position:absolute;top:var(--gap-sm);right:var(--gap-sm);
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(8,8,8,.7);
+  border:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:var(--dim);
+  cursor:pointer;z-index:10;
+  transition:border-color .15s,color .15s;
+}
+.modal-close:active{border-color:var(--white);color:var(--white)}
+
+/* Hero action */
+.hero-action{
+  display:flex;flex-direction:column;
+  align-items:flex-end;gap:var(--gap-sm);
+  padding-bottom:6px;
+}
+@media(max-width:620px){
+  .hero-action{align-items:flex-start}
+}
+
+.btn-primary{
+  display:inline-block;
+  padding:18px 32px;
+  background:var(--white);
+  color:#080808;
+  font-family:var(--f-display);font-size:15px;font-weight:700;
+  letter-spacing:-.3px;
+  border-radius:3px;
+  transition:opacity .15s,transform .15s;
+}
+.btn-primary:active{opacity:.85;transform:scale(.98)}
+
+.hero-note{
+  font-family:var(--f-mono);font-size:10px;
+  letter-spacing:.8px;text-transform:uppercase;
+  color:var(--ghost);
+}
+
+/* Trust strip — horizontal, sparse, left */
+.hero-trust{
+  display:flex;align-items:center;gap:var(--gap-lg);
+  flex-wrap:wrap;
+  padding-top:var(--gap-lg);
+  border-top:1px solid var(--rule);
+  max-width:680px;
+}
+.trust-item{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--f-mono);font-size:10px;
+  letter-spacing:.8px;text-transform:uppercase;
+  color:var(--dim);
+}
+.trust-item svg{width:14px;height:14px;flex-shrink:0;color:var(--green)}
+
+/* ════════════════════════════════════════════════════════════
+   SECTION ARCHITECTURE — composition patterns
+══════════════════════════════════════════════════════════════ */
+
+/* Shared rule-above section marker */
+.sec{position:relative;z-index:1}
+
+.sec-label{
+  display:block;
+  font-family:var(--f-mono);font-size:9px;
+  letter-spacing:3px;text-transform:uppercase;
+  color:var(--ghost);
+  margin-bottom:var(--gap-md);
+}
+
+/* ════════════════════════════════════════════════════════════
+   SECTION 1 — THE ARGUMENT
+   Archetype: editorial-offset
+   Layout: wide statement left + stats floating right
+   No card. Direct page surface.
+══════════════════════════════════════════════════════════════ */
+.arg{
+  padding:var(--gap-xl) 0 var(--gap-2xl);
+  border-top:1px solid var(--rule);
+}
+
+.arg-grid{
+  display:grid;
+  grid-template-columns:5fr 4fr;
+  gap:var(--gap-xl);
+  align-items:start;
+}
+@media(max-width:680px){
+  .arg-grid{grid-template-columns:1fr;gap:var(--gap-lg)}
+}
+
+.arg-h2{
+  font-family:var(--f-display);
+  font-size:clamp(34px,6vw,58px);
+  font-weight:800;
+  line-height:1.0;
+  letter-spacing:-2px;
+  margin-bottom:var(--gap-md);
+}
+.arg-h2 em{
+  font-style:normal;color:var(--dim);
+  font-weight:400;
+}
+
+.arg-body{
+  font-size:16px;color:var(--dim);line-height:1.8;
+  font-weight:300;
+}
+.arg-body strong{color:var(--white);font-weight:500}
+.arg-body p+p{margin-top:var(--gap-sm)}
+.arg-body .callout{
+  margin-top:var(--gap-md);
+  padding-left:var(--gap-md);
+  border-left:1px solid var(--cyan);
+  font-size:15px;color:var(--white);
+  line-height:1.6;
+}
+
+.arg-aside{}
+
+/* Stats — open canvas, not card */
+.stats-col{
+  display:flex;flex-direction:column;gap:0;
+  border-left:1px solid var(--rule);
+  padding-left:var(--gap-lg);
+}
+@media(max-width:680px){
+  .stats-col{border-left:none;border-top:1px solid var(--rule);padding-left:0;padding-top:var(--gap-md);flex-direction:row;gap:0}
+}
+
+.stat-item{
+  padding:var(--gap-md) 0;
+  border-bottom:1px solid var(--rule);
+}
+.stat-item:last-child{border-bottom:none}
+.stat-n{
+  font-family:var(--f-display);
+  font-size:clamp(40px,7vw,56px);
+  font-weight:800;
+  line-height:1;
+  color:var(--white);
+  margin-bottom:var(--gap-xs);
+}
+.stat-accent{color:var(--cyan)}
+.stat-l{
+  font-family:var(--f-mono);font-size:9px;
+  letter-spacing:1px;text-transform:uppercase;
+  color:var(--dim);line-height:1.5;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SECTION 2 — HOW IT WORKS
+   Archetype: story-first, vertical narrative
+   Layout: full-width left-anchored steps with giant step numbers
+   Dramatic whitespace above/below
+══════════════════════════════════════════════════════════════ */
+.how{
+  padding:var(--gap-xl) 0 var(--gap-2xl);
+  background:var(--bg2);
+  border-top:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);
+}
+
+.how-top{
+  margin-bottom:var(--gap-xl);
+}
+.how-h2{
+  font-family:var(--f-display);
+  font-size:clamp(38px,6.5vw,64px);
+  font-weight:800;
+  line-height:1.0;
+  letter-spacing:-2.5px;
+  max-width:560px;
+}
+.how-h2 em{font-style:normal;color:var(--cyan)}
+
+/* Steps — staggered with oversized step numerals */
+.steps{
+  display:flex;flex-direction:column;
+  gap:0;
+}
+
+.step{
+  display:grid;
+  grid-template-columns:80px 1fr;
+  gap:var(--gap-md);
+  padding:var(--gap-lg) 0;
+  border-bottom:1px solid var(--rule);
+  align-items:start;
+}
+.step:first-child{border-top:1px solid var(--rule)}
+@media(max-width:480px){
+  .step{grid-template-columns:48px 1fr;gap:var(--gap-sm)}
+}
+
+.step-n{
+  font-family:var(--f-display);
+  font-size:clamp(36px,7vw,56px);
+  font-weight:800;
+  color:var(--ghost);
+  line-height:1;
+  padding-top:4px;
+}
+
+.step-body{}
+.step-title{
+  font-family:var(--f-display);
+  font-size:clamp(20px,3vw,26px);
+  font-weight:700;
+  letter-spacing:-.5px;
+  margin-bottom:10px;
+  line-height:1.15;
+}
+.step-desc{
+  font-size:15px;color:var(--dim);
+  line-height:1.7;font-weight:300;
+  max-width:500px;
+}
+
+/* Optional step accent tag */
+.step-tag{
+  display:inline-block;
+  margin-top:12px;
+  font-family:var(--f-mono);font-size:9px;
+  letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--green);
+  border:1px solid rgba(0,201,122,.2);
+  padding:3px 8px;border-radius:2px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SECTION 3 — WHAT'S INCLUDED
+   Archetype: trade-authority
+   Layout: headline + asymmetric feature grid, pricing inline
+   No card wrapping the features — breathes on page
+══════════════════════════════════════════════════════════════ */
+.incl{
+  padding:var(--gap-xl) 0 var(--gap-2xl);
+}
+
+.incl-top{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:var(--gap-xl);
+  align-items:start;
+  margin-bottom:var(--gap-xl);
+}
+@media(max-width:680px){
+  .incl-top{grid-template-columns:1fr;gap:var(--gap-lg)}
+}
+
+.incl-h2{
+  font-family:var(--f-display);
+  font-size:clamp(36px,6vw,54px);
+  font-weight:800;
+  line-height:1.0;
+  letter-spacing:-2px;
+}
+.incl-h2 em{font-style:normal;color:var(--cyan)}
+
+.incl-intro{
+  font-size:15px;color:var(--dim);
+  line-height:1.75;font-weight:300;
+  padding-top:8px;
+}
+
+/* Feature rows — no cards, direct surface */
+.feat-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+  border-top:1px solid var(--rule);
+}
+@media(max-width:500px){.feat-grid{grid-template-columns:1fr}}
+
+.feat{
+  padding:var(--gap-md) 0;
+  border-bottom:1px solid var(--rule);
+  padding-right:var(--gap-lg);
+}
+.feat:nth-child(even){
+  padding-left:var(--gap-lg);
+  padding-right:0;
+  border-left:1px solid var(--rule);
+}
+@media(max-width:500px){
+  .feat:nth-child(even){padding-left:0;border-left:none}
+}
+
+.feat-check{
+  font-size:10px;color:var(--green);
+  letter-spacing:1px;
+  font-family:var(--f-mono);
+  margin-bottom:8px;
+  display:block;
+}
+.feat-title{
+  font-size:15px;font-weight:600;margin-bottom:4px;
+  letter-spacing:-.2px;
+}
+.feat-desc{font-size:13px;color:var(--dim);line-height:1.5;font-weight:300}
+
+/* Pricing — structural, not decorative card */
+.pricing-row{
+  margin-top:var(--gap-xl);
+  padding-top:var(--gap-lg);
+  border-top:1px solid var(--rule);
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:var(--gap-lg);
+}
+@media(max-width:620px){
+  .pricing-row{grid-template-columns:1fr;gap:var(--gap-md)}
+}
+
+.price-headline{
+  font-family:var(--f-display);
+  font-size:clamp(42px,8vw,68px);
+  font-weight:800;
+  line-height:1;
+  letter-spacing:-2px;
+  white-space:nowrap;
+}
+.price-currency{
+  font-size:.5em;
+  vertical-align:super;
+  opacity:.7;
+}
+
+.price-meta{
+  font-size:13px;color:var(--dim);line-height:1.7;font-weight:300;
+}
+.price-meta strong{color:var(--white);font-weight:500}
+
+.price-tiers{
+  display:flex;flex-direction:column;gap:6px;
+  text-align:right;
+}
+@media(max-width:620px){.price-tiers{text-align:left}}
+.tier{
+  font-family:var(--f-mono);font-size:10px;
+  letter-spacing:.5px;color:var(--dim);
+}
+.tier span{color:var(--white);font-weight:500}
+
+/* ════════════════════════════════════════════════════════════
+   SECTION 4 — PROOF / TESTIMONIALS
+   Archetype: proof-first
+   Layout: editorial — one large quote dominates, two smaller offset
+   Cards used here (structurally justified)
+══════════════════════════════════════════════════════════════ */
+.proof{
+  padding:var(--gap-xl) 0 var(--gap-2xl);
+  background:var(--bg2);
+  border-top:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);
+}
+
+.proof-top{
+  margin-bottom:var(--gap-xl);
+  display:flex;align-items:flex-start;
+  justify-content:space-between;gap:var(--gap-lg);
+  flex-wrap:wrap;
+}
+.proof-h2{
+  font-family:var(--f-display);
+  font-size:clamp(34px,5.5vw,52px);
+  font-weight:800;
+  line-height:1.05;
+  letter-spacing:-1.8px;
+}
+.proof-h2 em{font-style:normal;color:var(--dim);font-weight:400}
+
+/* Asymmetric testimony layout */
+.proof-grid{
+  display:grid;
+  grid-template-columns:6fr 4fr;
+  gap:var(--gap-md);
+  align-items:start;
+}
+@media(max-width:700px){
+  .proof-grid{grid-template-columns:1fr}
+}
+
+.testi-primary{
+  padding:var(--gap-lg) var(--gap-lg);
+  border:1px solid var(--rule-hi);
+  border-radius:4px;
+  background:rgba(255,255,255,.025);
+  position:relative;
+  overflow:hidden;
+}
+.testi-primary::before{
+  content:'"';
+  position:absolute;top:-20px;left:var(--gap-md);
+  font-family:var(--f-display);
+  font-size:160px;font-weight:800;
+  color:rgba(255,255,255,.04);
+  line-height:1;
+  pointer-events:none;
+}
+
+.testi-secondary-col{
+  display:flex;flex-direction:column;gap:var(--gap-md);
+}
+
+.testi-secondary{
+  padding:var(--gap-md) var(--gap-md);
+  border:1px solid var(--rule);
+  border-radius:4px;
+  background:rgba(255,255,255,.015);
+}
+
+.testi-stars{
+  font-size:11px;letter-spacing:3px;color:var(--cyan);
+  margin-bottom:var(--gap-md);
+  opacity:.7;
+}
+.testi-quote{
+  font-size:16px;line-height:1.75;
+  color:var(--dim);
+  font-weight:300;
+  font-style:italic;
+  margin-bottom:var(--gap-md);
+}
+.testi-primary .testi-quote{font-size:18px}
+.testi-quote strong{color:var(--white);font-style:normal;font-weight:600}
+.testi-secondary .testi-quote{font-size:14px;margin-bottom:var(--gap-sm)}
+
+.testi-who{display:flex;align-items:center;gap:10px}
+.testi-av{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  background:rgba(255,255,255,.08);
+  border:1px solid var(--rule-hi);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-mono);font-size:10px;font-weight:500;color:var(--dim);
+}
+.testi-name{font-size:13px;font-weight:600;letter-spacing:-.2px}
+.testi-co{font-size:11px;color:var(--dim);margin-top:1px;font-family:var(--f-mono);letter-spacing:.2px}
+
+/* ════════════════════════════════════════════════════════════
+   SECTION 5 — FINAL CTA / INTAKE
+   Archetype: minimal-premium
+   Layout: dramatic headline + constrained functional card
+   Maximum whitespace tension
+══════════════════════════════════════════════════════════════ */
+.claim{
+  padding:var(--gap-2xl) 0;
+  position:relative;z-index:1;
+}
+
+/* Huge manifesto statement above the tool */
+.claim-statement{
+  margin-bottom:var(--gap-xl);
+}
+.claim-h2{
+  font-family:var(--f-display);
+  font-size:clamp(40px,8vw,80px);
+  font-weight:800;
+  line-height:.95;
+  letter-spacing:-3px;
+  margin-bottom:var(--gap-md);
+  max-width:700px;
+}
+.claim-h2 em{
+  font-style:normal;
+  color:var(--cyan);
+}
+
+.claim-sub{
+  font-size:16px;color:var(--dim);line-height:1.65;
+  max-width:460px;font-weight:300;
+}
+
+/* The intake widget — card is justified here (functional container) */
+.intake-widget{
+  width:100%;max-width:460px;
+  border:1px solid var(--rule-hi);
+  border-radius:4px;
+  padding:var(--gap-lg) var(--gap-md);
+  background:rgba(255,255,255,.02);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+}
+
+.field-label{
+  display:block;
+  font-family:var(--f-mono);font-size:9px;
+  letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--dim);margin-bottom:10px;
+}
+.biz-input{
+  width:100%;padding:16px var(--gap-md);
+  font-family:var(--f-display);font-size:20px;font-weight:700;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--rule);
+  border-radius:3px;color:var(--white);
+  transition:border-color .2s,background .2s;
+  letter-spacing:-.4px;
+}
+.biz-input:focus{border-color:rgba(0,232,245,.35);background:rgba(0,232,245,.02)}
+.biz-input::placeholder{color:var(--ghost);font-weight:400;font-size:18px}
+
+.domain-badge{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;margin:8px 0;
+  border-radius:3px;
+  border:1px solid var(--rule);
+  transition:border-color .2s;
+}
+.domain-badge.ready{border-color:rgba(0,232,245,.2)}
+.db-dot{width:6px;height:6px;border-radius:50%;background:var(--ghost);flex-shrink:0;transition:background .2s}
+.domain-badge.ready .db-dot{background:var(--cyan);box-shadow:0 0 5px var(--cyan)}
+.db-text{font-family:var(--f-mono);font-size:12px;color:var(--dim);transition:color .2s;flex:1;letter-spacing:.3px}
+.domain-badge.ready .db-text{color:var(--white)}
+
+.check-btn{
+  width:100%;padding:16px;border-radius:3px;margin-top:4px;
+  border:1px solid rgba(0,232,245,.25);
+  background:rgba(0,232,245,.04);
+  color:var(--cyan);
+  font-family:var(--f-mono);font-size:11px;font-weight:500;
+  letter-spacing:1.5px;text-transform:uppercase;
+  transition:all .18s;
+}
+.check-btn:active{background:rgba(0,232,245,.1);border-color:var(--cyan)}
+.check-btn:disabled{opacity:.3;pointer-events:none}
+
+.result{
+  margin-top:var(--gap-sm);padding:var(--gap-sm) var(--gap-md);
+  border-radius:3px;display:none;
+  animation:fadeUp .3s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.result.avail{background:rgba(0,201,122,.05);border:1px solid rgba(0,201,122,.2)}
+.result.taken{background:rgba(255,59,68,.05);border:1px solid rgba(255,59,68,.18)}
+.result-row{display:flex;align-items:center;gap:10px}
+.result-icon{font-size:18px;flex-shrink:0}
+.result-info{flex:1}
+.result-domain{font-family:var(--f-mono);font-size:12px;font-weight:500;margin-bottom:2px;letter-spacing:.3px}
+.result.avail .result-domain{color:var(--green)}
+.result.taken .result-domain{color:var(--red)}
+.result-label{font-size:12px;color:var(--dim)}
+.suggestions{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+.sug-pill{
+  padding:10px 12px;border-radius:3px;
+  background:var(--ink2);border:1px solid var(--rule);
+  font-family:var(--f-mono);font-size:11px;color:var(--dim);
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;transition:all .14s;letter-spacing:.2px;
+}
+.sug-pill:active{border-color:var(--cyan);color:var(--cyan)}
+.sug-pick{font-size:9px;color:var(--cyan);letter-spacing:1px;text-transform:uppercase}
+
+.spin-sm{
+  display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px;
+  border:1.5px solid rgba(0,232,245,.2);border-top-color:var(--cyan);animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ════════════════════════════════════════════════════════════
+   FOOTER — minimal, editorial
+══════════════════════════════════════════════════════════════ */
+.footer{
+  border-top:1px solid var(--rule);
+  padding:var(--gap-lg) 28px;
+}
+.footer-inner{
+  max-width:var(--max);margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:var(--gap-md);
+}
+.footer-logo{
+  font-family:var(--f-display);font-size:14px;font-weight:800;
+  letter-spacing:-.3px;
+}
+.footer-logo span{color:var(--cyan)}
+
+.footer-links{
+  display:flex;gap:var(--gap-md);flex-wrap:wrap;
+}
+.footer-links a{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:1px;
+  text-transform:uppercase;color:var(--dim);
+  transition:color .2s;
+}
+.footer-links a:hover{color:var(--white)}
+
+.footer-copy{
+  font-family:var(--f-mono);font-size:10px;color:var(--ghost);
+  letter-spacing:.3px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   VISUAL PAUSE / QUOTE BREAK
+   Full-width typographic moment — no layout, just statement
+══════════════════════════════════════════════════════════════ */
+.quote-break{
+  padding:var(--gap-xl) 0;
+  border-top:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);
+  overflow:hidden;
+}
+.quote-break-inner{
+  max-width:var(--max);margin:0 auto;padding:0 28px;
+}
+.qb-text{
+  font-family:var(--f-display);
+  font-size:clamp(26px,5vw,44px);
+  font-weight:700;
+  line-height:1.2;
+  letter-spacing:-1.5px;
+  color:var(--dim);
+  max-width:720px;
+}
+.qb-text strong{color:var(--white)}
+.qb-attr{
+  margin-top:var(--gap-md);
+  font-family:var(--f-mono);font-size:10px;
+  letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--ghost);
+}
+
+/* ════════════════════════════════════════════════════════════
+   MICRO CTA LINK
+══════════════════════════════════════════════════════════════ */
+.link-cta{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:var(--gap-md);
+  font-family:var(--f-mono);font-size:11px;
+  letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--cyan);
+  border-bottom:1px solid rgba(0,232,245,.2);
+  padding-bottom:2px;
+  transition:border-color .2s;
+}
+.link-cta:hover{border-color:var(--cyan)}
+
+/* ── RESPONSIVE GUARD ───────────────────────────────────── */
+@media(max-width:480px){
+  .hero-h1{letter-spacing:-2px}
+  .arg-h2{letter-spacing:-1.5px}
+  :root{--gap-xl:80px;--gap-2xl:120px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ──────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">Website<span>Hub</span></div>
+    <a href="https://preview.websitehub.co.za/start" class="nav-cta">Claim your site →</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════
+     HERO — SHOWCASE archetype
+     Top: compressed manifesto + CTA
+     Bottom: 5 live site cards — the actual proof, full viewport width
+══════════════════════════════════════════════════════════════ -->
+<section class="hero sec">
+  <div class="hero-inner">
+
+    <div class="hero-top">
+      <div>
+        <div class="hero-eyebrow r up">
+          <span class="hero-dot"></span>
+          Live SA business sites · Built by WebsiteHub
+        </div>
+        <h1 class="hero-h1 r up d1">
+          Your website<br>
+          should <span class="accent">make</span><br>
+          money.
+        </h1>
+      </div>
+      <div class="hero-action r up d2">
+        <p class="hero-sub">Free to preview.<br>Live same day.</p>
+        <a href="https://preview.websitehub.co.za/start" class="btn-primary">
+          Claim your free site →
+        </a>
+        <span class="hero-note">No card. No commitment.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SHOWCASE STRIP — full viewport width ── -->
+  <div class="showcase-strip">
+    <div class="showcase-track" id="showcaseTrack">
+      <div class="sc-card"><div class="sc-skeleton"></div></div>
+      <div class="sc-card"><div class="sc-skeleton"></div></div>
+      <div class="sc-card"><div class="sc-skeleton"></div></div>
+      <div class="sc-card"><div class="sc-skeleton"></div></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ── MODAL ── -->
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-bar" id="modalBar"></div>
+    <div class="modal-photo" id="modalPhoto">
+      <div class="modal-photo-overlay"></div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-industry" id="modalIndustry"></div>
+      <div class="modal-name" id="modalName"></div>
+      <div class="modal-location" id="modalLocation"></div>
+      <div class="modal-services" id="modalServices"></div>
+      <div class="modal-footer">
+        <div class="modal-domain" id="modalDomain"></div>
+        <a class="modal-visit" id="modalVisit" target="_blank" rel="noopener">Visit site →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 1 — THE ARGUMENT
+     Archetype: editorial-offset
+     Layout: wide argument left, weight-bearing stats right
+══════════════════════════════════════════════════════════════ -->
+<section class="arg sec" id="pitch">
+  <div class="wrap">
+
+    <div class="arg-grid">
+      <div class="r left">
+        <span class="sec-label">The reality</span>
+        <h2 class="arg-h2">
+          Most SA businesses<br>
+          look <em>invisible</em><br>
+          online.
+        </h2>
+        <div class="arg-body">
+          <p>A WhatsApp number in a Facebook bio is not a website. A Google Business listing is not a website. Your customers are searching — and if you're not showing up with a real, fast, mobile-first site, the call goes to someone who is.</p>
+          <p>We build lead-generating sites for SA trades and services. Not pretty templates.</p>
+          <p class="callout">Sites structured around what makes a visitor pick up the phone.</p>
+        </div>
+        <a href="https://preview.websitehub.co.za/start" class="link-cta">See your site in 2 minutes →</a>
+      </div>
+
+      <div class="arg-aside r right d2">
+        <div class="stats-col">
+          <div class="stat-item">
+            <div class="stat-n">2<span class="stat-accent">×</span></div>
+            <div class="stat-l">More enquiries on average<br>after switching to a real site</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-n">2<span class="stat-accent">m</span></div>
+            <div class="stat-l">From business name<br>to live preview</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-n">R<span class="stat-accent">0</span></div>
+            <div class="stat-l">To preview.<br>Pay only when you go live.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- VISUAL PAUSE — typographic quote break -->
+<div class="quote-break r up">
+  <div class="quote-break-inner">
+    <p class="qb-text">
+      <strong>"The quality of our new leads has been great</strong> because people have come in understanding how we work."
+    </p>
+    <div class="qb-attr">Phil N. · The HBP Group · Cape Town</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 2 — HOW IT WORKS
+     Archetype: story-first, oversized step numerals
+══════════════════════════════════════════════════════════════ -->
+<section class="how sec" id="how">
+  <div class="wrap">
+
+    <div class="how-top r up">
+      <span class="sec-label">How it works</span>
+      <h2 class="how-h2">
+        Zero to live.<br>Under <em>5 minutes.</em>
+      </h2>
+    </div>
+
+    <div class="steps">
+      <div class="step r up d1">
+        <div class="step-n">01</div>
+        <div class="step-body">
+          <div class="step-title">Claim your .co.za domain</div>
+          <div class="step-desc">Type your business name. We check if your domain is available and lock it in before someone else does.</div>
+          <span class="step-tag">Takes 30 seconds</span>
+        </div>
+      </div>
+      <div class="step r up d2">
+        <div class="step-n">02</div>
+        <div class="step-body">
+          <div class="step-title">Watch your site build</div>
+          <div class="step-desc">Add your services, area, and a few details. A live preview appears in under 2 minutes — built around your industry and location.</div>
+          <span class="step-tag">AI-generated, SA-specific</span>
+        </div>
+      </div>
+      <div class="step r up d3">
+        <div class="step-n">03</div>
+        <div class="step-body">
+          <div class="step-title">Personalise and go live</div>
+          <div class="step-desc">Choose your look, confirm your details, pay. Your site is live the same day. Your .co.za email lands in your inbox.</div>
+          <span class="step-tag">Same-day launch</span>
+        </div>
+      </div>
+      <div class="step r up d4">
+        <div class="step-n">04</div>
+        <div class="step-body">
+          <div class="step-title">Walk away if you want to</div>
+          <div class="step-desc">Not happy with the preview? Close the tab. No card. No commitment. Nothing lost.</div>
+          <span class="step-tag">Zero risk</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 3 — WHAT'S INCLUDED
+     Archetype: trade-authority
+     Layout: asymmetric top, feature grid breathes on page
+══════════════════════════════════════════════════════════════ -->
+<section class="incl sec" id="included">
+  <div class="wrap">
+
+    <div class="incl-top">
+      <div class="r left">
+        <span class="sec-label">What you get</span>
+        <h2 class="incl-h2">
+          Everything<br>built in.<br>
+          <em>Nothing</em><br>bolted on.
+        </h2>
+      </div>
+      <div class="r right d1">
+        <p class="incl-intro">
+          From R299 a month you get a complete web presence — not a starter plan with features locked behind paywalls. One price. Everything included.
+        </p>
+      </div>
+    </div>
+
+    <div class="feat-grid r up d1">
+      <div class="feat">
+        <span class="feat-check">✓ included</span>
+        <div class="feat-title">Story-driven scroll site</div>
+        <div class="feat-desc">6 sections telling your business story, mobile-first and conversion-focused</div>
+      </div>
+      <div class="feat">
+        <span class="feat-check">✓ included</span>
+        <div class="feat-title">Free .co.za domain</div>
+        <div class="feat-desc">Registered in your name. Yours to keep, even if you ever leave.</div>
+      </div>
+      <div class="feat">
+        <span class="feat-check">✓ included</span>
+        <div class="feat-title">WhatsApp CTA</div>
+        <div class="feat-desc">One tap gets customers directly into your inbox</div>
+      </div>
+      <div class="feat">
+        <span class="feat-check">✓ included</span>
+        <div class="feat-title">SSL + mobile-first</div>
+        <div class="feat-desc">Loads fast. Secure. Structured to rank on Google.</div>
+      </div>
+      <div class="feat">
+        <span class="feat-check">✓ included</span>
+        <div class="feat-title">Monthly revisions</div>
+        <div class="feat-desc">Update content, photos, pricing via WhatsApp — no tech skills needed</div>
+      </div>
+      <div class="feat">
+        <span class="feat-check">✓ included</span>
+        <div class="feat-title">Analytics + referrals</div>
+        <div class="feat-desc">See who visits. Earn cash from every client you refer to us.</div>
+      </div>
+    </div>
+
+    <div class="pricing-row r up d2">
+      <div class="price-headline">
+        <span class="price-currency">R</span>299
+      </div>
+      <div class="price-meta">
+        <strong>per month · no build fee · cancel anytime</strong><br>
+        Starter plan. All features included from day one.
+      </div>
+      <div class="price-tiers">
+        <div class="tier">Standard <span>R699/mo</span></div>
+        <div class="tier">Premium <span>R999/mo</span></div>
+        <div class="tier">All plans include a free .co.za</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 4 — PROOF
+     Archetype: proof-first, editorial asymmetry
+     Layout: one dominant quote + two smaller — not equal grid
+══════════════════════════════════════════════════════════════ -->
+<section class="proof sec" id="proof">
+  <div class="wrap">
+
+    <div class="proof-top r up">
+      <div>
+        <span class="sec-label">Real SA businesses</span>
+        <h2 class="proof-h2">
+          Results,<br><em>not reviews.</em>
+        </h2>
+      </div>
+    </div>
+
+    <div class="proof-grid">
+      <div class="testi-primary r left">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">"The quality of our new leads has been great <strong>because people have come in understanding how we work.</strong> The messaging has resonated really well with everyone."</p>
+        <div class="testi-who">
+          <div class="testi-av">PN</div>
+          <div>
+            <div class="testi-name">Phil N.</div>
+            <div class="testi-co">The HBP Group · Cape Town</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testi-secondary-col r right d1">
+        <div class="testi-secondary">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">"It's the <strong>best redesign and restructure we've ever had since I've been here,</strong> and I've been here for 13 years. Our team has been blown away."</p>
+          <div class="testi-who">
+            <div class="testi-av">MB</div>
+            <div>
+              <div class="testi-name">Melissa B.</div>
+              <div class="testi-co">National Fatherhood · Durban</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-secondary">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">"They cut through the confusion and <strong>designed a site that clearly shows who we are and what we do.</strong> The process felt seamless."</p>
+          <div class="testi-who">
+            <div class="testi-av">JA</div>
+            <div>
+              <div class="testi-name">Jason A.</div>
+              <div class="testi-co">HubSearch · Johannesburg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 5 — FINAL CTA
+     Archetype: minimal-premium
+     Maximum whitespace. Giant headline. Constrained intake tool.
+══════════════════════════════════════════════════════════════ -->
+<section class="claim sec" id="claim">
+  <div class="wrap">
+
+    <div class="claim-statement r up">
+      <span class="sec-label">Get started</span>
+      <h2 class="claim-h2">
+        Your domain<br>
+        might already<br>
+        be <em>taken.</em>
+      </h2>
+      <p class="claim-sub">
+        Type your business name to find out. We check your .co.za, build a live preview, and show you the result — free, in 2 minutes.
+      </p>
+    </div>
+
+    <div class="intake-widget r up d2" id="step1">
+      <label class="field-label">Your business name</label>
+      <input class="biz-input" id="bizInput" type="text"
+             placeholder="e.g. Zululand Flooring"
+             autocomplete="off" autocapitalize="words"
+             oninput="onBizInput()" maxlength="60">
+      <div class="domain-badge" id="domainBadge">
+        <span class="db-dot"></span>
+        <span class="db-text" id="dbText">your-business.co.za</span>
+      </div>
+      <button class="check-btn" id="checkBtn" onclick="checkDomain()" disabled>
+        Check availability →
+      </button>
+      <div class="result" id="resultBlock">
+        <div class="result-row">
+          <span class="result-icon" id="resultIcon"></span>
+          <div class="result-info">
+            <div class="result-domain" id="resultDomain"></div>
+            <div class="result-label" id="resultLabel"></div>
+          </div>
+        </div>
+        <div class="suggestions" id="suggestionsWrap"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-logo">Website<span>Hub</span></div>
+    <nav class="footer-links">
+      <a href="#">How it works</a>
+      <a href="#">Pricing</a>
+      <a href="#">Contact</a>
+    </nav>
+    <div class="footer-copy">South African business sites · Built with care</div>
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+/* ── SHOWCASE — fetch + render ─────────────────────────────── */
+var SHOWCASE_ENDPOINT = 'https://preview.websitehub.co.za/showcase';
+
+// Fallback demo data — used until real endpoint has data
+var DEMO_SITES = [
+  { slug:'legendsbarbershop', business:'Legends Barbershop', industry:'Barbershop', location:'Richards Bay, KZN', services:['Cuts','Fades','Shaves'], accent:'#e8a400', domain:'legendsbarbershop.co.za' },
+  { slug:'gathercultureandcoffee', business:'Gather Culture & Coffee', industry:'Coffee Shop', location:'Richards Bay, KZN', services:['Specialty Coffee','Breakfast','Events'], accent:'#c0855a', domain:'gathercultureandcoffee.co.za' },
+  { slug:'citypanelbeaters', business:'City Panel Beaters', industry:'Panel Beating', location:'Durban, KZN', services:['Smash Repairs','Spray Painting','Insurance'], accent:'#00c97a', domain:'citypanelbeaters.co.za' },
+  { slug:'nationaloptical', business:'National Optical', industry:'Optometrist', location:'Durban, KZN', services:['Eye Tests','Frames','Contact Lenses'], accent:'#00e8f5', domain:'nationaloptical.co.za' }
+];
+
+function photoUrl(slug, heroUrl) {
+  if (heroUrl) return heroUrl;
+  return 'https://preview.websitehub.co.za/' + slug + '/hero.jpg';
+}
+
+function siteUrl(site) {
+  if (site.domain) return 'https://' + site.domain;
+  return 'https://preview.websitehub.co.za/' + site.slug;
+}
+
+function renderShowcase(sites) {
+  var track = document.getElementById('showcaseTrack');
+  if (!track) return;
+  track.innerHTML = sites.map(function(s) {
+    var accent = s.accent || 'var(--cyan)';
+    var tags = (s.services || []).slice(0,3).map(function(t) {
+      return '<span class="sc-tag">' + t + '</span>';
+    }).join('');
+    return '<div class="sc-card" style="--card-accent:' + accent + '" onclick="openModal(' + JSON.stringify(s).replace(/"/g,'&quot;') + ')">' +
+      '<div class="sc-accent-bar"></div>' +
+      '<div class="sc-photo" style="background-image:url(' + photoUrl(s.slug, s.hero_url) + ')"></div>' +
+      '<div class="sc-overlay"></div>' +
+      '<div class="sc-view">View site</div>' +
+      '<div class="sc-content">' +
+        '<span class="sc-industry">' + (s.industry||'') + '</span>' +
+        '<div class="sc-name">' + (s.business||'') + '</div>' +
+        '<div class="sc-location">' + (s.location||'') + '</div>' +
+        '<div class="sc-services">' + tags + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function loadShowcase() {
+  try {
+    var res = await fetch(SHOWCASE_ENDPOINT);
+    if (!res.ok) throw new Error('no data');
+    var data = await res.json();
+    if (data && data.length) { renderShowcase(data); return; }
+  } catch(e) {}
+  // Fall back to demo data
+  renderShowcase(DEMO_SITES);
+}
+
+loadShowcase();
+
+/* ── MODAL ─────────────────────────────────────────────────── */
+function openModal(site) {
+  if (typeof site === 'string') site = JSON.parse(site);
+  var accent = site.accent || 'var(--cyan)';
+  document.getElementById('modalBar').style.background = accent;
+  document.getElementById('modal').style.setProperty('--modal-accent', accent);
+  document.getElementById('modalPhoto').style.backgroundImage = 'url(' + photoUrl(site.slug, site.hero_url) + ')';
+  document.getElementById('modalIndustry').textContent = site.industry || '';
+  document.getElementById('modalName').textContent = site.business || '';
+  document.getElementById('modalLocation').textContent = site.location || '';
+  document.getElementById('modalServices').innerHTML = (site.services||[]).map(function(s) {
+    return '<span class="modal-tag">' + s + '</span>';
+  }).join('');
+  var domain = site.domain || site.slug + '.co.za';
+  document.getElementById('modalDomain').innerHTML = domain.replace('.co.za', '<span>.co.za</span>');
+  document.getElementById('modalVisit').href = siteUrl(site);
+  document.getElementById('modalBg').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalBg') && !e.target.classList.contains('modal-close')) return;
+  document.getElementById('modalBg').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal({target: document.getElementById('modalBg')});
+});
+
+/* ── DIRECTIONAL SCROLL REVEAL ─────────────────────────────── */
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      obs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.r').forEach(el => obs.observe(el));
+
+/* ── INTAKE LOGIC ──────────────────────────────────────────── */
+var S = { biz:'', slug:'', domain:'', confirmed:false };
+
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+
+function onBizInput() {
+  var val  = document.getElementById('bizInput').value.trim();
+  var slug = slugify(val);
+  S.biz = val; S.slug = slug; S.domain = slug ? slug+'.co.za' : '';
+  S.confirmed = false;
+
+  var badge = document.getElementById('domainBadge');
+  var text  = document.getElementById('dbText');
+  var btn   = document.getElementById('checkBtn');
+
+  if (slug) {
+    text.textContent = slug+'.co.za';
+    badge.classList.add('ready');
+    btn.disabled = false;
+  } else {
+    text.textContent = 'your-business.co.za';
+    badge.classList.remove('ready');
+    btn.disabled = true;
+  }
+  document.getElementById('resultBlock').style.display = 'none';
+}
+
+async function checkDomain(override) {
+  var domain = override || S.domain;
+  if (!domain) return;
+
+  var btn = document.getElementById('checkBtn');
+  btn.innerHTML = '<span class="spin-sm"></span>Checking…';
+  btn.disabled = true;
+
+  try {
+    var r = await fetch('https://preview.websitehub.co.za/domain-check?name='+encodeURIComponent(domain));
+    var d = await r.json();
+    showResult(d, domain);
+  } catch(e) {
+    showResult({ available:null, domain:domain }, domain);
+  } finally {
+    btn.innerHTML = 'Check again →';
+    btn.disabled = false;
+  }
+}
+
+function showResult(data, domain) {
+  var block = document.getElementById('resultBlock');
+  var icon  = document.getElementById('resultIcon');
+  var dom   = document.getElementById('resultDomain');
+  var lbl   = document.getElementById('resultLabel');
+  var suggs = document.getElementById('suggestionsWrap');
+
+  block.style.display = 'block';
+  block.className = 'result';
+  dom.textContent = domain;
+  suggs.innerHTML = '';
+
+  if (data.available === true) {
+    block.classList.add('avail');
+    icon.textContent = '✅';
+    lbl.textContent  = 'Available — this domain is yours to claim';
+    S.domain = domain; S.slug = domain.replace('.co.za',''); S.confirmed = true;
+
+    var btn = document.getElementById('checkBtn');
+    btn.style.cssText = 'background:var(--white);color:#080808;border-color:transparent;font-family:var(--f-display);font-weight:700;font-size:14px;letter-spacing:-.2px';
+    btn.disabled = false;
+    btn.onclick = function() {
+      var p = new URLSearchParams({ biz: S.biz, domain: S.domain });
+      window.location.href = 'https://preview.websitehub.co.za/start?' + p.toString();
+    };
+    btn.textContent = 'Claim this site now →';
+
+  } else if (data.available === false) {
+    block.classList.add('taken');
+    icon.textContent = '❌';
+    lbl.textContent  = 'Already taken — try one of these:';
+
+    var suggestions = data.suggestions || data.alternatives || [];
+    suggestions.slice(0,3).forEach(function(s) {
+      var d = typeof s === 'string' ? s : s.domain;
+      var b = document.createElement('button');
+      b.className = 'sug-pill';
+      b.innerHTML = '<span>'+d+'</span><span class="sug-pick">Use this →</span>';
+      b.onclick = function() { useSuggestion(d); };
+      suggs.appendChild(b);
+    });
+  } else {
+    block.classList.add('taken');
+    icon.textContent = '⚠️';
+    lbl.textContent  = 'Could not check — tap to try again';
+  }
+}
+
+function useSuggestion(domain) {
+  S.domain = domain; S.slug = domain.replace('.co.za','');
+  document.getElementById('dbText').textContent = domain;
+  document.getElementById('domainBadge').classList.add('ready');
+  checkDomain(domain);
+}
+</script>
+</body>
+</html>
