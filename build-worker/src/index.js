@@ -235,6 +235,9 @@ export default {
       if (path.startsWith('/experience/')) return servePwa(env, 'app:intake');
       if (path.startsWith('/verify/'))     return servePwa(env, 'app:manage');
 
+      // ── OG CARD — WhatsApp rich preview, redirects to real site ──
+      if (path.endsWith('/og')) return serveOgCard(path, env);
+
       // ── BUILT SITE SERVING ───────────────────────────────────
       return serveBuiltSite(url, path, request, env);
 
@@ -634,6 +637,9 @@ async function handleRunMigration(request, env) {
     '0003': [
       `ALTER TABLE clients ADD COLUMN gbp_place_id TEXT`,
       `ALTER TABLE clients ADD COLUMN gbp_data TEXT`,
+    ],
+    '0004': [
+      `ALTER TABLE clients ADD COLUMN hero_url TEXT`,
     ]
   };
 
@@ -1230,6 +1236,59 @@ async function servePwa(env, kvKey) {
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache' } });
 }
 
+// ── OG CARD — minimal HTML for WhatsApp rich preview ─────────────────────────
+// Path: /{slug}/og
+// WhatsApp crawls this, renders the card. Humans get auto-redirected to the
+// real preview. Bots see the OG tags and stop (no redirect).
+async function serveOgCard(path, env) {
+  const slug = path.replace(/^\//, '').replace(/\/og$/, '');
+  if (!slug) return new Response('Not found', { status: 404 });
+
+  const client = await getClientBySlug(slug, env);
+  if (!client) return new Response('Not found', { status: 404 });
+
+  const voice   = safeJson(client.voice_profile) || {};
+  const heroUrl = client.hero_url || '';
+  const title   = esc(client.business_name);
+  const area    = esc(client.area || '');
+  const desc    = esc(voice.hero_subline || voice.meta_description || `${client.business_name} — built by Website Hub`);
+  const dest    = `https://${PREVIEW_DOMAIN}/${slug}`;
+  const ogUrl   = `https://${PREVIEW_DOMAIN}/${slug}/og`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}${area ? ' — ' + area : ''}</title>
+<meta name="description" content="${desc}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${title}${area ? ' — ' + area : ''}">
+<meta property="og:description" content="${desc}">
+${heroUrl ? `<meta property="og:image" content="${esc(heroUrl)}">` : ''}
+<meta property="og:url" content="${ogUrl}">
+<meta property="og:site_name" content="Website Hub">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${title}">
+<meta name="twitter:description" content="${desc}">
+${heroUrl ? `<meta name="twitter:image" content="${esc(heroUrl)}">` : ''}
+<meta http-equiv="refresh" content="0;url=${dest}">
+<style>body{margin:0;background:#0a0a0a;color:#fff;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center}</style>
+</head>
+<body>
+<p>Opening your site preview… <a href="${dest}" style="color:#25D366">tap here if it doesn't open</a></p>
+<script>window.location.replace("${dest}");</script>
+</body>
+</html>`;
+
+  return new Response(html, {
+    headers: {
+      'Content-Type': 'text/html;charset=UTF-8',
+      'Cache-Control': 'public,max-age=3600',
+    },
+  });
+}
+
 async function serveBuiltSite(url, path, request, env) {
   // /site/{slug} — raw HTML for PWA iframe (no wrapper)
   if (path.startsWith('/site/')) {
@@ -1362,7 +1421,7 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
   });
 
   const previewUrl = `https://${PREVIEW_DOMAIN}/${slug}`;
-  await updateClient(env, clientId, { status: 'preview_ready', preview_url: previewUrl });
+  await updateClient(env, clientId, { status: 'preview_ready', preview_url: previewUrl, hero_url: heroUrl });
 
   await logEvent(env, clientId, 'build', 'pre_build_complete', 'success', {
     durationMs: buildMs,
@@ -1378,7 +1437,7 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
     if (!isOutbound) {
       await sendWhatsApp(client.phone,
-        `🎉 Your website preview is ready!\n\nTap here to personalise it:\nhttps://${PREVIEW_DOMAIN}/intake/${client.manage_token}`,
+        `🎉 Your website preview is ready!\n\nTap here to personalise it:\nhttps://${PREVIEW_DOMAIN}/${slug}/og`,
         env
       ).catch(() => {});
     }
@@ -1631,6 +1690,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   await updateClient(env, clientId, {
     status:        'preview_ready',
     voice_profile: JSON.stringify(contentTokens),
+    hero_url:      heroUrl,
   });
 
   await logEvent(env, clientId, 'build', 'substance_build_complete', 'success', {
@@ -1644,13 +1704,12 @@ async function triggerSubstanceBuild(clientId, cards, env) {
       env, { skipTestRedirect: true }
     ).catch(() => {});
 
-    // Client message — show the wife 😄
-    const firstName = (client.client_name || client.business_name || '').split(' ')[0] || 'there';
-    const previewLink = `https://${PREVIEW_DOMAIN}/preview/${client.manage_token}`;
+    // Client message — OG card link so WhatsApp renders the hero preview
+    const ogLink = `https://${PREVIEW_DOMAIN}/${slug}/og`;
     await sendWhatsApp(client.phone,
       `🎉 *${client.business_name}* — your site is ready!\n\n` +
       `Have a look, share it around, and when you're ready to go live tap the button:\n\n` +
-      `👉 ${previewLink}\n\n` +
+      `👉 ${ogLink}\n\n` +
       `No card needed until you go live.\n— Website Hub`,
       env
     ).catch(() => {});
@@ -1900,6 +1959,13 @@ function generateSkeletonHTML(t, cssBlock, heroUrl, client) {
 <title>${esc(heroH1)} | ${esc(client.area)}</title>
 <meta name="description" content="${esc(tagline)}">
 <meta name="robots" content="noindex">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${esc(client.business_name)} — ${esc(client.area)}">
+<meta property="og:description" content="${esc(tagline)}">
+<meta property="og:image" content="${esc(heroUrl)}">
+<meta property="og:url" content="https://${PREVIEW_DOMAIN}/${client.slug}/og">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${esc(heroUrl)}">
 ${cssBlock}
 <style>
 /* ── PREVIEW RESET ───────────────────────────── */
@@ -2469,6 +2535,13 @@ function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg, hero
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(t.page_title || client.business_name)}</title>
 <meta name="description" content="${esc(t.meta_description || '')}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${esc(client.business_name)} — ${esc(client.area || '')}">
+<meta property="og:description" content="${esc(t.hero_subline || t.meta_description || '')}">
+<meta property="og:image" content="${esc(heroUrl)}">
+<meta property="og:url" content="https://${PREVIEW_DOMAIN}/${client.slug}/og">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${esc(heroUrl)}">
 ${cssBlock}
 <style>${STRUCTURAL_CSS}</style>
 </head>
