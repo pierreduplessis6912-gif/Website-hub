@@ -572,7 +572,7 @@ body::after{
 <body>
 
 <nav class="nav" id="nav">
-  <a href="#" class="nav-brand">${esc(client.business_name)}</a>
+  <a href="#" class="nav-brand">${esc(t.short_name || client.business_name)}</a>
   <div class="nav-links">
     ${!isExp ? `<a href="#about" class="nav-link">Our story</a>` : ''}
     <a href="#services" class="nav-link">Services</a>
@@ -733,7 +733,7 @@ ${t.testimonial_quote && !isExp ? `
 </section>
 
 <footer class="footer">
-  <div class="footer-brand">${esc(client.business_name)}</div>
+  <div class="footer-brand">${esc(t.short_name || client.business_name)}</div>
   <div class="footer-tagline">${yearsLine}</div>
   <div class="footer-links">
     <a href="${esc(waLink)}" class="footer-link">WhatsApp</a>
