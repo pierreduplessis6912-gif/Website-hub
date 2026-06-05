@@ -408,9 +408,7 @@ async function handleGoLiveLink(request, env, ctx) {
   const isAnnual = billing === 'annual';
   const domain = client.domain || `${client.slug}.co.za`;
 
-  const notifyUrl = env.WORKER_URL_LAUNCH
-    ? `${env.WORKER_URL_LAUNCH}/payfast-webhook`
-    : `https://wh-launch.pierreduplessis6912.workers.dev/payfast-webhook`;
+  const notifyUrl = `https://${PREVIEW_DOMAIN}/payfast-webhook`;
 
   const returnUrl = `https://preview.websitehub.co.za/manage/${token}`;
   const cancelUrl = `https://preview.websitehub.co.za/manage/${token}`;
