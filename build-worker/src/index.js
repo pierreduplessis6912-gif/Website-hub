@@ -186,7 +186,7 @@ export default {
       if (path === '/admin/bootstrap-manage'   && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-intake'   && method === 'POST') return handleAdminBootstrapIntake(request, env);
       if (path === '/admin/bootstrap-pwa'      && method === 'POST') return handleAdminBootstrapPwa(request, env);
-      if (path === '/admin/reset-build'        && method === 'POST') return handleAdminResetBuild(request, env);
+      if (path === '/admin/purge-cache'       && method === 'POST') return handleAdminPurgeCache(env);
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
@@ -635,6 +635,27 @@ async function handleAdminTriggerRebuild(request, env) {
   await env.DB.prepare(`UPDATE clients SET status='preview_ready', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(client.id).run();
   await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: client.id });
   return jsonResponse({ success: true, clientId: client.id, slug: client.slug });
+}
+
+async function handleAdminPurgeCache(env) {
+  const token  = env.CF_API_TOKEN;
+  const zoneId = env.CF_ZONE_ID;
+  if (!token || !zoneId) return jsonResponse({ error: 'CF_API_TOKEN or CF_ZONE_ID not set' }, 500);
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purge_everything: true }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) return jsonResponse({ success: false, error: JSON.stringify(data.errors) });
+    return jsonResponse({ success: true });
+  } catch(e) {
+    return jsonResponse({ success: false, error: e.message }, 500);
+  }
 }
 
 async function handleAdminResetBuild(request, env) {
