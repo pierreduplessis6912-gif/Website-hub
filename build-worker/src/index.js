@@ -189,6 +189,13 @@ export default {
       if (path === '/admin/bootstrap-preview'  && method === 'POST') return handleAdminBootstrapPreview(request, env);
       if (path === '/admin/bootstrap-manage'   && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-intake'   && method === 'POST') return handleAdminBootstrapIntake(request, env);
+      if (path === '/admin/bootstrap-landing'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:landing');
+      if (path === '/admin/bootstrap-privacy'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:privacy');
+      if (path === '/admin/bootstrap-terms'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:terms');
+      if (path === '/admin/bootstrap-referral-terms' && method === 'POST') return handleAdminBootstrap(request, env, 'app:referral-terms');
+      if (path === '/admin/bootstrap-aup'      && method === 'POST') return handleAdminBootstrap(request, env, 'app:aup');
+      if (path === '/admin/bootstrap-cancellation' && method === 'POST') return handleAdminBootstrap(request, env, 'app:cancellation');
+      if (path === '/admin/bootstrap-dpa'      && method === 'POST') return handleAdminBootstrap(request, env, 'app:dpa');
       if (path === '/admin/bootstrap-pwa'      && method === 'POST') return handleAdminBootstrapPwa(request, env);
       if (path === '/admin/purge-cache'       && method === 'POST') return handleAdminPurgeCache(env);
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
@@ -249,6 +256,12 @@ export default {
 
       // ── PWA SHELLS ───────────────────────────────────────────
       if (path === '/start')               return servePwa(env, 'app:start-v2');
+      if (path === '/privacy')             return servePwa(env, 'app:privacy');
+      if (path === '/terms')               return servePwa(env, 'app:terms');
+      if (path === '/referral-terms')      return servePwa(env, 'app:referral-terms');
+      if (path === '/aup')                 return servePwa(env, 'app:aup');
+      if (path === '/cancellation')        return servePwa(env, 'app:cancellation');
+      if (path === '/dpa')                 return servePwa(env, 'app:dpa');
       if (path.startsWith('/intake/'))     return servePwa(env, 'app:intake');
       if (path.startsWith('/preview/'))    return servePwa(env, 'app:preview');
       if (path.startsWith('/manage/'))     return servePwa(env, 'app:manage');
@@ -790,6 +803,13 @@ async function handleRunMigration(request, env) {
 
   const failed = results.filter(r => !r.ok);
   return jsonResponse({ success: failed.length === 0, results, failed: failed.length });
+}
+
+async function handleAdminBootstrap(request, env, kvKey) {
+  const html = await request.text();
+  if (!html) return jsonResponse({ error: 'No content' }, 400);
+  await env.SITES.put(kvKey, html);
+  return jsonResponse({ success: true, key: kvKey, size: html.length });
 }
 
 async function handleAdminBootstrapAdmin(request, env) {
