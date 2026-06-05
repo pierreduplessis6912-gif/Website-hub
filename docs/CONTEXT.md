@@ -282,3 +282,79 @@ See Security section above.
 - Honest pushback welcomed
 - Never mention AI/Claude to customers — always "Website Hub team"
 - Never use desktop-first UX assumptions
+
+---
+
+## Session Update 2026-06-06
+
+### What changed this session
+
+**Pipeline fully working end to end:**
+- `/start` → `/intake` → build → `/preview/{token}` → PayFast → go-live → `slug.websitehub.co.za`
+- Post-build WhatsApp sends to `/preview/{token}` — the SPA with iframe + Go Live button
+- preview.html is the customer SPA — served from `app:preview` KV key at `/preview/{token}`
+- Go Live button in preview.html calls `/go-live-link` → PayFast R399 subscription
+- PayFast webhook at `/payfast-webhook` → `handleGoLiveInternal` → CNAME → live
+
+**Service bindings complete:**
+- ALL routes go through build worker (wh-build) wildcard `preview.websitehub.co.za/*`
+- Launch and patch workers have NO public routes — called via service binding only
+- Proxied routes: `/internal-golive`, `/go-live-link`, `/activate-free`, `/manage-panel`, `/client-status`, `/submit-revision`, `/cancel-site`, `/go-live`, `/payfast-webhook`
+- Removed conflicting routes from `patch-worker/wrangler.toml` and `launch-worker/wrangler.toml`
+
+**Key files:**
+- `preview.html` → `app:preview` KV → `/preview/{token}` — customer SPA with iframe + Go Live
+- `manage.html` → `app:manage` KV → `/manage/{token}` — post-live management dashboard  
+- `start-v3.html` → `app:start-v2` KV → `/start` — intake form, sends `package:legacy`
+- `admin.html` → `app:admin` KV → `/admin` — operator dashboard with Operations buttons + Purge Cache
+
+**Legacy plan:**
+- Package name: `legacy` — maps to `express` in pkgKey() and packageKey()
+- Price: R399/month
+- Domain: `slug.websitehub.co.za` — free CNAME on websitehub.co.za zone
+- Full 5-page archetype site during pre-launch window (2 weeks)
+- After pre-launch: Express returns, Legacy grandfathered at R399 forever
+- Start-v3 sends `package:'legacy'` to `/intake`
+
+**PayFast:**
+- VERIFIED ✅ — can take real payments
+- buildPayFastLink now supports subscription params (frequency=3 monthly, cycles=0 infinite)
+- notifyUrl fixed to use `preview.websitehub.co.za/payfast-webhook` not workers.dev
+- R399 subscription from day one — no R0 trial
+
+**Admin operations:**
+- 🧹 Purge Cache button in dashboard — calls `/admin/purge-cache` → CF API purge_everything
+- CF_API_TOKEN, CF_ZONE_ID, CF_ACCOUNT_ID now on wh-build for cache purge
+- `/admin/query` allows all SQL (SELECT + UPDATE) — LOCK DOWN BEFORE LAUNCH
+
+**DNSimple:**
+- Token: `dnsimple_u_bRjDRdaHxMHh1l0XCnRRH4TKxWW1tTz0`
+- Account: 175950
+- Contact created: "Website Hub" as registrant
+- .co.za price: $10.90/year, whois_privacy: false
+
+**Classic Touch Salon (mom):**
+- Site live at `preview.websitehub.co.za/classictouchsalon`
+- Domain `classictouchsalon.co.za` registered in DNSimple, A record → 156.38.165.210 (cPanel)
+- Emails created in cPanel: info@, hello@, bookings@classictouchsalon.co.za
+- Manage panel: `preview.websitehub.co.za/manage/6117ae0e-7e16-4a4c-97f7-dec0778e5512`
+
+**Test client:**
+- terayneelectricalmaintenance — package=legacy, retainer=0 in D1
+- manage_token: 3d5a607c-a8af-478b-8a71-af379bf51892
+- Preview SPA: `preview.websitehub.co.za/preview/3d5a607c-a8af-478b-8a71-af379bf51892`
+
+**registerdomain.co.za:**
+- Support ticket open — all API actions return "Action not found"
+- Replaced by DNSimple for Standard/Premium domain registration
+- PHP proxy at `websitehub.co.za/domain-proxy.php` still exists but irrelevant
+
+**Sunday security checklist (MUST DO BEFORE LAUNCH):**
+1. Rotate ADMIN_KEY (ADMIN_KEY_CLAUDEROX exposed in chat)
+2. Rotate GitHub token (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 exposed)
+3. Rotate DNSIMPLE_TOKEN (exposed in chat)
+4. Rotate CF_API_TOKEN (exposed in chat)  
+5. Lock `/admin/query` back to SELECT only
+6. Add auth to `/internal-golive`
+7. Delete CPANEL_PASSWORD from all workers
+8. Rate limiting on admin endpoints
