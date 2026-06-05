@@ -629,6 +629,24 @@ export async function logEvent(env, worker, eventType, status, options = {}) {
   }
 }
 
+export async function logActivity(env, event, data = {}) {
+  try {
+    const ts      = Date.now();
+    const key     = `activity:${ts}:${event}`;
+    const payload = JSON.stringify({ event, ...data, timestamp: new Date(ts).toISOString() });
+    await env.SITES.put(key, payload, { expirationTtl: 60 * 60 * 24 * 30 });
+  } catch { /* non-fatal */ }
+}
+
+export async function logHealth(env, service, status, error = null) {
+  try {
+    const normStatus = (status === 'success' || status === 'partial' || status === 'ok') ? 'ok' : 'error';
+    const now        = new Date().toISOString();
+    const payload    = { status: normStatus, timestamp: now, ...(normStatus === 'ok' ? { lastSuccess: now } : { lastError: error }) };
+    await env.SITES.put(`health:${service}`, JSON.stringify(payload), { expirationTtl: 60 * 60 * 24 * 7 });
+  } catch { /* non-fatal */ }
+}
+
 // ────────────────────────────────────────────────────────────
 // CLAUDE API — model resolution + streaming completion
 // ────────────────────────────────────────────────────────────
