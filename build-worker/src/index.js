@@ -183,6 +183,8 @@ export default {
       if (path === '/admin/reset-build'        && method === 'POST') return handleAdminResetBuild(request, env);
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
+      if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
+      if (path === '/admin/trigger-rebuild'    && method === 'POST') return handleAdminTriggerRebuild(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
@@ -601,6 +603,33 @@ async function handleTestWhatsapp(request, env) {
   }
 }
 
+
+async function handleAdminRegisterDomain(request, env) {
+  const { slug } = await request.json().catch(() => ({}));
+  if (!slug) return jsonResponse({ error: 'slug required' }, 400);
+  try {
+    const res = await fetch('https://websitehub.co.za/domain-proxy.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': env.DOMAIN_PROXY_SECRET || 'wh-proxy-d8f3a1b9c2e4f7d6a5b8c3e1f9d2a4b7' },
+      body: JSON.stringify({ action: 'RegisterDomain', sld: slug, tld: 'co.za' }),
+    });
+    const data = await res.json().catch(() => ({}));
+    return jsonResponse({ success: res.ok, data });
+  } catch(e) {
+    return jsonResponse({ success: false, error: e.message }, 500);
+  }
+}
+
+async function handleAdminTriggerRebuild(request, env) {
+  const { clientId, slug } = await request.json().catch(() => ({}));
+  const client = clientId
+    ? await env.DB.prepare(`SELECT * FROM clients WHERE id=? LIMIT 1`).bind(clientId).first()
+    : await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
+  if (!client) return jsonResponse({ error: 'Client not found' }, 404);
+  await env.DB.prepare(`UPDATE clients SET status='preview_ready', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(client.id).run();
+  await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: client.id });
+  return jsonResponse({ success: true, clientId: client.id, slug: client.slug });
+}
 
 async function handleAdminResetBuild(request, env) {
   const body = await request.json().catch(() => ({}));
