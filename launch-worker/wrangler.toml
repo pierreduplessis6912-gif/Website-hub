@@ -14,22 +14,6 @@ WORKER_URL_LAUNCH = "https://wh-launch.pierreduplessis6912.workers.dev"
 WORKER_URL_PATCH = "https://wh-patch.pierreduplessis6912.workers.dev"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
 
-[[routes]]
-pattern = "preview.websitehub.co.za/go-live-link"
-zone_name = "websitehub.co.za"
-
-[[routes]]
-pattern = "preview.websitehub.co.za/activate-free"
-zone_name = "websitehub.co.za"
-
-[[routes]]
-pattern = "preview.websitehub.co.za/internal-golive"
-zone_name = "websitehub.co.za"
-
-[[routes]]
-pattern = "preview.websitehub.co.za/google-auth"
-zone_name = "websitehub.co.za"
-
 [[kv_namespaces]]
 binding = "SITES"
 id = "b63e5b885ead4c02a9e184dd6477e711"
