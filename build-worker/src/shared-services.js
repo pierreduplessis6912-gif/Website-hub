@@ -462,6 +462,7 @@ export function scoreBrandVoice(html, businessName, industry, area) {
 /** Normalises a package string to a PRICING key. Defaults to standard. */
 export function packageKey(pkg) {
   const key = String(pkg || '').toLowerCase().trim();
+  if (key === 'legacy')   return 'express'; // Legacy = grandfathered early access
   if (key === 'express')  return 'express';
   if (key === 'premium')  return 'premium';
   return 'standard';
