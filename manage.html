@@ -1162,12 +1162,12 @@ function switchTab(tab) {
 
 // ── ACTIONS ──────────────────────────────────────────────────────
 function openSite() {
-  const u = S.data?.liveUrl || (S.data?.domain ? `https://${S.data.domain}` : null);
+  const u = S.data?.previewUrl || S.data?.liveUrl || (S.data?.domain ? `https://${S.data.domain}` : null);
   if (u) window.open(u, '_blank');
 }
 
 function shareSite() {
-  const u = S.data?.liveUrl || `https://${S.data?.domain}`;
+  const u = S.data?.previewUrl || S.data?.liveUrl || `https://${S.data?.domain}`;
   if (navigator.share) {
     navigator.share({ title: S.data?.businessName, url: u }).catch(() => {});
   } else {
