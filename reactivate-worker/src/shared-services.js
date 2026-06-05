@@ -784,8 +784,12 @@ export function normaliseSaPhone(raw) {
  * @param {boolean} [opts.skipTestRedirect]   Bypass TEST_MODE redirect (owner alerts)
  */
 export async function sendWhatsApp(to, message, env, opts = {}) {
-  if (!env.META_WA_TOKEN || !env.META_PHONE_NUMBER_ID) {
-    console.warn('Meta WhatsApp not configured — skipping:', String(message).slice(0, 60));
+  const evoUrl      = env.EVOLUTION_API_URL;
+  const evoKey      = env.EVOLUTION_API_KEY;
+  const evoInstance = env.EVOLUTION_INSTANCE || 'wa1';
+
+  if (!evoUrl || !evoKey) {
+    console.warn('Evolution API not configured — skipping:', String(message).slice(0, 60));
     return null;
   }
 
@@ -805,7 +809,6 @@ export async function sendWhatsApp(to, message, env, opts = {}) {
     finalMsg = `[TEST → +${toIntl}]\n${message}`;
   }
 
-  // KV optout check (legacy opt-out flags — new opts stored in D1 clients.opted_out)
   const optedOut = await env.SITES.get(`optout:${finalTo}`).catch(() => null);
   if (optedOut) {
     console.warn(`Skipping WhatsApp to opted-out number: ${finalTo}`);
@@ -814,34 +817,29 @@ export async function sendWhatsApp(to, message, env, opts = {}) {
 
   try {
     const res = await fetch(
-      `https://graph.facebook.com/v19.0/${env.META_PHONE_NUMBER_ID}/messages`,
+      `${evoUrl}/message/sendText/${evoInstance}`,
       {
         method:  'POST',
         headers: {
-          'Authorization': `Bearer ${env.META_WA_TOKEN}`,
-          'Content-Type':  'application/json',
+          'apikey':       evoKey,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          recipient_type:    'individual',
-          to:                `+${finalTo}`,
-          type:              'text',
-          text:              { preview_url: opts.previewUrl === true, body: finalMsg },
+          number:      `+${finalTo}`,
+          textMessage: { text: finalMsg },
         }),
       },
     );
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      console.warn('Meta WhatsApp error:', JSON.stringify(data));
-      await logEvent(env, 'shared', 'whatsapp_send', 'failure', {
-        error: data?.error?.message || `HTTP ${res.status}`,
-      });
+      console.warn('Evolution API error:', JSON.stringify(data));
+      await logEvent(env, 'shared', 'whatsapp_send', 'failure', { error: data?.message || `HTTP ${res.status}` });
     } else {
       await logEvent(env, 'shared', 'whatsapp_send', 'success');
     }
     return data;
   } catch (e) {
-    console.warn('Meta WhatsApp fetch error:', e?.message || e);
+    console.warn('Evolution API fetch error:', e?.message || e);
     await logEvent(env, 'shared', 'whatsapp_send', 'failure', { error: e?.message || 'fetch failed' });
     return null;
   }
