@@ -424,6 +424,10 @@ async function handleGoLiveLink(request, env, ctx) {
     cancelUrl,
     customStr2,
     itemDesc: `${client.business_name} — ${pkg} plan${isAnnual ? ' (annual)' : ''}`,
+    subscription:     true,
+    frequency:        3, // monthly
+    cycles:           0, // infinite
+    recurringAmount:  amount === 0 ? 399 : amount, // if R0 trial, recurring is R399
   });
 
   if (isTestMode(env)) {
