@@ -4,7 +4,6 @@ compatibility_date = "2024-01-01"
 account_id = "4c559b9dff9fae56803b9c275b518597"
 
 [vars]
-# RESEND_API_KEY moved to GH secret
 REGISTERDOMAIN_EMAIL = "loc10@live.co.za"
 TEST_MODE = "false"
 WORKER_URL_BUILD = "https://wh-build.pierreduplessis6912.workers.dev"
@@ -16,6 +15,15 @@ WORKER_URL_REACTIVATE = "https://wh-reactivate.pierreduplessis6912.workers.dev"
 [[routes]]
 pattern = "preview.websitehub.co.za/*"
 zone_name = "websitehub.co.za"
+
+# Service bindings — internal worker-to-worker calls, zero latency
+[[services]]
+binding = "LAUNCH_WORKER"
+service = "wh-launch"
+
+[[services]]
+binding = "PATCH_WORKER"
+service = "wh-patch"
 
 # KV — content shelf only (HTML blobs, SPA, templates)
 [[kv_namespaces]]
