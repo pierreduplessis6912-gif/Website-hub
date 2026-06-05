@@ -93,7 +93,6 @@ export default {
     if (path === '/go-live')          return handleGoLive(request, env, ctx);
     if (path === '/go-live-link')     return handleGoLiveLink(request, env, ctx);
     if (path === '/activate-free')    return handleActivateFree(request, env, ctx);
-    if (path === '/internal-golive')  return handleInternalGoLive(request, env, ctx);
     if (path === '/suspend-site')     return handleSuspendSite(request, env);
     if (path === '/reinstate-site')   return handleReinstateSite(request, env);
     if (path === '/upgrade')          return handleUpgrade(request, env);
@@ -337,27 +336,6 @@ async function handleCancelSite(request, env) {
 
 
 // ── /activate-free — skip PayFast for 100% promo codes ───────────────────────
-async function handleInternalGoLive(request, env, ctx) {
-  const { clientId, slug } = await request.json().catch(() => ({}));
-  if (!clientId && !slug) return Response.json({ error: 'clientId or slug required' }, { status: 400 });
-
-  const client = clientId
-    ? await env.DB.prepare(`SELECT * FROM clients WHERE id=? LIMIT 1`).bind(clientId).first()
-    : await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
-  if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
-
-  ctx.waitUntil(
-    handleGoLiveInternal(client.id, client, env).catch(async e => {
-      console.error('handleGoLiveInternal failed:', e?.message, e?.stack);
-      await sendWhatsApp(env.WH_PHONE,
-        `❌ go-live FAILED for ${client.slug}: ${e?.message || 'unknown'}`,
-        env, { skipTestRedirect: true }
-      ).catch(() => {});
-    })
-  );
-  return Response.json({ success: true, clientId: client.id, slug: client.slug });
-}
-
 async function handleActivateFree(request, env, ctx) {
   if (request.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
 
@@ -817,8 +795,6 @@ async function handleGoLiveInternal(clientId, client, env) {
   const pages = caps.pages;
   const tier  = getPricingTier(client.package || 'standard');
 
-  await logActivity(env, 'go_live_started', { clientId, slug, domain });
-
   // ── 1. Apply panel choices to draft KV ──────────────────────
   await applyPanelChoicesToDrafts(slug, pages, env);
 
@@ -832,6 +808,7 @@ async function handleGoLiveInternal(clientId, client, env) {
       const prev = await env.SITES.get(`preview:${slug}:${pageName}`);
       if (prev) pageHtml = removeWatermark(prev);
     }
+    // Fall back to substance build key
     if (!pageHtml) {
       pageHtml = await env.SITES.get(`site:${slug}`);
       if (pageHtml) pageHtml = removeWatermark(pageHtml);
@@ -846,12 +823,8 @@ async function handleGoLiveInternal(clientId, client, env) {
     if (pageName === 'index') homeHtml = pageHtml;
   }
 
-  if (!homeHtml) {
-    await logActivity(env, 'go_live_failed', { clientId, slug, reason: 'no_html_in_kv' });
-    throw new Error('No built site found in KV — trigger a rebuild first');
-  }
+  if (!homeHtml) throw new Error('No built site found in KV — trigger a rebuild first');
   await env.SITES.put(`live:${domain}`, homeHtml);
-  await logActivity(env, 'go_live_kv_written', { clientId, slug, domain });
 
   // ── 3. Update D1 — status → live ────────────────────────────
   const today       = todayDateString();
@@ -859,7 +832,6 @@ async function handleGoLiveInternal(clientId, client, env) {
   await env.DB.prepare(
     `UPDATE clients SET status='live', go_live_date=?, next_invoice_date=?, domain=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
   ).bind(today, nextInvoice, domain, clientId).run();
-  await logActivity(env, 'go_live_d1_updated', { clientId, slug, domain });
 
   // ── 3b. Push to showcase queue (keep newest 5) ───────────────
   try {
@@ -875,7 +847,6 @@ async function handleGoLiveInternal(clientId, client, env) {
   // ── 4. Cloudflare hostname binding (non-fatal) ───────────────
   bindCustomHostname(domain, env).catch(e => {
     console.warn('CF hostname binding failed:', e?.message || e);
-    logActivity(env, 'go_live_cf_hostname_failed', { clientId, domain, error: e?.message });
     sendWhatsApp(env.WH_PHONE,
       `⚠️ CF hostname binding failed for ${domain}: ${e.message}`,
       env, { skipTestRedirect: true },
@@ -886,7 +857,6 @@ async function handleGoLiveInternal(clientId, client, env) {
   if (!isTestMode(env)) {
     registerDomainViaProxy(slug, env).catch(e => {
       console.warn('Domain registration failed (non-fatal):', e?.message || e);
-      logActivity(env, 'go_live_domain_reg_failed', { clientId, domain, error: e?.message });
       sendWhatsApp(env.WH_PHONE,
         `⚠️ Domain reg failed for ${domain}: ${e.message}`,
         env, { skipTestRedirect: true },
@@ -912,23 +882,14 @@ async function handleGoLiveInternal(clientId, client, env) {
   const name = client.client_name?.split(' ')[0] || 'there';
   const tierLabel = (client.package || 'standard').charAt(0).toUpperCase() + (client.package || 'standard').slice(1);
 
-  let goLiveMsg = `🎉 *${client.business_name}* is live!\n\n`;
+  let goLiveMsg = `🚀 *${client.business_name}* is live!\n\n`;
   goLiveMsg += `🌐 https://${domain}\n`;
   goLiveMsg += `📱 Manage your site: ${manageUrl}\n\n`;
   goLiveMsg += `💳 Next invoice: R${tier.retainer} due ${nextInvoice}\n`;
   if (referralLink) goLiveMsg += `\n💡 Refer a friend and earn R${tier.retainer} credit:\n${referralLink}\n`;
   goLiveMsg += `\n— Website Hub`;
 
-  if (client.phone) {
-    await sendWhatsApp(client.phone, goLiveMsg.trim(), env).catch(e => {
-      console.warn('Client go-live WhatsApp failed:', e?.message);
-      logActivity(env, 'go_live_whatsapp_client_failed', { clientId, error: e?.message });
-    });
-    await logActivity(env, 'go_live_whatsapp_sent', { clientId, slug });
-  } else {
-    console.warn('No phone number for client — skipping client WhatsApp');
-    await logActivity(env, 'go_live_whatsapp_skipped', { clientId, reason: 'no_phone' });
-  }
+  await sendWhatsApp(client.phone, goLiveMsg.trim(), env);
 
   // ── 8. Post go-live touch schedule ──────────────────────────
   await env.SITES.put(`post_golive_d1:${clientId}`,   new Date(Date.now() + 1  * 864e5).toISOString());
@@ -938,9 +899,9 @@ async function handleGoLiveInternal(clientId, client, env) {
 
   // ── 9. Owner notification ────────────────────────────────────
   await sendWhatsApp(env.WH_PHONE,
-    `🚀 LIVE: ${client.business_name}\n🌐 https://${domain}\nPlan: ${tierLabel}\nR${tier.retainer}/mo · Next: ${nextInvoice}\nPhone: ${client.phone || 'MISSING'}`,
+    `🚀 LIVE: ${client.business_name}\n🌐 https://${domain}\nPlan: ${tierLabel}\nR${tier.retainer}/mo · Next: ${nextInvoice}`,
     env, { skipTestRedirect: true },
-  ).catch(e => console.warn('Owner go-live WhatsApp failed:', e?.message));
+  );
 
   await logActivity(env, 'site_went_live', { clientId, business: client.business_name, domain });
   await logHealth(env, 'build', 'success');
@@ -1279,53 +1240,30 @@ async function registerDomainViaProxy(slug, env) {
     return { test_mode: true };
   }
 
-  const token     = env.DNSIMPLE_TOKEN;
-  const accountId = env.DNSIMPLE_ACCOUNT_ID || '175950';
-  const domain    = `${slug}.co.za`;
-
-  if (!token) throw new Error('DNSIMPLE_TOKEN not set');
-
-  // 1. Check availability
-  const checkRes = await fetch(
-    `https://api.dnsimple.com/v2/${accountId}/registrar/domains/${domain}/check`,
-    { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }
-  );
-  const checkData = await checkRes.json();
-  if (!checkData.data?.available) {
-    throw new Error(`Domain ${domain} is not available for registration`);
+  const data = await callDomainProxy('RegisterDomain', slug, 'co.za', {}, env);
+  if (data?.result !== 'success' && data?.result !== 'active') {
+    throw new Error(`Registration failed: ${JSON.stringify(data)}`);
   }
+  await logActivity(env, 'domain_registered', { domain: `${slug}.co.za`, response: data });
+  return data;
+}
 
-  // 2. Get registrant contact ID
-  const contactsRes = await fetch(
-    `https://api.dnsimple.com/v2/${accountId}/contacts`,
-    { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }
-  );
-  const contactsData = await contactsRes.json();
-  const registrantId = contactsData.data?.[0]?.id;
-  if (!registrantId) throw new Error('No DNSimple contact found — create one at dnsimple.com');
-
-  // 3. Register
-  const regRes = await fetch(
-    `https://api.dnsimple.com/v2/${accountId}/registrar/domains/${domain}/registrations`,
-    {
+async function callDomainProxy(action, sld, tld = 'co.za', extra = {}, env) {
+  const secret = env.DOMAIN_PROXY_SECRET || '';
+  if (!secret) console.warn('DOMAIN_PROXY_SECRET env var not set — domain proxy calls will be rejected');
+  try {
+    const res = await fetch(DOMAIN_PROXY_URL, {
       method:  'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept':        'application/json',
-        'Content-Type':  'application/json',
-      },
-      body: JSON.stringify({
-        registrant_id: registrantId,
-        auto_renew:    true,
-        whois_privacy: true,
-      }),
-    }
-  );
-  const regData = await regRes.json();
-  if (!regRes.ok) throw new Error(`DNSimple registration failed: ${JSON.stringify(regData)}`);
-
-  await logActivity(env, 'domain_registered', { domain, state: regData.data?.state });
-  return regData;
+      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': secret },
+      body:    JSON.stringify({ action, sld, tld, ...extra }),
+    });
+    const data = await res.json();
+    await logHealth(env, 'domain_proxy', res.ok ? 'success' : 'error', data?.error);
+    return data;
+  } catch (e) {
+    await logHealth(env, 'domain_proxy', 'error', e.message);
+    throw e;
+  }
 }
 
 // ============================================================
