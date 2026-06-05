@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#080808">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080808;--bg2:#0e0e0e;--rule:rgba(255,255,255,.07);--rule-hi:rgba(255,255,255,.14);
+  --white:#ede9e4;--dim:rgba(237,233,228,.48);--ghost:rgba(237,233,228,.18);
+  --cyan:#00e8f5;--green:#00c97a;--warm:#f5c842;
+  --f-display:'Syne',sans-serif;--f-body:'DM Sans',sans-serif;--f-mono:'DM Mono',monospace;
+  --max:720px;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--white);font-family:var(--f-body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+nav{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule);padding:0 24px}
+.nav-inner{max-width:var(--max);margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-logo{font-family:var(--f-display);font-size:17px;font-weight:800;letter-spacing:-.3px;text-decoration:none;color:var(--white)}
+.nav-logo span{color:var(--cyan)}
+.nav-back{font-size:13px;color:var(--dim);text-decoration:none;display:flex;align-items:center;gap:6px}
+.nav-back:hover{color:var(--white)}
+.doc-wrap{max-width:var(--max);margin:0 auto;padding:64px 24px 120px}
+.doc-eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:16px}
+.doc-title{font-family:var(--f-display);font-size:clamp(28px,6vw,44px);font-weight:800;letter-spacing:-1.5px;line-height:1.08;margin-bottom:12px}
+.doc-meta{font-size:13px;color:var(--dim);margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid var(--rule)}
+h2{font-family:var(--f-display);font-size:18px;font-weight:700;letter-spacing:-.3px;margin:40px 0 12px;padding-top:40px;border-top:1px solid var(--rule)}
+h2:first-of-type{border-top:none;padding-top:0}
+p{font-size:15px;line-height:1.75;color:var(--dim);margin-bottom:14px}
+ul,ol{padding-left:20px;margin-bottom:14px}
+li{font-size:15px;line-height:1.75;color:var(--dim);margin-bottom:6px}
+strong{color:var(--white);font-weight:500}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+.highlight{background:rgba(0,232,245,.05);border:1px solid rgba(0,232,245,.12);border-radius:10px;padding:16px 20px;margin:20px 0}
+.highlight p{margin:0;color:var(--white);font-size:14px}
+footer{border-top:1px solid var(--rule);padding:32px 24px;margin-top:40px}
+.footer-inner{max-width:var(--max);margin:0 auto;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.footer-logo{font-family:var(--f-display);font-size:15px;font-weight:800}
+.footer-logo span{color:var(--cyan)}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap}
+.footer-links a{font-size:12px;color:var(--dim);text-decoration:none}
+.footer-links a:hover{color:var(--white)}
+.footer-copy{font-size:12px;color:var(--ghost);width:100%}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Website<span>Hub</span></a>
+    <a href="/" class="nav-back">← Back</a>
+  </div>
+</nav>
+<div class="doc-wrap">
+  <div class="doc-eyebrow">Legal</div>
+  <h1 class="doc-title">Cancellation &amp; Refund Policy</h1>
+  <div class="doc-meta">Last updated: June 2026</div>
+
+  <h2>1. Cancelling Your Subscription</h2>
+  <p>You may cancel your Website Hub subscription at any time by:</p>
+  <ul>
+    <li>Using the Cancel option in your manage panel, or</li>
+    <li>Sending a WhatsApp message to your Website Hub contact number requesting cancellation</li>
+  </ul>
+  <p>Cancellation requests are processed within 1 business day. You will receive a WhatsApp confirmation once your cancellation has been actioned.</p>
+
+  <h2>2. What Happens After Cancellation</h2>
+  <ul>
+    <li>Your site remains live until the end of your current billing period.</li>
+    <li>No further payments will be charged after cancellation.</li>
+    <li>After the billing period ends, your site will be taken offline and your web address released.</li>
+    <li>Your site content and data are retained for 30 days after cancellation, during which you may request a copy. After 30 days, all data is permanently deleted.</li>
+  </ul>
+
+  <h2>3. Domain Names (Standard and Premium Plans)</h2>
+  <p>If you are on a Standard or Premium plan and wish to keep your .co.za domain, you must request a domain transfer within 30 days of cancellation. We will transfer the domain to a registrar account of your choice at no charge. After 30 days, the domain may be released and become available for public registration.</p>
+
+  <h2>4. Refund Policy</h2>
+  <p>Website Hub subscriptions are billed monthly in advance. We do not offer pro-rata refunds for unused portions of a billing period.</p>
+
+  <div class="highlight"><p><strong>Exception:</strong> If you experience a verified technical failure on our side that renders your site inaccessible for more than 48 consecutive hours in a billing period, you may request a pro-rata credit for the affected days. Contact us at <a href="mailto:billing@websitehub.co.za">billing@websitehub.co.za</a>.</p></div>
+
+  <h2>5. Free Preview Period</h2>
+  <p>The site build and preview are provided free of charge. No payment is taken until you choose to go live. If you decide not to proceed after viewing your preview, simply do not activate — no charge will be made and no cancellation is required.</p>
+
+  <h2>6. Legacy Price Guarantee on Cancellation</h2>
+  <p>Legacy early access pricing at R399/month is tied to continuous active subscription. If a legacy client cancels and later resubscribes, the new subscription will be at the current standard pricing at that time.</p>
+
+  <h2>7. Contact</h2>
+  <p>For any billing queries, contact <a href="mailto:billing@websitehub.co.za">billing@websitehub.co.za</a> or WhatsApp us directly from your manage panel.</p>
+</div><footer>
+  <div class="footer-inner">
+    <div class="footer-logo">Website<span>Hub</span></div>
+    <nav class="footer-links">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/referral-terms">Referral T&Cs</a>
+      <a href="/aup">Acceptable Use</a>
+      <a href="/cancellation">Cancellation &amp; Refunds</a>
+      <a href="/dpa">Data Processing</a>
+    </nav>
+    <div class="footer-copy">© 2026 Website Hub. South African business sites, built with care.</div>
+  </div>
+</footer>
+</body>
+</html>
