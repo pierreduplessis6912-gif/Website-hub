@@ -346,7 +346,15 @@ async function handleInternalGoLive(request, env, ctx) {
     : await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
   if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
 
-  ctx.waitUntil(handleGoLiveInternal(client.id, client, env));
+  ctx.waitUntil(
+    handleGoLiveInternal(client.id, client, env).catch(async e => {
+      console.error('handleGoLiveInternal failed:', e?.message || e, e?.stack);
+      await sendWhatsApp(env.WH_PHONE,
+        `❌ go-live FAILED for ${client.slug}: ${e?.message || 'unknown error'}`,
+        env, { skipTestRedirect: true }
+      ).catch(() => {});
+    })
+  );
   return Response.json({ success: true, clientId: client.id, slug: client.slug });
 }
 
@@ -1283,11 +1291,15 @@ async function callDomainProxy(action, sld, tld = 'co.za', extra = {}, env) {
   const secret = env.DOMAIN_PROXY_SECRET || '';
   if (!secret) console.warn('DOMAIN_PROXY_SECRET env var not set — domain proxy calls will be rejected');
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
     const res = await fetch(DOMAIN_PROXY_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': secret },
       body:    JSON.stringify({ action, sld, tld, ...extra }),
+      signal:  controller.signal,
     });
+    clearTimeout(timeout);
     const data = await res.json();
     await logHealth(env, 'domain_proxy', res.ok ? 'success' : 'error', data?.error);
     return data;
