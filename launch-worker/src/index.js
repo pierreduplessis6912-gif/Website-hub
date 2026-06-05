@@ -1013,7 +1013,11 @@ async function applyPanelChoicesToDrafts(slug, pages, env) {
  * Mirrored from build-worker's removeWatermark; kept local to avoid cross-worker imports.
  */
 function removeWatermark(html) {
-  return html.replace(/<div id="wh-preview-bar"[\s\S]*?<!-- WH_WATERMARK_END -->\n?/, '');
+  // Strip preview bar (new format with comment markers)
+  html = html.replace(/<!-- WH_PREVIEW_BAR_START -->[\s\S]*?<!-- WH_PREVIEW_BAR_END -->/g, '');
+  // Strip old format (legacy)
+  html = html.replace(/<div id="wh-preview-bar"[\s\S]*?<!-- WH_WATERMARK_END -->\n?/, '');
+  return html;
 }
 
 /**
