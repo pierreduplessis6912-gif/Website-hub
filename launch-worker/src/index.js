@@ -62,7 +62,12 @@ import {
   callClaudeInternal,
   sendWhatsApp, normaliseSaPhone,
   logActivity, logHealth, getFlag,
+  getClientByToken,
 } from './shared-services.js';
+
+function generateUUID() {
+  return crypto.randomUUID();
+}
 
 // ────────────────────────────────────────────────────────────
 // CONSTANTS
