@@ -346,22 +346,38 @@ async function handleInternalGoLive(request, env, ctx) {
     : await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
   if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
 
-  // Send WhatsApp synchronously to test Evolution from launch worker
-  await sendWhatsApp(env.WH_PHONE,
-    `🔔 internal-golive called for ${client.slug} — testing Evolution from launch worker`,
-    env, { skipTestRedirect: true }
-  ).catch(e => console.warn('Direct WA failed:', e?.message));
+  const evoUrl = env.EVOLUTION_API_URL;
+  const evoKey = env.EVOLUTION_API_KEY;
+  const evoInstance = env.EVOLUTION_INSTANCE || 'wa1';
+  const whPhone = env.WH_PHONE;
 
-  ctx.waitUntil(
-    handleGoLiveInternal(client.id, client, env).catch(async e => {
-      console.error('handleGoLiveInternal failed:', e?.message, e?.stack);
-      await sendWhatsApp(env.WH_PHONE,
-        `❌ go-live FAILED for ${client.slug}: ${e?.message || 'unknown'}`,
-        env, { skipTestRedirect: true }
-      ).catch(() => {});
-    })
-  );
-  return Response.json({ success: true, clientId: client.id, slug: client.slug });
+  // Return debug info so we can see what the launch worker actually has
+  const debug = {
+    hasEvoUrl: !!evoUrl,
+    evoUrlPrefix: evoUrl ? evoUrl.slice(0, 20) : null,
+    hasEvoKey: !!evoKey,
+    evoKeyHint: evoKey ? evoKey.slice(0,3) + '...' + evoKey.slice(-3) : null,
+    evoInstance,
+    hasWhPhone: !!whPhone,
+    whPhoneHint: whPhone ? whPhone.slice(0,4) + '...' : null,
+  };
+
+  // Try direct Evolution call
+  if (evoUrl && evoKey) {
+    try {
+      const res = await fetch(`${evoUrl}/message/sendText/${evoInstance}`, {
+        method: 'POST',
+        headers: { 'apikey': evoKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: whPhone, textMessage: { text: `🔔 launch worker test for ${client.slug}` } }),
+      });
+      const data = await res.json().catch(() => ({}));
+      return Response.json({ success: true, debug, evoStatus: res.status, evoData: data });
+    } catch(e) {
+      return Response.json({ success: false, debug, error: e?.message });
+    }
+  }
+
+  return Response.json({ success: false, debug, error: 'Evolution not configured' });
 }
 
 async function handleActivateFree(request, env, ctx) {
