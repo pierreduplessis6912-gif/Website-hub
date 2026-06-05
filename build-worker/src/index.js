@@ -636,7 +636,7 @@ async function handleAdminForceLive(request, env) {
   ).bind(today, nextMonth, domain, client.id).run();
 
   // Trigger domain registration + WhatsApp via launch worker
-  const launchUrl = env.WORKER_URL_LAUNCH || 'https://wh-launch.pierreduplessis6912.workers.dev';
+  const launchUrl = `https://${PREVIEW_DOMAIN}`;
   fetch(`${launchUrl}/internal-golive`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
