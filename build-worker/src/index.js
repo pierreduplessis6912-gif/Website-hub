@@ -180,6 +180,12 @@ export default {
         if (path === '/admin/clients')         return handleAdminClients(env);
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
+      if (path === '/admin/bootstrap-admin'    && method === 'POST') return handleAdminBootstrapAdmin(request, env);
+      if (path === '/admin/bootstrap-start'    && method === 'POST') return handleAdminBootstrapStart(request, env);
+      if (path === '/admin/bootstrap-preview'  && method === 'POST') return handleAdminBootstrapPreview(request, env);
+      if (path === '/admin/bootstrap-manage'   && method === 'POST') return handleAdminBootstrapManage(request, env);
+      if (path === '/admin/bootstrap-intake'   && method === 'POST') return handleAdminBootstrapIntake(request, env);
+      if (path === '/admin/bootstrap-pwa'      && method === 'POST') return handleAdminBootstrapPwa(request, env);
       if (path === '/admin/reset-build'        && method === 'POST') return handleAdminResetBuild(request, env);
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
