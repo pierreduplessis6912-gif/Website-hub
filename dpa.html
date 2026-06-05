@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#080808">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080808;--bg2:#0e0e0e;--rule:rgba(255,255,255,.07);--rule-hi:rgba(255,255,255,.14);
+  --white:#ede9e4;--dim:rgba(237,233,228,.48);--ghost:rgba(237,233,228,.18);
+  --cyan:#00e8f5;--green:#00c97a;--warm:#f5c842;
+  --f-display:'Syne',sans-serif;--f-body:'DM Sans',sans-serif;--f-mono:'DM Mono',monospace;
+  --max:720px;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--white);font-family:var(--f-body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+nav{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule);padding:0 24px}
+.nav-inner{max-width:var(--max);margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-logo{font-family:var(--f-display);font-size:17px;font-weight:800;letter-spacing:-.3px;text-decoration:none;color:var(--white)}
+.nav-logo span{color:var(--cyan)}
+.nav-back{font-size:13px;color:var(--dim);text-decoration:none;display:flex;align-items:center;gap:6px}
+.nav-back:hover{color:var(--white)}
+.doc-wrap{max-width:var(--max);margin:0 auto;padding:64px 24px 120px}
+.doc-eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:16px}
+.doc-title{font-family:var(--f-display);font-size:clamp(28px,6vw,44px);font-weight:800;letter-spacing:-1.5px;line-height:1.08;margin-bottom:12px}
+.doc-meta{font-size:13px;color:var(--dim);margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid var(--rule)}
+h2{font-family:var(--f-display);font-size:18px;font-weight:700;letter-spacing:-.3px;margin:40px 0 12px;padding-top:40px;border-top:1px solid var(--rule)}
+h2:first-of-type{border-top:none;padding-top:0}
+p{font-size:15px;line-height:1.75;color:var(--dim);margin-bottom:14px}
+ul,ol{padding-left:20px;margin-bottom:14px}
+li{font-size:15px;line-height:1.75;color:var(--dim);margin-bottom:6px}
+strong{color:var(--white);font-weight:500}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+.highlight{background:rgba(0,232,245,.05);border:1px solid rgba(0,232,245,.12);border-radius:10px;padding:16px 20px;margin:20px 0}
+.highlight p{margin:0;color:var(--white);font-size:14px}
+footer{border-top:1px solid var(--rule);padding:32px 24px;margin-top:40px}
+.footer-inner{max-width:var(--max);margin:0 auto;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.footer-logo{font-family:var(--f-display);font-size:15px;font-weight:800}
+.footer-logo span{color:var(--cyan)}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap}
+.footer-links a{font-size:12px;color:var(--dim);text-decoration:none}
+.footer-links a:hover{color:var(--white)}
+.footer-copy{font-size:12px;color:var(--ghost);width:100%}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Website<span>Hub</span></a>
+    <a href="/" class="nav-back">← Back</a>
+  </div>
+</nav>
+<div class="doc-wrap">
+  <div class="doc-eyebrow">Legal</div>
+  <h1 class="doc-title">Data Processing Agreement</h1>
+  <div class="doc-meta">Last updated: June 2026 · Between Website Hub (Operator) and the Client (Responsible Party)</div>
+
+  <div class="highlight"><p>This agreement applies where your Website Hub site includes features that collect personal information from your customers, such as contact forms or WhatsApp click-to-chat buttons.</p></div>
+
+  <h2>1. Background</h2>
+  <p>Under POPIA, when a business (the Responsible Party) uses a third-party service provider (the Operator) to process personal information on its behalf, a written agreement governing that processing is required.</p>
+  <p>By using Website Hub, you (the client) are the Responsible Party. Website Hub is the Operator. This agreement sets out the terms on which we process personal information on your behalf.</p>
+
+  <h2>2. Scope of Processing</h2>
+  <p>Website Hub processes personal information on your behalf only to the extent required to:</p>
+  <ul>
+    <li>Host and serve your website to your customers</li>
+    <li>Collect contact form submissions and forward them to you via WhatsApp or email</li>
+    <li>Record server-side analytics (page visits, device type — no personally identifiable information)</li>
+  </ul>
+
+  <h2>3. Our Obligations as Operator</h2>
+  <p>Website Hub agrees to:</p>
+  <ul>
+    <li>Process personal information only on your documented instructions</li>
+    <li>Ensure that persons authorised to process personal information are bound by confidentiality</li>
+    <li>Implement appropriate technical and organisational security measures</li>
+    <li>Not engage sub-operators without your prior consent (our existing sub-processors are listed in our <a href="/privacy">Privacy Policy</a>)</li>
+    <li>Assist you in responding to data subject access requests where the information relates to data we hold</li>
+    <li>Delete or return all personal information at the end of the service relationship</li>
+    <li>Provide all information necessary to demonstrate compliance with POPIA</li>
+  </ul>
+
+  <h2>4. Your Obligations as Responsible Party</h2>
+  <p>As the Responsible Party, you are responsible for:</p>
+  <ul>
+    <li>Ensuring you have a lawful basis for collecting personal information from your customers</li>
+    <li>Providing appropriate privacy notices to your customers</li>
+    <li>Responding to data subject requests relating to your customers' personal information</li>
+    <li>Ensuring that the personal information you instruct us to process complies with POPIA</li>
+  </ul>
+
+  <h2>5. Security Incidents</h2>
+  <p>In the event of a security incident affecting personal information processed on your behalf, Website Hub will notify you within 72 hours of becoming aware of the incident. We will provide details of the nature of the incident, the categories of data affected, and the measures taken or proposed.</p>
+
+  <h2>6. Duration</h2>
+  <p>This agreement remains in force for the duration of your Website Hub subscription and terminates automatically on cancellation. On termination, personal information processed on your behalf will be deleted within 30 days, subject to legal retention requirements.</p>
+
+  <h2>7. Governing Law</h2>
+  <p>This agreement is governed by the laws of the Republic of South Africa, and specifically by the Protection of Personal Information Act, 4 of 2013.</p>
+</div><footer>
+  <div class="footer-inner">
+    <div class="footer-logo">Website<span>Hub</span></div>
+    <nav class="footer-links">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/referral-terms">Referral T&Cs</a>
+      <a href="/aup">Acceptable Use</a>
+      <a href="/cancellation">Cancellation &amp; Refunds</a>
+      <a href="/dpa">Data Processing</a>
+    </nav>
+    <div class="footer-copy">© 2026 Website Hub. South African business sites, built with care.</div>
+  </div>
+</footer>
+</body>
+</html>
