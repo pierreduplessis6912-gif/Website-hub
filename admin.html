@@ -764,6 +764,31 @@ function openModal(id){
       ${mrow('Manage',`<a href="https://preview.websitehub.co.za/manage/${c.manage_token||''}" target="_blank" style="color:var(--cyan)">Open dashboard ↗</a>`)}
       ${c.phone?mrow('WhatsApp',`<a href="https://wa.me/${c.phone}" target="_blank" style="color:var(--green)">Chat ↗</a>`):''}
     </div>
+    <div class="modal-section">
+      <div class="modal-section-title">⚡ Operations</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-success" onclick="opForceLive('${c.slug}','${esc(c.business_name)}')">🚀 Force Live</button>
+          <button class="btn btn-ghost" onclick="opResetBuild('${c.slug}','${esc(c.business_name)}')">🔄 Reset to Preview</button>
+          <button class="btn btn-ghost" onclick="opTriggerRebuild('${c.id}','${esc(c.business_name)}')">🔨 Trigger Rebuild</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="opResendGoLive('${c.slug}','${esc(c.business_name)}')">💬 Resend Go-Live WA</button>
+          <button class="btn btn-ghost" onclick="opRegisterDomain('${c.slug}','${esc(c.business_name)}')">🌐 Register Domain</button>
+          <button class="btn btn-ghost" onclick="opTestWhatsapp('${c.phone||''}','${esc(c.business_name)}')">📱 Test WhatsApp</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="opCopyManageLink('${c.manage_token||''}')">📋 Copy Manage Link</button>
+          <button class="btn btn-ghost" onclick="opViewSite('${c.slug}')">👁 View Built Site</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">🗄 SQL Query</div>
+      <textarea id="sqlInput" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12px;resize:vertical;min-height:60px;" placeholder="SELECT * FROM clients WHERE slug='${c.slug}' LIMIT 1"></textarea>
+      <button class="btn btn-ghost" style="margin-top:8px;width:100%" onclick="opRunQuery()">▶ Run Query</button>
+      <div id="queryResult" style="margin-top:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:var(--mono);font-size:11px;color:var(--muted);white-space:pre-wrap;word-break:break-all;display:none;max-height:200px;overflow-y:auto;"></div>
+    </div>
     <div class="modal-actions">
       ${c.status==='live'?`<button class="btn btn-danger" onclick="doSuspend('${c.id}','${esc(c.business_name)}')">⊘ Suspend</button>`:''}
       ${c.status==='suspended'?`<button class="btn btn-success" onclick="doReinstate('${c.id}','${esc(c.business_name)}')">↑ Reinstate</button>`:''}
@@ -780,6 +805,87 @@ async function doSuspend(id,name){
 async function doReinstate(id,name){
   if(!confirm(`Reinstate ${name}?`)) return;
   try{ const d=await api('/reinstate-site',{method:'POST',body:JSON.stringify({clientId:id})}); if(d.success){toast(`✓ ${name} reinstated`,'ok');closeModal();loadAll();}else toast(`✗ ${d.error||'Failed'}`,'err'); }catch(e){toast(`✗ ${e.message}`,'err');}
+}
+
+// ── OPERATIONS ─────────────────────────────────────────────────
+async function opForceLive(slug, name) {
+  if(!confirm(`Force live: ${name}?\n\nThis writes KV, updates D1, fires go-live pipeline.`)) return;
+  try {
+    const d = await api('/admin/force-live', {method:'POST', body:JSON.stringify({slug})});
+    if(d.success){ toast(`🚀 ${name} forced live — go-live pipeline firing`,'ok'); loadAll(); }
+    else toast(`✗ ${d.error||'Failed'}`,'err');
+  } catch(e){ toast(`✗ ${e.message}`,'err'); }
+}
+
+async function opResetBuild(slug, name) {
+  if(!confirm(`Reset ${name} to preview_ready?`)) return;
+  try {
+    const d = await api('/admin/reset-build', {method:'POST', body:JSON.stringify({slug})});
+    if(d.success){ toast(`🔄 ${name} reset to preview_ready`,'ok'); loadAll(); }
+    else toast(`✗ ${d.error||'Failed'}`,'err');
+  } catch(e){ toast(`✗ ${e.message}`,'err'); }
+}
+
+async function opTriggerRebuild(clientId, name) {
+  if(!confirm(`Trigger rebuild for ${name}?`)) return;
+  try {
+    const d = await api('/admin/trigger-rebuild', {method:'POST', body:JSON.stringify({clientId})});
+    if(d.success){ toast(`🔨 Rebuild queued for ${name}`,'ok'); }
+    else toast(`✗ ${d.error||'Failed'}`,'err');
+  } catch(e){ toast(`✗ ${e.message}`,'err'); }
+}
+
+async function opResendGoLive(slug, name) {
+  if(!confirm(`Resend go-live WhatsApp for ${name}?\n\nThis fires domain registration and WhatsApp.`)) return;
+  try {
+    const d = await fetch(`https://preview.websitehub.co.za/internal-golive`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({slug})
+    }).then(r=>r.json());
+    if(d.success){ toast(`💬 Go-live pipeline fired for ${name}`,'ok'); }
+    else toast(`✗ ${d.error||'Failed'}`,'err');
+  } catch(e){ toast(`✗ ${e.message}`,'err'); }
+}
+
+async function opRegisterDomain(slug, name) {
+  if(!confirm(`Register domain ${slug}.co.za?`)) return;
+  try {
+    const d = await api('/admin/register-domain', {method:'POST', body:JSON.stringify({slug})});
+    toast(d.success ? `🌐 Domain registration triggered for ${slug}.co.za` : `✗ ${d.error||'Failed'}`, d.success?'ok':'err');
+  } catch(e){ toast(`✗ ${e.message}`,'err'); }
+}
+
+async function opTestWhatsapp(phone, name) {
+  if(!phone){ toast('✗ No phone number for this client','err'); return; }
+  const msg = prompt(`Message to send to ${name} (${phone}):`, `Hi from Website Hub — testing your notification line.`);
+  if(!msg) return;
+  try {
+    const d = await api('/admin/test-whatsapp', {method:'POST', body:JSON.stringify({to:phone, message:msg})});
+    toast(d.ok ? `📱 Sent to ${phone}` : `✗ ${JSON.stringify(d)}`,'ok');
+  } catch(e){ toast(`✗ ${e.message}`,'err'); }
+}
+
+function opCopyManageLink(token) {
+  if(!token){ toast('✗ No manage token','err'); return; }
+  const url = `https://preview.websitehub.co.za/manage/${token}`;
+  navigator.clipboard.writeText(url).then(()=>toast(`📋 Copied: ${url}`,'ok')).catch(()=>toast(`Link: ${url}`,'ok'));
+}
+
+function opViewSite(slug) {
+  window.open(`https://preview.websitehub.co.za/site/${slug}`,'_blank');
+}
+
+async function opRunQuery() {
+  const sql = el('sqlInput')?.value?.trim();
+  if(!sql) return;
+  const resultEl = el('queryResult');
+  resultEl.style.display='block';
+  resultEl.textContent='Running...';
+  try {
+    const d = await api('/admin/query', {method:'POST', body:JSON.stringify({sql})});
+    resultEl.textContent = JSON.stringify(d.results||d, null, 2);
+  } catch(e){ resultEl.textContent = `Error: ${e.message}`; }
 }
 
 // ── NAVIGATION ─────────────────────────────────────────────────
