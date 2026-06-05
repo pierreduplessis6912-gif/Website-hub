@@ -346,20 +346,20 @@ async function handleInternalGoLive(request, env, ctx) {
     : await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
   if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
 
-  // Direct WhatsApp test before firing handleGoLiveInternal
+  // Send WhatsApp synchronously to test Evolution from launch worker
+  await sendWhatsApp(env.WH_PHONE,
+    `🔔 internal-golive called for ${client.slug} — testing Evolution from launch worker`,
+    env, { skipTestRedirect: true }
+  ).catch(e => console.warn('Direct WA failed:', e?.message));
+
   ctx.waitUntil(
-    sendWhatsApp(env.WH_PHONE,
-      `🔔 internal-golive triggered for ${client.slug}`,
-      env, { skipTestRedirect: true }
-    ).then(() =>
-      handleGoLiveInternal(client.id, client, env).catch(async e => {
-        console.error('handleGoLiveInternal failed:', e?.message, e?.stack);
-        await sendWhatsApp(env.WH_PHONE,
-          `❌ go-live FAILED for ${client.slug}: ${e?.message || 'unknown'}`,
-          env, { skipTestRedirect: true }
-        ).catch(() => {});
-      })
-    )
+    handleGoLiveInternal(client.id, client, env).catch(async e => {
+      console.error('handleGoLiveInternal failed:', e?.message, e?.stack);
+      await sendWhatsApp(env.WH_PHONE,
+        `❌ go-live FAILED for ${client.slug}: ${e?.message || 'unknown'}`,
+        env, { skipTestRedirect: true }
+      ).catch(() => {});
+    })
   );
   return Response.json({ success: true, clientId: client.id, slug: client.slug });
 }
