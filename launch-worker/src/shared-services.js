@@ -275,6 +275,12 @@ export function nextMonthDate() {
   return d.toISOString().split('T')[0];
 }
 
+export function nextYearDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().split('T')[0];
+}
+
 /** Returns YYYY-MM (e.g. "2026-05") for current month in UTC. */
 export function currentMonthKey() {
   return new Date().toISOString().slice(0, 7);
