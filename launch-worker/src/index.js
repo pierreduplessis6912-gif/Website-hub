@@ -246,14 +246,17 @@ async function handleManagePanel(request, url, env) {
   const emailActive = caps.email && client.email_provisioned;
   const emailAddress = emailActive ? `hello@${client.domain || slug + '.co.za'}` : null;
 
-  const domain = client.domain || `${slug}.co.za`;
+  const domain = client.domain || `${slug}.websitehub.co.za`;
+  const isSubdomain = domain.endsWith('.websitehub.co.za');
   const liveUrl = `https://${domain}`;
+  const previewUrl = `https://${PREVIEW_DOMAIN}/${slug}`;
 
   return jsonResponse({
     businessName:    client.business_name,
     slug,
     domain,
     liveUrl,
+    previewUrl,
     package:         pkg,
     status:          client.status,
     retainer:        tier?.retainer || 0,
