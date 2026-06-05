@@ -324,10 +324,58 @@ body::after{
         <label class="field-label">Email address</label>
         <input class="field-input" id="emailInput" type="email" placeholder="e.g. you@gmail.com" autocomplete="email">
       </div>
-      <button class="claim-btn" id="claimBtn" onclick="submitIntake()">
-        Build my site →
+      <button class="claim-btn" id="claimBtn" onclick="showPlans()">
+        See your options →
       </button>
       <div class="claim-sub">Free build · No credit card · No commitment</div>
+    </div>
+
+    <!-- STEP 2.5: Plan Selection -->
+    <div id="step25" style="display:none;width:100%;max-width:440px">
+      <div style="margin-bottom:20px;text-align:center">
+        <div style="font-size:15px;font-weight:700;font-family:var(--font-d)">Choose your plan</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">Your site builds free — pay when you go live</div>
+      </div>
+
+      <!-- Legacy Card -->
+      <div id="legacyCard" style="background:linear-gradient(135deg,rgba(0,240,255,.08),rgba(184,41,221,.08));border:1.5px solid rgba(0,240,255,.3);border-radius:16px;padding:20px;margin-bottom:12px;cursor:pointer;position:relative" onclick="selectPlan('legacy')">
+        <div style="position:absolute;top:12px;right:12px;background:var(--cyan);color:#000;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:20px">EARLY ACCESS</div>
+        <div style="font-size:18px;font-weight:800;font-family:var(--font-d);margin-bottom:4px">Legacy</div>
+        <div style="font-size:28px;font-weight:800;color:var(--cyan);font-family:var(--font-d)">R399<span style="font-size:14px;font-weight:400;color:var(--muted)">/mo</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:12px">Locked for life · Never increases</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:13px;color:var(--white)">✓ Full premium site</div>
+          <div style="font-size:13px;color:var(--white)">✓ yourbusiness.websitehub.co.za</div>
+          <div style="font-size:13px;color:var(--white)">✓ Mobile-first, Google-ready</div>
+          <div style="font-size:13px;color:var(--white)">✓ WhatsApp button included</div>
+        </div>
+      </div>
+
+      <!-- Standard Card (Coming Soon) -->
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px;opacity:.5;position:relative">
+        <div style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.1);color:var(--muted);font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:20px">COMING SOON</div>
+        <div style="font-size:18px;font-weight:800;font-family:var(--font-d);margin-bottom:4px">Standard</div>
+        <div style="font-size:28px;font-weight:800;font-family:var(--font-d)">R699<span style="font-size:14px;font-weight:400;color:var(--muted)">/mo</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:12px">Your own .co.za domain included</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:13px;color:var(--muted)">✓ Everything in Legacy</div>
+          <div style="font-size:13px;color:var(--muted)">✓ yourbusiness.co.za domain</div>
+          <div style="font-size:13px;color:var(--muted)">✓ Professional email</div>
+        </div>
+      </div>
+
+      <!-- Premium Card (Coming Soon) -->
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px;opacity:.5;position:relative">
+        <div style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.1);color:var(--muted);font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:20px">COMING SOON</div>
+        <div style="font-size:18px;font-weight:800;font-family:var(--font-d);margin-bottom:4px">Premium</div>
+        <div style="font-size:28px;font-weight:800;font-family:var(--font-d)">R999<span style="font-size:14px;font-weight:400;color:var(--muted)">/mo</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:12px">Full service — domain, email + extras</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:13px;color:var(--muted)">✓ Everything in Standard</div>
+          <div style="font-size:13px;color:var(--muted)">✓ Photo gallery</div>
+          <div style="font-size:13px;color:var(--muted)">✓ Referral rewards</div>
+        </div>
+      </div>
     </div>
 
     <!-- STEP 3: Building -->
@@ -347,7 +395,7 @@ body::after{
 
   <!-- ── TRUST STRIP ─────────────────────────────────────── -->
   <div class="trust">
-    <div class="trust-item"><span class="trust-icon">🇿🇦</span>South African .co.za</div>
+    <div class="trust-item"><span class="trust-icon">🇿🇦</span>websitehub.co.za address</div>
     <div class="trust-item"><span class="trust-icon">⚡</span>Live in 2 minutes</div>
     <div class="trust-item"><span class="trust-icon">🔒</span>No card required</div>
     <div class="trust-item"><span class="trust-icon">✏️</span>Cancel anytime</div>
@@ -598,6 +646,23 @@ function hideAddressSuggestions() {
     const box = document.getElementById('addressSuggestions');
     if (box) box.style.display = 'none';
   }, 200);
+}
+
+async function showPlans() {
+  // Validate step 2 fields first
+  const name  = el('nameInput')?.value?.trim();
+  const phone = el('phoneInput')?.value?.trim();
+  if (!name)  { el('nameInput')?.focus(); return; }
+  if (!phone) { el('phoneInput')?.focus(); return; }
+
+  el('step2').style.display = 'none';
+  el('step25').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function selectPlan(plan) {
+  if (plan !== 'legacy') return; // Coming soon plans are not selectable
+  submitIntake();
 }
 
 async function submitIntake() {
