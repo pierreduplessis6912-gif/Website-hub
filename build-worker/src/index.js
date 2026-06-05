@@ -165,27 +165,19 @@ export default {
     const method = request.method;
 
     try {
+      // ── LAUNCH WORKER ROUTES (via Service Binding) ──────────
+      if (path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free') {
+        if (env.LAUNCH_WORKER) return env.LAUNCH_WORKER.fetch(request);
+        const launchUrl = env.WORKER_URL_LAUNCH || 'https://wh-launch.pierreduplessis6912.workers.dev';
+        return fetch(`${launchUrl}${path}`, { method: request.method, headers: request.headers, body: request.body });
+      }
+
       // ── ADMIN ROUTES (checked first — before slug serving) ──
       if (path.startsWith('/admin/')) {
         const adminKey = request.headers.get('x-admin-key');
         if (adminKey !== env.ADMIN_KEY) return jsonResponse({ error: 'Unauthorized' }, 401);
         if (path === '/admin/health')          return handleAdminHealth(env);
         if (path === '/admin/clients')         return handleAdminClients(env);
-        if (path === '/admin/set-config'  && method === 'POST') return handleAdminSetConfig(request, env);
-        if (path === '/admin/bootstrap-pwa'     && method === 'POST') return handleAdminBootstrapPwa(request, env);
-        if (path === '/admin/bootstrap-start'   && method === 'POST') return handleAdminBootstrapStart(request, env);
-        if (path === '/admin/bootstrap-intake'  && method === 'POST') return handleAdminBootstrapIntake(request, env);
-        if (path === '/admin/bootstrap-preview' && method === 'POST') return handleAdminBootstrapPreview(request, env);
-        if (path === '/admin/bootstrap-manage'  && method === 'POST') return handleAdminBootstrapManage(request, env);
-      // Launch worker routes — forwarded via Service Binding (zero latency, no HTTP)
-      if (path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free') {
-        if (env.LAUNCH_WORKER) return env.LAUNCH_WORKER.fetch(request);
-        // Fallback to HTTP if binding not available
-        const launchUrl = env.WORKER_URL_LAUNCH || 'https://wh-launch.pierreduplessis6912.workers.dev';
-        return fetch(`${launchUrl}${path}`, { method: request.method, headers: request.headers, body: request.body });
-      }
-
-      if (path === '/admin/bootstrap-admin'   && method === 'POST') return handleAdminBootstrapAdmin(request, env);
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
       if (path === '/admin/reset-build'        && method === 'POST') return handleAdminResetBuild(request, env);
