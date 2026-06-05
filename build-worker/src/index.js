@@ -1416,7 +1416,7 @@ async function handleTriggerRebuild(request, env) {
 async function servePwa(env, kvKey) {
   const html = await env.SITES.get(kvKey);
   if (!html) return new Response('PWA not bootstrapped', { status: 503 });
-  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache' } });
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
 }
 
 // ── OG CARD — minimal HTML for WhatsApp rich preview ─────────────────────────
