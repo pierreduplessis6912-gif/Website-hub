@@ -404,7 +404,7 @@ async function handleGoLiveLink(request, env, ctx) {
   if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
 
   const pkg    = plan || client.package || 'standard';
-  const amount = retainer || client.retainer || 399;
+  const amount = retainer !== undefined && retainer !== null ? retainer : (client.retainer || 399);
   const isAnnual = billing === 'annual';
   const domain = client.domain || `${client.slug}.co.za`;
 
