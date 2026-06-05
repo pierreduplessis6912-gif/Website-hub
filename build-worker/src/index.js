@@ -166,10 +166,13 @@ export default {
 
     try {
       // ── LAUNCH WORKER ROUTES (via Service Binding) ──────────
-      if (path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free') {
+      if (path === '/internal-golive' || path === '/go-live-link' || 
+          path === '/activate-free'   || path === '/manage-panel' ||
+          path === '/client-status'   || path === '/submit-revision' ||
+          path === '/cancel-site'     || path === '/go-live') {
         if (env.LAUNCH_WORKER) return env.LAUNCH_WORKER.fetch(request);
         const launchUrl = env.WORKER_URL_LAUNCH || 'https://wh-launch.pierreduplessis6912.workers.dev';
-        return fetch(`${launchUrl}${path}`, { method: request.method, headers: request.headers, body: request.body });
+        return fetch(`${launchUrl}${path}${url.search}`, { method: request.method, headers: request.headers, body: request.body });
       }
 
       // ── ADMIN ROUTES (checked first — before slug serving) ──
