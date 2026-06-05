@@ -177,6 +177,16 @@ export default {
         if (path === '/admin/bootstrap-intake'  && method === 'POST') return handleAdminBootstrapIntake(request, env);
         if (path === '/admin/bootstrap-preview' && method === 'POST') return handleAdminBootstrapPreview(request, env);
         if (path === '/admin/bootstrap-manage'  && method === 'POST') return handleAdminBootstrapManage(request, env);
+      // Launch worker routes — proxy through
+      if (path === '/internal-golive') {
+        const launchUrl = env.WORKER_URL_LAUNCH || 'https://wh-launch.pierreduplessis6912.workers.dev';
+        return fetch(`${launchUrl}/internal-golive`, {
+          method: request.method,
+          headers: request.headers,
+          body: request.body,
+        });
+      }
+
       if (path === '/admin/bootstrap-admin'   && method === 'POST') return handleAdminBootstrapAdmin(request, env);
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
