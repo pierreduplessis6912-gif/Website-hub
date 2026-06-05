@@ -1279,34 +1279,53 @@ async function registerDomainViaProxy(slug, env) {
     return { test_mode: true };
   }
 
-  const data = await callDomainProxy('RegisterDomain', slug, 'co.za', {}, env);
-  if (data?.result !== 'success' && data?.result !== 'active') {
-    throw new Error(`Registration failed: ${JSON.stringify(data)}`);
-  }
-  await logActivity(env, 'domain_registered', { domain: `${slug}.co.za`, response: data });
-  return data;
-}
+  const token     = env.DNSIMPLE_TOKEN;
+  const accountId = env.DNSIMPLE_ACCOUNT_ID || '175950';
+  const domain    = `${slug}.co.za`;
 
-async function callDomainProxy(action, sld, tld = 'co.za', extra = {}, env) {
-  const secret = env.DOMAIN_PROXY_SECRET || '';
-  if (!secret) console.warn('DOMAIN_PROXY_SECRET env var not set — domain proxy calls will be rejected');
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-    const res = await fetch(DOMAIN_PROXY_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': secret },
-      body:    JSON.stringify({ action, sld, tld, ...extra }),
-      signal:  controller.signal,
-    });
-    clearTimeout(timeout);
-    const data = await res.json();
-    await logHealth(env, 'domain_proxy', res.ok ? 'success' : 'error', data?.error);
-    return data;
-  } catch (e) {
-    await logHealth(env, 'domain_proxy', 'error', e.message);
-    throw e;
+  if (!token) throw new Error('DNSIMPLE_TOKEN not set');
+
+  // 1. Check availability
+  const checkRes = await fetch(
+    `https://api.dnsimple.com/v2/${accountId}/registrar/domains/${domain}/check`,
+    { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }
+  );
+  const checkData = await checkRes.json();
+  if (!checkData.data?.available) {
+    throw new Error(`Domain ${domain} is not available for registration`);
   }
+
+  // 2. Get registrant contact ID
+  const contactsRes = await fetch(
+    `https://api.dnsimple.com/v2/${accountId}/contacts`,
+    { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }
+  );
+  const contactsData = await contactsRes.json();
+  const registrantId = contactsData.data?.[0]?.id;
+  if (!registrantId) throw new Error('No DNSimple contact found — create one at dnsimple.com');
+
+  // 3. Register
+  const regRes = await fetch(
+    `https://api.dnsimple.com/v2/${accountId}/registrar/domains/${domain}/registrations`,
+    {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept':        'application/json',
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        registrant_id: registrantId,
+        auto_renew:    true,
+        whois_privacy: true,
+      }),
+    }
+  );
+  const regData = await regRes.json();
+  if (!regRes.ok) throw new Error(`DNSimple registration failed: ${JSON.stringify(regData)}`);
+
+  await logActivity(env, 'domain_registered', { domain, state: regData.data?.state });
+  return regData;
 }
 
 // ============================================================
