@@ -23,6 +23,10 @@ pattern = "preview.websitehub.co.za/activate-free"
 zone_name = "websitehub.co.za"
 
 [[routes]]
+pattern = "preview.websitehub.co.za/internal-golive"
+zone_name = "websitehub.co.za"
+
+[[routes]]
 pattern = "preview.websitehub.co.za/google-auth"
 zone_name = "websitehub.co.za"
 
