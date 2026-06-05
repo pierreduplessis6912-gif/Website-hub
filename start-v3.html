@@ -269,7 +269,7 @@ body::after{
     <div id="step1">
       <label class="field-label">Your business name</label>
       <input class="biz-input" id="bizInput" type="text"
-             placeholder="e.g. Zululand Flooring"
+             placeholder="e.g. East Coast Plumbing"
              autocomplete="off" autocapitalize="words"
              oninput="onBizInput()" maxlength="60">
 
@@ -411,7 +411,7 @@ function hideIndustrySuggestions() {
   if (box) box.style.display = 'none';
 }
 
-// Pre-fill from URL params (?biz=Zululand+Flooring&domain=zululand-flooring.co.za)
+// Pre-fill from URL params (?biz=East+Coast+Plumbing)
 // Comes from landing page when domain is already confirmed available
 (function() {
   var params = new URLSearchParams(window.location.search);
