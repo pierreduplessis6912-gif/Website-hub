@@ -3002,7 +3002,8 @@ async function uniqueSlug(name, env) {
 }
 
 function pkgKey(pkg) {
-  const p = (pkg || 'express').toLowerCase().trim();
+  const p = (pkg || 'legacy').toLowerCase().trim();
+  if (p === 'legacy')   return 'express'; // Legacy = grandfathered early access
   if (p === 'express' || p === 'standard' || p === 'premium') return p;
   return 'express';
 }
