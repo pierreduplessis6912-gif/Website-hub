@@ -681,7 +681,7 @@ async function handleAdminForceLive(request, env) {
 
 async function handleAdminQuery(request, env) {
   const { sql } = await request.json().catch(() => ({}));
-  if (!sql || !sql.trim().toUpperCase().startsWith('SELECT')) return jsonResponse({ error: 'Only SELECT queries allowed' }, 400);
+  if (!sql) return jsonResponse({ error: 'sql required' }, 400);
   try {
     const result = await env.DB.prepare(sql).all();
     return jsonResponse({ results: result.results });
