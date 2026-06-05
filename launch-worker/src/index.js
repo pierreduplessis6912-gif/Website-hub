@@ -809,13 +809,21 @@ async function handleGoLive(request, env, ctx) {
  *  11. Auto-trigger GBP creation (non-fatal)
  */
 async function handleGoLiveInternal(clientId, client, env) {
-  const slug   = client.slug;
-  const domain = (client.domain || `${slug}.co.za`)
+  const slug    = client.slug;
+  const pkg     = (client.package || 'express').toLowerCase();
+  const isExpress = pkg === 'express';
+
+  // Express gets a free subdomain. Standard/Premium get their own .co.za
+  const defaultDomain = isExpress
+    ? `${slug}.websitehub.co.za`
+    : `${slug}.co.za`;
+
+  const domain = (client.domain || defaultDomain)
     .replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
 
-  const caps  = getPackageCaps(client.package || 'standard');
+  const caps  = getPackageCaps(client.package || 'express');
   const pages = caps.pages;
-  const tier  = getPricingTier(client.package || 'standard');
+  const tier  = getPricingTier(client.package || 'express');
 
   await logActivity(env, 'go_live_started', { clientId, slug, domain });
 
@@ -872,30 +880,45 @@ async function handleGoLiveInternal(clientId, client, env) {
 
   const manageUrl = `https://preview.websitehub.co.za/manage/${client.manage_token}`;
 
-  // ── 4. Cloudflare hostname binding (non-fatal) ───────────────
-  bindCustomHostname(domain, env).catch(e => {
-    console.warn('CF hostname binding failed:', e?.message || e);
-    logActivity(env, 'go_live_cf_hostname_failed', { clientId, domain, error: e?.message });
-    sendWhatsApp(env.WH_PHONE,
-      `⚠️ CF hostname binding failed for ${domain}: ${e.message}`,
-      env, { skipTestRedirect: true },
-    ).catch(() => {});
-  });
-
-  // ── 5. Domain registration (non-fatal) ──────────────────────
-  if (!isTestMode(env)) {
-    registerDomainViaProxy(slug, env).catch(e => {
-      console.warn('Domain registration failed (non-fatal):', e?.message || e);
-      logActivity(env, 'go_live_domain_reg_failed', { clientId, domain, error: e?.message });
+  // ── 4. Cloudflare hostname binding (Standard/Premium only) ──
+  if (!isExpress) {
+    bindCustomHostname(domain, env).catch(e => {
+      console.warn('CF hostname binding failed:', e?.message || e);
+      logActivity(env, 'go_live_cf_hostname_failed', { clientId, domain, error: e?.message });
       sendWhatsApp(env.WH_PHONE,
-        `⚠️ Domain reg failed for ${domain}: ${e.message}`,
+        `⚠️ CF hostname binding failed for ${domain}: ${e.message}`,
         env, { skipTestRedirect: true },
       ).catch(() => {});
     });
+  }
+
+  // ── 5. Domain setup ─────────────────────────────────────────
+  if (!isTestMode(env)) {
+    if (isExpress) {
+      // Express — create free CNAME subdomain on websitehub.co.za
+      createSubdomainCname(slug, env).catch(e => {
+        console.warn('CNAME creation failed (non-fatal):', e?.message);
+        logActivity(env, 'go_live_cname_failed', { clientId, domain, error: e?.message });
+        sendWhatsApp(env.WH_PHONE,
+          `⚠️ CNAME creation failed for ${domain}: ${e.message}`,
+          env, { skipTestRedirect: true },
+        ).catch(() => {});
+      });
+    } else {
+      // Standard/Premium — register .co.za via DNSimple
+      registerDomainViaProxy(slug, env).catch(e => {
+        console.warn('Domain registration failed (non-fatal):', e?.message || e);
+        logActivity(env, 'go_live_domain_reg_failed', { clientId, domain, error: e?.message });
+        sendWhatsApp(env.WH_PHONE,
+          `⚠️ Domain reg failed for ${domain}: ${e.message}`,
+          env, { skipTestRedirect: true },
+        ).catch(() => {});
+      });
+    }
   } else {
     await env.SITES.put(
       `test_log:domain:${slug}:${Date.now()}`,
-      JSON.stringify({ action: 'register', slug, domain, ts: new Date().toISOString() }),
+      JSON.stringify({ action: isExpress ? 'cname' : 'register', slug, domain, ts: new Date().toISOString() }),
       { expirationTtl: 86400 * 30 },
     );
   }
@@ -1268,6 +1291,38 @@ async function bindCustomHostname(hostname, env) {
 // Calls registerdomain.co.za through the websitehub.co.za PHP proxy
 // (proxy IP is whitelisted with registrar; worker IPs are not).
 // ============================================================
+
+async function createSubdomainCname(slug, env) {
+  const token  = env.CF_API_TOKEN;
+  const zoneId = env.CF_ZONE_ID;
+
+  if (!token || !zoneId) throw new Error('CF_API_TOKEN or CF_ZONE_ID not set');
+
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`,
+    {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        type:    'CNAME',
+        name:    slug,
+        content: 'preview.websitehub.co.za',
+        proxied: true,
+        ttl:     1,
+      }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok && !data.errors?.some(e => e.code === 81057)) {
+    // 81057 = record already exists — that's fine
+    throw new Error(`CF DNS error: ${JSON.stringify(data.errors)}`);
+  }
+  await logActivity(env, 'subdomain_cname_created', { slug, domain: `${slug}.websitehub.co.za` });
+  return data;
+}
 
 async function registerDomainViaProxy(slug, env) {
   if (isTestMode(env)) {
