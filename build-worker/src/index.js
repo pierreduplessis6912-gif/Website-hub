@@ -301,7 +301,11 @@ async function handleAdminClients(env) {
     `SELECT id, business_name, slug, phone, manage_token, status, package, domain, created_at
      FROM clients ORDER BY created_at DESC LIMIT 20`
   ).all();
-  return jsonResponse({ clients: rows.results });
+  const events = await env.DB.prepare(
+    `SELECT worker, event_type, status, error, metadata, created_at 
+     FROM events ORDER BY created_at DESC LIMIT 50`
+  ).all().catch(() => ({ results: [] }));
+  return jsonResponse({ clients: rows.results, recentEvents: events.results });
 }
 
 async function handleAdminSetConfig(request, env) {
