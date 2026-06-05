@@ -1455,12 +1455,16 @@ async function serveOgCard(path, env) {
   const client = await getClientBySlug(slug, env);
   if (!client) return new Response('Not found', { status: 404 });
 
+  // Get token from query string if present
+  const urlObj = new URL(`https://x.com${path}${''}`);
+  const token = client.manage_token || '';
+
   const voice   = safeJson(client.voice_profile) || {};
   const heroUrl = client.hero_url || '';
   const title   = esc(client.business_name);
   const area    = esc(client.area || '');
   const desc    = esc(voice.hero_subline || voice.meta_description || `${client.business_name} — built by Website Hub`);
-  const dest    = `https://${PREVIEW_DOMAIN}/${slug}`;
+  const dest    = `https://${PREVIEW_DOMAIN}/${slug}?t=${token}`;
   const ogUrl   = `https://${PREVIEW_DOMAIN}/${slug}/og`;
 
   const html = `<!DOCTYPE html>
@@ -1884,13 +1888,44 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, cards, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
   }
 
+  // ── INJECT PREVIEW BAR ────────────────────────────────────
+  // Sticky bottom bar — shown in preview only, stripped on go-live
+  const previewBar = `
+<!-- WH_PREVIEW_BAR_START -->
+<style>
+#wh-preview-bar{position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#0a0a0f;border-top:1px solid rgba(0,240,255,.15);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:0 -4px 24px rgba(0,0,0,.4)}
+#wh-preview-bar .wh-pb-left{flex:1;min-width:0}
+#wh-preview-bar .wh-pb-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(0,240,255,.6);margin-bottom:2px}
+#wh-preview-bar .wh-pb-name{font-size:13px;font-weight:600;color:#f0ede8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#wh-preview-bar .wh-pb-btn{flex-shrink:0;background:linear-gradient(135deg,#00f0ff,#b829dd);color:#000;font-weight:800;font-size:13px;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;white-space:nowrap;letter-spacing:-.2px}
+#wh-preview-bar .wh-pb-btn:active{opacity:.85}
+</style>
+<div id="wh-preview-bar">
+  <div class="wh-pb-left">
+    <div class="wh-pb-label">Preview</div>
+    <div class="wh-pb-name">${client.business_name}</div>
+  </div>
+  <button class="wh-pb-btn" onclick="whGoLive()">Go Live — R399/mo →</button>
+</div>
+<script>
+function whGoLive(){
+  const t = new URLSearchParams(location.search).get('t');
+  if(!t){window.location.href='/start';return;}
+  fetch('/go-live-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t,plan:'legacy',retainer:399})})
+    .then(r=>r.json()).then(d=>{if(d.redirectUrl)window.location.href=d.redirectUrl;})
+    .catch(()=>window.location.href='/start');
+}
+</script>
+<!-- WH_PREVIEW_BAR_END -->`;
+
+  const htmlWithBar = html.replace('</body>', previewBar + '</body>');
+
   // ── STORE ──────────────────────────────────────────────────
-  // Raw HTML at site:{slug} — served at /site/{slug}
+  // Raw HTML at site:{slug} — no preview bar (clean for go-live)
   await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL });
 
-  // preview:{slug} — served at /{slug} — always the built site
-  // This is what the customer sees when they tap the WhatsApp link
-  await env.SITES.put(`preview:${slug}`, html, { expirationTtl: PREVIEW_TTL });
+  // preview:{slug} — served at /{slug} — has the preview bar
+  await env.SITES.put(`preview:${slug}`, htmlWithBar, { expirationTtl: PREVIEW_TTL });
 
   await env.SITES.put(`content:${slug}`, JSON.stringify(contentTokens), { expirationTtl: PREVIEW_TTL });
 
@@ -1920,7 +1955,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     ).catch(() => {});
 
     // Client message — OG card link so WhatsApp renders the hero preview
-    const ogLink = `https://${PREVIEW_DOMAIN}/${slug}/og`;
+    const ogLink = `https://${PREVIEW_DOMAIN}/${slug}/og?t=${client.manage_token}`;
     await sendWhatsApp(client.phone,
       `🎉 *${client.business_name}* — your site is ready!\n\n` +
       `Have a look, share it around, and when you're ready to go live tap the button:\n\n` +
