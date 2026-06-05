@@ -521,15 +521,25 @@ export function buildPayFastLink(amount, itemName, airtableId, env, opts = {}) {
   const params = new URLSearchParams();
   params.set('merchant_id',  merchId);
   params.set('merchant_key', merchKey);
-  params.set('amount',      String(amount));
-  params.set('item_name',   itemName);
-  params.set('custom_str1', airtableId);
+  params.set('amount',       String(amount));
+  params.set('item_name',    itemName);
+  params.set('custom_str1',  airtableId);
 
   if (opts.itemDesc)   params.set('item_description', opts.itemDesc);
-  if (opts.customStr2) params.set('custom_str2',     opts.customStr2);
-  if (opts.returnUrl)  params.set('return_url',      opts.returnUrl);
-  if (opts.cancelUrl)  params.set('cancel_url',      opts.cancelUrl);
-  if (opts.notifyUrl)  params.set('notify_url',      opts.notifyUrl);
+  if (opts.customStr2) params.set('custom_str2',      opts.customStr2);
+  if (opts.returnUrl)  params.set('return_url',       opts.returnUrl);
+  if (opts.cancelUrl)  params.set('cancel_url',       opts.cancelUrl);
+  if (opts.notifyUrl)  params.set('notify_url',       opts.notifyUrl);
+
+  // Subscription parameters
+  if (opts.subscription) {
+    params.set('subscription_type', '1'); // recurring
+    params.set('frequency',         String(opts.frequency || 3)); // 3 = monthly
+    params.set('cycles',            String(opts.cycles    || 0)); // 0 = infinite
+    if (opts.recurringAmount !== undefined) {
+      params.set('recurring_amount', String(opts.recurringAmount));
+    }
+  }
 
   return `https://${host}/eng/process?${params.toString()}`;
 }
