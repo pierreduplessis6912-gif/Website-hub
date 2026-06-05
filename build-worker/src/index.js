@@ -1918,11 +1918,11 @@ async function triggerSubstanceBuild(clientId, cards, env) {
       env, { skipTestRedirect: true }
     ).catch(() => {});
 
-    // Client message — send to manage panel, not raw preview
+    // Client message — send to preview SPA (iframe + Go Live button)
     await sendWhatsApp(client.phone,
       `🎉 *${client.business_name}* — your site is ready!\n\n` +
       `Have a look and go live when you're ready:\n\n` +
-      `👉 https://${PREVIEW_DOMAIN}/manage/${client.manage_token}\n\n` +
+      `👉 https://${PREVIEW_DOMAIN}/preview/${client.manage_token}\n\n` +
       `— Website Hub`,
       env
     ).catch(() => {});
