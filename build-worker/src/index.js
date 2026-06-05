@@ -1905,13 +1905,13 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     <div class="wh-pb-label">Preview</div>
     <div class="wh-pb-name">${client.business_name}</div>
   </div>
-  <button class="wh-pb-btn" onclick="whGoLive()">Go Live — R399/mo →</button>
+  <button class="wh-pb-btn" onclick="whGoLive()">Go Live — Free →</button>
 </div>
 <script>
 function whGoLive(){
   const t = new URLSearchParams(location.search).get('t');
   if(!t){window.location.href='/start';return;}
-  fetch('/go-live-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t,plan:'legacy',retainer:399})})
+  fetch('/go-live-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t,plan:'legacy',retainer:0})})
     .then(r=>r.json()).then(d=>{if(d.redirectUrl)window.location.href=d.redirectUrl;})
     .catch(()=>window.location.href='/start');
 }
