@@ -189,7 +189,9 @@ async function handleManagePanel(request, url, env) {
   const revLimit = caps.revisionsPerMonth ?? 2;
 
   // Analytics — visits this month
-  const visits  = await getMonthlyVisits(env, client.id).catch(() => 0);
+  const visits  = await env.DB.prepare(
+    `SELECT COUNT(*) as cnt FROM visits WHERE client_id=? AND created_at>=?`
+  ).bind(client.id, new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()).first().catch(() => ({ cnt: 0 })).then(r => r?.cnt || 0);
   const waTaps  = 0; // future — track separately
 
   // Referral data
