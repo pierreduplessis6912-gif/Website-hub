@@ -368,9 +368,7 @@ input[type=range]{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;
       <div class="page active" id="page-dashboard">
         <div class="ph">
           <div><div class="ph-title">Dashboard</div><div class="ph-sub" id="dashSub">Loading...</div></div>
-          <div class="ph-actions"><button class="btn btn-ghost" onclick="loadAll()">↻ Refresh</button></div>
-        </div>
-        <div class="stats-row">
+          <div class="ph-actions"><button class="btn btn-ghost" onclick="opPurgeCache()">🧹 Purge</button> <button class="btn btn-ghost" onclick="loadAll()">↻ Refresh</button></div>
           <div class="stat-tile"><div class="stat-num cyan" id="s-total">—</div><div class="stat-lbl">Total</div></div>
           <div class="stat-tile"><div class="stat-num green" id="s-live">—</div><div class="stat-lbl">Live</div></div>
           <div class="stat-tile"><div class="stat-num purple" id="s-building">—</div><div class="stat-lbl">Building</div></div>
@@ -808,6 +806,13 @@ async function doReinstate(id,name){
 }
 
 // ── OPERATIONS ─────────────────────────────────────────────────
+async function opPurgeCache() {
+  try {
+    const d = await api('/admin/purge-cache', {method:'POST'});
+    toast(d.success ? '🧹 Cloudflare cache purged — refresh any page to see latest' : `✗ ${d.error||'Failed'}`, d.success?'ok':'err');
+  } catch(e){ toast(`✗ ${e.message}`,'err'); }
+}
+
 async function opForceLive(slug, name) {
   if(!confirm(`Force live: ${name}?\n\nThis writes KV, updates D1, fires go-live pipeline.`)) return;
   try {
