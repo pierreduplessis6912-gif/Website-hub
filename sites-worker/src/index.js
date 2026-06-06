@@ -9,11 +9,11 @@ export default {
     const hostname = url.hostname;
     const path     = url.pathname;
 
-    // System subdomains — pass through, don't serve from KV
+    // System subdomains — pass through to origin, don't serve from KV
     const SYSTEM_SUBDOMAINS = ['evolution', 'preview', 'www', 'mail', 'smtp', 'imap', 'ftp', 'cpanel', 'whm', 'webmail', 'admin', 'api', 'places-proxy'];
     const subdomain = hostname.split('.')[0];
     if (SYSTEM_SUBDOMAINS.includes(subdomain)) {
-      return new Response('Not routed', { status: 404 });
+      return fetch(request);
     }
 
     // Health check
