@@ -98,6 +98,7 @@ export default {
     if (path === '/go-live')          return handleGoLive(request, env, ctx);
     if (path === '/go-live-link')     return handleGoLiveLink(request, env, ctx);
     if (path === '/activate-free')    return handleActivateFree(request, env, ctx);
+    if (path === '/admin/test-registerdomain') return handleTestRd(request, env);
     if (path === '/internal-golive' || path === '/internal-golive/')  return handleInternalGoLive(request, env, ctx);
     if (path === '/suspend-site')     return handleSuspendSite(request, env);
     if (path === '/reinstate-site')   return handleReinstateSite(request, env);
@@ -347,6 +348,42 @@ async function handleCancelSite(request, env) {
 
 
 // ── /activate-free — skip PayFast for 100% promo codes ───────────────────────
+async function handleTestRd(request, env) {
+  const apiKey = env.REGISTERDOMAIN_API_KEY;
+  const email  = env.REGISTERDOMAIN_EMAIL || 'loc10@live.co.za';
+
+  if (!apiKey) return jsonResponse({ error: 'REGISTERDOMAIN_API_KEY not set' }, 400);
+
+  try {
+    const token = await generateRdToken(apiKey, email);
+    const BASE  = 'https://www.registerdomain.co.za/modules/addons/DomainsReseller/api/index.php';
+
+    // Test 1: Get version
+    const versionRes = await fetch(`${BASE}/version`, {
+      headers: { 'username': email, 'token': token }
+    });
+    const versionData = await versionRes.json().catch(() => ({ raw: await versionRes.text() }));
+
+    // Test 2: Check a domain availability
+    const checkParams = new URLSearchParams({ searchTerm: 'testdomain12345xyz.co.za' });
+    const checkRes = await fetch(`${BASE}/domains/lookup`, {
+      method: 'POST',
+      headers: { 'username': email, 'token': token, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: checkParams.toString(),
+    });
+    const checkData = await checkRes.json().catch(() => ({ raw: await checkRes.text() }));
+
+    return jsonResponse({
+      success: true,
+      token: token.slice(0, 20) + '...',
+      version: versionData,
+      domainCheck: checkData,
+    });
+  } catch(e) {
+    return jsonResponse({ success: false, error: e.message }, 500);
+  }
+}
+
 async function handleInternalGoLive(request, env, ctx) {
   const { clientId, slug } = await request.json().catch(() => ({}));
   if (!clientId && !slug) return Response.json({ error: 'clientId or slug required' }, { status: 400 });
