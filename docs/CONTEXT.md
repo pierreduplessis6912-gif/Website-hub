@@ -557,3 +557,53 @@ LAUNCH2026: { plan:'premium', buildAmount:0, monthly:599, buildFee:'Free', savin
 - Cookie Crumble — needs rebuild + promo WhatsApp resent
 - places-proxy.websitehub.co.za — may also be affected by wildcard (check)
 - registerdomain.co.za API — support ticket open, Pierre has docs
+
+---
+
+## Session Update 2026-06-07 (registerdomain.co.za)
+
+### registerdomain.co.za API — WIRED ✅
+
+**Status:** Auth working, proxy working, credits confirmed. Domain lookup/register blocked by account permissions — email support to enable.
+
+**Architecture:**
+- Worker → cPanel proxy (`classictouchsalon.co.za/rd-proxy.php`) → registerdomain.co.za
+- Proxy bypasses Cloudflare IP restriction (registerdomain blocks Cloudflare IPs)
+- Proxy secret: `mysecretkey123`
+- Proxy location: `/home/websiteh/classictouchsalon.co.za/rd-proxy.php`
+
+**Token formula (CRITICAL — took 4.5 hours to get right):**
+```js
+// PHP: base64_encode(hash_hmac("sha256", apiKey, email:gmdate("y-m-d H")))
+// hash_hmac returns HEX string by default — base64 encode the HEX string, NOT raw bytes
+const hexStr = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
+return btoa(hexStr);
+// 2-digit year: "26-06-07 20" not "2026-06-07 20"
+```
+
+**Confirmed working:**
+- `GET /billing/credits` → returns `"271.00"` ✅
+- Auth headers: `username: loc10@live.co.za` + `token: {generated}`
+
+**Blocked by permissions:**
+- `POST /domains/lookup` → "Action is not allowed"
+- `POST /order/domains/register` → likely same issue
+- Email registerdomain support to enable domain API permissions for reseller account
+
+**Registrar priority:**
+1. registerdomain.co.za (primary) — SA reseller, cheaper, no verification emails
+2. DNSimple (fallback) — sends verification emails, not zero-touch, last resort
+
+**Pending:**
+- Email registerdomain support to enable domain lookup + registration permissions
+- Test `/domains/websitehub.co.za/information` (free, no charge) to confirm domain endpoints
+- Test `/order/domains/register` once permissions enabled (R50 test domain)
+- Remove `test-rd.php` from classictouchsalon.co.za cPanel after testing done
+
+### Other wins this session
+- Cookie Crumble — promo code set, WhatsApp sent with OG card link
+- Pricing carousel live on websitehub.co.za landing page
+- Start flow fixed — redirects to /preview/{token} after build, not raw site
+- Build WhatsApp errors now logged to events table
+- wh-sites passthrough fixed for Evolution and system subdomains
+- classictouchsalon.co.za — A record added to DNSimple, DNS propagating
