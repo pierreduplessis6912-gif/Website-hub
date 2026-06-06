@@ -298,7 +298,7 @@ export default {
       if (path.startsWith('/verify/'))     return servePwa(env, 'app:manage');
 
       // ── OG CARD — WhatsApp rich preview, redirects to real site ──
-      if (path.endsWith('/og')) return serveOgCard(path, env);
+      if (path.endsWith('/og')) return serveOgCard(path, env, request);
 
       // ── BUILT SITE SERVING ───────────────────────────────────
       return serveBuiltSite(url, path, request, env);
@@ -1139,12 +1139,13 @@ async function handleIntake(request, env) {
     await env.DB.prepare(`
       INSERT INTO clients
         (id, business_name, client_name, slug, phone, email, package, retainer,
-         industry, area, vibe, manage_token, referral_slug, status, source, business_type)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?)
+         industry, area, vibe, manage_token, referral_slug, promo_code, status, source, business_type)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?)
     `).bind(
       id, business_name, client_name || null, slug, normPhone, email || null,
       packageKey, PRICING[packageKey]?.retainer || 399,
       industry || '', area || '', 'professional', manage_token, referral_slug,
+      body.promo_code || null,
       body.business_type || ''
     ).run();
 
@@ -1509,19 +1510,24 @@ async function servePwa(env, kvKey) {
 // Path: /{slug}/og
 // WhatsApp crawls this, renders the card. Humans get auto-redirected to the
 // real preview. Bots see the OG tags and stop (no redirect).
-async function serveOgCard(path, env) {
+async function serveOgCard(path, env, request) {
   const slug = path.replace(/^\//, '').replace(/\/og$/, '');
   if (!slug) return new Response('Not found', { status: 404 });
 
   const client = await getClientBySlug(slug, env);
   if (!client) return new Response('Not found', { status: 404 });
 
+  // Preserve promo param through the redirect
+  const reqUrl = new URL(request?.url || `https://${PREVIEW_DOMAIN}${path}`);
+  const promo  = reqUrl.searchParams.get('promo');
+  const promoSuffix = promo ? `?promo=${encodeURIComponent(promo)}` : '';
+
   const voice   = safeJson(client.voice_profile) || {};
   const heroUrl = client.hero_url || '';
   const title   = esc(client.business_name);
   const area    = esc(client.area || '');
   const desc    = esc(voice.hero_subline || voice.meta_description || `${client.business_name} — built by Website Hub`);
-  const dest    = `https://${PREVIEW_DOMAIN}/${slug}`;
+  const dest    = `https://${PREVIEW_DOMAIN}/preview/${client.manage_token}${promoSuffix}`;
   const ogUrl   = `https://${PREVIEW_DOMAIN}/${slug}/og`;
 
   const html = `<!DOCTYPE html>
@@ -1980,10 +1986,12 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     ).catch(() => {});
 
     // Client message — send to preview SPA (iframe + Go Live button)
+    const promoCode  = client.promo_code || null;
+    const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
     await sendWhatsApp(client.phone,
       `🎉 *${client.business_name}* — your site is ready!\n\n` +
       `Have a look and go live when you're ready:\n\n` +
-      `👉 https://${PREVIEW_DOMAIN}/preview/${client.manage_token}\n\n` +
+      `👉 https://${PREVIEW_DOMAIN}/preview/${client.manage_token}${promoParam}\n\n` +
       `— Website Hub`,
       env
     ).catch(() => {});
