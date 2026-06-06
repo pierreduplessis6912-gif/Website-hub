@@ -1708,13 +1708,15 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
     await sendWhatsApp(env.WH_PHONE,
       `✅ PRE-BUILD: ${client.business_name}\nPreview: ${previewUrl}\n${buildMs}ms`,
       env, { skipTestRedirect: true }
-    ).catch(() => {});
+    ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_owner_failed', 'error', { error: e?.message || String(e) }));
 
     if (!isOutbound) {
+      const promoCode  = client.promo_code || null;
+      const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
       await sendWhatsApp(client.phone,
-        `🎉 Your website preview is ready!\n\nTap here to personalise it:\nhttps://${PREVIEW_DOMAIN}/${slug}/og`,
+        `⚡ *${client.business_name}* — we're building your site now!\n\nWe'll send you another message when it's ready.\n\n— Website Hub`,
         env
-      ).catch(() => {});
+      ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_client_failed', 'error', { error: e?.message || String(e) }));
     }
   }
 
@@ -1983,7 +1985,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
     await sendWhatsApp(env.WH_PHONE,
       `✅ SUBSTANCE BUILD: ${client.business_name}\nSlug: ${slug}\n${buildMs}ms`,
       env, { skipTestRedirect: true }
-    ).catch(() => {});
+    ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_owner_failed', 'error', { error: e?.message || String(e) }));
 
     // Client message — send to preview SPA (iframe + Go Live button)
     const promoCode  = client.promo_code || null;
@@ -1994,7 +1996,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
       `👉 https://${PREVIEW_DOMAIN}/preview/${client.manage_token}${promoParam}\n\n` +
       `— Website Hub`,
       env
-    ).catch(() => {});
+    ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_client_failed', 'error', { error: e?.message || String(e) }));
   }
 
   return slug;
