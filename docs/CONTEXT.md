@@ -492,3 +492,68 @@ const PROMO_CODES = {
 - https://preview.websitehub.co.za/manage/{token} — manage panel
 - https://preview.websitehub.co.za/admin — operator dashboard
 - https://izingaflora2.websitehub.co.za — live Express client site
+
+---
+
+## Session Update 2026-06-07 (continued)
+
+### wh-sites Worker
+- New dedicated worker for serving client sites from KV
+- Wildcard route: `*.websitehub.co.za/*`
+- Reads `live:{hostname}` and `live:{hostname}:{page}` from KV
+- System subdomains (evolution, preview, www, mail, etc) pass through via `fetch(request)` — not served from KV
+- Cache: `public, max-age=300, stale-while-revalidate=3600`
+- Added to deploy workflow — 6 workers total now
+
+### Evolution Fix
+- `evolution.websitehub.co.za` was being caught by wh-sites wildcard
+- Fixed: system subdomain list in wh-sites passes through to origin
+- Evolution now responds 200 correctly
+- Build worker WhatsApps were silently failing — now logging errors to events table
+
+### WhatsApp Debugging
+- `logHealth` writes to KV not D1 — was silently failing when `health_log` table didn't exist
+- Added direct error logging to events table for Evolution failures
+- Build WhatsApps now log `whatsapp_send` error events with Evolution response
+- Root cause of missing WhatsApps: Evolution 404 because wildcard was intercepting evolution.websitehub.co.za
+
+### Start Intake Flow (FIXED)
+- After build completes, redirects to `/preview/{manage_token}` — NOT `/{slug}/`
+- Old flow was redirecting to raw site then showing intake cards
+- New flow: build completes → preview SPA with iframe + Go Live button
+
+### Promo Pipeline (COMPLETE)
+- `promo_code` column added to clients table (migration 0003)
+- OG card preserves `?promo=` param through redirect to `/preview/{token}`
+- Post-build WhatsApp includes promo param if `client.promo_code` is set
+- `/admin/promo-blast` endpoint: scrape + auto-approve + premium build + LAUNCH2026
+- Promo Blast button in admin → Prospecting panel
+- `handleGoLiveLink` reads `promoCode` from request, sets correct recurring amount (R599)
+- PayFast amount check skipped for promo payments (`customStr2` contains `_promo_`)
+
+### Promo Code Object (in preview.html and launch worker)
+```js
+LAUNCH2026: { plan:'premium', buildAmount:0, monthly:599, buildFee:'Free', saving:'R9,000' }
+```
+
+### Landing Page
+- Pricing section replaced with scrolling carousel
+- Three cards: Express R5,000 build/R399mo · Standard R7,000/R699mo · Premium R9,000/R999mo
+- Standard card highlighted as POPULAR
+- Swipe dots indicator
+- Footer has real legal links
+
+### websitehub.co.za (unified platform)
+- All platform routes served from build worker on main domain
+- Landing, legal, start, preview, manage, admin, intake all work on websitehub.co.za
+- preview.websitehub.co.za still works — same worker, same routes
+- www.websitehub.co.za also works
+
+### Pending
+- PayFast end-to-end test (R0 promo and R5k normal)
+- Sunday security audit (rotate all exposed secrets)
+- Promo month-3 domain upgrade in pulse worker (d60 sequence)
+- Build WhatsApp — verify fixed after Evolution wildcard fix
+- Cookie Crumble — needs rebuild + promo WhatsApp resent
+- places-proxy.websitehub.co.za — may also be affected by wildcard (check)
+- registerdomain.co.za API — support ticket open, Pierre has docs
