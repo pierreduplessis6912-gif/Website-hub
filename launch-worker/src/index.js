@@ -1349,11 +1349,86 @@ async function registerDomainViaProxy(slug, env) {
     return { test_mode: true };
   }
 
+  const domain = `${slug}.co.za`;
+
+  // ── PRIMARY: registerdomain.co.za ───────────────────────────
+  const rdApiKey = env.REGISTERDOMAIN_API_KEY;
+  const rdEmail  = env.REGISTERDOMAIN_EMAIL || 'loc10@live.co.za';
+
+  if (rdApiKey) {
+    try {
+      return await registerViaRegisterDomain(domain, rdApiKey, rdEmail, env);
+    } catch(e) {
+      console.warn('registerdomain.co.za failed, falling back to DNSimple:', e.message);
+      await logActivity(env, 'registerdomain_failed', { domain, error: e.message });
+    }
+  }
+
+  // ── FALLBACK: DNSimple ───────────────────────────────────────
+  return await registerViaDNSimple(domain, env);
+}
+
+function generateRdToken(apiKey, email) {
+  // Token: base64(hmac_sha256(apiKey, email:YYYY-MM-DD HH))
+  const now = new Date();
+  const dateHour = `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}-${String(now.getUTCDate()).padStart(2,'0')} ${String(now.getUTCHours()).padStart(2,'0')}`;
+  const message = `${email}:${dateHour}`;
+
+  // HMAC-SHA256 using Web Crypto API
+  return crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(apiKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  ).then(key => crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message)))
+   .then(sig => btoa(String.fromCharCode(...new Uint8Array(sig))));
+}
+
+async function registerViaRegisterDomain(domain, apiKey, email, env) {
+  const BASE = 'https://www.registerdomain.co.za/modules/addons/DomainsReseller/api/index.php';
+  const token = await generateRdToken(apiKey, email);
+  const headers = {
+    'Content-Type':  'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+
+  // 1. Check availability
+  const checkRes = await fetch(`${BASE}/domains/lookup`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ searchTerm: domain, tldsToInclude: ['.co.za'] }),
+  });
+  const checkData = await checkRes.json();
+  const available = checkData?.domains?.[0]?.available ?? checkData?.available;
+  if (!available) throw new Error(`Domain ${domain} not available on registerdomain`);
+
+  // 2. Register
+  const regRes = await fetch(`${BASE}/order/domains/register`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      domain,
+      regperiod: 1,
+      nameservers: {
+        ns1: 'bonnie.ns.cloudflare.com',
+        ns2: 'glen.ns.cloudflare.com',
+      },
+      contacts: {
+        registrant: { email, firstname: 'Website', lastname: 'Hub', companyname: 'Website Hub', address1: 'South Africa', city: 'South Africa', state: 'ZA', postcode: '0000', country: 'ZA', phonenumber: '+27.790128508' },
+      },
+    }),
+  });
+  const regData = await regRes.json();
+  if (!regRes.ok || regData.result === 'error') {
+    throw new Error(`registerdomain failed: ${regData.message || JSON.stringify(regData)}`);
+  }
+
+  await logActivity(env, 'domain_registered_rd', { domain });
+  return regData;
+}
+
+async function registerViaDNSimple(domain, env) {
   const token     = env.DNSIMPLE_TOKEN;
   const accountId = env.DNSIMPLE_ACCOUNT_ID || '175950';
-  const domain    = `${slug}.co.za`;
 
-  if (!token) throw new Error('DNSIMPLE_TOKEN not set');
+  if (!token) throw new Error('No domain registrar configured — REGISTERDOMAIN_API_KEY and DNSIMPLE_TOKEN both missing');
 
   // 1. Check availability
   const checkRes = await fetch(
@@ -1361,9 +1436,7 @@ async function registerDomainViaProxy(slug, env) {
     { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }
   );
   const checkData = await checkRes.json();
-  if (!checkData.data?.available) {
-    throw new Error(`Domain ${domain} is not available for registration`);
-  }
+  if (!checkData.data?.available) throw new Error(`Domain ${domain} is not available`);
 
   // 2. Get registrant contact ID
   const contactsRes = await fetch(
@@ -1372,29 +1445,21 @@ async function registerDomainViaProxy(slug, env) {
   );
   const contactsData = await contactsRes.json();
   const registrantId = contactsData.data?.[0]?.id;
-  if (!registrantId) throw new Error('No DNSimple contact found — create one at dnsimple.com');
+  if (!registrantId) throw new Error('No DNSimple contact found');
 
   // 3. Register
   const regRes = await fetch(
     `https://api.dnsimple.com/v2/${accountId}/registrar/domains/${domain}/registrations`,
     {
-      method:  'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept':        'application/json',
-        'Content-Type':  'application/json',
-      },
-      body: JSON.stringify({
-        registrant_id: registrantId,
-        auto_renew:    true,
-        whois_privacy: false, // .co.za does not support WHOIS privacy
-      }),
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ registrant_id: registrantId, auto_renew: true, whois_privacy: false }),
     }
   );
   const regData = await regRes.json();
   if (!regRes.ok) throw new Error(`DNSimple registration failed: ${JSON.stringify(regData)}`);
 
-  await logActivity(env, 'domain_registered', { domain, state: regData.data?.state });
+  await logActivity(env, 'domain_registered_dnsimple', { domain, state: regData.data?.state });
   return regData;
 }
 
