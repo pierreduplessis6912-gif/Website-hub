@@ -763,23 +763,23 @@ async function handleTestRegisterDomain(request, env) {
 
     const rdHeaders = [`username: ${email}`, `token: ${token}`];
 
-    // Test version via proxy
-    const versionRes = await fetch(PROXY, {
+    // Test 1: Get credits — confirmed working
+    const creditsRes = await fetch(PROXY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
-      body: JSON.stringify({ action: '/version', params: {}, headers: rdHeaders }),
+      body: JSON.stringify({ action: '/billing/credits', method: 'GET', params: {}, headers: rdHeaders }),
     });
-    const versionData = await versionRes.json().catch(() => ({ raw: 'parse error' }));
+    const creditsData = await creditsRes.json().catch(() => ({ raw: 'parse error' }));
 
-    // Test domain check via proxy
+    // Test 2: Check domain availability
     const checkRes = await fetch(PROXY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
-      body: JSON.stringify({ action: '/domains/lookup', params: { searchTerm: 'testxyz99887766.co.za' }, headers: rdHeaders }),
+      body: JSON.stringify({ action: '/domains/lookup', method: 'POST', params: { searchTerm: 'testxyz99887766.co.za' }, headers: rdHeaders }),
     });
     const checkData = await checkRes.json().catch(() => ({ raw: 'parse error' }));
 
-    return jsonResponse({ success: true, dateHour, token: token.slice(0,20)+'...', version: versionData, domainCheck: checkData });
+    return jsonResponse({ success: true, dateHour, token: token.slice(0,20)+'...', credits: creditsData, domainCheck: checkData });
   } catch(e) {
     return jsonResponse({ success: false, error: e.message }, 500);
   }
