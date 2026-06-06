@@ -739,9 +739,16 @@ async function handleAdminTriggerRebuild(request, env) {
 
 async function handleTestRegisterDomain(request, env) {
   // Proxy to launch worker which has the registerdomain logic
-  if (env.LAUNCH_WORKER) return env.LAUNCH_WORKER.fetch(
-    new Request('https://internal/admin/test-registerdomain', { method: 'POST', headers: request.headers, body: request.body })
-  );
+  if (env.LAUNCH_WORKER) {
+    const body = await request.text();
+    return env.LAUNCH_WORKER.fetch(
+      new Request('https://internal/admin/test-registerdomain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body || '{}',
+      })
+    );
+  }
   return jsonResponse({ error: 'LAUNCH_WORKER binding not available' }, 500);
 }
 
