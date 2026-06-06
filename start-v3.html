@@ -306,15 +306,25 @@ body::after{
       </div>
       <div class="field-group" style="position:relative">
         <label class="field-label">What do you do?</label>
-        <input class="field-input" id="industryInput" type="text" placeholder="e.g. Barber, Butchery, Solar..." autocomplete="off"
+        <input class="field-input" id="industryInput" type="text" placeholder="e.g. Plumber, Hair Salon, Bakery..." autocomplete="off"
           oninput="onIndustryInput(this.value)" onblur="setTimeout(hideIndustrySuggestions,300)">
         <div id="industrySuggestions" style="display:none;position:absolute;z-index:100;width:100%;background:#1e1e1e;border:1.5px solid rgba(0,240,255,.3);border-radius:12px;margin-top:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);max-height:200px;overflow-y:auto"></div>
       </div>
-      <div class="field-group">
-        <label class="field-label">Business address</label>
-        <input class="field-input" id="addressInput" type="text" placeholder="e.g. 14 High Street, Cape Town" autocomplete="off"
+      <div class="field-group" style="position:relative">
+        <label class="field-label">Where are you based?</label>
+        <input class="field-input" id="addressInput" type="text" placeholder="e.g. Sandton, Richards Bay, Bellville..." autocomplete="off"
           oninput="onAddressInput(this.value)" onblur="setTimeout(hideAddressSuggestions,300)">
         <div id="addressSuggestions" style="display:none;position:absolute;z-index:100;width:calc(100% - 32px);background:#1e1e1e;border:1.5px solid rgba(0,240,255,.3);border-radius:12px;margin-top:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Your web address</label>
+        <div style="display:flex;align-items:center;gap:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s">
+          <input class="field-input" id="slugInput" type="text" placeholder="your-business"
+            style="background:transparent;border:none;border-radius:0;flex:1;padding:14px 8px 14px 16px;font-family:var(--font-m);font-size:13px"
+            oninput="onSlugInput(this.value)" autocomplete="off" autocapitalize="none" autocorrect="off">
+          <span style="font-family:var(--font-m);font-size:12px;color:var(--muted);padding:0 14px;white-space:nowrap">.websitehub.co.za</span>
+        </div>
+        <div id="slugStatus" style="font-size:11px;margin-top:4px;padding:0 4px;min-height:16px"></div>
       </div>
       <div class="field-group">
         <label class="field-label">WhatsApp number</label>
@@ -324,58 +334,10 @@ body::after{
         <label class="field-label">Email address</label>
         <input class="field-input" id="emailInput" type="email" placeholder="e.g. you@gmail.com" autocomplete="email">
       </div>
-      <button class="claim-btn" id="claimBtn" onclick="showPlans()">
-        See your options →
+      <button class="claim-btn" id="claimBtn" onclick="submitIntake()">
+        Build my site →
       </button>
       <div class="claim-sub">Free build · No credit card · No commitment</div>
-    </div>
-
-    <!-- STEP 2.5: Plan Selection -->
-    <div id="step25" style="display:none;width:100%;max-width:440px">
-      <div style="margin-bottom:20px;text-align:center">
-        <div style="font-size:15px;font-weight:700;font-family:var(--font-d)">Choose your plan</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:4px">Your site builds free — pay when you go live</div>
-      </div>
-
-      <!-- Legacy Card -->
-      <div id="legacyCard" style="background:linear-gradient(135deg,rgba(0,240,255,.08),rgba(184,41,221,.08));border:1.5px solid rgba(0,240,255,.3);border-radius:16px;padding:20px;margin-bottom:12px;cursor:pointer;position:relative" onclick="selectPlan('legacy')">
-        <div style="position:absolute;top:12px;right:12px;background:var(--cyan);color:#000;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:20px">EARLY ACCESS</div>
-        <div style="font-size:18px;font-weight:800;font-family:var(--font-d);margin-bottom:4px">Legacy</div>
-        <div style="font-size:28px;font-weight:800;color:var(--cyan);font-family:var(--font-d)">R399<span style="font-size:14px;font-weight:400;color:var(--muted)">/mo</span></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:12px">Locked for life · Never increases</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="font-size:13px;color:var(--white)">✓ Full premium site</div>
-          <div style="font-size:13px;color:var(--white)">✓ yourbusiness.websitehub.co.za</div>
-          <div style="font-size:13px;color:var(--white)">✓ Mobile-first, Google-ready</div>
-          <div style="font-size:13px;color:var(--white)">✓ WhatsApp button included</div>
-        </div>
-      </div>
-
-      <!-- Standard Card (Coming Soon) -->
-      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px;opacity:.5;position:relative">
-        <div style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.1);color:var(--muted);font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:20px">COMING SOON</div>
-        <div style="font-size:18px;font-weight:800;font-family:var(--font-d);margin-bottom:4px">Standard</div>
-        <div style="font-size:28px;font-weight:800;font-family:var(--font-d)">R699<span style="font-size:14px;font-weight:400;color:var(--muted)">/mo</span></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:12px">Your own .co.za domain included</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="font-size:13px;color:var(--muted)">✓ Everything in Legacy</div>
-          <div style="font-size:13px;color:var(--muted)">✓ yourbusiness.co.za domain</div>
-          <div style="font-size:13px;color:var(--muted)">✓ Professional email</div>
-        </div>
-      </div>
-
-      <!-- Premium Card (Coming Soon) -->
-      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px;opacity:.5;position:relative">
-        <div style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.1);color:var(--muted);font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:20px">COMING SOON</div>
-        <div style="font-size:18px;font-weight:800;font-family:var(--font-d);margin-bottom:4px">Premium</div>
-        <div style="font-size:28px;font-weight:800;font-family:var(--font-d)">R999<span style="font-size:14px;font-weight:400;color:var(--muted)">/mo</span></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:12px">Full service — domain, email + extras</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="font-size:13px;color:var(--muted)">✓ Everything in Standard</div>
-          <div style="font-size:13px;color:var(--muted)">✓ Photo gallery</div>
-          <div style="font-size:13px;color:var(--muted)">✓ Referral rewards</div>
-        </div>
-      </div>
     </div>
 
     <!-- STEP 3: Building -->
@@ -570,6 +532,13 @@ function showResult(data, domain) {
       document.getElementById('step2').style.display = 'block';
       document.getElementById('step2').scrollIntoView({ behavior:'smooth', block:'nearest' });
       document.getElementById('nameInput').focus();
+      // Pre-fill slug from confirmed domain
+      const slugInput = document.getElementById('slugInput');
+      if (slugInput && S.slug) {
+        slugInput.value = S.slug;
+        const status = document.getElementById('slugStatus');
+        if (status) { status.style.color = 'var(--green)'; status.textContent = '✓ Available'; }
+      }
     }, 400);
 
   } else if (data.available === false) {
@@ -650,20 +619,28 @@ function hideAddressSuggestions() {
 
 function el(id){ return document.getElementById(id); }
 
-async function showPlans() {
-  const name  = el('nameInput')?.value?.trim();
-  const phone = el('phoneInput')?.value?.trim();
-  if (!name)  { el('nameInput')?.focus(); return; }
-  if (!phone) { el('phoneInput')?.focus(); return; }
+let slugCheckTimer = null;
 
-  el('step2').style.display = 'none';
-  el('step25').style.display = 'block';
-  window.scrollTo(0, 0);
-}
-
-function selectPlan(plan) {
-  if (plan !== 'legacy') return; // Coming soon plans are not selectable
-  submitIntake();
+function onSlugInput(val) {
+  const slug = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const status = el('slugStatus');
+  if (!slug) { status.textContent = ''; return; }
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Checking...';
+  clearTimeout(slugCheckTimer);
+  slugCheckTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`/check-slug?slug=${slug}`);
+      const d = await r.json();
+      if (d.available) {
+        status.style.color = 'var(--green)';
+        status.textContent = '✓ Available';
+      } else {
+        status.style.color = 'var(--red)';
+        status.textContent = '✗ Already taken — try another';
+      }
+    } catch { status.textContent = ''; }
+  }, 500);
 }
 
 async function submitIntake() {
@@ -672,6 +649,11 @@ async function submitIntake() {
   var name  = document.getElementById('nameInput').value.trim();
   var phone = document.getElementById('phoneInput').value.trim();
   var email = document.getElementById('emailInput').value.trim();
+
+  // Use edited slug if customer changed it
+  var slugInputVal = document.getElementById('slugInput')?.value?.trim()
+    .toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (slugInputVal) { S.slug = slugInputVal; S.domain = slugInputVal + '.co.za'; }
 
   if (!name || !phone) {
     document.getElementById('nameInput').style.borderColor  = name  ? '' : 'var(--red)';
