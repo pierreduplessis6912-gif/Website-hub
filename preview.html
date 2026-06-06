@@ -578,6 +578,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <div class="s-row"><span>Monthly retainer</span><strong id="cRetainer">R699/mo</strong></div>
     <div class="s-row hl"><span>Pay today</span><strong id="cPrice">R7,000</strong></div>
   </div>
+  <div id="promoSaving" style="font-size:13px;color:var(--green);font-weight:700;text-align:center;margin:4px 0;display:none"></div>
   <div style="font-size:12px;color:var(--muted);text-align:center;margin:8px 0 16px">Monthly retainer invoiced separately · Cancel anytime</div>
   <button id="payBtn" onclick="processPayment()">Pay — Go Live →</button>
   <div class="confirm-legal" id="confirmLegal">Secure payment via PayFast · No contracts</div>
@@ -656,7 +657,20 @@ const PLANS = {
   premium:  { name:'Premium',  monthly:999,  label:'Premium plan',  buildFee:'R9,000', buildAmount:9000, domain:'yourbusiness.co.za'             },
 };
 
-const PROMO_CODES = { BETA: 1.0, LAUNCH: 0.5, HUB20: 0.2 };
+// Promo codes — each defines what they unlock
+const PROMO_CODES = {
+  LAUNCH2026: { plan:'premium', buildAmount:0, monthly:599, buildFee:'Free', label:'🎁 Exclusive offer applied', saving:'R9,000' },
+};
+
+function detectPromo() {
+  const code = new URLSearchParams(location.search).get('promo')?.toUpperCase();
+  if (code && PROMO_CODES[code]) {
+    S.promoCode = code;
+    S.promo = PROMO_CODES[code];
+    return true;
+  }
+  return false;
+}
 
 const BUILD_MSGS = [
   { s:'Writing your story',         b:'Shaping copy that sounds like you' },
@@ -688,16 +702,28 @@ async function bootstrap() {
     || window.__WH_TOKEN__
     || null;
 
+  // Detect promo code from URL
+  detectPromo();
+
   if (token) {
     S.token = token;
     try {
       const d = await apiFetch(`/build-status?token=${token}`, {}, { silent: true });
       S.slug = d.slug;
       if (d.slug) el('buildSlug').textContent = d.slug + '.co.za';
-      if (d.package) selectPlanSilent(d.package);
+
+      // If promo detected — force premium plan and lock others
+      if (S.promo) {
+        selectPlanSilent('premium');
+      } else if (d.package) {
+        selectPlanSilent(d.package);
+      }
 
       if (d.status === 'preview_ready') {
         showScreen('preview');
+        // Show promo banner if promo detected
+        if (S.promo) showPromoBanner();
+      }
         return;
       }
     } catch(e) {}
@@ -790,14 +816,38 @@ function openInTab() {
 }
 
 // ── PLAN ─────────────────────────────────────────────────────────
+function showPromoBanner() {
+  // Show promo banner above the bottom bar
+  const bar = el('prevBottom');
+  if (!bar) return;
+  const banner = document.createElement('div');
+  banner.id = 'promoBanner';
+  banner.style.cssText = 'background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(184,41,221,.15));border-top:1px solid rgba(0,240,255,.3);padding:12px 20px;text-align:center;font-size:13px;font-weight:600;color:var(--cyan)';
+  banner.textContent = `🎁 ${S.promo.label} — saving ${S.promo.saving}`;
+  bar.parentNode.insertBefore(banner, bar);
+
+  // Lock Express and Standard plan rows
+  ['express','standard'].forEach(p => {
+    const row = el('sel-' + p)?.closest('.plan-row');
+    if (row) {
+      row.style.opacity = '0.4';
+      row.style.pointerEvents = 'none';
+      row.onclick = null;
+    }
+  });
+}
+
 function selectPlan(plan) {
+  // In promo mode, only premium is selectable
+  if (S.promo && plan !== 'premium') return;
   S.selectedPlan = plan;
   const p = PLANS[plan];
-  el('prevPrice').textContent = p.buildFee;
-  el('prevPlanName').textContent = p.label;
+  const promo = S.promo;
+  el('prevPrice').textContent = promo ? promo.buildFee : p.buildFee;
+  el('prevPlanName').textContent = promo ? `Premium — ${promo.label}` : p.label;
   updatePlanSelectors();
   closePlanSheet();
-  toast(`Switched to ${p.name}`, 'ok');
+  if (!promo) toast(`Switched to ${p.name}`, 'ok');
 }
 
 function selectPlanSilent(plan) {
@@ -826,20 +876,36 @@ function setBilling(mode) {
 
 function updateConfirmPricing() {
   const p = PLANS[S.selectedPlan] || PLANS.standard;
-  el('cBuildFee').textContent = p.buildFee;
-  el('cRetainer').textContent = `R${p.monthly}/mo`;
-  el('cPrice').textContent = p.buildFee;
-  el('payBtn').textContent = `Pay ${p.buildFee} — Go Live →`;
+  const promo = S.promo;
+
+  if (promo) {
+    // Promo mode — show savings
+    el('cBuildFee').innerHTML = `<s style="color:var(--muted);font-size:12px">${p.buildFee}</s> <span style="color:var(--green);font-weight:700">Free</span>`;
+    el('cRetainer').innerHTML = `<s style="color:var(--muted);font-size:12px">R${p.monthly}/mo</s> <span style="color:var(--cyan);font-weight:700">R${promo.monthly}/mo</span>`;
+    el('cPrice').textContent = `R${promo.monthly}/mo`;
+    el('payBtn').textContent = `Activate — R${promo.monthly}/mo →`;
+    // Add saving callout
+    const saving = el('promoSaving');
+    if (saving) saving.textContent = `You're saving ${promo.saving} today 🎉`;
+  } else {
+    el('cBuildFee').textContent = p.buildFee;
+    el('cRetainer').textContent = `R${p.monthly}/mo`;
+    el('cPrice').textContent = p.buildFee;
+    el('payBtn').textContent = `Pay ${p.buildFee} — Go Live →`;
+  }
 }
 
 function onConfirm() {
   const p = PLANS[S.selectedPlan] || PLANS.standard;
-  el('cPlan').textContent = p.name;
+  const promo = S.promo;
+  el('cPlan').textContent = promo ? 'Premium (Exclusive offer)' : p.name;
   const isExpress = S.selectedPlan === 'express';
   const domain = isExpress
     ? (S.slug ? `${S.slug}.websitehub.co.za` : p.domain)
     : (S.slug ? `${S.slug}.co.za` : p.domain);
   el('cDomain').textContent = domain;
+  const saving = el('promoSaving');
+  if (saving) saving.style.display = promo ? 'block' : 'none';
   updateConfirmPricing();
 }
 
@@ -882,19 +948,20 @@ async function processPayment() {
   btn.disabled = true;
 
   const p = PLANS[S.selectedPlan];
-  const finalAmount = p.buildAmount; // One-time build fee only — retainer invoiced separately
+  const promo = S.promo;
+  const finalAmount = promo ? promo.buildAmount : p.buildAmount;
 
-  // Normal PayFast flow — always charged (no free tier in main pipeline)
   btn.textContent = 'Connecting to PayFast…';
   try {
     const d = await apiFetch('/go-live-link', {
       method: 'POST',
       body: JSON.stringify({
-        token: S.token,
-        slug: S.slug,
-        plan: S.selectedPlan,
-        retainer: finalAmount,
-        billing: 'once',
+        token:     S.token,
+        slug:      S.slug,
+        plan:      S.selectedPlan,
+        retainer:  finalAmount,
+        billing:   'once',
+        promoCode: S.promoCode || null,
       })
     });
     if (d.redirectUrl) {
