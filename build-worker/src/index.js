@@ -239,6 +239,7 @@ export default {
       });
       if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
       if (path === '/admin/scrape'             && method === 'POST') return handleScrape(request, env);
+      if (path === '/admin/promo-blast'         && method === 'POST') return handlePromoBlast(request, env);
       if (path === '/admin/approve-prospect'   && method === 'POST') return handleApproveProspect(request, env);
       if (path === '/admin/reject-prospect'    && method === 'POST') return handleRejectProspect(request, env);
       if (path === '/admin/prospect-queue'     && method === 'GET')  return handleProspectQueue(env);
@@ -394,6 +395,60 @@ async function handleSetConfig(request, env) {
 }
 
 // ── GOOGLE PLACES SCRAPE ──────────────────────────────────────────────────────
+async function handlePromoBlast(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const { industry, province, area, limit = 20, promoCode = 'LAUNCH2026' } = body;
+  if (!industry || !province) return jsonResponse({ error: 'industry and province required' }, 400);
+
+  // 1. Scrape Google Places
+  const scrapeReq = new Request(request.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ industry, province, area, limit }),
+  });
+  await handleScrape(scrapeReq, env);
+
+  // 2. Fetch all pending prospects just scraped
+  const prospects = await env.DB.prepare(
+    `SELECT * FROM prospects WHERE status='pending' AND scrape_date=date('now') ORDER BY id DESC LIMIT ?`
+  ).bind(limit).all();
+
+  let built = 0, skipped = 0;
+
+  for (const p of (prospects.results || [])) {
+    try {
+      const id           = crypto.randomUUID();
+      const slug         = await uniqueSlug(p.business_name, env);
+      const manage_token = crypto.randomUUID();
+      const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
+
+      await env.DB.prepare(`
+        INSERT INTO clients
+          (id, business_name, slug, phone, industry, area, manage_token,
+           referral_slug, promo_code, status, source, package, retainer)
+        VALUES (?,?,?,?,?,?,?,?,?,'lead','outbound','premium',?)
+      `).bind(id, p.business_name, slug, p.phone || '', p.industry || '', p.area || '',
+          manage_token, referral_slug, promoCode, PRICING.premium.retainer).run();
+
+      await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
+        .bind(id, p.id).run();
+
+      // Queue full substance build with promo flag
+      await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: id, isOutbound: true });
+      built++;
+    } catch (err) {
+      console.error(`Promo blast failed for prospect ${p.id}:`, err.message);
+      skipped++;
+    }
+  }
+
+  await logEvent(env, null, 'build', 'promo_blast', 'success', {
+    metadata: { industry, province, area, promoCode, built, skipped }
+  });
+
+  return jsonResponse({ success: true, found: prospects.results?.length || 0, built, skipped, promoCode });
+}
+
 async function handleScrape(request, env) {
   const { industry, province, area, limit = 20 } = await request.json().catch(() => ({}));
   if (!industry || !province) return jsonResponse({ error: 'industry and province required' }, 400);
