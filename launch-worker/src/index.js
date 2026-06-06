@@ -1369,9 +1369,14 @@ async function registerDomainViaProxy(slug, env) {
 }
 
 function generateRdToken(apiKey, email) {
-  // Token: base64(hmac_sha256(data=apiKey, key=email:YYYY-MM-DD HH))
+  // Token: base64(hmac_sha256(data=apiKey, key=email:yy-mm-dd HH))
+  // Note: gmdate("y-m-d H") uses 2-digit year
   const now = new Date();
-  const dateHour = `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}-${String(now.getUTCDate()).padStart(2,'0')} ${String(now.getUTCHours()).padStart(2,'0')}`;
+  const yy = String(now.getUTCFullYear()).slice(2); // 2-digit year
+  const mm = String(now.getUTCMonth()+1).padStart(2,'0');
+  const dd = String(now.getUTCDate()).padStart(2,'0');
+  const HH = String(now.getUTCHours()).padStart(2,'0');
+  const dateHour = `${yy}-${mm}-${dd} ${HH}`;
   const key = `${email}:${dateHour}`;
 
   return crypto.subtle.importKey(
@@ -1384,38 +1389,47 @@ async function registerViaRegisterDomain(domain, apiKey, email, env) {
   const BASE = 'https://www.registerdomain.co.za/modules/addons/DomainsReseller/api/index.php';
   const token = await generateRdToken(apiKey, email);
   const headers = {
-    'Content-Type':  'application/json',
-    'Authorization': `Bearer ${token}`,
+    'username': email,
+    'token':    token,
+    'Content-Type': 'application/x-www-form-urlencoded',
   };
 
   // 1. Check availability
+  const checkParams = new URLSearchParams({ searchTerm: domain });
   const checkRes = await fetch(`${BASE}/domains/lookup`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ searchTerm: domain, tldsToInclude: ['.co.za'] }),
+    body: checkParams.toString(),
   });
   const checkData = await checkRes.json();
   const available = checkData?.domains?.[0]?.available ?? checkData?.available;
   if (!available) throw new Error(`Domain ${domain} not available on registerdomain`);
 
-  // 2. Register
+  // 2. Register — form-encoded with Cloudflare nameservers
+  const regParams = new URLSearchParams({
+    domain,
+    regperiod: '1',
+    'nameservers[ns1]': 'bonnie.ns.cloudflare.com',
+    'nameservers[ns2]': 'glen.ns.cloudflare.com',
+    'contacts[registrant][email]':       email,
+    'contacts[registrant][firstname]':   'Website',
+    'contacts[registrant][lastname]':    'Hub',
+    'contacts[registrant][companyname]': 'Website Hub',
+    'contacts[registrant][address1]':    'South Africa',
+    'contacts[registrant][city]':        'Johannesburg',
+    'contacts[registrant][state]':       'GP',
+    'contacts[registrant][postcode]':    '2000',
+    'contacts[registrant][country]':     'ZA',
+    'contacts[registrant][phonenumber]': '+27.790128508',
+  });
+
   const regRes = await fetch(`${BASE}/order/domains/register`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      domain,
-      regperiod: 1,
-      nameservers: {
-        ns1: 'bonnie.ns.cloudflare.com',
-        ns2: 'glen.ns.cloudflare.com',
-      },
-      contacts: {
-        registrant: { email, firstname: 'Website', lastname: 'Hub', companyname: 'Website Hub', address1: 'South Africa', city: 'South Africa', state: 'ZA', postcode: '0000', country: 'ZA', phonenumber: '+27.790128508' },
-      },
-    }),
+    body: regParams.toString(),
   });
   const regData = await regRes.json();
-  if (!regRes.ok || regData.result === 'error') {
+  if (regData.result === 'error') {
     throw new Error(`registerdomain failed: ${regData.message || JSON.stringify(regData)}`);
   }
 
