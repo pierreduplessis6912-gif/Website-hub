@@ -224,7 +224,7 @@ export default {
       if (path === '/admin/bootstrap-cancellation' && method === 'POST') return handleAdminBootstrap(request, env, 'app:cancellation');
       if (path === '/admin/bootstrap-dpa'      && method === 'POST') return handleAdminBootstrap(request, env, 'app:dpa');
       if (path === '/admin/bootstrap-pwa'      && method === 'POST') return handleAdminBootstrapPwa(request, env);
-      if (path === '/admin/test-registerdomain' && method === 'POST') return handleTestRegisterDomain(request, env);
+      if (path === '/admin/test-registerdomain') return handleTestRegisterDomain(request, env);
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
@@ -740,11 +740,7 @@ async function handleAdminTriggerRebuild(request, env) {
 async function handleTestRegisterDomain(request, env) {
   if (env.LAUNCH_WORKER) {
     return env.LAUNCH_WORKER.fetch(
-      new Request('https://internal/admin/test-registerdomain', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      })
+      new Request('https://internal/admin/test-registerdomain', { method: 'GET' })
     );
   }
   return jsonResponse({ error: 'LAUNCH_WORKER binding not available' }, 500);
