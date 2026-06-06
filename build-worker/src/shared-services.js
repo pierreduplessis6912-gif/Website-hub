@@ -930,9 +930,12 @@ export async function sendWhatsApp(to, message, env, opts = {}) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       console.warn('Evolution API error:', JSON.stringify(data));
-      await logHealth(env, 'whatsapp', 'error', data?.message || `HTTP ${res.status}`);
+      // Log to events table since health_log doesn't exist
+      await env.DB?.prepare(
+        `INSERT INTO events (worker, event_type, status, error, created_at) VALUES ('build','whatsapp_send','error',?,'` + new Date().toISOString() + `')`
+      ).bind(`Evolution ${res.status}: ${JSON.stringify(data)}`).run().catch(() => {});
     } else {
-      await logHealth(env, 'whatsapp', 'success');
+      // Success — optionally log
     }
     return data;
   } catch (e) {
