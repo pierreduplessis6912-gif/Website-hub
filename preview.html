@@ -723,9 +723,7 @@ async function bootstrap() {
 
       if (d.status === 'preview_ready') {
         showScreen('preview');
-        // Show promo banner if promo detected
         if (S.promo) showPromoBanner();
-      }
         return;
       }
     } catch(e) {}
