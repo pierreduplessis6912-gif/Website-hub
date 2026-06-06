@@ -1369,15 +1369,14 @@ async function registerDomainViaProxy(slug, env) {
 }
 
 function generateRdToken(apiKey, email) {
-  // Token: base64(hmac_sha256(apiKey, email:YYYY-MM-DD HH))
+  // Token: base64(hmac_sha256(data=apiKey, key=email:YYYY-MM-DD HH))
   const now = new Date();
   const dateHour = `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}-${String(now.getUTCDate()).padStart(2,'0')} ${String(now.getUTCHours()).padStart(2,'0')}`;
-  const message = `${email}:${dateHour}`;
+  const key = `${email}:${dateHour}`;
 
-  // HMAC-SHA256 using Web Crypto API
   return crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(apiKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  ).then(key => crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message)))
+    'raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  ).then(k => crypto.subtle.sign('HMAC', k, new TextEncoder().encode(apiKey)))
    .then(sig => btoa(String.fromCharCode(...new Uint8Array(sig))));
 }
 
