@@ -346,7 +346,7 @@ async function handleAdminHealth(env) {
      ORDER BY b.created_at DESC LIMIT 5`
   ).all().then(r => r.results).catch(() => []);
 
-  return jsonResponse({ d1, recentEvents, recentBuilds, timestamp: new Date().toISOString(), testMode: isTestMode(env) });
+  return jsonResponse({ d1, recentEvents, recentBuilds, timestamp: new Date().toISOString(), testMode: isTestMode(env), evoConfigured: !!(env.EVOLUTION_API_URL && env.EVOLUTION_API_KEY), whPhone: env.WH_PHONE ? 'set' : 'missing' });
 }
 
 async function handleAdminClients(env) {
@@ -1979,6 +1979,10 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   await logEvent(env, clientId, 'build', 'substance_build_complete', 'success', {
     durationMs: buildMs,
     metadata: { business: client.business_name, pkg },
+  });
+
+  await logEvent(env, clientId, 'build', 'whatsapp_attempt', 'info', {
+    metadata: { ownerPhone: env.WH_PHONE ? 'set' : 'MISSING', clientPhone: client.phone || 'MISSING', testMode: String(isTestMode(env)) }
   });
 
   if (!isTestMode(env)) {
