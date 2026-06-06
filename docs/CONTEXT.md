@@ -358,3 +358,137 @@ See Security section above.
 6. Add auth to `/internal-golive`
 7. Delete CPANEL_PASSWORD from all workers
 8. Rate limiting on admin endpoints
+
+---
+
+## Session Update 2026-06-07
+
+### Domain Architecture (FINAL)
+- **`websitehub.co.za`** — the whole platform. One domain. Everything.
+  - `/` → landing page (app:landing)
+  - `/start` → intake form (app:start-v2)
+  - `/preview/{token}` → customer preview SPA (app:preview)
+  - `/manage/{token}` → manage panel (app:manage)
+  - `/admin` → operator dashboard (app:admin)
+  - `/privacy`, `/terms`, `/aup`, `/cancellation`, `/dpa`, `/referral-terms` → legal docs
+  - All API routes fall through to normal routing
+- **`preview.websitehub.co.za`** — client sites ONLY
+  - `slug.websitehub.co.za` → live Express/promo client sites via CNAME
+  - `preview.websitehub.co.za/{slug}` → built site preview
+  - All platform routes also work here (same worker, same routes)
+- **`www.websitehub.co.za`** → same as main domain
+
+### Build Worker Routing (locked)
+- Hostname check fires FIRST in fetch handler
+- `websitehub.co.za` and `www.websitehub.co.za` → serve platform pages from KV
+- API routes (intake, domain-check, build-status etc) fall through to normal routing
+- Unknown paths on main domain → landing page
+
+### Legal Pages (all bootstrapped)
+All served from KV, available on both `websitehub.co.za` and `preview.websitehub.co.za`:
+- `app:landing` → landing-v4.html (footer has real legal links)
+- `app:privacy` → privacy.html (Airtable/Twilio/Anthropic removed)
+- `app:terms` → terms.html
+- `app:referral-terms` → referral-terms.html
+- `app:aup` → aup.html
+- `app:cancellation` → cancellation.html
+- `app:dpa` → dpa.html
+
+### Preview SPA (preview.html → app:preview)
+Major rebuild this session:
+- Build fees: Express R5,000 · Standard R7,000 · Premium R9,000
+- Monthly retainers: R399 · R699 · R999 (invoiced separately — NOT via PayFast)
+- PayFast charges build fee ONLY (one-time)
+- No annual toggle, no promo code input field
+- Plan sheet auto-shows pricing with build fee in description
+- Legal links in confirm screen → websitehub.co.za/terms etc
+- Bottom bar: "{build fee} · then R{retainer}/mo"
+- processPayment sends buildAmount not monthly retainer
+
+### Promo Pipeline (LAUNCH2026)
+- URL: `/preview/{token}?promo=LAUNCH2026`
+- detectPromo() reads ?promo= param on load
+- Premium plan force-selected and locked
+- Express and Standard plan rows locked (opacity .4, pointer-events none)
+- Promo banner slides in above bottom bar: "🎁 Exclusive offer applied — saving R9,000"
+- Plan sheet: Premium shows ~~R9,000~~ → Free, ~~R999~~ → R599/mo
+- Confirm screen: build fee struck through → Free, retainer struck through → R599/mo
+- "You're saving R9,000 today 🎉" callout
+- PayFast: R0 build fee (promo.buildAmount = 0), R599/mo
+- promoCode passed to /go-live-link for storage
+- Month 3: pulse worker to trigger domain upgrade (PENDING — not built yet)
+
+### Promo Code Object
+```js
+const PROMO_CODES = {
+  LAUNCH2026: { plan:'premium', buildAmount:0, monthly:599, buildFee:'Free', label:'🎁 Exclusive offer applied', saving:'R9,000' },
+};
+```
+
+### Start Intake (start-v3.html → app:start-v2)
+- Business name search → Google Places autocomplete (kept — needed for GBP accuracy)
+- Domain badge in step 1 is now an editable input field
+- Customer can customise their slug directly in the badge
+- Live availability check via `/check-slug?slug={slug}` endpoint
+- Address field: "Where are you based?" with area/suburb autocomplete
+- Slug from badge input is used as slug_requested in intake POST
+- package sent: 'standard' (main pipeline — no legacy)
+- No plan cards in start — plan selection happens in preview SPA
+- Button: "Build my site →" calls submitIntake() directly
+
+### /check-slug Endpoint
+- GET /check-slug?slug={slug}
+- Checks D1 for existing clients with that slug (non-lead status)
+- Returns { slug, available: true/false }
+- Used for real-time availability in the domain badge
+
+### PayFast (VERIFIED — ready for payments)
+- Build fee only — one time payment
+- Retainer invoiced separately via accounting system
+- buildPayFastLink supports subscription params but not used for main pipeline
+- notifyUrl: preview.websitehub.co.za/payfast-webhook (proxied via service binding)
+- /payfast-webhook → service binding → launch worker → handleGoLiveInternal
+
+### Pending — PayFast End-to-End Test
+- Not yet tested with real payment
+- Need to confirm: payment → webhook → go-live → site live → WhatsApp
+- Test with terayneelectricalmaintenance (package=legacy, retainer=0 in D1)
+- Next session priority
+
+### Pending — registerdomain.co.za API
+- Support ticket open
+- Pierre has documentation to try
+- Should be wired as backup to DNSimple for Standard/Premium domain registration
+
+### Pending — Promo Month-3 Domain Upgrade
+- Promo clients get slug.websitehub.co.za for months 1-2
+- Month 3 (60 days after go-live): automatic upgrade to slug.co.za
+- Pulse worker needs d60 sequence: DNSimple register + CF hostname bind
+- promoCode needs to be stored on client record in D1
+
+### Design System (PINNED — not blocking)
+- Three demo cards built: wh-intake-card-demo.html, wh-intake-v2.html, wh-intake-v3.html, wh-intake-v4.html
+- Direction agreed: warm, Cormorant Garamond, conversational one-field-at-a-time flow, gold accent
+- Light theme preferred over dark
+- No emoji in UI — SVG icons only
+- Not blocking launch — revisit after first paying customer
+
+### Security — Sunday (MUST BEFORE LAUNCH)
+1. Rotate ADMIN_KEY (ADMIN_KEY_CLAUDEROX exposed)
+2. Rotate GitHub token (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 exposed)
+3. Rotate DNSIMPLE_TOKEN (exposed)
+4. Rotate CF_API_TOKEN (exposed)
+5. Lock /admin/query to SELECT only
+6. Add auth to /internal-golive
+7. Rate limiting on admin endpoints
+8. Delete CPANEL_PASSWORD from workers
+
+### URLs (all working)
+- https://websitehub.co.za — landing
+- https://websitehub.co.za/start — intake
+- https://websitehub.co.za/privacy — privacy policy
+- https://websitehub.co.za/terms — terms
+- https://preview.websitehub.co.za/preview/{token} — customer preview SPA
+- https://preview.websitehub.co.za/manage/{token} — manage panel
+- https://preview.websitehub.co.za/admin — operator dashboard
+- https://izingaflora2.websitehub.co.za — live Express client site
