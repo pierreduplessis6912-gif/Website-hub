@@ -23,5 +23,5 @@ database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
 migrations_dir = "../migrations"
 
 [[queues.producers]]
-queue = "build-queue"
+queue = "wh-build-queue"
 binding = "BUILD_QUEUE"
