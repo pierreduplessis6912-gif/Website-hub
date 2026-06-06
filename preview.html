@@ -555,7 +555,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     </div>
     <div class="prev-price-row">
       <div class="prev-price" id="prevPrice">R7,000</div>
-      <div class="prev-price-period">build fee · then R699/mo</div>
+      <div class="prev-price-period" id="prevPeriod">build fee · then R399/mo</div>
     </div>
     <button id="btnGoLive" onclick="goToConfirm()">Go live — claim your site →</button>
     <div class="prev-legal">Professional build · Cancel anytime · Secure via PayFast</div>
@@ -806,8 +806,10 @@ function onPreview() {
   if (frame) frame.src = '/site/' + S.slug + '/';
 
   const p = PLANS[S.selectedPlan] || PLANS.standard;
-  el('prevPrice').textContent = 'R' + p.monthly;
-  el('prevPlanName').textContent = p.label;
+  const promo = S.promo;
+  el('prevPrice').textContent = promo ? promo.buildFee : p.buildFee;
+  el('prevPlanName').textContent = promo ? `Premium — ${promo.label}` : p.label;
+  if (el('prevPeriod')) el('prevPeriod').textContent = promo ? `build fee · then R${promo.monthly}/mo` : `build fee · then R${p.monthly}/mo`;
   updatePlanSelectors();
 }
 
@@ -838,13 +840,13 @@ function showPromoBanner() {
 }
 
 function selectPlan(plan) {
-  // In promo mode, only premium is selectable
   if (S.promo && plan !== 'premium') return;
   S.selectedPlan = plan;
   const p = PLANS[plan];
   const promo = S.promo;
   el('prevPrice').textContent = promo ? promo.buildFee : p.buildFee;
   el('prevPlanName').textContent = promo ? `Premium — ${promo.label}` : p.label;
+  if (el('prevPeriod')) el('prevPeriod').textContent = promo ? `build fee · then R${promo.monthly}/mo` : `build fee · then R${p.monthly}/mo`;
   updatePlanSelectors();
   closePlanSheet();
   if (!promo) toast(`Switched to ${p.name}`, 'ok');
