@@ -395,7 +395,7 @@ async function handleGoLiveLink(request, env, ctx) {
   catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
   // Accept token (PWA) — resolve client from D1
-  const { token, slug, plan, retainer, billing } = body;
+  const { token, slug, plan, retainer, billing, promoCode } = body;
   if (!token) return Response.json({ error: 'token required' }, { status: 400 });
 
   const client = await env.DB.prepare(
@@ -405,29 +405,35 @@ async function handleGoLiveLink(request, env, ctx) {
 
   const pkg    = plan || client.package || 'standard';
   const amount = retainer !== undefined && retainer !== null ? retainer : (client.retainer || 399);
+
+  // Promo — determine recurring amount from promo code
+  const PROMO_CODES = {
+    LAUNCH2026: { monthly: 599 },
+  };
+  const activePromo = promoCode && PROMO_CODES[promoCode.toUpperCase()];
+  const recurringAmount = activePromo ? activePromo.monthly : (amount || client.retainer || 399);
+
   const isAnnual = billing === 'annual';
   const domain = client.domain || `${client.slug}.co.za`;
 
   const notifyUrl = `https://${PREVIEW_DOMAIN}/payfast-webhook`;
 
-  const returnUrl = `https://preview.websitehub.co.za/manage/${token}`;
-  const cancelUrl = `https://preview.websitehub.co.za/manage/${token}`;
+  const returnUrl = `https://websitehub.co.za/manage/${token}`;
+  const cancelUrl = `https://websitehub.co.za/manage/${token}`;
 
-  const itemName = isAnnual
-    ? 'Website Hub Annual Subscription'
-    : 'Website Hub Monthly Subscription';
-  const customStr2 = isAnnual ? `${pkg}_annual` : pkg;
+  const itemName  = activePromo ? 'Website Hub — Exclusive Offer' : 'Website Hub Monthly Subscription';
+  const customStr2 = promoCode ? `${pkg}_promo_${promoCode}` : pkg;
 
   const url = buildPayFastLink(amount, itemName, client.id, env, {
     returnUrl,
     notifyUrl,
     cancelUrl,
     customStr2,
-    itemDesc: `${client.business_name} — ${pkg} plan${isAnnual ? ' (annual)' : ''}`,
-    subscription:     true,
-    frequency:        3, // monthly
-    cycles:           0, // infinite
-    recurringAmount:  amount === 0 ? 399 : amount, // if R0 trial, recurring is R399
+    itemDesc: `${client.business_name} — ${pkg} plan${activePromo ? ' (exclusive offer)' : ''}`,
+    subscription:    true,
+    frequency:       3, // monthly
+    cycles:          0, // infinite
+    recurringAmount,
   });
 
   if (isTestMode(env)) {
@@ -549,11 +555,13 @@ async function handleGoLivePayment(clientId, paymentId, amount, customStr2, env,
   }
 
   const isAnnual = (customStr2 || '').endsWith('_annual');
+  const isPromo  = (customStr2 || '').includes('_promo_');
   const tier = getPricingTier(client.package || 'standard');
   const expectedAmount = isAnnual ? tier.retainer * 10 : tier.retainer;
   const nextInvoice = isAnnual ? nextYearDate() : nextMonthDate();
 
-  if (Math.abs(amount - expectedAmount) > AMOUNT_TOLERANCE) {
+  // Skip amount check for promo payments — build fee is R0, retainer billed separately
+  if (!isPromo && Math.abs(amount - expectedAmount) > AMOUNT_TOLERANCE) {
     await logActivity(env, 'payfast_amount_mismatch', { clientId, amount, expected: expectedAmount, isAnnual });
     await sendWhatsApp(env.WH_PHONE,
       `⚠️ PayFast amount mismatch\n${client.business_name}\nReceived: R${amount}\nExpected: R${expectedAmount}${isAnnual ? ' (annual)' : ''}\nClient: ${clientId}`,
