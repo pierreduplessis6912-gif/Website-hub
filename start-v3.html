@@ -648,8 +648,9 @@ function hideAddressSuggestions() {
   }, 200);
 }
 
+function el(id){ return document.getElementById(id); }
+
 async function showPlans() {
-  // Validate step 2 fields first
   const name  = el('nameInput')?.value?.trim();
   const phone = el('phoneInput')?.value?.trim();
   if (!name)  { el('nameInput')?.focus(); return; }
