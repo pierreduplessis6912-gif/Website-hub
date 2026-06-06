@@ -914,17 +914,7 @@ async function handleGoLiveInternal(clientId, client, env) {
 
   // ── 5. Domain setup ─────────────────────────────────────────
   if (!isTestMode(env)) {
-    if (isExpress) {
-      // Express — create free CNAME subdomain on websitehub.co.za
-      createSubdomainCname(slug, env).catch(e => {
-        console.warn('CNAME creation failed (non-fatal):', e?.message);
-        logActivity(env, 'go_live_cname_failed', { clientId, domain, error: e?.message });
-        sendWhatsApp(env.WH_PHONE,
-          `⚠️ CNAME creation failed for ${domain}: ${e.message}`,
-          env, { skipTestRedirect: true },
-        ).catch(() => {});
-      });
-    } else {
+    if (!isExpress) {
       // Standard/Premium — register .co.za via DNSimple
       registerDomainViaProxy(slug, env).catch(e => {
         console.warn('Domain registration failed (non-fatal):', e?.message || e);
@@ -935,10 +925,11 @@ async function handleGoLiveInternal(clientId, client, env) {
         ).catch(() => {});
       });
     }
+    // Express/promo — no DNS needed, wildcard *.websitehub.co.za catches all subdomains
   } else {
     await env.SITES.put(
       `test_log:domain:${slug}:${Date.now()}`,
-      JSON.stringify({ action: isExpress ? 'cname' : 'register', slug, domain, ts: new Date().toISOString() }),
+      JSON.stringify({ action: isExpress ? 'wildcard' : 'register', slug, domain, ts: new Date().toISOString() }),
       { expirationTtl: 86400 * 30 },
     );
   }
