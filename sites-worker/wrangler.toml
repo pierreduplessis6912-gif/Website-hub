@@ -1,0 +1,14 @@
+name = "wh-sites"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+account_id = "4c559b9dff9fae56803b9c275b518597"
+
+# Wildcard — catches all client subdomains
+[[routes]]
+pattern = "*.websitehub.co.za/*"
+zone_name = "websitehub.co.za"
+
+# KV — read live client HTML
+[[kv_namespaces]]
+binding = "SITES"
+id = "b63e5b885ead4c02a9e184dd6477e711"
