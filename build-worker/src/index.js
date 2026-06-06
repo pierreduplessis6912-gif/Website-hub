@@ -224,7 +224,7 @@ export default {
       if (path === '/admin/bootstrap-cancellation' && method === 'POST') return handleAdminBootstrap(request, env, 'app:cancellation');
       if (path === '/admin/bootstrap-dpa'      && method === 'POST') return handleAdminBootstrap(request, env, 'app:dpa');
       if (path === '/admin/bootstrap-pwa'      && method === 'POST') return handleAdminBootstrapPwa(request, env);
-      if (path === '/admin/purge-cache'       && method === 'POST') return handleAdminPurgeCache(env);
+      if (path === '/admin/test-registerdomain' && method === 'POST') return handleTestRegisterDomain(request, env);
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
@@ -735,6 +735,14 @@ async function handleAdminTriggerRebuild(request, env) {
   await env.DB.prepare(`UPDATE clients SET status='preview_ready', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(client.id).run();
   await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: client.id });
   return jsonResponse({ success: true, clientId: client.id, slug: client.slug });
+}
+
+async function handleTestRegisterDomain(request, env) {
+  // Proxy to launch worker which has the registerdomain logic
+  if (env.LAUNCH_WORKER) return env.LAUNCH_WORKER.fetch(
+    new Request('https://internal/admin/test-registerdomain', { method: 'POST', headers: request.headers, body: request.body })
+  );
+  return jsonResponse({ error: 'LAUNCH_WORKER binding not available' }, 500);
 }
 
 async function handleAdminPurgeCache(env) {
