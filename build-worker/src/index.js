@@ -167,18 +167,29 @@ export default {
 
     try {
       // ── MAIN DOMAIN — websitehub.co.za ──────────────────────
-      // Landing page and legal docs served from KV
       if (hostname === 'websitehub.co.za' || hostname === 'www.websitehub.co.za') {
-        if (path === '/' || path === '/landing' || path === '')  return servePwa(env, 'app:landing');
-        if (path === '/privacy')          return servePwa(env, 'app:privacy');
-        if (path === '/terms')            return servePwa(env, 'app:terms');
-        if (path === '/referral-terms')   return servePwa(env, 'app:referral-terms');
-        if (path === '/aup')              return servePwa(env, 'app:aup');
-        if (path === '/cancellation')     return servePwa(env, 'app:cancellation');
-        if (path === '/dpa')              return servePwa(env, 'app:dpa');
-        if (path === '/start')            return servePwa(env, 'app:start-v2');
-        // Everything else on main domain → landing
-        return servePwa(env, 'app:landing');
+        if (path === '/' || path === '' || path === '/landing') return servePwa(env, 'app:landing');
+        if (path === '/privacy')         return servePwa(env, 'app:privacy');
+        if (path === '/terms')           return servePwa(env, 'app:terms');
+        if (path === '/referral-terms')  return servePwa(env, 'app:referral-terms');
+        if (path === '/aup')             return servePwa(env, 'app:aup');
+        if (path === '/cancellation')    return servePwa(env, 'app:cancellation');
+        if (path === '/dpa')             return servePwa(env, 'app:dpa');
+        if (path === '/start')           return servePwa(env, 'app:start-v2');
+        if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
+        if (path.startsWith('/preview/')) return servePwa(env, 'app:preview');
+        if (path.startsWith('/manage/'))  return servePwa(env, 'app:manage');
+        if (path.startsWith('/intake/'))  return servePwa(env, 'app:intake');
+        // API routes — fall through to normal handling below
+        if (path.startsWith('/admin/') || path === '/intake' || path === '/domain-check' || 
+            path === '/check-slug' || path === '/build-status' || path.endsWith('/og') ||
+            path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free' ||
+            path === '/manage-panel' || path === '/client-status' || path === '/payfast-webhook') {
+          // Fall through to main routing
+        } else {
+          // Unknown path on main domain — serve landing
+          return servePwa(env, 'app:landing');
+        }
       }
 
       // ── LAUNCH WORKER ROUTES (via Service Binding) ──────────
