@@ -738,12 +738,50 @@ async function handleAdminTriggerRebuild(request, env) {
 }
 
 async function handleTestRegisterDomain(request, env) {
-  if (env.LAUNCH_WORKER) {
-    return env.LAUNCH_WORKER.fetch(
-      new Request('https://internal/admin/test-registerdomain', { method: 'GET' })
-    );
+  const apiKey = env.REGISTERDOMAIN_API_KEY;
+  const email  = env.REGISTERDOMAIN_EMAIL || 'loc10@live.co.za';
+  const PROXY  = 'https://websitehub.co.za/rd-proxy.php';
+  const SECRET = 'mysecretkey123';
+
+  if (!apiKey) return jsonResponse({ error: 'REGISTERDOMAIN_API_KEY not set on build worker — add it' }, 400);
+
+  try {
+    // Generate token
+    const now = new Date();
+    const yy = String(now.getUTCFullYear()).slice(2);
+    const mm = String(now.getUTCMonth()+1).padStart(2,'0');
+    const dd = String(now.getUTCDate()).padStart(2,'0');
+    const HH = String(now.getUTCHours()).padStart(2,'0');
+    const dateHour = `${yy}-${mm}-${dd} ${HH}`;
+    const keyStr = `${email}:${dateHour}`;
+    const keyBytes  = new TextEncoder().encode(keyStr);
+    const dataBytes = new TextEncoder().encode(apiKey);
+    const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig = await crypto.subtle.sign('HMAC', cryptoKey, dataBytes);
+    const token = btoa(String.fromCharCode(...new Uint8Array(sig)));
+
+    const rdHeaders = [`username: ${email}`, `token: ${token}`];
+
+    // Test version via proxy
+    const versionRes = await fetch(PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
+      body: JSON.stringify({ action: '/version', params: {}, headers: rdHeaders }),
+    });
+    const versionData = await versionRes.json().catch(() => ({ raw: 'parse error' }));
+
+    // Test domain check via proxy
+    const checkRes = await fetch(PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
+      body: JSON.stringify({ action: '/domains/lookup', params: { searchTerm: 'testxyz99887766.co.za' }, headers: rdHeaders }),
+    });
+    const checkData = await checkRes.json().catch(() => ({ raw: 'parse error' }));
+
+    return jsonResponse({ success: true, dateHour, token: token.slice(0,20)+'...', version: versionData, domainCheck: checkData });
+  } catch(e) {
+    return jsonResponse({ success: false, error: e.message }, 500);
   }
-  return jsonResponse({ error: 'LAUNCH_WORKER binding not available' }, 500);
 }
 
 async function handleAdminPurgeCache(env) {
