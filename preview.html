@@ -811,6 +811,9 @@ function onPreview() {
   el('prevPlanName').textContent = promo ? `Premium — ${promo.label}` : p.label;
   if (el('prevPeriod')) el('prevPeriod').textContent = promo ? `build fee · then R${promo.monthly}/mo` : `build fee · then R${p.monthly}/mo`;
   updatePlanSelectors();
+
+  // Auto-open plan sheet on landing — they see all plans and the value
+  setTimeout(() => openPlanSheet(), 800);
 }
 
 function openInTab() {
@@ -863,7 +866,19 @@ function updatePlanSelectors() {
   });
 }
 
-function openPlanSheet()  { el('planSheet').classList.add('open'); }
+function openPlanSheet() {
+  // In promo mode — update Premium card to show savings
+  if (S.promo) {
+    const premRow = el('sel-premium')?.closest('.plan-row');
+    if (premRow) {
+      const desc = premRow.querySelector('.plan-row-desc');
+      const price = premRow.querySelector('.plan-row-price');
+      if (desc) desc.innerHTML = `<s style="color:var(--muted)">R9,000 build</s> → <span style="color:var(--green);font-weight:700">Free build</span> · Full premium site`;
+      if (price) price.innerHTML = `<s style="font-size:10px;color:var(--muted)">R999</s> <span style="color:var(--cyan);font-weight:700">R${S.promo.monthly}</span><span style="font-size:10px;color:var(--muted)">/mo</span>`;
+    }
+  }
+  el('planSheet').classList.add('open');
+}
 function closePlanSheet() { el('planSheet').classList.remove('open'); }
 
 // ── CONFIRM ──────────────────────────────────────────────────────
