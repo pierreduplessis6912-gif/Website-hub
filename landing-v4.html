@@ -1342,19 +1342,71 @@ body::after{
       </div>
     </div>
 
-    <div class="pricing-row r up d2">
-      <div class="price-headline">
-        <span class="price-currency">R</span>299
+    <!-- Pricing carousel -->
+    <div style="margin-top:40px">
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:16px;text-align:center">Choose your plan</div>
+      <div style="display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 4px 16px;scrollbar-width:none;-ms-overflow-style:none" id="planCarousel">
+
+        <!-- Express -->
+        <div style="min-width:280px;flex-shrink:0;scroll-snap-align:start;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:24px;position:relative">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(240,237,232,.4);margin-bottom:12px">Express</div>
+          <div style="margin-bottom:4px">
+            <span style="font-size:13px;color:rgba(240,237,232,.5)">R</span>
+            <span style="font-size:40px;font-weight:800;letter-spacing:-2px">5,000</span>
+            <span style="font-size:13px;color:rgba(240,237,232,.5)"> build</span>
+          </div>
+          <div style="font-size:13px;color:rgba(240,237,232,.4);margin-bottom:20px">then R399/month</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>Single page site</div>
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>yourbusiness.websitehub.co.za</div>
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>WhatsApp button</div>
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>Mobile-first</div>
+          </div>
+        </div>
+
+        <!-- Standard -->
+        <div style="min-width:280px;flex-shrink:0;scroll-snap-align:start;background:rgba(0,240,255,.04);border:1px solid rgba(0,240,255,.15);border-radius:20px;padding:24px;position:relative">
+          <div style="position:absolute;top:16px;right:16px;background:var(--cyan);color:#000;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:20px">POPULAR</div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--cyan);margin-bottom:12px">Standard</div>
+          <div style="margin-bottom:4px">
+            <span style="font-size:13px;color:rgba(240,237,232,.5)">R</span>
+            <span style="font-size:40px;font-weight:800;letter-spacing:-2px;color:var(--white)">7,000</span>
+            <span style="font-size:13px;color:rgba(240,237,232,.5)"> build</span>
+          </div>
+          <div style="font-size:13px;color:rgba(240,237,232,.4);margin-bottom:20px">then R699/month</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>Full 5-page site</div>
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>yourbusiness.co.za domain</div>
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>Professional email</div>
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>Google Business integration</div>
+          </div>
+        </div>
+
+        <!-- Premium -->
+        <div style="min-width:280px;flex-shrink:0;scroll-snap-align:start;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:24px;position:relative">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(240,237,232,.4);margin-bottom:12px">Premium</div>
+          <div style="margin-bottom:4px">
+            <span style="font-size:13px;color:rgba(240,237,232,.5)">R</span>
+            <span style="font-size:40px;font-weight:800;letter-spacing:-2px">9,000</span>
+            <span style="font-size:13px;color:rgba(240,237,232,.5)"> build</span>
+          </div>
+          <div style="font-size:13px;color:rgba(240,237,232,.4);margin-bottom:20px">then R999/month</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>Everything in Standard</div>
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>Photo gallery</div>
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>Referral rewards</div>
+            <div style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--cyan);flex-shrink:0">✓</span>Priority support</div>
+          </div>
+        </div>
+
       </div>
-      <div class="price-meta">
-        <strong>per month · no build fee · cancel anytime</strong><br>
-        Starter plan. All features included from day one.
+      <!-- Scroll dots -->
+      <div style="display:flex;justify-content:center;gap:6px;margin-top:8px">
+        <div style="width:20px;height:3px;border-radius:2px;background:var(--cyan)"></div>
+        <div style="width:6px;height:3px;border-radius:2px;background:rgba(255,255,255,.2)"></div>
+        <div style="width:6px;height:3px;border-radius:2px;background:rgba(255,255,255,.2)"></div>
       </div>
-      <div class="price-tiers">
-        <div class="tier">Standard <span>R699/mo</span></div>
-        <div class="tier">Premium <span>R999/mo</span></div>
-        <div class="tier">All plans include a free .co.za</div>
-      </div>
+      <div style="text-align:center;font-size:11px;color:rgba(240,237,232,.3);margin-top:12px">Swipe to see all plans · Cancel anytime · No contracts</div>
     </div>
 
   </div>
