@@ -98,7 +98,7 @@ export default {
     if (path === '/go-live')          return handleGoLive(request, env, ctx);
     if (path === '/go-live-link')     return handleGoLiveLink(request, env, ctx);
     if (path === '/activate-free')    return handleActivateFree(request, env, ctx);
-    if (path === '/admin/test-registerdomain') return handleTestRd(request, env);
+    if (path === '/admin/test-registerdomain') return handleTestRd(env);
     if (path === '/internal-golive' || path === '/internal-golive/')  return handleInternalGoLive(request, env, ctx);
     if (path === '/suspend-site')     return handleSuspendSite(request, env);
     if (path === '/reinstate-site')   return handleReinstateSite(request, env);
@@ -348,7 +348,7 @@ async function handleCancelSite(request, env) {
 
 
 // ── /activate-free — skip PayFast for 100% promo codes ───────────────────────
-async function handleTestRd(request, env) {
+async function handleTestRd(env) {
   const apiKey = env.REGISTERDOMAIN_API_KEY;
   const email  = env.REGISTERDOMAIN_EMAIL || 'loc10@live.co.za';
   const PROXY  = 'https://websitehub.co.za/rd-proxy.php';
