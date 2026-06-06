@@ -351,32 +351,34 @@ async function handleCancelSite(request, env) {
 async function handleTestRd(request, env) {
   const apiKey = env.REGISTERDOMAIN_API_KEY;
   const email  = env.REGISTERDOMAIN_EMAIL || 'loc10@live.co.za';
+  const PROXY  = 'https://websitehub.co.za/rd-proxy.php';
+  const SECRET = 'mysecretkey123';
 
   if (!apiKey) return jsonResponse({ error: 'REGISTERDOMAIN_API_KEY not set' }, 400);
 
   try {
     const token = await generateRdToken(apiKey, email);
-    const BASE  = 'https://www.registerdomain.co.za/modules/addons/DomainsReseller/api/index.php';
+    const rdHeaders = [`username: ${email}`, `token: ${token}`];
 
     // Test 1: Get version
-    const versionRes = await fetch(`${BASE}/version`, {
-      headers: { 'username': email, 'token': token }
+    const versionRes = await fetch(PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
+      body: JSON.stringify({ action: '/version', params: {}, headers: rdHeaders }),
     });
     const versionData = await versionRes.json().catch(async () => ({ raw: await versionRes.text() }));
 
-    // Test 2: Check a domain availability
-    const checkParams = new URLSearchParams({ searchTerm: 'testdomain12345xyz.co.za' });
-    const checkRes = await fetch(`${BASE}/domains/lookup`, {
+    // Test 2: Check domain availability
+    const checkRes = await fetch(PROXY, {
       method: 'POST',
-      headers: { 'username': email, 'token': token, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: checkParams.toString(),
+      headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
+      body: JSON.stringify({ action: '/domains/lookup', params: { searchTerm: 'testdomain12345xyz.co.za' }, headers: rdHeaders }),
     });
     const checkData = await checkRes.json().catch(async () => ({ raw: await checkRes.text() }));
 
     return jsonResponse({
       success: true,
       token_prefix: token.slice(0, 20) + '...',
-      token_full: token,
       version: versionData,
       domainCheck: checkData,
     });
@@ -1429,47 +1431,53 @@ async function generateRdToken(apiKey, email) {
 }
 
 async function registerViaRegisterDomain(domain, apiKey, email, env) {
-  const BASE = 'https://www.registerdomain.co.za/modules/addons/DomainsReseller/api/index.php';
-  const token = await generateRdToken(apiKey, email);
-  const headers = {
-    'username': email,
-    'token':    token,
-    'Content-Type': 'application/x-www-form-urlencoded',
-  };
+  const PROXY  = 'https://websitehub.co.za/rd-proxy.php';
+  const SECRET = 'mysecretkey123';
+  const token  = await generateRdToken(apiKey, email);
 
-  // 1. Check availability
-  const checkParams = new URLSearchParams({ searchTerm: domain });
-  const checkRes = await fetch(`${BASE}/domains/lookup`, {
-    method: 'POST',
-    headers,
-    body: checkParams.toString(),
+  const rdHeaders = [
+    `username: ${email}`,
+    `token: ${token}`,
+  ];
+
+  // 1. Check availability via proxy
+  const checkRes = await fetch(PROXY, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
+    body: JSON.stringify({
+      action:  '/domains/lookup',
+      params:  { searchTerm: domain },
+      headers: rdHeaders,
+    }),
   });
   const checkData = await checkRes.json();
   const available = checkData?.domains?.[0]?.available ?? checkData?.available;
   if (!available) throw new Error(`Domain ${domain} not available on registerdomain`);
 
-  // 2. Register — form-encoded with Cloudflare nameservers
-  const regParams = new URLSearchParams({
-    domain,
-    regperiod: '1',
-    'nameservers[ns1]': 'bonnie.ns.cloudflare.com',
-    'nameservers[ns2]': 'glen.ns.cloudflare.com',
-    'contacts[registrant][email]':       email,
-    'contacts[registrant][firstname]':   'Website',
-    'contacts[registrant][lastname]':    'Hub',
-    'contacts[registrant][companyname]': 'Website Hub',
-    'contacts[registrant][address1]':    'South Africa',
-    'contacts[registrant][city]':        'Johannesburg',
-    'contacts[registrant][state]':       'GP',
-    'contacts[registrant][postcode]':    '2000',
-    'contacts[registrant][country]':     'ZA',
-    'contacts[registrant][phonenumber]': '+27.790128508',
-  });
-
-  const regRes = await fetch(`${BASE}/order/domains/register`, {
-    method: 'POST',
-    headers,
-    body: regParams.toString(),
+  // 2. Register via proxy
+  const regRes = await fetch(PROXY, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
+    body: JSON.stringify({
+      action: '/order/domains/register',
+      params: {
+        domain,
+        regperiod: '1',
+        'nameservers[ns1]': 'bonnie.ns.cloudflare.com',
+        'nameservers[ns2]': 'glen.ns.cloudflare.com',
+        'contacts[registrant][email]':       email,
+        'contacts[registrant][firstname]':   'Website',
+        'contacts[registrant][lastname]':    'Hub',
+        'contacts[registrant][companyname]': 'Website Hub',
+        'contacts[registrant][address1]':    'South Africa',
+        'contacts[registrant][city]':        'Johannesburg',
+        'contacts[registrant][state]':       'GP',
+        'contacts[registrant][postcode]':    '2000',
+        'contacts[registrant][country]':     'ZA',
+        'contacts[registrant][phonenumber]': '+27.790128508',
+      },
+      headers: rdHeaders,
+    }),
   });
   const regData = await regRes.json();
   if (regData.result === 'error') {
