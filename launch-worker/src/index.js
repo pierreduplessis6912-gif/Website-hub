@@ -375,7 +375,8 @@ async function handleTestRd(request, env) {
 
     return jsonResponse({
       success: true,
-      token: token.slice(0, 20) + '...',
+      token_prefix: token.slice(0, 20) + '...',
+      token_full: token,
       version: versionData,
       domainCheck: checkData,
     });
@@ -1405,21 +1406,26 @@ async function registerDomainViaProxy(slug, env) {
   return await registerViaDNSimple(domain, env);
 }
 
-function generateRdToken(apiKey, email) {
-  // Token: base64(hmac_sha256(data=apiKey, key=email:yy-mm-dd HH))
-  // Note: gmdate("y-m-d H") uses 2-digit year
+async function generateRdToken(apiKey, email) {
+  // Matches PHP: base64_encode(hash_hmac("sha256", apiKey, email:gmdate("y-m-d H")))
+  // gmdate("y-m-d H") = 2-digit year, UTC
   const now = new Date();
-  const yy = String(now.getUTCFullYear()).slice(2); // 2-digit year
+  const yy = String(now.getUTCFullYear()).slice(2);
   const mm = String(now.getUTCMonth()+1).padStart(2,'0');
   const dd = String(now.getUTCDate()).padStart(2,'0');
   const HH = String(now.getUTCHours()).padStart(2,'0');
   const dateHour = `${yy}-${mm}-${dd} ${HH}`;
-  const key = `${email}:${dateHour}`;
+  const keyStr = `${email}:${dateHour}`;
 
-  return crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  ).then(k => crypto.subtle.sign('HMAC', k, new TextEncoder().encode(apiKey)))
-   .then(sig => btoa(String.fromCharCode(...new Uint8Array(sig))));
+  // Use Web Crypto: key=keyStr, data=apiKey (matches Python hmac.new(key, msg))
+  const keyBytes  = new TextEncoder().encode(keyStr);
+  const dataBytes = new TextEncoder().encode(apiKey);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', cryptoKey, dataBytes);
+  return btoa(String.fromCharCode(...new Uint8Array(sig)));
 }
 
 async function registerViaRegisterDomain(domain, apiKey, email, env) {
