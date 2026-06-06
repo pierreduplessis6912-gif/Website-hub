@@ -1427,7 +1427,9 @@ async function generateRdToken(apiKey, email) {
     'raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
   );
   const sig = await crypto.subtle.sign('HMAC', cryptoKey, dataBytes);
-  return btoa(String.fromCharCode(...new Uint8Array(sig)));
+  // PHP hash_hmac returns hex string by default — base64 encode the hex string
+  const hexStr = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
+  return btoa(hexStr);
 }
 
 async function registerViaRegisterDomain(domain, apiKey, email, env) {
