@@ -362,7 +362,7 @@ async function handleTestRd(request, env) {
     const versionRes = await fetch(`${BASE}/version`, {
       headers: { 'username': email, 'token': token }
     });
-    const versionData = await versionRes.json().catch(() => ({ raw: await versionRes.text() }));
+    const versionData = await versionRes.json().catch(async () => ({ raw: await versionRes.text() }));
 
     // Test 2: Check a domain availability
     const checkParams = new URLSearchParams({ searchTerm: 'testdomain12345xyz.co.za' });
@@ -371,7 +371,7 @@ async function handleTestRd(request, env) {
       headers: { 'username': email, 'token': token, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: checkParams.toString(),
     });
-    const checkData = await checkRes.json().catch(() => ({ raw: await checkRes.text() }));
+    const checkData = await checkRes.json().catch(async () => ({ raw: await checkRes.text() }));
 
     return jsonResponse({
       success: true,
