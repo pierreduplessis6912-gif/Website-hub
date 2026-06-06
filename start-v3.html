@@ -724,8 +724,8 @@ function startBuildPoll() {
 
       if (d.status === 'preview_ready' || d.status === 'live') {
         clearInterval(_pollTimer); clearInterval(_msgTimer);
-        // Redirect to the live preview site — watermark has "Claim my site →" CTA
-        window.location.href = '/' + (d.slug || S.slug) + '/';
+        // Redirect to preview SPA — iframe + Go Live button
+        window.location.href = '/preview/' + S.token;
         return;
       }
 
