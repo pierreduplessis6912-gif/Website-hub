@@ -223,6 +223,7 @@ export default {
 
       // ── DOMAIN CHECK ─────────────────────────────────────────
       if (path === '/domain-check' && method === 'GET') return handleDomainCheck(url, env);
+      if (path === '/check-slug'   && method === 'GET') return handleCheckSlug(url, env);
 
       // ── PUBLIC CONFIG ────────────────────────────────────────
       if (path === '/config' && method === 'GET') return handleConfig(env);
@@ -938,6 +939,19 @@ async function handlePreviewChoices(request, env) {
 }
 
 // ── DOMAIN CHECK ─────────────────────────────────────────────
+
+async function handleCheckSlug(url, env) {
+  const slug = (url.searchParams.get('slug') || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!slug) return jsonResponse({ available: false }, 400);
+
+  const existing = await env.DB.prepare(
+    `SELECT id FROM clients WHERE slug=? AND status NOT IN ('lead','building','preview_ready','qa_ready') LIMIT 1`
+  ).bind(slug).first().catch(() => null);
+
+  return new Response(JSON.stringify({ slug, available: !existing }), {
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' }
+  });
+}
 
 async function handleDomainCheck(url, env) {
   let rawName = url.searchParams.get('name') || '';
