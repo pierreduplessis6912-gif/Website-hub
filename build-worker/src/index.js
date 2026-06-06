@@ -160,11 +160,27 @@ const DEFAULT_CONFIG = {
 
 export default {
   async fetch(request, env) {
-    const url    = new URL(request.url);
-    const path   = url.pathname;
-    const method = request.method;
+    const url      = new URL(request.url);
+    const path     = url.pathname;
+    const method   = request.method;
+    const hostname = url.hostname;
 
     try {
+      // ── MAIN DOMAIN — websitehub.co.za ──────────────────────
+      // Landing page and legal docs served from KV
+      if (hostname === 'websitehub.co.za' || hostname === 'www.websitehub.co.za') {
+        if (path === '/' || path === '/landing' || path === '')  return servePwa(env, 'app:landing');
+        if (path === '/privacy')          return servePwa(env, 'app:privacy');
+        if (path === '/terms')            return servePwa(env, 'app:terms');
+        if (path === '/referral-terms')   return servePwa(env, 'app:referral-terms');
+        if (path === '/aup')              return servePwa(env, 'app:aup');
+        if (path === '/cancellation')     return servePwa(env, 'app:cancellation');
+        if (path === '/dpa')              return servePwa(env, 'app:dpa');
+        if (path === '/start')            return servePwa(env, 'app:start-v2');
+        // Everything else on main domain → landing
+        return servePwa(env, 'app:landing');
+      }
+
       // ── LAUNCH WORKER ROUTES (via Service Binding) ──────────
       if (path === '/internal-golive' || path === '/go-live-link' || 
           path === '/activate-free'   || path === '/manage-panel' ||
