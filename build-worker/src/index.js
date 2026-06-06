@@ -758,7 +758,8 @@ async function handleTestRegisterDomain(request, env) {
     const dataBytes = new TextEncoder().encode(apiKey);
     const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const sig = await crypto.subtle.sign('HMAC', cryptoKey, dataBytes);
-    const token = btoa(String.fromCharCode(...new Uint8Array(sig)));
+    const hexStr = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
+    const token = btoa(hexStr);
 
     const rdHeaders = [`username: ${email}`, `token: ${token}`];
 
