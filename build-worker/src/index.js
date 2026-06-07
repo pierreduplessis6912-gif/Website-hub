@@ -3428,6 +3428,17 @@ ${renderSections(sectionFlow, { aboutSection, servicesSection, gallerySection, w
 })();
 </script>
 
+<script>
+(function(){
+  var s='${client.slug}';
+  if(!s)return;
+  new Image().src='/'+s+'/ping';
+  document.querySelectorAll('a[href*="wa.me"]').forEach(function(a){
+    a.addEventListener('click',function(){new Image().src='/'+s+'/wa';},{once:true,passive:true});
+  });
+})();
+</script>
+
 </body>
 </html>`;
 }
