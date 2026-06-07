@@ -200,48 +200,39 @@ async function handleManagePanel(request, url, env) {
   ).bind(client.id, new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()).first().catch(() => ({ cnt: 0 })).then(r => r?.cnt || 0);
   const waTaps  = 0; // future — track separately
 
-  // Referral data
-  const refRow = await env.DB.prepare(
-    `SELECT COUNT(*) as sent FROM clients WHERE referral_slug=?`
-  ).bind(slug).first().catch(() => ({ sent: 0 }));
+  // ── Referral data — count toward Hub Pro domain upgrade ─────
+  // Every live referral counts as 1 credit toward 10 needed for upgrade
   const convRow = await env.DB.prepare(
-    `SELECT COUNT(*) as conversions FROM clients WHERE referral_slug=? AND status='live'`
+    `SELECT COUNT(*) as conversions FROM clients WHERE referred_by=? AND status='live'`
   ).bind(slug).first().catch(() => ({ conversions: 0 }));
   const conversions = convRow?.conversions || 0;
-  const creditEarned = conversions * (tier?.retainer || 0);
+  const REFERRAL_GOAL = 10;
+  const alreadyUpgraded = pkg === 'hub_pro' || pkg === 'premium';
+  const referralLink = `https://websitehub.co.za/r/${slug}`;
+  const shareMessage = `Hey! Check out my new website 👉 https://${domain}\n\nGet yours built in 2 minutes: ${referralLink}`;
 
   // Leaderboard — top 10 by conversions
   const lbRows = await env.DB.prepare(`
-    SELECT c.referral_slug as slug, COUNT(*) as conversions
+    SELECT c.slug, c.business_name, COUNT(*) as conversions
     FROM clients c
-    WHERE c.status='live' AND c.referral_slug IS NOT NULL AND c.referral_slug != ''
-    GROUP BY c.referral_slug
+    WHERE c.status='live' AND c.referred_by IS NOT NULL AND c.referred_by != ''
+    GROUP BY c.referred_by
     ORDER BY conversions DESC
     LIMIT 10
   `).all().catch(() => ({ results: [] }));
 
   const leaderboard = (lbRows.results || []).map((row, i) => ({
     rank: i + 1,
-    name: row.slug,
+    name: row.business_name || row.slug,
     conversions: row.conversions,
-    credit: row.conversions * (tier?.retainer || 0),
     isYou: row.slug === slug,
   }));
-  if (!leaderboard.find(r => r.isYou) && conversions > 0) {
-    leaderboard.push({
-      rank: leaderboard.length + 1,
-      name: slug,
-      conversions,
-      credit: creditEarned,
-      isYou: true,
-    });
-  }
 
-  // Upgrade offers
+  // Upgrade offers — only if on Hub
   const upgradeOffers = [];
-  const planRank = { express:1, standard:2, premium:3 };
-  if ((planRank[pkg] || 1) < 2) upgradeOffers.push({ to:'standard', delta: 400 });
-  if ((planRank[pkg] || 1) < 3) upgradeOffers.push({ to:'premium',  delta: pkg === 'express' ? 700 : 300 });
+  if (pkg === 'hub' || pkg === 'standard' || pkg === 'express') {
+    upgradeOffers.push({ to: 'hub_pro', delta: 300, label: 'Get your own .co.za domain' });
+  }
 
   // Email
   const emailActive = caps.email && client.email_provisioned;
@@ -272,11 +263,13 @@ async function handleManagePanel(request, url, env) {
       address: emailAddress,
     },
     referral: {
-      active:       caps.referral || false,
-      link:         `https://websitehub.co.za?ref=${slug}`,
-      sent:         refRow?.sent || 0,
+      active:      true,
+      link:        referralLink,
+      shareMessage,
       conversions,
-      creditEarned,
+      goal:        REFERRAL_GOAL,
+      progress:    Math.min(conversions, REFERRAL_GOAL),
+      upgraded:    alreadyUpgraded,
       leaderboard,
     },
     upgradeOffers,
