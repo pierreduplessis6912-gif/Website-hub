@@ -965,10 +965,6 @@ async function runReferralVesting(env, today) {
 
   return { upgraded };
 }
-  }
-
-  return { granted };
-}
 
 // ============================================================
 // SEQUENCE: leaderboard cache pre-computation
