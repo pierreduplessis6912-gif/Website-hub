@@ -903,61 +903,68 @@ async function runProspectLimboFollowUp(env, today) {
 // ============================================================
 
 async function runReferralVesting(env, today) {
-  if (!(await getFlag(env, 'REFERRAL_ENABLED'))) {
-    return { skipped: 'REFERRAL_ENABLED=false' };
-  }
+  // New referral system: count live referrals per client
+  // When a client reaches 10 live referrals → upgrade to Hub Pro → register domain
+  const REFERRAL_GOAL = 10;
 
-  const todayDate = new Date(today + 'T00:00:00Z');
-  const vestDate  = new Date(todayDate.getTime() - REFERRAL_VEST_DAYS * 24 * 60 * 60 * 1000);
-  const vestDateStr = vestDate.toISOString().split('T')[0];
+  // Find Hub clients who have 10+ live referrals and aren't already Hub Pro
+  const rows = await env.DB.prepare(`
+    SELECT c.id, c.slug, c.business_name, c.phone, c.package, c.manage_token,
+           COUNT(r.id) as ref_count
+    FROM clients c
+    JOIN clients r ON r.referred_by = c.slug AND r.status = 'live'
+    WHERE c.status = 'live'
+      AND (c.package = 'hub' OR c.package = 'standard' OR c.package = 'express')
+    GROUP BY c.id
+    HAVING ref_count >= ?
+  `).bind(REFERRAL_GOAL).all().catch(() => ({ results: [] }));
 
-  // Find Live clients with a Referral Slug who went live exactly REFERRAL_VEST_DAYS ago
-  const records = await queryClients(env, `status='live' AND referral_slug IS NOT NULL AND go_live_date=?`, [vestDateStr]).catch(() => []);
-
-  let granted = 0;
-  for (const record of records) {
-    const f = { 'Business Name': record.business_name, 'Go Live Date': record.go_live_date };
-    const referredId   = record.id;
-    const referrerSlug = record.referral_slug || f['Referral Slug'];
-    if (!referrerSlug) continue;
-
-    const guardKey = `referral_credited:${referredId}`;
-    if (await env.SITES.get(guardKey)) continue;
+  let upgraded = 0;
+  for (const client of (rows.results || [])) {
+    const guardKey = `referral_upgraded:${client.id}`;
+    if (await env.SITES.get(guardKey)) continue; // already processed
 
     try {
-      // Increment conversions counter
-      const convKey = `referral:conversions:${referrerSlug}`;
-      const current = parseInt(await env.SITES.get(convKey).catch(() => '0') || '0');
-      await env.SITES.put(convKey, String(current + 1));
+      // Upgrade to Hub Pro
+      await env.DB.prepare(
+        `UPDATE clients SET package='hub_pro', retainer=999 WHERE id=?`
+      ).bind(client.id).run();
 
-      // Find the referrer's Airtable record by slug
-      const referrer = await getClientBySlug(referrerSlug, env).catch(() => null);
-      if (!referrer) {
-        console.warn(`Referrer slug "${referrerSlug}" not found in D1`);
-        await env.SITES.put(guardKey, new Date().toISOString());
-        continue;
-      }
-      const refTier = getPricingTier(referrer.package || 'standard');
-
-      // Create Zoho credit note for one month's retainer
-      await logActivity(env, 'referral_credit_note_pending', { clientId, creditAmount });
-
-      // Owner alert
-      await sendWhatsApp(env.WH_PHONE,
-        `🎁 REFERRAL VESTED: ${referrer.business_name} → ${f['Business Name']}\nFree month: R${refTier.retainer}\nReferrer: ${referrer.id}`,
-        env, { skipTestRedirect: true });
-
+      // Mark guard
       await env.SITES.put(guardKey, new Date().toISOString());
-      await logActivity(env, 'referral_credited', {
-        referrerId:   referrer.id,
-        referrerSlug,
-        referredId,
-        amount:       refTier.retainer,
-      });
-      granted++;
-    } catch (err) {
-      console.warn(`Referral vesting failed for ${referredId}:`, err?.message || err);
+
+      // WhatsApp client
+      await sendWhatsApp(client.phone,
+        `🎉 *${client.business_name}* — you've earned your domain!\n\n` +
+        `You referred 10 friends who went live. Your Hub Pro upgrade is active — we're registering your .co.za domain now.\n\n` +
+        `— Website Hub`,
+        env
+      ).catch(() => {});
+
+      // WhatsApp owner
+      await sendWhatsApp(env.WH_PHONE,
+        `🎁 REFERRAL UPGRADE: ${client.business_name} (${client.slug}) → Hub Pro\n10 referrals achieved`,
+        env, { skipTestRedirect: true }
+      ).catch(() => {});
+
+      // Trigger domain registration via launch worker
+      if (env.LAUNCH_WORKER) {
+        await env.LAUNCH_WORKER.fetch(new Request('https://internal/register-domain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: client.id, slug: client.slug }),
+        })).catch(() => {});
+      }
+
+      await logActivity(env, 'referral_upgrade', { clientId: client.id, slug: client.slug, refCount: client.ref_count });
+      upgraded++;
+    } catch(err) {
+      console.warn(`Referral upgrade failed for ${client.id}:`, err?.message);
     }
+  }
+
+  return { upgraded };
+}
   }
 
   return { granted };
