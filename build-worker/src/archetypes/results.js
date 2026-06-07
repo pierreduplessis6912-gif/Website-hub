@@ -99,7 +99,7 @@ body{font-family:var(--font-body);background:var(--dark);color:var(--text);overf
   font-size:17px;font-weight:700;letter-spacing:.5px;
   color:var(--text);text-decoration:none;text-transform:uppercase;
 }
-.nav-links{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.nav-links{display:flex;align-items:center;gap:24px}
 .nav-link{
   color:rgba(255,255,255,.5);font-size:13px;font-weight:400;
   text-decoration:none;letter-spacing:.3px;transition:color .2s;
