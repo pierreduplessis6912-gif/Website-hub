@@ -14,7 +14,7 @@
 // ============================================================
 
 import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from './shared-services.js';
-import { getDesignBrief, buildCssVariables, UX_RULES, getPersonality, SECTION_FLOWS, SPACING_RHYTHMS } from '../../design-db.js';
+import { getDesignBrief, buildCssVariables, UX_RULES, getPersonality, SECTION_FLOWS, SPACING_RHYTHMS, generateFingerprint, selectionPassSystem, selectionPassUser, LIGHT_PALETTES } from '../../design-db.js';
 import { getHeroPhotoQuery, getHeroPhotoQueryByKey, getIndustryKey } from '../../photo-db.js';
 import { generateExperienceHTML } from './archetypes/experience.js';
 import { generateEmergencyHTML }  from './archetypes/emergency.js';
@@ -317,6 +317,7 @@ export default {
         const { type, clientId, cardPayload, isOutbound } = msg.body;
         if (type === 'pre_build')       await triggerPreBuild(clientId, env, isOutbound);
         if (type === 'substance_build') await triggerSubstanceBuild(clientId, cardPayload, env);
+        if (type === 'full_build')      await triggerFullBuild(clientId, env, isOutbound);
         msg.ack();
       } catch (err) {
         console.error('Queue message failed:', err);
@@ -434,7 +435,7 @@ async function handlePromoBlast(request, env) {
         .bind(id, p.id).run();
 
       // Queue pre_build — same as normal outbound, promo_code on client handles WhatsApp param
-      await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: true });
+      await env.BUILD_QUEUE.send({ type: 'full_build', clientId: id, isOutbound: true });
       built++;
     } catch (err) {
       console.error(`Promo blast failed for prospect ${p.id}:`, err.message);
@@ -603,7 +604,7 @@ async function triggerOutboundBuild(prospect, env) {
   await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
     .bind(id, prospect.id).run();
 
-  await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: true });
+  await env.BUILD_QUEUE.send({ type: 'full_build', clientId: id, isOutbound: true });
 }
 
 
@@ -733,7 +734,7 @@ async function handleAdminTriggerRebuild(request, env) {
     : await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
   if (!client) return jsonResponse({ error: 'Client not found' }, 404);
   await env.DB.prepare(`UPDATE clients SET status='preview_ready', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(client.id).run();
-  await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: client.id });
+  await env.BUILD_QUEUE.send({ type: 'full_build', clientId: client.id, isOutbound: false });
   return jsonResponse({ success: true, clientId: client.id, slug: client.slug });
 }
 
@@ -1277,7 +1278,7 @@ async function handleIntake(request, env) {
       } catch(e) { console.warn('GBP lookup failed:', e.message); }
     }
 
-    await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: false });
+    await env.BUILD_QUEUE.send({ type: 'full_build', clientId: id, isOutbound: false });
 
     return jsonResponse({ slug, manage_token, clientId: id, redirectUrl: `https://${PREVIEW_DOMAIN}/intake/${manage_token}` });
 
@@ -1597,7 +1598,7 @@ async function handleTriggerRebuild(request, env) {
     client.id
   ).run();
 
-  await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: client.id, cardPayload: cards });
+  await env.BUILD_QUEUE.send({ type: 'full_build', clientId: client.id, isOutbound: false });
   return jsonResponse({ success: true, status: 'building' });
 }
 
@@ -1711,6 +1712,290 @@ async function serveBuiltSite(url, path, request, env) {
 }
 
 // ── PRE-BUILD PIPELINE ────────────────────────────────────────
+
+// ── UNIFIED FULL BUILD PIPELINE ──────────────────────────────
+// Single function. 6 passes. One WhatsApp.
+// Replaces pre_build + substance_build queue hop.
+// Pass 0: Design selection (archetype, layout, mood, typography)
+// Pass 1: Brand intelligence
+// Pass 2: Skeleton content
+// Pass 3: UX refinement (non-fatal)
+// Pass 4: Rich content with GBP
+// Pass 5: Full content generation
+// Pass 6: Quality gate (non-fatal)
+
+async function triggerFullBuild(clientId, env, isOutbound = false) {
+  const client = await getClientById(clientId, env);
+  if (!client) throw new Error(`Client not found: ${clientId}`);
+
+  const slug      = client.slug;
+  const pkg       = pkgKey(client.package);
+  const buildId   = await createBuild(env, clientId, { template_id: pkg, palette: client.vibe || 'professional' });
+  const buildStart = Date.now();
+
+  await updateClient(env, clientId, { status: 'building' });
+  await logEvent(env, clientId, 'build', 'full_build_started', 'success', {
+    metadata: { business: client.business_name, pkg },
+  });
+
+  // ── PASS 0: Design Selection ────────────────────────────────
+  // Fetch GBP data first — needed for selection pass
+  let gbpData = null;
+  if (client.gbp_data) {
+    try { gbpData = JSON.parse(client.gbp_data); } catch {}
+  }
+  if (!gbpData && client.gbp_url) {
+    gbpData = await fetchGbpData(client.gbp_url, env).catch(() => null);
+  }
+
+  // Run selection pass
+  let selectionResult = null;
+  try {
+    const raw = await callClaudeInternal(
+      selectionPassSystem(),
+      [{ role: 'user', content: selectionPassUser(client, gbpData) }],
+      env, { maxTokens: 500 }
+    );
+    selectionResult = parseJson(raw);
+    await logEvent(env, clientId, 'build', 'pass0_selection_complete', 'success', {
+      metadata: selectionResult,
+    });
+  } catch(e) {
+    console.warn('Selection pass failed (non-fatal), using defaults:', e.message);
+  }
+
+  // Apply selection or fall back to personality system
+  const personalityCategory = selectionResult?.personality_category ||
+    getDesignBrief(client.industry || client.business_name, client.vibe).personality?.category ||
+    'trade_authority';
+
+  const variants = {
+    colour_mood:    selectionResult?.colour_mood    || 'dark',
+    hero_layout:    selectionResult?.hero_layout    || null,
+    section_flow:   selectionResult?.section_flow   || null,
+    typography_id:  selectionResult?.typography_id  || null,
+  };
+
+  // Generate fingerprint
+  const fingerprint = generateFingerprint(personalityCategory, variants);
+  await updateClient(env, clientId, { design_fingerprint: fingerprint });
+
+  // Get full design brief with selection overrides
+  const brief = getDesignBrief(client.industry || client.business_name, client.vibe);
+
+  // Apply colour mood — swap to light palette if selected
+  if (variants.colour_mood === 'light' && brief.personality?.palette_row_light) {
+    const lightPalette = LIGHT_PALETTES[brief.personality.palette_row_light];
+    if (lightPalette) {
+      brief.palette = lightPalette;
+    }
+  }
+
+  // Override typography if selection pass chose one
+  if (variants.typography_id) {
+    const chosenTypo = getTypographyById(variants.typography_id);
+    if (chosenTypo) brief.typography = {
+      heading: chosenTypo.heading, body: chosenTypo.body,
+      name: chosenTypo.name, cssImport: chosenTypo.import,
+    };
+  }
+
+  // Override section flow and hero layout
+  if (variants.section_flow) brief.personality.section_flow = variants.section_flow;
+  if (variants.hero_layout)  brief.personality.hero_layouts = [variants.hero_layout, ...brief.personality.hero_layouts];
+
+  // ── PASS 1: Brand Intelligence ──────────────────────────────
+  let brandBrief;
+  try {
+    const raw = await callClaudeInternal(
+      preBuildPass1System(brief),
+      [{ role: 'user', content: preBuildPass1User(client, brief) }],
+      env, { maxTokens: PASS_TOKENS.pre_1 }
+    );
+    brandBrief = parseJson(raw);
+    await logEvent(env, clientId, 'build', 'pass1_brand_complete', 'success', {});
+  } catch(e) {
+    await updateBuild(env, buildId, { status: 'failed', error: e.message });
+    throw new Error(`Pass 1 (Brand) failed: ${e.message}`);
+  }
+
+  // ── PASS 2: Skeleton Content ────────────────────────────────
+  let skeletonTokens;
+  try {
+    const raw = await callClaudeInternal(
+      preBuildPass2System(),
+      [{ role: 'user', content: preBuildPass2User(client, brief, brandBrief) }],
+      env, { maxTokens: PASS_TOKENS.pre_2 }
+    );
+    skeletonTokens = parseJson(raw);
+    await logEvent(env, clientId, 'build', 'pass2_skeleton_complete', 'success', {});
+  } catch(e) {
+    await updateBuild(env, buildId, { status: 'failed', error: e.message });
+    throw new Error(`Pass 2 (Skeleton) failed: ${e.message}`);
+  }
+
+  // ── PASS 3: UX Refinement (non-fatal) ──────────────────────
+  try {
+    const raw = await callClaudeInternal(
+      preBuildPass3System(),
+      [{ role: 'user', content: preBuildPass3User(skeletonTokens, brief) }],
+      env, { maxTokens: PASS_TOKENS.pre_3 }
+    );
+    const refined = parseJson(raw);
+    if (refined && Object.keys(refined).length > 0) {
+      skeletonTokens = { ...skeletonTokens, ...refined };
+    }
+    await logEvent(env, clientId, 'build', 'pass3_ux_complete', 'success', {});
+  } catch(e) {
+    console.warn('Pass 3 (UX) failed (non-fatal):', e.message);
+  }
+
+  // ── PASS 4: Rich Brand Intelligence with GBP ────────────────
+  let richBrandBrief;
+  try {
+    const raw = await callClaudeInternal(
+      substancePass1System(brief),
+      [{ role: 'user', content: substancePass1User(client, null, brief, skeletonTokens, gbpData) }],
+      env, { maxTokens: PASS_TOKENS.sub_1 }
+    );
+    richBrandBrief = parseJson(raw);
+    await logEvent(env, clientId, 'build', 'pass4_richbrand_complete', 'success', {});
+  } catch(e) {
+    console.warn('Pass 4 (Rich Brand) failed, using pass 1 brandBrief:', e.message);
+    richBrandBrief = brandBrief; // fallback to pass 1
+  }
+
+  // ── PASS 5: Full Content Generation ────────────────────────
+  const pass5Budget = PACKAGE_CAPS[pkg]?.pass3TokenBudget || 7500;
+  let contentTokens;
+  try {
+    const raw = await callClaudeInternal(
+      substancePass2System(),
+      [{ role: 'user', content: substancePass2User(client, null, brief, richBrandBrief, skeletonTokens) }],
+      env, { maxTokens: pass5Budget }
+    );
+    contentTokens = parseJson(raw);
+    await logEvent(env, clientId, 'build', 'pass5_content_complete', 'success', {});
+  } catch(e) {
+    await updateBuild(env, buildId, { status: 'failed', error: e.message });
+    throw new Error(`Pass 5 (Content) failed: ${e.message}`);
+  }
+
+  // ── PASS 6: Quality Gate (non-fatal) ───────────────────────
+  try {
+    const raw = await callClaudeInternal(
+      substancePass3System(),
+      [{ role: 'user', content: substancePass3User(contentTokens, null, brief) }],
+      env, { maxTokens: PASS_TOKENS.sub_3 }
+    );
+    const refined = parseJson(raw);
+    if (refined && Object.keys(refined).length > 0) {
+      contentTokens = { ...contentTokens, ...refined };
+    }
+    await logEvent(env, clientId, 'build', 'pass6_quality_complete', 'success', {});
+  } catch(e) {
+    console.warn('Pass 6 (Quality) failed (non-fatal):', e.message);
+  }
+
+  // ── PHOTO ───────────────────────────────────────────────────
+  const heroUrl = await fetchHeroPhoto(brief, richBrandBrief, env);
+
+  // ── CSS ─────────────────────────────────────────────────────
+  const primaryColour = richBrandBrief?.logo_brand_colour || richBrandBrief?.primary_colour || null;
+  const accentColour  = richBrandBrief?.accent_colour || null;
+  const cssBlock      = buildCssVariables(brief.palette, brief.typography, primaryColour, accentColour);
+
+  // ── LAYOUT ──────────────────────────────────────────────────
+  const heroLayout      = variants.hero_layout || brief.personality?.hero_layouts?.[0] || 'cinematic_left';
+  const openingStrategy = brief.personality?.opening_strategies?.[0] || 'proof_first';
+
+  // ── GALLERY (Premium) ───────────────────────────────────────
+  const caps = PACKAGE_CAPS[pkg] || PACKAGE_CAPS.standard;
+  let galleryPhotos = [];
+  if (caps.gallery) {
+    try {
+      const rows = await env.DB.prepare(
+        `SELECT url FROM gallery_photos WHERE client_id=? ORDER BY created_at DESC LIMIT 6`
+      ).bind(clientId).all();
+      galleryPhotos = (rows.results || []).map(r => r.url);
+    } catch {}
+  }
+
+  // ── HTML — archetype-routed ─────────────────────────────────
+  const archetype = detectArchetypeFromPersonality(brief.personality?.category, client.industry);
+  let html;
+  if (archetype === 'experience') {
+    html = generateExperienceHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+  } else if (archetype === 'emergency') {
+    html = generateEmergencyHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+  } else if (archetype === 'trust') {
+    html = generateTrustHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+  } else if (archetype === 'local') {
+    html = generateLocalHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+  } else if (archetype === 'results') {
+    html = generateResultsHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+  } else {
+    html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, null, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
+  }
+
+  // ── STORE ───────────────────────────────────────────────────
+  await env.SITES.put(`site:${slug}`, html, { expirationTtl: PREVIEW_TTL });
+  await env.SITES.put(`preview:${slug}`, html, { expirationTtl: PREVIEW_TTL });
+  await env.SITES.put(`content:${slug}`, JSON.stringify(contentTokens), { expirationTtl: PREVIEW_TTL });
+
+  const buildMs = Date.now() - buildStart;
+  await updateBuild(env, buildId, {
+    status: 'complete',
+    build_time_ms: buildMs,
+    voice_profile: JSON.stringify(contentTokens),
+    unsplash_queries: JSON.stringify([richBrandBrief?.unsplash_query || brief.unsplashQuery]),
+  });
+
+  await updateClient(env, clientId, {
+    status:           'preview_ready',
+    voice_profile:    JSON.stringify(contentTokens),
+    hero_url:         heroUrl,
+    design_fingerprint: fingerprint,
+  });
+
+  await logEvent(env, clientId, 'build', 'full_build_complete', 'success', {
+    durationMs: buildMs,
+    metadata: { business: client.business_name, pkg, fingerprint },
+  });
+
+  // ── NOTIFY ──────────────────────────────────────────────────
+  if (!isTestMode(env)) {
+    await sendWhatsApp(env.WH_PHONE,
+      `✅ FULL BUILD: ${client.business_name}\n${fingerprint}\n${buildMs}ms`,
+      env, { skipTestRedirect: true }
+    ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_owner_failed', 'error', { error: e?.message || String(e) }));
+
+    if (!isOutbound) {
+      const promoCode  = client.promo_code || null;
+      const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
+      await sendWhatsApp(client.phone,
+        `🎉 *${client.business_name}* — your site is ready!\n\n` +
+        `Have a look and go live when you're ready:\n\n` +
+        `👉 https://${PREVIEW_DOMAIN}/preview/${client.manage_token}${promoParam}\n\n` +
+        `— Website Hub`,
+        env
+      ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_client_failed', 'error', { error: e?.message || String(e) }));
+    } else {
+      // Outbound — send OG card link with promo if applicable
+      const promoCode  = client.promo_code || null;
+      const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
+      await sendWhatsApp(client.phone,
+        `👋 Hi! We built something for *${client.business_name}*\n\n` +
+        `Have a look:\n\n` +
+        `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
+        `— Website Hub`,
+        env
+      ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_outbound_failed', 'error', { error: e?.message || String(e) }));
+    }
+  }
+
+  return slug;
+}
 
 async function triggerPreBuild(clientId, env, isOutbound = false) {
   const client = await getClientById(clientId, env);
@@ -3078,7 +3363,7 @@ async function handleCron(env) {
         .bind(id, p.id).run();
 
       // Queue outbound pre-build (with watermark)
-      await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: true });
+      await env.BUILD_QUEUE.send({ type: 'full_build', clientId: id, isOutbound: true });
 
     } catch (err) {
       console.error(`Cron: failed for prospect ${p.id}:`, err.message);
