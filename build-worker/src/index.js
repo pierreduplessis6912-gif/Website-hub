@@ -1484,15 +1484,16 @@ function detectArchetypeFromPersonality(personalityCategory, industry) {
   // Experience: sensory, immersive businesses
   if (['hospitality','personal_care','wellness','event_creative'].includes(personalityCategory)) return 'experience';
   if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|florist|flower|lodge|guest.house|wedding|tattoo|yoga|pilates/.test(k)) return 'experience';
+  // Results: transformation, renovation, visual change
+  if (['transformation'].includes(personalityCategory)) return 'results';
+  if (/floor|flooring|blind|curtain|renovate|renovation|paint|painting|tiling|tile|carpet|decor|interior|landscap|garden|pool|solar|roof|roofing|ceiling|kitchen|bathroom/.test(k)) return 'results';
   // Trust: professional services
   if (['professional_trust','medical_trust'].includes(personalityCategory)) return 'trust';
-  // Results: transformation
-  if (['transformation'].includes(personalityCategory)) return 'results';
   // Local: community
   if (['community_local','retail_utility'].includes(personalityCategory)) return 'local';
-  // Emergency: trade
+  // Emergency: trade callouts
   if (['trade_authority','technical_expertise'].includes(personalityCategory)) return 'emergency';
-  return 'experience'; // default to experience — it's the most complete template
+  return 'experience'; // default
 }
 
 // ── SHOWCASE — live site carousel feed ───────────────────────────
