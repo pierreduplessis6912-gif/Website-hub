@@ -708,6 +708,22 @@ ${t.testimonial_quote && !isExp ? `
   </div>
 </section>` : ''}
 
+${galleryPhotos.length ? `
+<section style="background:var(--surface);padding:80px 0">
+  <div style="padding:0 28px 32px">
+    <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:8px">${esc(t.section_label_gallery || 'OUR WORK')}</div>
+    <h2 style="font-size:clamp(28px,6vw,40px);font-weight:800;color:var(--fg);line-height:1.1">See the results</h2>
+  </div>
+  <div style="overflow:hidden">
+    <div id="galleryTrack" style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 28px 16px">
+      ${galleryPhotos.map((url,i) => `<div style="flex-shrink:0;width:78vw;max-width:320px;scroll-snap-align:start"><img src="${esc(url)}" alt="${esc(client.business_name)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px;display:block" loading="lazy"></div>`).join('')}
+    </div>
+    <div id="galleryDots" style="display:flex;justify-content:center;gap:6px;padding-bottom:8px">
+      ${galleryPhotos.map((_,i) => `<div class="gdot" data-idx="${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'var(--accent)':'rgba(255,255,255,.2)'};cursor:pointer;transition:all .3s"></div>`).join('')}
+    </div>
+  </div>
+</section>` : ''}
+
 <!-- Contact -->
 <section class="contact" id="contact">
   <div class="contact-inner">
@@ -783,6 +799,27 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
     if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'})}
   });
 });
+
+// Gallery carousel
+(function(){
+  const track=document.getElementById('galleryTrack');
+  const dots=document.querySelectorAll('.gdot');
+  if(!track||!dots.length)return;
+  track.addEventListener('scroll',function(){
+    const slide=track.querySelector('div');
+    const idx=Math.round(track.scrollLeft/((slide?.offsetWidth||300)+12));
+    dots.forEach(function(d,i){
+      d.style.width=i===idx?'20px':'6px';
+      d.style.background=i===idx?'var(--accent)':'rgba(255,255,255,.2)';
+    });
+  },{passive:true});
+  dots.forEach(function(d,i){
+    d.addEventListener('click',function(){
+      const slides=track.querySelectorAll(':scope > div');
+      if(slides[i])slides[i].scrollIntoView({behavior:'smooth',block:'nearest',inline:'start'});
+    });
+  });
+})();
 </script>
 </body>
 </html>`;
