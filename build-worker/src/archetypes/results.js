@@ -390,24 +390,16 @@ body{font-family:var(--font-body);background:var(--dark);color:var(--text);overf
   font-size:14px;font-weight:300;
   color:var(--muted);margin-top:6px;
 }
-/* Masonry-feel grid */
-.gallery-grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:3px;
-}
-.gallery-img{
-  width:100%;aspect-ratio:1;
-  object-fit:cover;display:block;
-  opacity:0;transform:scale(.97);
-  transition:opacity .5s ease,transform .5s ease;
-}
-.gallery-img.visible{opacity:1;transform:scale(1)}
-.gallery-img:hover{transform:scale(1.02)}
-/* Feature large image */
-.gallery-grid .gallery-img:first-child{
-  grid-column:span 2;aspect-ratio:2/1;
-}
+/* Gallery carousel */
+.gallery-carousel{overflow:hidden}
+.gallery-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;padding:0 28px 20px}
+.gallery-track::-webkit-scrollbar{display:none}
+.gallery-slide{flex-shrink:0;width:80vw;max-width:360px;scroll-snap-align:start}
+.gallery-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:20px;display:block;opacity:0;transition:opacity .6s ease}
+.gallery-img.visible{opacity:1}
+.gallery-dots{display:flex;justify-content:center;gap:6px;padding-top:4px}
+.gallery-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .3s,width .3s}
+.gallery-dot.active{width:20px;border-radius:3px;background:var(--accent)}
 
 /* ── REVIEWS ──────────────────────────────────── */
 .reviews{
@@ -761,8 +753,13 @@ ${galleryPhotos.length ? `
     <div class="gallery-title">See what we can do</div>
     <div class="gallery-subtitle">Every job finished to the same standard. No exceptions.</div>
   </div>
-  <div class="gallery-grid">
-    ${galleryPhotos.map(url => `<img class="gallery-img" src="${esc(url)}" alt="${esc(client.business_name)}" loading="lazy">`).join('')}
+  <div class="gallery-carousel">
+    <div class="gallery-track" id="galleryTrack">
+      ${galleryPhotos.map((url,i) => `<div class="gallery-slide"><img class="gallery-img" src="${esc(url)}" alt="${esc(client.business_name)}" loading="lazy"></div>`).join('')}
+    </div>
+    <div class="gallery-dots" id="galleryDots">
+      ${galleryPhotos.map((_,i) => `<div class="gallery-dot${i===0?' active':''}" data-idx="${i}"></div>`).join('')}
+    </div>
   </div>
 </section>` : ''}
 
@@ -878,6 +875,20 @@ const obs=new IntersectionObserver((entries)=>{
 },{threshold:0.12,rootMargin:'0px 0px -32px 0px'});
 
 document.querySelectorAll('.section-label,.section-headline,.process-step,.service-tile,.about-headline,.about-pull,.about-body,.gallery-header,.gallery-img,.review-block,.testimonial-inner,.diff-item,.contact-headline,.contact-promise,.contact-actions,.contact-detail').forEach(el=>obs.observe(el));
+
+// Gallery carousel
+const gTrack=document.getElementById('galleryTrack');
+const gDots=document.querySelectorAll('.gallery-dot');
+if(gTrack&&gDots.length){
+  gTrack.addEventListener('scroll',()=>{
+    const idx=Math.round(gTrack.scrollLeft/(gTrack.querySelector('.gallery-slide')?.offsetWidth+16||1));
+    gDots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+  },{passive:true});
+  gDots.forEach((d,i)=>d.addEventListener('click',()=>{
+    const slides=gTrack.querySelectorAll('.gallery-slide');
+    if(slides[i])slides[i].scrollIntoView({behavior:'smooth',block:'nearest',inline:'start'});
+  }));
+}
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
