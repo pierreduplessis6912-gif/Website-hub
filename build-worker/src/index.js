@@ -1428,15 +1428,27 @@ async function resolveGbpPhotos(photoNames, env, maxPhotos = 1) {
 }
 
 // ── INSTAGRAM PHOTO FETCHER ──────────────────────────────────
-// Uses Instagram's internal profile API — public, no auth
-// Returns array of image URLs from recent posts
-async function fetchInstagramPhotos(handle) {
+// Routes through cPanel proxy — Instagram blocks Cloudflare IPs
+async function fetchInstagramPhotos(handle, env) {
   if (!handle) return [];
   try {
-    const cleanHandle = handle.replace(/^@/, '').replace(/https?:\/\/(www\.)?instagram\.com\/?/, '').replace(/\/$/, '').split('/')[0];
-    const res = await fetch(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${cleanHandle}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15' }
+    const cleanHandle = handle.replace(/^@/, '').replace(/https?:\/\/(www\.)?instagram\.com\/?/, '').replace(/\/$/, '').split('/')[0].split('?')[0];
+    const PROXY  = 'https://classictouchsalon.co.za/rd-proxy.php';
+    const SECRET = 'mysecretkey123';
+
+    // Use proxy to fetch Instagram profile info
+    const res = await fetch(PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
+      body: JSON.stringify({
+        action:  '/api/v1/users/web_profile_info/',
+        method:  'GET',
+        params:  { username: cleanHandle },
+        headers: ['User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15'],
+        baseUrl: 'https://www.instagram.com',
+      }),
     });
+
     if (!res.ok) return [];
     const data = await res.json();
     const user = data?.data?.user;
@@ -1449,6 +1461,13 @@ async function fetchInstagramPhotos(handle) {
       const url = edge.node?.display_url || edge.node?.thumbnail_src;
       if (url) photos.push(url);
     }
+
+    if (photos.length > 0) {
+      await logEvent(env, null, 'build', 'instagram_fetch_success', 'success', {
+        metadata: { handle: cleanHandle, photos: photos.length }
+      }).catch(() => {});
+    }
+
     return photos.slice(0, 6);
   } catch(e) {
     console.warn('Instagram fetch failed:', e.message);
