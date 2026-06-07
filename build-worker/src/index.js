@@ -3264,13 +3264,18 @@ function generateFullHTML(t, cssBlock, heroUrl, client, cards, photos, pkg, hero
 </section>`;
 
   // ── GALLERY — Premium only, requires uploaded photos ───────────
-  const gallerySection = isPrem && photos?.length > 0 ? `
+  const gallerySection = photos?.length > 0 ? `
 <!-- GALLERY -->
 <section id="gallery" class="section">
-  <span class="label">OUR WORK</span>
+  <span class="label">${t.section_label_gallery || 'OUR WORK'}</span>
   <h2 class="section-h2">See it for yourself</h2>
-  <div class="services-grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:24px">
-    ${photos.slice(0, 6).map(url => `<img src="${url}" alt="Our work" style="width:100%;border-radius:12px;aspect-ratio:1;object-fit:cover">`).join('')}
+  <div style="margin:0 -28px;overflow:hidden">
+    <div id="galleryTrack" style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:20px 28px">
+      ${photos.slice(0,6).map((url,i) => `<div style="flex-shrink:0;width:78vw;max-width:320px;scroll-snap-align:start"><img src="${esc(url)}" alt="Our work" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px;display:block"></div>`).join('')}
+    </div>
+    <div id="galleryDots" style="display:flex;justify-content:center;gap:6px;padding-bottom:8px">
+      ${photos.slice(0,6).map((_,i) => `<div class="gdot${i===0?' active':''}" data-idx="${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'var(--accent)':'rgba(0,0,0,.2)'};cursor:pointer;transition:all .3s"></div>`).join('')}
+    </div>
   </div>
 </section>` : '';
 
@@ -3368,6 +3373,28 @@ ${renderSections(sectionFlow, { aboutSection, servicesSection, gallerySection, w
 </footer>
 
 <a href="${waLink}" class="wa-fab" aria-label="WhatsApp">💬</a>
+
+<script>
+// Gallery carousel
+(function(){
+  const track=document.getElementById('galleryTrack');
+  const dots=document.querySelectorAll('.gdot');
+  if(!track||!dots.length)return;
+  track.addEventListener('scroll',function(){
+    const idx=Math.round(track.scrollLeft/(track.querySelector('div')?.offsetWidth+12||1));
+    dots.forEach(function(d,i){
+      d.style.width=i===idx?'20px':'6px';
+      d.style.background=i===idx?'var(--accent)':'rgba(0,0,0,.2)';
+    });
+  },{passive:true});
+  dots.forEach(function(d,i){
+    d.addEventListener('click',function(){
+      const slides=track.querySelectorAll(':scope > div');
+      if(slides[i])slides[i].scrollIntoView({behavior:'smooth',block:'nearest',inline:'start'});
+    });
+  });
+})();
+</script>
 
 </body>
 </html>`;
