@@ -20,6 +20,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: build-worker
+          wranglerVersion: "3.90.0"
 
   deploy-patch:
     name: Deploy wh-patch
@@ -35,6 +36,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: patch-worker
+          wranglerVersion: "3.90.0"
 
   deploy-launch:
     name: Deploy wh-launch
@@ -50,6 +52,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: launch-worker
+          wranglerVersion: "3.90.0"
 
   deploy-pulse:
     name: Deploy wh-pulse
@@ -65,6 +68,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: pulse-worker
+          wranglerVersion: "3.90.0"
 
   deploy-reactivate:
     name: Deploy wh-reactivate
@@ -80,6 +84,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: reactivate-worker
+          wranglerVersion: "3.90.0"
 
   deploy-sites:
     name: Deploy wh-sites
@@ -93,3 +98,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: sites-worker
+          wranglerVersion: "3.90.0"
