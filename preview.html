@@ -711,11 +711,12 @@ async function bootstrap() {
     try {
       const d = await apiFetch(`/build-status?token=${token}`, {}, { silent: true });
       S.slug = d.slug;
-      if (d.slug) el('buildSlug').textContent = d.slug + '.co.za';
+      const domainSuffix = (d.package === 'hub_pro' || d.package === 'premium') ? '.co.za' : '.websitehub.co.za';
+      if (d.slug) el('buildSlug').textContent = d.slug + domainSuffix;
 
       // If promo detected — force premium plan and lock others
       if (S.promo) {
-        selectPlanSilent('premium');
+        selectPlanSilent('hub');
       } else if (d.package) {
         selectPlanSilent(d.package);
       }
