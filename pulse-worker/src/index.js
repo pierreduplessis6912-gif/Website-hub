@@ -678,25 +678,19 @@ async function sendPostGoLiveMessage(airtableId, f, day, env) {
 
   let body;
   if (day === 1) {
-    body = `Hi ${name} 👋 How's *${f['Business Name']}* going?\n\nJust checking in — any tweaks needed? Tap below to manage:\n${manageUrl || `https://${domain}`}\n\nOr reply here.\n— Website Hub`;
+    body = `Hi ${name} 👋 How's *${f['Business Name']}* going?\n\nJust checking in — any tweaks needed? Tap below to manage your site:\n${manageUrl || `https://${domain}`}\n\n— Website Hub`;
 
   } else if (day === 7) {
-    if (caps.referral && await getFlag(env, 'REFERRAL_ENABLED')) {
-      const refLink = `https://websitehub.co.za?ref=${slug}`;
-      body = `Hi ${name} 👋 First week with *${f['Business Name']}* online — hope it's going well!\n\n👥 Heads up — for every business you refer, you get a free month. Your link:\n${refLink}\n\nShare it on WhatsApp, Facebook, anywhere.\n\n${manageUrl ? `Manage: ${manageUrl}\n` : ''}— Website Hub`;
-    } else {
-      body = `Hi ${name} — first week down with *${f['Business Name']}*! Anything to tweak?\n\n${manageUrl ? `Manage: ${manageUrl}\n` : ''}— Website Hub`;
-    }
+    const refLink = `https://websitehub.co.za/r/${slug}`;
+    body = `Hi ${name} 👋 First week with *${f['Business Name']}* online — hope it's going well!\n\n💡 Did you know? Refer 10 friends who go live and we'll upgrade you to Hub Pro — your own *.co.za domain*, free.\n\nYour referral link:\n${refLink}\n\nShare it anywhere — WhatsApp, Facebook, Instagram.\n\n${manageUrl ? `Manage your site: ${manageUrl}\n` : ''}— Website Hub`;
 
   } else if (day === 30) {
-    // Tier-aware upsell
-    if (pkgKey === 'express') {
-      body = `Hi ${name} 👋 One month with *${f['Business Name']}* live! How's it going?\n\n💡 Ready for more? Upgrade to *Standard* (just R${PRICING.upgrade.expressToStandard}/mo more) and unlock:\n• Services + About + Contact pages\n• Email at your domain\n• Site analytics\n• Referral programme\n\nReply YES to upgrade.\n— Website Hub`;
-    } else if (pkgKey === 'standard') {
-      body = `Hi ${name} 👋 One month with *${f['Business Name']}* live! How's it going?\n\n💡 Ready for more? Upgrade to *Premium* (just R${PRICING.upgrade.standardToPremium}/mo more) and unlock:\n• Photo gallery (update via WhatsApp)\n• 2 email accounts\n• Unlimited revisions\n\nReply YES to upgrade.\n— Website Hub`;
-    } else {
-      // Premium — gentle nudge, no upsell
+    const isHubPro = pkgKey === 'hub_pro' || pkgKey === 'premium';
+    if (isHubPro) {
       body = `Hi ${name} 👋 One month with *${f['Business Name']}* live! Hope it's bringing in customers.\n\nAnything to tweak? Just say the word.\n\n${manageUrl ? `Manage: ${manageUrl}\n` : ''}— Website Hub`;
+    } else {
+      const refLink = `https://websitehub.co.za/r/${slug}`;
+      body = `Hi ${name} 👋 One month with *${f['Business Name']}* live!\n\n🌐 Want your own *.co.za domain*? Two ways to get it:\n• Upgrade to Hub Pro — just R300/mo more\n• Refer 10 friends who go live — get it free\n\nYour referral link:\n${refLink}\n\n${manageUrl ? `Manage: ${manageUrl}\n` : ''}— Website Hub`;
     }
   }
 
