@@ -16,14 +16,6 @@ WORKER_URL_REACTIVATE = "https://wh-reactivate.pierreduplessis6912.workers.dev"
 pattern = "preview.websitehub.co.za/*"
 zone_name = "websitehub.co.za"
 
-[[routes]]
-pattern = "websitehub.co.za/*"
-zone_name = "websitehub.co.za"
-
-[[routes]]
-pattern = "www.websitehub.co.za/*"
-zone_name = "websitehub.co.za"
-
 # Service bindings — internal worker-to-worker calls, zero latency
 [[services]]
 binding = "LAUNCH_WORKER"
