@@ -107,7 +107,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--text);over
   color:var(--navy);text-decoration:none;
   letter-spacing:.3px;
 }
-.nav-links{display:flex;align-items:center;gap:32px}
+.nav-links{display:flex;align-items:center;gap:14px;flex-shrink:0}
 .nav-link{
   color:var(--muted);font-size:13px;font-weight:400;
   letter-spacing:.3px;text-decoration:none;
@@ -219,7 +219,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--text);over
 }
 /* Rating badge — lower right of photo */
 .hero-rating{
-  position:absolute;bottom:32px;right:32px;
+  position:absolute;top:76px;right:20px;
   background:rgba(255,255,255,.95);
   border:1px solid var(--mid-grey);
   border-radius:2px;padding:16px 20px;
@@ -242,7 +242,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--text);over
   .hero-h1{font-size:clamp(32px,10vw,48px)}
   .hero-right{grid-row:1;margin-top:80px;height:320px}
   .hero-img{position:absolute}
-  .hero-rating{bottom:16px;right:16px}
+  .hero-rating{top:76px;right:20px}
 }
 
 /* ── CREDENTIALS BAR ──────────────────────── */
