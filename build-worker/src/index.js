@@ -1396,7 +1396,33 @@ function shapeGbp(data, business_name) {
   };
 }
 
-// ── ARCHETYPE ROUTING ─────────────────────────────────────────
+// ── GBP PHOTO RESOLVER ───────────────────────────────────────
+// Converts Places photo references to actual image URLs
+// Google Places Photo API: GET /v1/{photo_name}/media?maxWidthPx=1200
+async function resolveGbpPhotos(photoNames, env, maxPhotos = 1) {
+  if (!photoNames?.length || !env.GOOGLE_MAPS_API_KEY) return [];
+
+  const resolved = [];
+  for (const name of photoNames.slice(0, maxPhotos)) {
+    if (!name) continue;
+    try {
+      // Use places proxy to avoid CORS/IP issues
+      const data = await callPlacesProxy(env,
+        `https://places.googleapis.com/v1/${name}/media?maxWidthPx=1200&skipHttpRedirect=true`,
+        'GET', null, {}
+      );
+      // Returns { photoUri: "https://..." }
+      if (data?.photoUri) {
+        resolved.push(data.photoUri);
+      }
+    } catch(e) {
+      console.warn('GBP photo resolve failed:', e.message);
+    }
+  }
+  return resolved;
+}
+
+
 function detectArchetypeFromPersonality(personalityCategory, industry) {
   const k = (industry || '').toLowerCase();
   // Experience: sensory, immersive businesses
@@ -1898,7 +1924,24 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
   }
 
   // ── PHOTO ───────────────────────────────────────────────────
-  const heroUrl = await fetchHeroPhoto(brief, richBrandBrief, env);
+  // Try GBP photos first — real business photos beat stock
+  let heroUrl = null;
+  let gbpGalleryPhotos = [];
+
+  if (gbpData?.photos?.length) {
+    const isP = pkg === 'premium';
+    const maxPhotos = isP ? 6 : 1;
+    const resolvedPhotos = await resolveGbpPhotos(gbpData.photos, env, maxPhotos);
+    if (resolvedPhotos.length > 0) {
+      heroUrl = resolvedPhotos[0];
+      if (isP) gbpGalleryPhotos = resolvedPhotos.slice(1);
+    }
+  }
+
+  // Fall back to Unsplash if no GBP photos
+  if (!heroUrl) {
+    heroUrl = await fetchHeroPhoto(brief, richBrandBrief, env);
+  }
 
   // ── CSS ─────────────────────────────────────────────────────
   const primaryColour = richBrandBrief?.logo_brand_colour || richBrandBrief?.primary_colour || null;
@@ -1911,13 +1954,15 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
 
   // ── GALLERY (Premium) ───────────────────────────────────────
   const caps = PACKAGE_CAPS[pkg] || PACKAGE_CAPS.standard;
-  let galleryPhotos = [];
+  let galleryPhotos = [...gbpGalleryPhotos]; // Start with GBP photos
   if (caps.gallery) {
     try {
       const rows = await env.DB.prepare(
         `SELECT url FROM gallery_photos WHERE client_id=? ORDER BY created_at DESC LIMIT 6`
       ).bind(clientId).all();
-      galleryPhotos = (rows.results || []).map(r => r.url);
+      const d1Photos = (rows.results || []).map(r => r.url);
+      // D1 uploaded photos take priority, GBP fills the rest
+      galleryPhotos = [...d1Photos, ...gbpGalleryPhotos].slice(0, 6);
     } catch {}
   }
 
