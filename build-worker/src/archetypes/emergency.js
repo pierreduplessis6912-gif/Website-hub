@@ -114,7 +114,7 @@ body::before{
   font-size:20px;font-weight:800;letter-spacing:1px;
   color:var(--light);text-decoration:none;text-transform:uppercase;
 }
-.nav-links{display:flex;align-items:center;gap:20px}
+.nav-links{display:flex;align-items:center;gap:14px;flex-shrink:0}
 .nav-link{
   color:rgba(255,255,255,.7);font-size:13px;font-weight:500;
   letter-spacing:.5px;text-decoration:none;text-transform:uppercase;
