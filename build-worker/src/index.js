@@ -1441,10 +1441,14 @@ async function fetchInstagramPhotos(handle, env) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-proxy-secret': SECRET },
       body: JSON.stringify({
-        action:  '/api/v1/users/web_profile_info/',
+        action:  `/api/v1/users/web_profile_info/?username=${cleanHandle}`,
         method:  'GET',
-        params:  { username: cleanHandle },
-        headers: ['User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15'],
+        params:  {},
+        headers: [
+          'User-Agent: Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+          'Accept: application/json, text/plain, */*',
+          'X-IG-App-ID: 936619743392459',
+        ],
         baseUrl: 'https://www.instagram.com',
       }),
     });
