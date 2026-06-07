@@ -40,10 +40,11 @@ const STRUCTURAL_CSS = `
 html{scroll-behavior:smooth}
 body{font-family:var(--font-body);background:var(--bg);color:var(--fg);overflow-x:hidden}
 .nav{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(var(--bg-rgb,255,255,255),0.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:50;border-bottom:1px solid var(--border)}
-.nav-brand{font-family:var(--font-heading);font-size:13px;font-weight:700;color:var(--fg);text-decoration:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nav-logo{height:32px;width:auto;object-fit:contain;max-width:140px}
-.nav-links{display:flex;gap:20px}
-.nav-link{font-size:13px;color:var(--muted-fg);text-decoration:none}
+.nav-brand{font-family:var(--font-heading);font-size:13px;font-weight:700;color:var(--fg);text-decoration:none;max-width:55vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-logo{height:32px;width:auto;object-fit:contain;max-width:120px}
+.nav-links{display:flex;gap:14px;flex-shrink:0;align-items:center}
+.nav-link{font-size:13px;color:var(--muted-fg);text-decoration:none;display:none}
+@media(min-width:640px){.nav-link{display:block}}
 .section-hero{min-height:100svh;background-size:cover;background-position:center;background-attachment:scroll;display:flex;flex-direction:column;justify-content:flex-end;padding:52px 0 56px;position:relative}
 .section-hero::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.2) 35%,rgba(0,0,0,0.75) 65%,rgba(0,0,0,0.96) 100%)}
 .hero-content{position:relative;z-index:1;padding:0 24px}
