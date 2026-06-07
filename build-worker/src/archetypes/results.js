@@ -99,8 +99,8 @@ body{font-family:var(--font-body);background:var(--dark);color:var(--text);overf
   font-size:17px;font-weight:700;letter-spacing:.5px;
   color:var(--text);text-decoration:none;text-transform:uppercase;
 }
-.nav-links{display:flex;align-items:center;gap:24px}
-.nav-link{
+.nav-links{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.nav-link{display:none;
   color:rgba(255,255,255,.5);font-size:13px;font-weight:400;
   text-decoration:none;letter-spacing:.3px;transition:color .2s;
 }
@@ -202,7 +202,7 @@ body{font-family:var(--font-body);background:var(--dark);color:var(--text);overf
 .btn-results-ghost:hover{border-color:var(--accent);color:var(--accent)}
 /* Rating */
 .hero-rating{
-  position:absolute;bottom:140px;right:24px;
+  position:absolute;top:76px;right:20px;
   background:rgba(13,15,13,.8);
   border:1px solid var(--border);border-radius:8px;
   padding:14px 18px;text-align:center;z-index:2;
