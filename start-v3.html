@@ -463,6 +463,10 @@ var _msgIdx = 0, _msgTimer = null, _pollTimer = null;
 function slugify(s) {
   return s.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '');
 }
+function getCookie(name) {
+  var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : '';
+}
 function normalisePhone(v) {
   var d = v.replace(/\D/g,'');
   if (d.startsWith('0')) d = '27' + d.slice(1);
@@ -684,6 +688,7 @@ async function submitIntake() {
         source:           'website',
         instagram:        (document.getElementById('instaInput')?.value || '').trim().replace(/^@/, ''),
         facebook:         (document.getElementById('fbInput')?.value || '').trim(),
+        referred_by:      getCookie('ref') || '',
       }),
     });
     var data = await r.json();
