@@ -3536,7 +3536,7 @@ function parseJson(raw) {
   } catch {
     return null;
   }
-}}
+}
 
 function safeJson(str) {
   try { return JSON.parse(str); } catch { return null; }
