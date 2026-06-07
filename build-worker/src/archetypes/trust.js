@@ -115,6 +115,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--text);over
 }
 .nav-link:hover{color:var(--navy)}
 .nav-cta{
+  display:block!important;white-space:nowrap;
   background:var(--navy);color:var(--white)!important;
   padding:10px 22px;font-size:13px;font-weight:500;
   letter-spacing:.3px;border-radius:2px;
