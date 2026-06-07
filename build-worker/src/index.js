@@ -317,6 +317,22 @@ export default {
       // ── OG CARD — WhatsApp rich preview, redirects to real site ──
       if (path.endsWith('/og')) return serveOgCard(path, env, request);
 
+      // ── COUNTERS — fire and forget, 1x1 gif response ─────────
+      if (path.endsWith('/ping')) {
+        const slug = path.replace(/\/ping$/, '').replace(/^\//, '').split('/')[0];
+        if (slug) env.DB.prepare(`UPDATE clients SET visits = visits + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
+        return new Response(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), {
+          headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' }
+        });
+      }
+      if (path.endsWith('/wa')) {
+        const slug = path.replace(/\/wa$/, '').replace(/^\//, '').split('/')[0];
+        if (slug) env.DB.prepare(`UPDATE clients SET wa_taps = wa_taps + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
+        return new Response(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), {
+          headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' }
+        });
+      }
+
       // ── BUILT SITE SERVING ───────────────────────────────────
       return serveBuiltSite(url, path, request, env);
 
