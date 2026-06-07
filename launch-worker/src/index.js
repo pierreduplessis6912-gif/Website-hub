@@ -194,11 +194,9 @@ async function handleManagePanel(request, url, env) {
   const revUsed = revRow?.cnt || 0;
   const revLimit = caps.revisionsPerMonth ?? 2;
 
-  // Analytics — visits this month
-  const visits  = await env.DB.prepare(
-    `SELECT COUNT(*) as cnt FROM visits WHERE client_id=? AND created_at>=?`
-  ).bind(client.id, new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()).first().catch(() => ({ cnt: 0 })).then(r => r?.cnt || 0);
-  const waTaps  = 0; // future — track separately
+  // Counters — read directly from client record
+  const visits = client.visits || 0;
+  const waTaps = client.wa_taps || 0;
 
   // ── Referral data — count toward Hub Pro domain upgrade ─────
   // Every live referral counts as 1 credit toward 10 needed for upgrade
@@ -257,7 +255,9 @@ async function handleManagePanel(request, url, env) {
       used:  revUsed,
       limit: revLimit === -1 ? null : revLimit,
     },
-    analytics: { visits, waTaps },
+    visits,
+    waTaps,
+    analytics: { visits, waTaps }, // keep for backward compat
     email: {
       active:  !!emailActive,
       address: emailAddress,
