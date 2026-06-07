@@ -753,7 +753,7 @@ ${!isExp ? `
   </div>
 </section>` : ''}
 
-${isPrem && galleryPhotos.length ? `
+${galleryPhotos.length ? `
 <!-- Gallery -->
 <section class="gallery" id="gallery">
   <div class="gallery-header">
