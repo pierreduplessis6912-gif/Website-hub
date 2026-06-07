@@ -329,6 +329,14 @@ body::after{
         <label class="field-label">Email address</label>
         <input class="field-input" id="emailInput" type="email" placeholder="e.g. you@gmail.com" autocomplete="email">
       </div>
+      <div class="field-group">
+        <label class="field-label">Instagram handle <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <input class="field-input" id="instaInput" type="text" placeholder="@yourbusiness" autocomplete="off" autocapitalize="none">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Facebook page URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <input class="field-input" id="fbInput" type="url" placeholder="facebook.com/yourbusiness" autocomplete="off">
+      </div>
       <button class="claim-btn" id="claimBtn" onclick="submitIntake()">
         Build my site →
       </button>
@@ -674,6 +682,8 @@ async function submitIntake() {
         slug_requested:   S.slug,
         package:          S.plan || 'hub',
         source:           'website',
+        instagram:        (document.getElementById('instaInput')?.value || '').trim().replace(/^@/, ''),
+        facebook:         (document.getElementById('fbInput')?.value || '').trim(),
       }),
     });
     var data = await r.json();
