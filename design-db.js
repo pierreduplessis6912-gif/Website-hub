@@ -757,3 +757,291 @@ function tintDark(hex, intensity) {
     return '#0a0a0a';
   }
 }
+
+// ============================================================
+// EXPANSION — New personality categories, variant tokens,
+// fingerprint system, selection pass helpers
+// Added: 2026-06-07
+// ============================================================
+
+// ── NEW INDUSTRY → PERSONALITY MAPPINGS ──────────────────────
+// Extend existing INDUSTRY_PERSONALITY with new categories
+Object.assign(INDUSTRY_PERSONALITY, {
+  // Luxury
+  boutique:'luxury', interior_design:'luxury', high_end_salon:'luxury',
+  jeweller:'luxury', luxury_car:'luxury', fine_dining:'luxury',
+  concierge:'luxury', private_chef:'luxury', wine:'luxury',
+
+  // Artisan
+  pottery:'artisan', woodwork:'artisan', leather:'artisan',
+  candlemaker:'artisan', seamstress:'artisan', tailor:'artisan',
+  bespoke:'artisan', craft_beer:'artisan', artisan_bakery:'artisan',
+  soap:'artisan', homeware:'artisan', ceramics:'artisan',
+
+  // Hustle
+  food_truck:'hustle', spaza:'hustle', street_vendor:'hustle',
+  mobile_barber:'hustle', mobile_mechanic:'hustle', kiosk:'hustle',
+  flea_market:'hustle', township_business:'hustle',
+
+  // Heritage
+  family_business:'heritage', established_restaurant:'heritage',
+  old_school_barber:'heritage', traditional_healer:'heritage',
+  pawn_shop:'heritage', second_hand:'heritage',
+
+  // Authority
+  chartered_accountant:'authority', specialist_doctor:'authority',
+  advocate:'authority', engineer:'authority', architect:'authority',
+  quantity_surveyor:'authority', financial_planner:'authority',
+  insurance_broker:'authority',
+});
+
+// ── NEW PERSONALITY GENOMES ───────────────────────────────────
+Object.assign(PERSONALITY_GENOMES, {
+
+  luxury: {
+    label: 'Luxury',
+    hero_layouts: ['quiet_premium', 'cinematic_left'],
+    opening_strategies: ['manifesto', 'emotional_story'],
+    typography_mode: 'luxury_serif',
+    typography_alt_id: 1,        // Classic Elegant as alt
+    spacing_rhythm: 'dramatic',
+    card_density: 'very_low',
+    alignment_bias: 'center',
+    visual_energy: 'restrained',
+    surface_style: 'deep_dark',
+    cta_style: 'minimal',
+    section_flow: 'emotion_first',
+    palette_row: 32,
+    palette_row_light: 'luxury_light',
+    typography_id: 12,
+    trust_signals: false,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center top', hero_height:'100svh', scrim:'minimal' },
+    archetype_code: 'LUX',
+  },
+
+  artisan: {
+    label: 'Artisan',
+    hero_layouts: ['cinematic_left', 'quiet_premium'],
+    opening_strategies: ['emotional_story', 'manifesto'],
+    typography_mode: 'retro_warm',
+    typography_alt_id: 4,        // Editorial Classic as alt
+    spacing_rhythm: 'airy',
+    card_density: 'very_low',
+    alignment_bias: 'left',
+    visual_energy: 'warm',
+    surface_style: 'warm_dark',
+    cta_style: 'inviting',
+    section_flow: 'story_first',
+    palette_row: 63,
+    palette_row_light: 'artisan_light',
+    typography_id: 10,
+    trust_signals: false,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center', hero_height:'100svh', scrim:'warm_bottom' },
+    archetype_code: 'ART',
+  },
+
+  hustle: {
+    label: 'Hustle',
+    hero_layouts: ['trade_authority', 'cinematic_left'],
+    opening_strategies: ['direct_offer', 'local_hero'],
+    typography_mode: 'bold_statement',
+    typography_alt_id: 2,        // Modern Professional as alt
+    spacing_rhythm: 'compact',
+    card_density: 'medium',
+    alignment_bias: 'left',
+    visual_energy: 'high',
+    surface_style: 'matte_dark',
+    cta_style: 'direct',
+    section_flow: 'service_first',
+    palette_row: 34,
+    palette_row_light: 'hustle_light',
+    typography_id: 7,
+    trust_signals: false,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center', hero_height:'88svh', scrim:'heavy_bottom' },
+    archetype_code: 'HST',
+  },
+
+  heritage: {
+    label: 'Heritage',
+    hero_layouts: ['quiet_premium', 'cinematic_left'],
+    opening_strategies: ['local_hero', 'emotional_story'],
+    typography_mode: 'editorial_classic',
+    typography_alt_id: 10,       // Retro Warm as alt
+    spacing_rhythm: 'dramatic',
+    card_density: 'very_low',
+    alignment_bias: 'left',
+    visual_energy: 'restrained',
+    surface_style: 'warm_dark',
+    cta_style: 'minimal',
+    section_flow: 'story_first',
+    palette_row: 63,
+    palette_row_light: 'heritage_light',
+    typography_id: 4,
+    trust_signals: true,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center', hero_height:'100svh', scrim:'cinematic' },
+    archetype_code: 'HER',
+  },
+
+  authority: {
+    label: 'Authority',
+    hero_layouts: ['quiet_premium', 'trade_authority'],
+    opening_strategies: ['proof_first', 'local_hero'],
+    typography_mode: 'corporate_trust',
+    typography_alt_id: 4,        // Editorial Classic as alt
+    spacing_rhythm: 'dramatic',
+    card_density: 'low',
+    alignment_bias: 'left',
+    visual_energy: 'restrained',
+    surface_style: 'deep_dark',
+    cta_style: 'minimal',
+    section_flow: 'proof_first',
+    palette_row: 40,
+    palette_row_light: 'authority_light',
+    typography_id: 16,
+    trust_signals: true,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center', hero_height:'95svh', scrim:'minimal' },
+    archetype_code: 'AUT',
+  },
+
+});
+
+// ── LIGHT PALETTE VARIANTS ────────────────────────────────────
+// Dark is default for most archetypes.
+// Light variants for luxury, artisan, heritage when colour_mood=light
+export const LIGHT_PALETTES = {
+  luxury_light:    { primary:'#1a1a2e', onPrimary:'#ffffff', secondary:'#2d2d4e', accent:'#c9913a', bg:'#faf8f5', fg:'#1a1a2e', card:'#ffffff', muted:'#f0ece6', mutedFg:'#6b6460', border:'#e8e0d8', ring:'#c9913a', notes:'Warm cream + gold luxury' },
+  artisan_light:   { primary:'#3d2b1f', onPrimary:'#ffffff', secondary:'#6b4c38', accent:'#c47a3a', bg:'#fdf8f2', fg:'#3d2b1f', card:'#ffffff', muted:'#f2ede5', mutedFg:'#7a6458', border:'#e8ddd2', ring:'#c47a3a', notes:'Warm parchment + craft amber' },
+  heritage_light:  { primary:'#2c2418', onPrimary:'#ffffff', secondary:'#5c4d38', accent:'#8b6914', bg:'#faf7f0', fg:'#2c2418', card:'#ffffff', muted:'#f0ebe0', mutedFg:'#7a6e5a', border:'#e5dcc8', ring:'#8b6914', notes:'Aged paper + heritage gold' },
+  hustle_light:    { primary:'#1a0a00', onPrimary:'#ffffff', secondary:'#8b3a00', accent:'#ff6b00', bg:'#fff8f5', fg:'#1a0a00', card:'#ffffff', muted:'#ffe8d8', mutedFg:'#8b5a4a', border:'#ffd0b0', ring:'#ff6b00', notes:'Warm white + bold orange' },
+  authority_light: { primary:'#0f1e3d', onPrimary:'#ffffff', secondary:'#1e3a6e', accent:'#b45309', bg:'#f8f9fc', fg:'#0f1e3d', card:'#ffffff', muted:'#eef0f5', mutedFg:'#5a6580', border:'#d8dce8', ring:'#0f1e3d', notes:'Clean white + authority navy' },
+};
+
+// ── ARCHETYPE CODE MAP ────────────────────────────────────────
+// Short codes for fingerprint generation
+const ARCHETYPE_CODES = {
+  trade_authority:   'TRD',
+  transformation:    'TRN',
+  personal_care:     'PCA',
+  wellness:          'WEL',
+  hospitality:       'HOS',
+  community_local:   'COM',
+  professional_trust:'PRO',
+  technical_expertise:'TEC',
+  retail_utility:    'RET',
+  event_creative:    'EVT',
+  mobility:          'MOB',
+  medical_trust:     'MED',
+  memorial_legacy:   'MEM',
+  luxury:            'LUX',
+  artisan:           'ART',
+  hustle:            'HST',
+  heritage:          'HER',
+  authority:         'AUT',
+};
+
+const LAYOUT_CODES = {
+  trade_authority: 'BOLD',
+  cinematic_left:  'CIN',
+  quiet_premium:   'QP',
+};
+
+const FLOW_CODES = {
+  service_first: 'SVC',
+  story_first:   'STR',
+  emotion_first: 'EMO',
+  proof_first:   'PRF',
+};
+
+const TYPO_CODES = {
+  1:  'CLE',  // Classic Elegant
+  2:  'MPR',  // Modern Professional
+  4:  'EDC',  // Editorial Classic
+  6:  'PLC',  // Playful Creative
+  7:  'BLD',  // Bold Statement
+  8:  'WLC',  // Wellness Calm
+  10: 'RTW',  // Retro Warm
+  11: 'GEO',  // Geometric Modern
+  12: 'LSF',  // Luxury Serif
+  14: 'NEW',  // News Editorial
+  16: 'CRP',  // Corporate Trust
+  18: 'FFW',  // Fashion Forward
+};
+
+// ── FINGERPRINT GENERATOR ─────────────────────────────────────
+/**
+ * Generates a short design fingerprint for a build.
+ * Format: ARCH-TYPO-MOOD-LAYOUT-FLOW
+ * Example: ART-RTW-LIGHT-CIN-STR
+ *
+ * @param {string} category — personality category key
+ * @param {object} variants — { colour_mood, hero_layout, section_flow, typography_id }
+ * @returns {string} fingerprint
+ */
+export function generateFingerprint(category, variants = {}) {
+  const genome  = PERSONALITY_GENOMES[category] || PERSONALITY_GENOMES.trade_authority;
+  const arch    = ARCHETYPE_CODES[category]   || 'GEN';
+  const typo    = TYPO_CODES[variants.typography_id || genome.typography_id] || 'STD';
+  const mood    = (variants.colour_mood || genome.colour_mood_default || 'dark').toUpperCase().slice(0, 5);
+  const layout  = LAYOUT_CODES[variants.hero_layout || genome.hero_layouts[0]] || 'STD';
+  const flow    = FLOW_CODES[variants.section_flow || genome.section_flow] || 'STD';
+  return `${arch}-${typo}-${mood}-${layout}-${flow}`;
+}
+
+// ── SELECTION PASS SYSTEM PROMPT ──────────────────────────────
+/**
+ * Returns the system prompt for Pass 0 — the design selection pass.
+ * This pass reads all available signals and outputs a design decision object.
+ */
+export function selectionPassSystem() {
+  return `You are a South African brand designer making a single, confident design decision for a small business website.
+
+You will receive business data — name, industry, area, GBP category, reviews, review count, rating.
+
+Your job is to output ONLY a JSON object with these exact keys:
+- personality_category: one of [trade_authority, transformation, personal_care, wellness, hospitality, community_local, professional_trust, technical_expertise, retail_utility, event_creative, mobility, medical_trust, memorial_legacy, luxury, artisan, hustle, heritage, authority]
+- hero_layout: one of [trade_authority, cinematic_left, quiet_premium]
+- section_flow: one of [service_first, story_first, emotion_first, proof_first]
+- colour_mood: one of [dark, light]
+- typography_id: one of [1, 2, 4, 6, 7, 8, 10, 11, 12, 14, 16, 18]
+- reasoning: one sentence explaining the core decision
+
+DECISION RULES:
+- Trade/emergency/repair → trade_authority, dark, service_first, bold typography (7)
+- Salon/spa/beauty → personal_care, dark, story_first, elegant typography (1)
+- Bakery/artisan food/craft → artisan, light or dark, story_first, retro warm (10)
+- Restaurant/cafe/food → hospitality, dark, emotion_first, retro warm (10)
+- Legal/accounting/engineering → authority, light, proof_first, corporate trust (16)
+- Luxury/boutique/high-end → luxury, dark or light, emotion_first, luxury serif (12)
+- Street food/mobile/hustle → hustle, dark, service_first, bold (7)
+- Old established business → heritage, dark, story_first, editorial classic (4)
+- Medical/dental/physio → medical_trust, light, proof_first, wellness calm (8)
+- Photography/events/creative → event_creative, dark, emotion_first, fashion forward (18)
+- SA area signals: Sandton/Umhlanga/Constantia → luxury bias; township names → hustle/community bias; small towns → heritage/local bias
+- Review language: "family", "friendly", "like home" → community/heritage; "professional", "expert" → authority/professional_trust; "beautiful", "amazing" → experience/luxury; "fast", "saved us" → emergency/trade
+- Light mood: luxury, authority, heritage, artisan (often better in light), medical
+- Dark mood: trades, hustle, wellness, hospitality, events, photography
+
+Output ONLY valid JSON. No markdown. No explanation outside the reasoning field.`;
+}
+
+/**
+ * Returns the user prompt for Pass 0.
+ * @param {object} client — client record from D1
+ * @param {object} gbpData — GBP data or null
+ * @returns {string}
+ */
+export function selectionPassUser(client, gbpData) {
+  const reviewSample = gbpData?.reviews?.slice(0, 3).map(r => r.text).filter(Boolean).join(' | ') || '';
+  return `Business: ${client.business_name}
+Industry: ${client.industry || 'unknown'}
+Area: ${client.area || 'South Africa'}
+GBP Category: ${gbpData?.category || 'unknown'}
+GBP Rating: ${gbpData?.rating || 'unknown'} (${gbpData?.reviewCount || 0} reviews)
+Review snippets: ${reviewSample || 'none available'}
+Package: ${client.package || 'standard'}`;
+}
