@@ -177,6 +177,19 @@ export default {
         if (path === '/cancellation')    return servePwa(env, 'app:cancellation');
         if (path === '/dpa')             return servePwa(env, 'app:dpa');
         if (path === '/start')           return servePwa(env, 'app:start-v2');
+        if (path.startsWith('/r/')) {
+          // Referral link — set cookie and redirect to /start
+          const referralSlug = path.replace('/r/', '').split('/')[0];
+          if (referralSlug) {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                'Location': `https://websitehub.co.za/start`,
+                'Set-Cookie': `ref=${referralSlug}; Path=/; Max-Age=2592000; SameSite=Lax`,
+              },
+            });
+          }
+        }
         if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
         if (path.startsWith('/preview/')) return servePwa(env, 'app:preview');
         if (path.startsWith('/manage/'))  return servePwa(env, 'app:manage');
@@ -1247,8 +1260,8 @@ async function handleIntake(request, env) {
       INSERT INTO clients
         (id, business_name, client_name, slug, phone, email, package, retainer,
          industry, area, vibe, manage_token, referral_slug, promo_code, status, source, business_type,
-         instagram, facebook)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?,?,?)
+         instagram, facebook, referred_by)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?,?,?,?)
     `).bind(
       id, business_name, client_name || null, slug, normPhone, email || null,
       packageKey, PRICING[packageKey]?.retainer || 699,
@@ -1257,6 +1270,7 @@ async function handleIntake(request, env) {
       body.business_type || '',
       body.instagram || null,
       body.facebook || null,
+      body.referred_by || null,
     ).run();
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
