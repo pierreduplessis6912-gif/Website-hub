@@ -433,8 +433,8 @@ async function handlePromoBlast(request, env) {
       await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
         .bind(id, p.id).run();
 
-      // Queue full substance build with promo flag
-      await env.BUILD_QUEUE.send({ type: 'substance_build', clientId: id, isOutbound: true });
+      // Queue pre_build — same as normal outbound, promo_code on client handles WhatsApp param
+      await env.BUILD_QUEUE.send({ type: 'pre_build', clientId: id, isOutbound: true });
       built++;
     } catch (err) {
       console.error(`Promo blast failed for prospect ${p.id}:`, err.message);
