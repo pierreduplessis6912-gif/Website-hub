@@ -106,9 +106,9 @@ body{font-family:var(--font-body);background:var(--dark);color:var(--text);overf
 }
 .nav-link:hover{color:var(--text)}
 .nav-cta{
-  background:var(--primary);color:var(--text)!important;
+  display:block!important;background:var(--primary);color:var(--text)!important;
   padding:9px 20px;border-radius:6px;
-  font-weight:500;letter-spacing:.3px;transition:opacity .2s;
+  font-weight:500;letter-spacing:.3px;transition:opacity .2s;white-space:nowrap;
 }
 .nav-cta:hover{opacity:.85}
 
