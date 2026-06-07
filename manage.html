@@ -716,38 +716,39 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
     <div class="section-lbl">Business email</div>
 
-    <!-- Standard/Premium — email active -->
     <div id="emailActive" style="display:none">
-      <div id="emailAddresses"></div>
+      <!-- Two reroutes shown -->
+      <div class="email-card" style="margin-bottom:10px">
+        <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Your email addresses</div>
+        <div style="display:flex;flex-direction:column;gap:8px" id="emailAddresses"></div>
+      </div>
       <div class="email-card" style="margin-top:10px">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">How it works</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">How it works</div>
         <div style="font-size:13px;color:var(--muted);line-height:1.7">
-          Emails sent to your business address arrive in your personal inbox automatically — no new app, no new login needed.<br><br>
-          To reply from your business address, tap <strong>Compose</strong> in your mail app and change the "From" field.
+          Emails sent to your business address are automatically forwarded to your personal inbox — no new app, no new login.<br><br>
+          To reply from your business address in Gmail: tap the <strong>From</strong> field when composing and select your business address.
         </div>
       </div>
       <div class="email-card" style="margin-top:10px">
         <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">Open your inbox</div>
-        <button class="btn-email-open" onclick="openPersonalEmail()" id="btnOpenEmail">
+        <button class="btn-email-open" onclick="openPersonalEmail()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Open email inbox
         </button>
       </div>
     </div>
 
-    <!-- Express — upsell -->
+    <!-- Not yet live — waiting for domain -->
     <div id="emailGate" style="display:none">
-      <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;text-align:center;margin-bottom:12px">
-        <div style="width:48px;height:48px;border-radius:12px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">📬</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:8px">Email reroutes included</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">
+          Your <span id="emailGateDomain" style="font-family:var(--font-mono);color:var(--cyan-dark)">hello@yourdomain</span> and <span id="emailGateDomain2" style="font-family:var(--font-mono);color:var(--cyan-dark)">info@yourdomain</span> addresses are included with your plan.<br><br>
+          Upgrade to Hub Pro to get your own <strong>.co.za domain</strong> with a fully branded email address.
         </div>
-        <div style="font-family:var(--font-display);font-size:20px;margin-bottom:8px">Get a business email</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">
-          <span id="emailGateDomain" style="font-family:var(--font-mono);color:var(--cyan-dark)">hello@yourdomain.co.za</span><br>
-          Forwards to your personal inbox. No new app needed.
-        </div>
+        <div id="emailUpgradeCard" style="margin-top:16px"></div>
       </div>
-      <div class="upgrade-card" id="emailUpgradeCard"></div>
     </div>
 
   </div>
@@ -906,12 +907,16 @@ const S = {
 };
 
 const PLANS = {
-  express:  { name:'Express',  monthly:399,  features:['Domain','WhatsApp CTA','1 revision/month'] },
-  standard: { name:'Standard', monthly:699,  features:['Everything in Express','Business email','Logo & socials','Analytics','5 revisions/month'] },
-  premium:  { name:'Premium',  monthly:999,  features:['Everything in Standard','Photo gallery','Map location','Google Business Profile','Enquiry form','Unlimited revisions','Referral programme'] },
+  hub:      { name:'Hub',      monthly:699,  features:['Full site','slug.websitehub.co.za','2 email reroutes','Gallery','2 revisions/month','Referral program'] },
+  hub_pro:  { name:'Hub Pro',  monthly:999,  features:['Everything in Hub','Your own .co.za domain','5 revisions/month'] },
+  promo:    { name:'Hub',      monthly:599,  features:['Full site','slug.websitehub.co.za','2 email reroutes','Gallery','2 revisions/month','Referral program'] },
+  // Legacy
+  express:  { name:'Hub',     monthly:699,  features:[] },
+  standard: { name:'Hub',     monthly:699,  features:[] },
+  premium:  { name:'Hub Pro', monthly:999,  features:[] },
 };
 
-const PLAN_RANK = { express:1, standard:2, premium:3 };
+const PLAN_RANK = { hub:1, hub_pro:2, promo:1, express:1, standard:1, premium:2 };
 
 function el(id){ return document.getElementById(id) }
 
@@ -1003,33 +1008,18 @@ function renderDash(d) {
   const limit = d.revisions?.limit ?? 2;
   el('qRevSub').textContent = limit === null ? 'Unlimited' : `${limit - used} of ${limit} left`;
 
-  // Email tile
-  const hasEmail = rank >= 2;
-  if (hasEmail && d.email?.active) {
-    el('qEmailSub').textContent = d.email.address || `hello@${d.domain}`;
-    el('qEmailLock').style.display = 'none';
-  } else if (hasEmail) {
-    el('qEmailSub').textContent = 'Set up email';
-    el('qEmailLock').style.display = 'none';
-  } else {
-    el('qEmailSub').textContent = 'Standard feature';
-    el('qEmailLock').style.display = 'block';
-    el('qEmailTile').classList.add('locked');
-  }
+  // Email tile — everyone gets reroutes
+  const isHubPro = (pkg === 'hub_pro' || pkg === 'premium');
+  el('qEmailSub').textContent = isHubPro ? `hello@${d.domain}` : '2 reroutes included';
+  if (el('qEmailLock')) el('qEmailLock').style.display = 'none';
 
-  // Gallery tile
-  const hasGallery = rank >= 3;
-  if (hasGallery) {
-    el('qGallerySub').textContent = 'Add photos';
-    el('qGalleryLock').style.display = 'none';
-  } else {
-    el('qGallerySub').textContent = 'Premium feature';
-    el('qGalleryLock').style.display = 'block';
-    el('qGalleryTile').classList.add('locked');
-  }
+  // Gallery tile — everyone gets gallery
+  el('qGallerySub').textContent = 'View gallery';
+  if (el('qGalleryLock')) el('qGalleryLock').style.display = 'none';
+  if (el('qGalleryTile')) el('qGalleryTile').classList.remove('locked');
 
-  // Upgrade cards
-  if (d.upgradeOffers?.length) {
+  // Upgrade cards — only show if on Hub
+  if (!isHubPro && d.upgradeOffers?.length) {
     el('upgradeSection').style.display = 'block';
     el('upgradeCards').innerHTML = d.upgradeOffers.map(o => upgradeCardHTML(o.to, o.delta, pkg)).join('');
     el('upgradeAccountSection').style.display = 'block';
@@ -1041,19 +1031,30 @@ function renderDash(d) {
   el('revCount').textContent = limit === null ? '∞ unlimited' : `${used} / ${limit} used`;
   el('revFill').style.width = limit === null ? '0%' : `${Math.min(100,(used/limit)*100)}%`;
 
-  // Email tab
-  if (hasEmail && d.email?.active) {
+  // Email tab — everyone gets 2 reroutes pre-wired
+  const domain = d.domain || `${d.slug}.websitehub.co.za`;
+  const isOwnDomain = !domain.endsWith('.websitehub.co.za');
+  const emailPrefix = isOwnDomain ? domain : `${d.slug}.co.za`;
+  
+  if (isOwnDomain) {
+    // Hub Pro — show active reroutes on own domain
     el('emailActive').style.display = 'block';
     el('emailGate').style.display = 'none';
-    el('emailAddr').textContent = d.email.address || `hello@${d.domain}`;
-  } else if (!hasEmail) {
-    el('emailActive').style.display = 'none';
-    el('emailGate').style.display = 'block';
-    el('emailUpgradeCard').innerHTML = upgradeCardHTML('standard', 300, pkg);
+    el('emailAddresses').innerHTML = [
+      `hello@${emailPrefix}`,
+      `info@${emailPrefix}`,
+    ].map(addr => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+        <div style="font-size:14px;font-weight:500;font-family:var(--font-mono);color:var(--cyan-dark)">${addr}</div>
+        <div style="font-size:11px;color:var(--muted)">→ your inbox</div>
+      </div>`).join('');
   } else {
+    // Hub — reroutes on subdomain, nudge to upgrade for own domain
     el('emailActive').style.display = 'none';
     el('emailGate').style.display = 'block';
-    el('emailUpgradeCard').innerHTML = `<div style="font-size:13px;color:var(--muted);text-align:center;padding:16px">Your email is being set up — we'll WhatsApp you shortly.</div>`;
+    if (el('emailGateDomain'))  el('emailGateDomain').textContent  = `hello@${d.slug}.co.za`;
+    if (el('emailGateDomain2')) el('emailGateDomain2').textContent = `info@${d.slug}.co.za`;
+    el('emailUpgradeCard').innerHTML = upgradeCardHTML('hub_pro', 300, pkg);
   }
 
   // Referrals tab — everyone gets referrals, goal is 10 for Hub Pro upgrade
@@ -1102,23 +1103,17 @@ function renderDash(d) {
 }
 
 function upgradeCardHTML(to, delta, from) {
-  const plan = PLANS[to];
-  if (!plan) return '';
-  const newFeatures = {
-    standard: ['Business email','Logo & socials','Analytics','5 revisions/month'],
-    premium:  ['Photo gallery','Map location','Google Business Profile','Enquiry form','Unlimited revisions','Referral programme'],
-  }[to] || [];
+  if (to !== 'hub_pro' && to !== 'premium') return '';
   return `<div class="upgrade-card">
-    <div class="upgrade-card-eyebrow">UPGRADE TO ${to.toUpperCase()}</div>
-    <div class="upgrade-card-title">Add R${delta}/month</div>
-    <div class="upgrade-card-desc">Everything in ${PLANS[from]?.name || from}, plus:</div>
+    <div class="upgrade-card-eyebrow">UPGRADE TO HUB PRO</div>
+    <div class="upgrade-card-title">+R${delta}/month</div>
+    <div class="upgrade-card-desc">Everything in Hub, plus:</div>
     <div class="upgrade-card-features">
-      ${newFeatures.map(f => `<div class="upgrade-feat">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        ${f}
-      </div>`).join('')}
+      <div class="upgrade-feat"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Your own .co.za domain</div>
+      <div class="upgrade-feat"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>hello@ and info@ on your domain</div>
+      <div class="upgrade-feat"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>5 revisions per month</div>
     </div>
-    <button class="btn-upgrade" onclick="startUpgrade('${to}',${delta})">Upgrade to ${plan.name} — +R${delta}/mo →</button>
+    <button class="btn-upgrade" onclick="startUpgrade('hub_pro',${delta})">Upgrade to Hub Pro — +R${delta}/mo →</button>
   </div>`;
 }
 
