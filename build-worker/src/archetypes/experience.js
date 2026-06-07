@@ -381,7 +381,7 @@ ${t.testimonial_quote && !isExp ? `
   </div>
 </section>` : ''}
 
-${isPrem && galleryPhotos.length ? `
+${galleryPhotos.length ? `
 <section class="gallery" id="gallery">
   <div class="gallery-header">
     <div class="section-label" style="color:var(--accent)">${esc(t.section_label_gallery || 'OUR WORK')}</div>
