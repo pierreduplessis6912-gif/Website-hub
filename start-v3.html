@@ -416,12 +416,15 @@ function hideIndustrySuggestions() {
   if (box) box.style.display = 'none';
 }
 
-// Pre-fill from URL params (?biz=East+Coast+Plumbing)
-// Comes from landing page when domain is already confirmed available
+// Pre-fill from URL params (?biz=East+Coast+Plumbing&plan=hub_pro)
+// Comes from landing page when plan is already selected
 (function() {
   var params = new URLSearchParams(window.location.search);
   var biz    = params.get('biz');
   var domain = params.get('domain');
+  var plan   = params.get('plan') || 'hub'; // default to hub
+  S.plan = plan;
+
   if (biz && domain) {
     S.biz    = biz;
     S.domain = domain;
@@ -669,7 +672,7 @@ async function submitIntake() {
         email:            email,
         domain_requested: S.domain,
         slug_requested:   S.slug,
-        package:          'legacy',
+        package:          S.plan || 'hub',
         source:           'website',
       }),
     });
