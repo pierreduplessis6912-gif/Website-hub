@@ -212,8 +212,8 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--dark)
 .gallery-header{padding:0 28px 48px;opacity:0;transform:translateY(16px);transition:opacity .8s ease,transform .8s ease}
 .gallery-header.visible{opacity:1;transform:none}
 .gallery-title{font-family:var(--font-display);font-size:clamp(28px,6vw,44px);font-weight:300;color:#fff}
-.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
-.gallery-img{aspect-ratio:1;object-fit:cover;width:100%;display:block;opacity:0;transition:opacity .6s ease,transform .4s ease}
+.gallery-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 28px}
+.gallery-img{aspect-ratio:4/3;object-fit:cover;width:100%;display:block;opacity:0;transition:opacity .6s ease,transform .4s ease;border-radius:16px}
 .gallery-img.visible{opacity:1}
 .gallery-img:hover{transform:scale(1.03)}
 
