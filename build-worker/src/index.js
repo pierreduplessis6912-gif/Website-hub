@@ -1245,14 +1245,17 @@ async function handleIntake(request, env) {
     await env.DB.prepare(`
       INSERT INTO clients
         (id, business_name, client_name, slug, phone, email, package, retainer,
-         industry, area, vibe, manage_token, referral_slug, promo_code, status, source, business_type)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?)
+         industry, area, vibe, manage_token, referral_slug, promo_code, status, source, business_type,
+         instagram, facebook)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?,?,?)
     `).bind(
       id, business_name, client_name || null, slug, normPhone, email || null,
-      packageKey, PRICING[packageKey]?.retainer || 399,
+      packageKey, PRICING[packageKey]?.retainer || 699,
       industry || '', area || '', 'professional', manage_token, referral_slug,
       body.promo_code || null,
-      body.business_type || ''
+      body.business_type || '',
+      body.instagram || null,
+      body.facebook || null,
     ).run();
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
@@ -1424,6 +1427,34 @@ async function resolveGbpPhotos(photoNames, env, maxPhotos = 1) {
   return resolved;
 }
 
+// ── INSTAGRAM PHOTO FETCHER ──────────────────────────────────
+// Uses Instagram's internal profile API — public, no auth
+// Returns array of image URLs from recent posts
+async function fetchInstagramPhotos(handle) {
+  if (!handle) return [];
+  try {
+    const cleanHandle = handle.replace(/^@/, '').replace(/https?:\/\/(www\.)?instagram\.com\/?/, '').replace(/\/$/, '').split('/')[0];
+    const res = await fetch(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${cleanHandle}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15' }
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const user = data?.data?.user;
+    if (!user) return [];
+
+    const photos = [];
+    if (user.profile_pic_url_hd) photos.push(user.profile_pic_url_hd);
+    const edges = user.edge_owner_to_timeline_media?.edges || [];
+    for (const edge of edges.slice(0, 8)) {
+      const url = edge.node?.display_url || edge.node?.thumbnail_src;
+      if (url) photos.push(url);
+    }
+    return photos.slice(0, 6);
+  } catch(e) {
+    console.warn('Instagram fetch failed:', e.message);
+    return [];
+  }
+}
 
 function detectArchetypeFromPersonality(personalityCategory, industry) {
   const k = (industry || '').toLowerCase();
@@ -1776,6 +1807,12 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
     gbpData = await fetchGbpData(client.gbp_url, env).catch(() => null);
   }
 
+  // Fetch Instagram photos if handle provided
+  let instaPhotos = [];
+  if (client.instagram) {
+    instaPhotos = await fetchInstagramPhotos(client.instagram, env).catch(() => []);
+  }
+
   // Run selection pass
   let selectionResult = null;
   try {
@@ -1935,19 +1972,28 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
   }
 
   // ── PHOTO ───────────────────────────────────────────────────
-  // Try GBP photos first — real business photos beat stock
+  // Combine GBP and Instagram photos — real business photos beat stock
   let heroUrl = null;
   let gbpGalleryPhotos = [];
+  const allCandidatePhotos = [];
 
+  // GBP photos
   if (gbpData?.photos?.length) {
     const resolvedPhotos = await resolveGbpPhotos(gbpData.photos, env, 6);
-    if (resolvedPhotos.length > 0) {
-      heroUrl = resolvedPhotos[0];
-      gbpGalleryPhotos = resolvedPhotos.slice(1);
-    }
+    allCandidatePhotos.push(...resolvedPhotos);
   }
 
-  // Fall back to Unsplash if no GBP photos
+  // Instagram photos
+  if (instaPhotos.length > 0) {
+    allCandidatePhotos.push(...instaPhotos);
+  }
+
+  if (allCandidatePhotos.length > 0) {
+    heroUrl = allCandidatePhotos[0];
+    gbpGalleryPhotos = allCandidatePhotos.slice(1, 6);
+  }
+
+  // Fall back to Unsplash if no real photos
   if (!heroUrl) {
     heroUrl = await fetchHeroPhoto(brief, richBrandBrief, env);
   }
