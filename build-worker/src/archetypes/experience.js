@@ -209,13 +209,18 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--dark)
 
 /* GALLERY */
 .gallery{background:var(--dark2);padding:80px 0}
-.gallery-header{padding:0 28px 48px;opacity:0;transform:translateY(16px);transition:opacity .8s ease,transform .8s ease}
+.gallery-header{padding:0 28px 40px;opacity:0;transform:translateY(16px);transition:opacity .8s ease,transform .8s ease}
 .gallery-header.visible{opacity:1;transform:none}
 .gallery-title{font-family:var(--font-display);font-size:clamp(28px,6vw,44px);font-weight:300;color:#fff}
-.gallery-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 28px}
-.gallery-img{aspect-ratio:4/3;object-fit:cover;width:100%;display:block;opacity:0;transition:opacity .6s ease,transform .4s ease;border-radius:16px}
+.gallery-carousel{position:relative;overflow:hidden}
+.gallery-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;padding:0 28px 20px}
+.gallery-track::-webkit-scrollbar{display:none}
+.gallery-slide{flex-shrink:0;width:80vw;max-width:360px;scroll-snap-align:start}
+.gallery-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:20px;display:block;opacity:0;transition:opacity .6s ease}
 .gallery-img.visible{opacity:1}
-.gallery-img:hover{transform:scale(1.03)}
+.gallery-dots{display:flex;justify-content:center;gap:6px;padding-top:4px}
+.gallery-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .3s,width .3s}
+.gallery-dot.active{width:20px;border-radius:3px;background:var(--accent)}
 
 /* CONTACT */
 .contact{background:var(--warm-white);padding:100px 28px}
@@ -387,8 +392,13 @@ ${galleryPhotos.length ? `
     <div class="section-label" style="color:var(--accent)">${esc(t.section_label_gallery || 'OUR WORK')}</div>
     <h2 class="gallery-title">See it for yourself</h2>
   </div>
-  <div class="gallery-grid">
-    ${galleryPhotos.map(url => `<img class="gallery-img" src="${esc(url)}" alt="${esc(client.business_name)}" loading="lazy">`).join('')}
+  <div class="gallery-carousel">
+    <div class="gallery-track" id="galleryTrack">
+      ${galleryPhotos.map((url, i) => `<div class="gallery-slide"><img class="gallery-img" src="${esc(url)}" alt="${esc(client.business_name)}" loading="lazy"></div>`).join('')}
+    </div>
+    <div class="gallery-dots" id="galleryDots">
+      ${galleryPhotos.map((_, i) => `<div class="gallery-dot${i === 0 ? ' active' : ''}" data-idx="${i}"></div>`).join('')}
+    </div>
   </div>
 </section>` : ''}
 
@@ -463,6 +473,22 @@ document.querySelectorAll('.section-label,.about-headline,.about-pull,.about-bod
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
+
+// Gallery carousel dots
+const track = document.getElementById('galleryTrack');
+const dots  = document.querySelectorAll('.gallery-dot');
+if (track && dots.length) {
+  track.addEventListener('scroll', () => {
+    const idx = Math.round(track.scrollLeft / track.offsetWidth);
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+  }, { passive: true });
+  dots.forEach((d, i) => {
+    d.addEventListener('click', () => {
+      const slide = track.querySelectorAll('.gallery-slide')[i];
+      if (slide) slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+    });
+  });
+}
     const t=document.querySelector(a.getAttribute('href'));
     if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'})}
   });
