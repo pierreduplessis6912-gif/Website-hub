@@ -956,7 +956,7 @@ function devData() {
     nextInvoiceDate: '2026-07-01',
     revisions: { used: 1, limit: 5 },
     email: { active: false },
-    analytics: { visits: 47, waTaps: 12 },
+    analytics: { visits: 0, waTaps: 0 },
     referral: {
       active: false,
       link: 'https://websitehub.co.za?ref=jimmysnails',
@@ -989,8 +989,8 @@ function renderDash(d) {
   el('heroBiz').textContent = d.businessName || 'Your Business';
 
   // Stats
-  el('sVisits').textContent = d.analytics?.visits ?? '—';
-  el('sWaTaps').textContent = d.analytics?.waTaps ?? '—';
+  el('sVisits').textContent = d.visits ?? '—';
+  el('sWaTaps').textContent = d.waTaps ?? '—';
   const inv = d.nextInvoiceDate
     ? new Date(d.nextInvoiceDate).toLocaleDateString('en-ZA',{day:'numeric',month:'short'})
     : '—';
