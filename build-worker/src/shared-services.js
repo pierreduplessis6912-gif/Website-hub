@@ -40,61 +40,63 @@ export const SEND_WINDOW = Object.freeze({
   endHour:   12,
 });
 
-// PRICING — locked per battle plan (May 11 2026). Single source of truth.
+// PRICING — locked 2026-06-07. Two products: Hub and Hub Pro.
+// Hub = full site, subdomain. Hub Pro = full site, .co.za domain.
+// Same build fee. Same features. Domain is the only difference.
+// Promo (LAUNCH2026) = Hub at R0 build + R599/mo for launch period.
 // All other workers import this; no other file may redefine pricing.
 export const PRICING = Object.freeze({
-  express:  { build: 0, retainer:  399 },
-  standard: { build: 0, retainer:  699 },
-  premium:  { build: 0, retainer:  999 },
+  hub:     { build: 7000, retainer: 699,  domain: 'subdomain', label: 'Hub' },
+  hub_pro: { build: 7000, retainer: 999,  domain: 'co.za',     label: 'Hub Pro' },
+  promo:   { build: 0,    retainer: 599,  domain: 'subdomain', label: 'Hub (Promo)' },
+  // Legacy keys — kept for backward compat with existing clients in D1
+  express:  { build: 7000, retainer: 699, domain: 'subdomain', label: 'Hub' },
+  standard: { build: 7000, retainer: 699, domain: 'subdomain', label: 'Hub' },
+  premium:  { build: 7000, retainer: 999, domain: 'co.za',     label: 'Hub Pro' },
   upgrade: {
-    expressToStandard: 300, // 999 - 699
-    expressToPremium:  800, // 1499 - 699
-    standardToPremium: 500, // 1499 - 999
+    hubToHubPro:    300, // R999 - R699
+    promoToHubPro:  400, // R999 - R599
   },
   addons: {
-    extraEmail: 200, // per month, Premium only
-    revision:   500, // per request, all tiers
+    extraEmail: 200,
+    revision:   500,
   },
 });
 
-// Package capabilities — manage panel and build pipeline read this.
+// Package capabilities — all plans get the same features.
+// Domain is the only differentiator between Hub and Hub Pro.
 export const PACKAGE_CAPS = Object.freeze({
-  express: {
-    pages:           ['index'],
-    // 5-pass architecture token budgets per page
-    // Pass 4 (Skin/HTML) gets the largest budget — full page render
-    pass4TokenBudget: { index: 7000 },
-    pass5TokenBudget: { index: 3000 },
-    // Legacy pageTokenBudget kept for backward compat during transition
-    pageTokenBudget:  { index: 7000 },
-    emailAccounts:   0,
-    gallery:         false,
-    referral:        false,
-    analytics:       false,
-    extraEmailAddon: false,
+  hub: {
+    pages:            ['index'],
+    pass3TokenBudget: 7500,
+    emailAccounts:    1,
+    gallery:          true,
+    referral:         true,
+    analytics:        true,
+    domain:           'subdomain',
   },
-  standard: {
-    pages:           ['index', 'services', 'about', 'contact'],
-    pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000 },
-    pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500 },
-    pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000 },
-    emailAccounts:   1,
-    gallery:         false,
-    referral:        true,
-    analytics:       true,
-    extraEmailAddon: false,
+  hub_pro: {
+    pages:            ['index'],
+    pass3TokenBudget: 7500,
+    emailAccounts:    2,
+    gallery:          true,
+    referral:         true,
+    analytics:        true,
+    domain:           'co.za',
   },
-  premium: {
-    pages:           ['index', 'services', 'about', 'contact', 'gallery'],
-    pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
-    pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500, gallery: 2500 },
-    pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
-    emailAccounts:   2,
-    gallery:         true,
-    referral:        true,
-    analytics:       true,
-    extraEmailAddon: true,
+  promo: {
+    pages:            ['index'],
+    pass3TokenBudget: 7500,
+    emailAccounts:    1,
+    gallery:          true,
+    referral:         true,
+    analytics:        true,
+    domain:           'subdomain',
   },
+  // Legacy keys
+  express:  { pages:['index'], pass3TokenBudget:7500, emailAccounts:1, gallery:true, referral:true, analytics:true, domain:'subdomain' },
+  standard: { pages:['index'], pass3TokenBudget:7500, emailAccounts:1, gallery:true, referral:true, analytics:true, domain:'subdomain' },
+  premium:  { pages:['index'], pass3TokenBudget:7500, emailAccounts:2, gallery:true, referral:true, analytics:true, domain:'co.za' },
 });
 
 // Preview link expiry — 30 days after build.
@@ -459,13 +461,13 @@ export function scoreBrandVoice(html, businessName, industry, area) {
 // PRICING + PAYFAST
 // ────────────────────────────────────────────────────────────
 
-/** Normalises a package string to a PRICING key. Defaults to standard. */
+/** Normalises a package string to a PRICING key. Defaults to hub. */
 export function packageKey(pkg) {
-  const key = String(pkg || '').toLowerCase().trim();
-  if (key === 'legacy')   return 'express'; // Legacy = grandfathered early access
-  if (key === 'express')  return 'express';
-  if (key === 'premium')  return 'premium';
-  return 'standard';
+  const key = String(pkg || '').toLowerCase().trim().replace(/[^a-z_]/g, '');
+  if (key === 'hub_pro' || key === 'hubpro' || key === 'hub pro' || key === 'premium') return 'hub_pro';
+  if (key === 'promo')   return 'promo';
+  if (key === 'legacy' || key === 'express') return 'hub'; // legacy mapped to hub
+  return 'hub'; // hub is the default (was standard)
 }
 
 /** Returns the pricing tier object for a package name. */
@@ -480,15 +482,13 @@ export function getPackageCaps(pkg) {
 
 /**
  * Returns the monthly delta in Rands for upgrading from one tier to another.
- * Returns 0 if downgrade or same tier (we don't bill for those).
  */
 export function getUpgradeDelta(fromPkg, toPkg) {
   const from = packageKey(fromPkg);
   const to   = packageKey(toPkg);
   if (from === to) return 0;
-  if (from === 'express'  && to === 'standard') return PRICING.upgrade.expressToStandard;
-  if (from === 'express'  && to === 'premium')  return PRICING.upgrade.expressToPremium;
-  if (from === 'standard' && to === 'premium')  return PRICING.upgrade.standardToPremium;
+  if (from === 'hub'   && to === 'hub_pro') return PRICING.upgrade.hubToHubPro;
+  if (from === 'promo' && to === 'hub_pro') return PRICING.upgrade.promoToHubPro;
   return 0;
 }
 
