@@ -30,7 +30,9 @@ crons = [
 ]
 
 [[queues.producers]]
-queue = "wh-build-queue"
+queue = "build-queue"
 binding = "BUILD_QUEUE"
+
+[vars]
 WORKER_URL_PULSE = "https://wh-pulse.pierreduplessis6912.workers.dev"
 WORKER_URL_REACTIVATE = "https://wh-reactivate.pierreduplessis6912.workers.dev"
