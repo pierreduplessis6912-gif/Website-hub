@@ -549,12 +549,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   <iframe id="previewFrame" loading="lazy" allow="clipboard-write"></iframe>
   <div id="prevBottom">
     <div class="prev-plan-row">
-      <div class="prev-plan-name" id="prevPlanName">Standard plan</div>
+      <div class="prev-plan-name" id="prevPlanName">Hub plan</div>
       <button class="prev-plan-switcher" onclick="openPlanSheet()">Change plan</button>
     </div>
     <div class="prev-price-row">
       <div class="prev-price" id="prevPrice">R7,000</div>
-      <div class="prev-price-period" id="prevPeriod">build fee · then R399/mo</div>
+      <div class="prev-price-period" id="prevPeriod">build fee · then R699/mo</div>
     </div>
     <button id="btnGoLive" onclick="goToConfirm()">Go live — claim your site →</button>
     <div class="prev-legal">Professional build · Cancel anytime · Secure via PayFast</div>
@@ -571,7 +571,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   <div class="confirm-sub" id="confirmSub">Professional website built for your business</div>
 
   <div class="summary-card">
-    <div class="s-row"><span>Plan</span><strong id="cPlan">Standard</strong></div>
+    <div class="s-row"><span>Plan</span><strong id="cPlan">Hub</strong></div>
     <div class="s-row"><span>Build fee</span><strong id="cBuildFee">R7,000</strong></div>
     <div class="s-row"><span>Domain</span><strong id="cDomain">—</strong></div>
     <div class="s-row"><span>Monthly retainer</span><strong id="cRetainer">R699/mo</strong></div>
@@ -614,27 +614,19 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   <div id="planSheetInner" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Choose your plan</div>
-    <div class="plan-row" onclick="selectPlan('express')">
-      <div class="plan-row-sel" id="sel-express"></div>
+    <div class="plan-row" onclick="selectPlan('hub')">
+      <div class="plan-row-sel" id="sel-hub"></div>
       <div class="plan-row-body">
-        <div class="plan-row-name">Express</div>
-        <div class="plan-row-desc">R5,000 build · Single page · yourbusiness.websitehub.co.za</div>
-      </div>
-      <div class="plan-row-price">R399<span style="font-size:10px;color:var(--muted)">/mo</span></div>
-    </div>
-    <div class="plan-row" onclick="selectPlan('standard')">
-      <div class="plan-row-sel" id="sel-standard"></div>
-      <div class="plan-row-body">
-        <div class="plan-row-name">Standard <span class="plan-badge">POPULAR</span></div>
-        <div class="plan-row-desc">R7,000 build · Full site · yourbusiness.co.za domain</div>
+        <div class="plan-row-name">Hub</div>
+        <div class="plan-row-desc">R7,000 build · Full site · yourbusiness.websitehub.co.za</div>
       </div>
       <div class="plan-row-price">R699<span style="font-size:10px;color:var(--muted)">/mo</span></div>
     </div>
-    <div class="plan-row" onclick="selectPlan('premium')">
-      <div class="plan-row-sel" id="sel-premium"></div>
+    <div class="plan-row" onclick="selectPlan('hub_pro')">
+      <div class="plan-row-sel" id="sel-hub_pro"></div>
       <div class="plan-row-body">
-        <div class="plan-row-name">Premium</div>
-        <div class="plan-row-desc">R9,000 build · Full site + gallery · domain · email</div>
+        <div class="plan-row-name">Hub Pro <span class="plan-badge">YOUR DOMAIN</span></div>
+        <div class="plan-row-desc">R7,000 build · Full site · yourbusiness.co.za domain</div>
       </div>
       <div class="plan-row-price">R999<span style="font-size:10px;color:var(--muted)">/mo</span></div>
     </div>
@@ -648,7 +640,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 const S = {
   token: null,
   slug: null,
-  selectedPlan: 'express',
+  selectedPlan: 'hub',
   billing: 'monthly',
   promo: null,
   promoCode: null,
@@ -658,14 +650,17 @@ const S = {
 };
 
 const PLANS = {
-  express:  { name:'Express',  monthly:399,  label:'Express plan',  buildFee:'R5,000', buildAmount:5000, domain:'yourbusiness.websitehub.co.za' },
-  standard: { name:'Standard', monthly:699,  label:'Standard plan', buildFee:'R7,000', buildAmount:7000, domain:'yourbusiness.co.za'             },
-  premium:  { name:'Premium',  monthly:999,  label:'Premium plan',  buildFee:'R9,000', buildAmount:9000, domain:'yourbusiness.co.za'             },
+  hub:     { name:'Hub',     monthly:699,  label:'Hub plan',      buildFee:'R7,000', buildAmount:7000, domain:'yourbusiness.websitehub.co.za' },
+  hub_pro: { name:'Hub Pro', monthly:999,  label:'Hub Pro plan',  buildFee:'R7,000', buildAmount:7000, domain:'yourbusiness.co.za'             },
+  // Legacy keys — existing clients in D1
+  express:  { name:'Hub',     monthly:699,  label:'Hub plan',     buildFee:'R7,000', buildAmount:7000, domain:'yourbusiness.websitehub.co.za' },
+  standard: { name:'Hub',     monthly:699,  label:'Hub plan',     buildFee:'R7,000', buildAmount:7000, domain:'yourbusiness.websitehub.co.za' },
+  premium:  { name:'Hub Pro', monthly:999,  label:'Hub Pro plan', buildFee:'R7,000', buildAmount:7000, domain:'yourbusiness.co.za'            },
 };
 
-// Promo codes — each defines what they unlock
+// Promo codes
 const PROMO_CODES = {
-  LAUNCH2026: { plan:'premium', buildAmount:0, monthly:599, buildFee:'Free', label:'🎁 Exclusive offer applied', saving:'R9,000' },
+  LAUNCH2026: { plan:'hub', buildAmount:0, monthly:599, buildFee:'Free', label:'🎁 Exclusive offer applied', saving:'R7,000' },
 };
 
 function detectPromo() {
