@@ -61,39 +61,37 @@ export const PRICING = Object.freeze({
 
 // Package capabilities — manage panel and build pipeline read this.
 export const PACKAGE_CAPS = Object.freeze({
-  express: {
-    pages:            ['index'],
-    pass4TokenBudget: { index: 7000 },
-    pass5TokenBudget: { index: 3000 },
-    pageTokenBudget:  { index: 7000 },
-    emailAccounts:    0,
-    gallery:          false,
-    referral:         false,
-    analytics:        false,
-    extraEmailAddon:  false,
+  hub: {
+    pages:             ['index'],
+    pass3TokenBudget:  7500,
+    emailReroutes:     2,
+    gallery:           true,
+    referral:          true,
+    revisionsPerMonth: 2,
+    domain:            'subdomain',
   },
-  standard: {
-    pages:            ['index'],
-    pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000 },
-    pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500 },
-    pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000 },
-    emailAccounts:    1,
-    gallery:          false,
-    referral:         true,
-    analytics:        true,
-    extraEmailAddon:  false,
+  hub_pro: {
+    pages:             ['index'],
+    pass3TokenBudget:  7500,
+    emailReroutes:     2,
+    gallery:           true,
+    referral:          true,
+    revisionsPerMonth: 5,
+    domain:            'co.za',
   },
-  premium: {
-    pages:            ['index'],
-    pass4TokenBudget: { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
-    pass5TokenBudget: { index: 3000, services: 3000, about: 3000, contact: 2500, gallery: 2500 },
-    pageTokenBudget:  { index: 6000, services: 6000, about: 6000, contact: 5000, gallery: 5000 },
-    emailAccounts:    2,
-    gallery:          true,
-    referral:         true,
-    analytics:        true,
-    extraEmailAddon:  true,
+  promo: {
+    pages:             ['index'],
+    pass3TokenBudget:  7500,
+    emailReroutes:     2,
+    gallery:           true,
+    referral:          true,
+    revisionsPerMonth: 2,
+    domain:            'subdomain',
   },
+  // Legacy keys — map to hub caps
+  express:  { pages:['index'], pass3TokenBudget:7500, emailReroutes:2, gallery:true, referral:true, revisionsPerMonth:2, domain:'subdomain' },
+  standard: { pages:['index'], pass3TokenBudget:7500, emailReroutes:2, gallery:true, referral:true, revisionsPerMonth:2, domain:'subdomain' },
+  premium:  { pages:['index'], pass3TokenBudget:7500, emailReroutes:2, gallery:true, referral:true, revisionsPerMonth:5, domain:'co.za' },
 });
 
 // Preview link expiry — 35 days after build (KV TTL).
