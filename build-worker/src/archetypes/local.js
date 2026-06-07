@@ -102,7 +102,7 @@ body::after{
   font-size:18px;font-weight:400;
   color:var(--warm-dark);text-decoration:none;
 }
-.nav-links{display:flex;align-items:center;gap:20px}
+.nav-links{display:flex;align-items:center;gap:14px;flex-shrink:0}
 .nav-link{
   color:var(--muted);font-size:13px;font-weight:400;
   text-decoration:none;transition:color .2s;
@@ -191,7 +191,7 @@ body::after{
 .btn-ghost-local:hover{border-color:rgba(255,255,255,.8)}
 /* Rating — warm pill */
 .hero-rating{
-  position:absolute;bottom:140px;right:20px;
+  position:absolute;top:76px;right:20px;
   background:rgba(253,248,240,.92);
   border-radius:100px;padding:10px 16px;
   display:flex;align-items:center;gap:10px;
