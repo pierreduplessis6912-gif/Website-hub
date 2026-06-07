@@ -1778,31 +1778,31 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
 
   // Generate fingerprint
   const fingerprint = generateFingerprint(personalityCategory, variants);
-  await updateClient(env, clientId, { design_fingerprint: fingerprint });
+  await updateClient(env, clientId, { design_fingerprint: fingerprint }).catch(() => {});
 
   // Get full design brief with selection overrides
   const brief = getDesignBrief(client.industry || client.business_name, client.vibe);
 
   // Apply colour mood — swap to light palette if selected
-  if (variants.colour_mood === 'light' && brief.personality?.palette_row_light) {
-    const lightPalette = LIGHT_PALETTES[brief.personality.palette_row_light];
-    if (lightPalette) {
-      brief.palette = lightPalette;
+  try {
+    if (variants.colour_mood === 'light' && brief.personality?.palette_row_light) {
+      const lightPalette = LIGHT_PALETTES[brief.personality.palette_row_light];
+      if (lightPalette) brief.palette = lightPalette;
     }
+    if (variants.typography_id) {
+      const chosenTypo = getTypographyById(variants.typography_id);
+      if (chosenTypo) brief.typography = {
+        heading: chosenTypo.heading, body: chosenTypo.body,
+        name: chosenTypo.name, cssImport: chosenTypo.import,
+      };
+    }
+    if (brief.personality) {
+      if (variants.section_flow) brief.personality.section_flow = variants.section_flow;
+      if (variants.hero_layout)  brief.personality.hero_layouts = [variants.hero_layout, ...(brief.personality.hero_layouts || [])];
+    }
+  } catch(e) {
+    console.warn('Brief override failed (non-fatal):', e.message);
   }
-
-  // Override typography if selection pass chose one
-  if (variants.typography_id) {
-    const chosenTypo = getTypographyById(variants.typography_id);
-    if (chosenTypo) brief.typography = {
-      heading: chosenTypo.heading, body: chosenTypo.body,
-      name: chosenTypo.name, cssImport: chosenTypo.import,
-    };
-  }
-
-  // Override section flow and hero layout
-  if (variants.section_flow) brief.personality.section_flow = variants.section_flow;
-  if (variants.hero_layout)  brief.personality.hero_layouts = [variants.hero_layout, ...brief.personality.hero_layouts];
 
   // ── PASS 1: Brand Intelligence ──────────────────────────────
   let brandBrief;
