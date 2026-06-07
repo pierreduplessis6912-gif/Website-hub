@@ -184,7 +184,8 @@ export default {
         if (path.startsWith('/admin/') || path === '/intake' || path === '/domain-check' || 
             path === '/check-slug' || path === '/build-status' || path.endsWith('/og') ||
             path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free' ||
-            path === '/manage-panel' || path === '/client-status' || path === '/payfast-webhook') {
+            path === '/manage-panel' || path === '/client-status' || path === '/payfast-webhook' ||
+            path.startsWith('/site/')) {
           // Fall through to main routing
         } else {
           // Unknown path on main domain — serve landing
