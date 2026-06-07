@@ -896,6 +896,16 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
     if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'})}
   });
 });
+
+// Counters
+(function(){
+  var s='${client.slug}';
+  if(!s)return;
+  new Image().src='/'+s+'/ping';
+  document.querySelectorAll('a[href*="wa.me"]').forEach(function(a){
+    a.addEventListener('click',function(){new Image().src='/'+s+'/wa';},{once:true,passive:true});
+  });
+})();
 </script>
 </body>
 </html>`;
