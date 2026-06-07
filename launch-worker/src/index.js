@@ -967,23 +967,24 @@ async function handleGoLiveInternal(clientId, client, env) {
     );
   }
 
-  // ── 6. Cloudflare Email Routing (non-fatal) ─────────────────
-  if (caps.email && client.email) {
+  // ── 6. Email reroutes — hello@ and info@ → client inbox ────
+  if (client.email) {
     provisionEmailRouting(domain, client.email, env).catch(e => {
       console.warn('Email routing setup failed (non-fatal):', e?.message || e);
+      logActivity(env, 'email_routing_failed', { clientId, domain, error: e?.message });
     });
   }
 
   // ── 7. Go-live WhatsApp to client ────────────────────────────
-  const referralLink = caps.referral ? `https://websitehub.co.za?ref=${slug}` : null;
   const name = client.client_name?.split(' ')[0] || 'there';
-  const tierLabel = (client.package || 'standard').charAt(0).toUpperCase() + (client.package || 'standard').slice(1);
+  const tierLabel = (client.package || 'hub').charAt(0).toUpperCase() + (client.package || 'hub').slice(1);
 
   let goLiveMsg = `🎉 *${client.business_name}* is live!\n\n`;
   goLiveMsg += `🌐 https://${domain}\n`;
   goLiveMsg += `📱 Manage your site: ${manageUrl}\n\n`;
+  goLiveMsg += `📬 Your business email:\nhello@${domain}\ninfo@${domain}\n(forwards to your inbox)\n\n`;
   goLiveMsg += `💳 Next invoice: R${tier.retainer} due ${nextInvoice}\n`;
-  if (referralLink) goLiveMsg += `\n💡 Refer a friend and earn R${tier.retainer} credit:\n${referralLink}\n`;
+  goLiveMsg += `\n💡 Refer 10 friends → get your own .co.za domain free:\nhttps://websitehub.co.za/r/${slug}\n`;
   goLiveMsg += `\n— Website Hub`;
 
   if (client.phone) {
@@ -1625,40 +1626,76 @@ function generateTempPassword() {
 // ── CLOUDFLARE EMAIL ROUTING ──────────────────────────────────────────────────
 // Sets up email forwarding: hello@{domain} → client's personal email
 async function provisionEmailRouting(domain, forwardTo, env) {
-  const zoneId  = env.CF_ZONE_ID;
   const cfToken = env.CF_API_TOKEN;
-  if (!zoneId || !cfToken) {
-    console.warn('CF Email Routing: missing CF_ZONE_ID or CF_API_TOKEN');
+  if (!cfToken) {
+    console.warn('CF Email Routing: missing CF_API_TOKEN');
     return;
   }
 
-  // Create email routing rule: hello@{domain} → client email
-  const emailAddress = `hello@${domain}`;
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/zones/${zoneId}/email/routing/rules`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${cfToken}`,
-        'Content-Type':  'application/json',
-      },
-      body: JSON.stringify({
-        name:    `${domain} routing`,
-        enabled: true,
-        matchers: [{ type: 'literal', field: 'to', value: emailAddress }],
-        actions:  [{ type: 'forward', value: [forwardTo] }],
-      }),
+  // For Hub subdomain (slug.websitehub.co.za) use the main zone
+  // For Hub Pro own domain (.co.za) use the zone for that domain
+  // In both cases Cloudflare Email Routing API is the same
+  const isSubdomain = domain.endsWith('.websitehub.co.za');
+  const zoneId = isSubdomain
+    ? (env.CF_ZONE_ID || 'e6b58b08eb80ea03a46d010455f6b25d') // websitehub.co.za zone
+    : await getZoneId(domain, cfToken); // look up the custom domain's zone
+
+  if (!zoneId) {
+    console.warn('CF Email Routing: could not resolve zone ID for', domain);
+    return;
+  }
+
+  const addresses = [`hello@${domain}`, `info@${domain}`];
+  const results = [];
+
+  for (const address of addresses) {
+    try {
+      const res = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${zoneId}/email/routing/rules`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cfToken}`,
+            'Content-Type':  'application/json',
+          },
+          body: JSON.stringify({
+            name:    `${address} → ${forwardTo}`,
+            enabled: true,
+            matchers: [{ type: 'literal', field: 'to', value: address }],
+            actions:  [{ type: 'forward', value: [forwardTo] }],
+          }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        results.push(address);
+        await logActivity(env, 'email_reroute_created', { address, forwardTo, domain });
+      } else {
+        console.warn(`CF Email Routing failed for ${address}:`, JSON.stringify(data?.errors));
+      }
+    } catch(e) {
+      console.warn(`CF Email Routing error for ${address}:`, e?.message);
     }
-  );
-
-  const data = await res.json();
-  if (!res.ok) {
-    console.warn('CF Email Routing failed:', JSON.stringify(data));
-    return;
   }
 
-  await logActivity(env, 'email_routing_provisioned', { domain, emailAddress, forwardTo });
-  return emailAddress;
+  return results;
+}
+
+async function getZoneId(domain, cfToken) {
+  // Extract root domain (e.g. mybiz.co.za from sub.mybiz.co.za)
+  const parts = domain.split('.');
+  const rootDomain = parts.slice(-3).join('.'); // handles .co.za
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/zones?name=${rootDomain}`,
+      { headers: { 'Authorization': `Bearer ${cfToken}` } }
+    );
+    const data = await res.json();
+    return data?.result?.[0]?.id || null;
+  } catch(e) {
+    console.warn('getZoneId failed:', e?.message);
+    return null;
+  }
 }
 
 // ── D1 INVOICE SYSTEM ─────────────────────────────────────────────────────────
