@@ -795,12 +795,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
         Share on WhatsApp
       </button>
 
-      <!-- Leaderboard -->
-      <div class="section-lbl" style="margin-top:24px">Leaderboard</div>
-      <div class="lb-card" id="refLeaderboard">
-        <div style="padding:20px;text-align:center;font-size:13px;color:var(--muted)">Loading…</div>
-      </div>
-
     </div>
 
   </div>
@@ -959,23 +953,19 @@ function devData() {
     status: 'live',
     retainer: 699,
     nextInvoiceDate: '2026-07-01',
-    revisions: { used: 1, limit: 5 },
-    email: { active: false },
-    analytics: { visits: 0, waTaps: 0 },
+    revisions: { used: 1, limit: 2 },
+    visits: 47,
+    waTaps: 12,
     referral: {
-      active: false,
-      link: 'https://websitehub.co.za?ref=jimmysnails',
-      sent: 3, conversions: 1, creditEarned: 699,
-      leaderboard: [
-        { rank:1, name:'Thabo M.',  conversions:5, credit:3495 },
-        { rank:2, name:'Zanele K.', conversions:3, credit:2097 },
-        { rank:3, name:'Mike T.',   conversions:2, credit:1398 },
-        { rank:4, name:'You',       conversions:1, credit:699, isYou:true },
-        { rank:5, name:'Sipho N.',  conversions:1, credit:699 },
-      ]
+      link: 'https://websitehub.co.za/r/jimmysnails',
+      conversions: 3,
+      goal: 10,
+      progress: 3,
+      upgraded: false,
+      shareMessage: 'Hey! Check out my new website 🔥\nGet yours built in 2 minutes: https://websitehub.co.za/r/jimmysnails',
     },
     upgradeOffers: [
-      { to: 'premium', delta: 300 }
+      { to: 'hub_pro', delta: 300 }
     ],
   };
 }
@@ -1077,19 +1067,6 @@ function renderDash(d) {
       ? `${remaining} more friend${remaining !== 1 ? 's' : ''} to go → free Hub Pro domain upgrade`
       : `You've hit 10! Your domain upgrade is on its way 🎉`;
     el('refLink').textContent = ref.link || '—';
-
-    // Leaderboard
-    const lb = ref.leaderboard || [];
-    el('refLeaderboard').innerHTML = lb.length
-      ? lb.map(e => {
-          const medal = e.rank === 1 ? '🥇' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : `${e.rank}.`;
-          return `<div class="lb-row${e.isYou ? ' you' : ''}">
-            <div class="lb-rank-badge">${medal}</div>
-            <div class="lb-name">${e.name}${e.isYou ? '<span class="lb-you-tag">YOU</span>' : ''}</div>
-            <div class="lb-conv">${e.conversions} referral${e.conversions !== 1 ? 's' : ''}</div>
-          </div>`;
-        }).join('')
-      : `<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted)">No referrals yet — be the first on the board</div>`;
   }
 
   // Referral quick tile
@@ -1317,19 +1294,29 @@ function openPersonalEmail() {
 
 // ── REFERRAL — PACKAGE SPECIFIC ───────────────────────────────
 function renderReferralTab(d) {
-  const pkg=(d.package||'express').toLowerCase();
-  const tier=PLANS[pkg]; const ref=d.referral||{};
-  const g=el('refGateAmount'); if(g) g.textContent=`R${tier?.monthly||399}`;
-  const h=el('refHeroSub'); if(h) h.textContent=`Refer someone who goes live on ${tier?.name||'your'} plan or higher — earn 1 free month (R${tier?.monthly||399} credit). Vests after 30 days.`;
-  el('refActive').style.display='block'; el('refGate').style.display='none';
-  el('refCreditVal').textContent=(ref.creditEarned||0).toLocaleString();
-  el('refSent').textContent=ref.sent||0; el('refConv').textContent=ref.conversions||0; el('refMonths').textContent=ref.conversions||0;
-  el('refLink').textContent=ref.link||'—';
-  if((ref.creditEarned||0)>0){el('creditBadge').style.display='flex';el('creditBadgeVal').textContent=`R${ref.creditEarned.toLocaleString()} credit`;}
-  const lb=ref.leaderboard||[];
-  el('refLeaderboard').innerHTML=lb.length
-    ? `<div class="lb-header"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><div class="lb-header-title">Referral leaderboard</div></div>`+lb.map(e=>{const mc=e.rank===1?'gold':e.rank===2?'silver':e.rank===3?'bronze':'';const ml=e.rank<=3?['1st','2nd','3rd'][e.rank-1]:e.rank+'.';return`<div class="lb-row${e.isYou?' you':''}"><div class="lb-rank-badge ${mc}">${ml}</div><div class="lb-name">${e.name}${e.isYou?'<span class="lb-you-tag">YOU</span>':''}</div><div><div class="lb-credit">R${e.credit.toLocaleString()}</div><div class="lb-conv">${e.conversions} referral${e.conversions!==1?'s':''}</div></div></div>`;}).join('')
-    : `<div class="lb-header"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><div class="lb-header-title">Referral leaderboard</div></div><div style="padding:24px;text-align:center;font-size:13px;color:var(--muted)">No referrals yet — share your link and get on the board</div>`;
+  const ref = d.referral || {};
+  const refCount = ref.conversions || 0;
+  const refGoal = ref.goal || 10;
+  const upgraded = ref.upgraded || false;
+
+  if (upgraded) {
+    if (el('refUpgraded')) el('refUpgraded').style.display = 'block';
+    if (el('refActive'))   el('refActive').style.display   = 'none';
+    return;
+  }
+
+  if (el('refUpgraded')) el('refUpgraded').style.display = 'none';
+  if (el('refActive'))   el('refActive').style.display   = 'block';
+
+  if (el('refCount'))       el('refCount').textContent = refCount;
+  if (el('refProgressBar')) el('refProgressBar').style.width = Math.min(100, (refCount / refGoal) * 100) + '%';
+  if (el('refProgressLabel')) {
+    const remaining = refGoal - refCount;
+    el('refProgressLabel').textContent = remaining > 0
+      ? `${remaining} more friend${remaining !== 1 ? 's' : ''} to go → free Hub Pro domain upgrade`
+      : `You've hit 10! Your domain upgrade is on its way 🎉`;
+  }
+  if (el('refLink')) el('refLink').textContent = ref.link || '—';
 }
 
 bootstrap();
