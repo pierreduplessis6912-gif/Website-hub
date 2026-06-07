@@ -1840,7 +1840,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
       [{ role: 'user', content: preBuildPass1User(client, brief) }],
       env, { maxTokens: PASS_TOKENS.pre_1 }
     );
-    brandBrief = parseJson(raw);
+    brandBrief = parseJson(raw) || {};
     await logEvent(env, clientId, 'build', 'pass1_brand_complete', 'success', {});
   } catch(e) {
     await updateBuild(env, buildId, { status: 'failed', error: e.message });
@@ -1855,7 +1855,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
       [{ role: 'user', content: preBuildPass2User(client, brief, brandBrief) }],
       env, { maxTokens: PASS_TOKENS.pre_2 }
     );
-    skeletonTokens = parseJson(raw);
+    skeletonTokens = parseJson(raw) || {};
     await logEvent(env, clientId, 'build', 'pass2_skeleton_complete', 'success', {});
   } catch(e) {
     await updateBuild(env, buildId, { status: 'failed', error: e.message });
@@ -1886,7 +1886,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
       [{ role: 'user', content: substancePass1User(client, null, brief, skeletonTokens, gbpData) }],
       env, { maxTokens: PASS_TOKENS.sub_1 }
     );
-    richBrandBrief = parseJson(raw);
+    richBrandBrief = parseJson(raw) || brandBrief;
     await logEvent(env, clientId, 'build', 'pass4_richbrand_complete', 'success', {});
   } catch(e) {
     console.warn('Pass 4 (Rich Brand) failed, using pass 1 brandBrief:', e.message);
@@ -1902,7 +1902,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
       [{ role: 'user', content: substancePass2User(client, null, brief, richBrandBrief, skeletonTokens) }],
       env, { maxTokens: pass5Budget }
     );
-    contentTokens = parseJson(raw);
+    contentTokens = parseJson(raw) || skeletonTokens;
     await logEvent(env, clientId, 'build', 'pass5_content_complete', 'success', {});
   } catch(e) {
     await updateBuild(env, buildId, { status: 'failed', error: e.message });
@@ -1940,7 +1940,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
   let gbpGalleryPhotos = [];
 
   if (gbpData?.photos?.length) {
-    const isP = pkg === 'premium';
+    const isP = pkg === 'hub_pro';
     const maxPhotos = isP ? 6 : 1;
     const resolvedPhotos = await resolveGbpPhotos(gbpData.photos, env, maxPhotos);
     if (resolvedPhotos.length > 0) {
@@ -3521,19 +3521,22 @@ async function uniqueSlug(name, env) {
 }
 
 function pkgKey(pkg) {
-  const p = (pkg || 'legacy').toLowerCase().trim();
-  if (p === 'legacy')   return 'express'; // Legacy = grandfathered early access
-  if (p === 'express' || p === 'standard' || p === 'premium') return p;
-  return 'express';
+  const p = (pkg || 'hub').toLowerCase().trim().replace(/[^a-z_]/g, '');
+  if (p === 'hub_pro' || p === 'hubpro' || p === 'premium') return 'hub_pro';
+  if (p === 'promo')  return 'promo';
+  if (p === 'hub' || p === 'standard') return 'hub';
+  if (p === 'legacy' || p === 'express') return 'hub'; // legacy → hub
+  return 'hub'; // default
 }
 
 function parseJson(raw) {
   try {
-    return JSON.parse(raw.replace(/```json|```/g, '').trim());
+    const result = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    return result;
   } catch {
-    return {};
+    return null;
   }
-}
+}}
 
 function safeJson(str) {
   try { return JSON.parse(str); } catch { return null; }
