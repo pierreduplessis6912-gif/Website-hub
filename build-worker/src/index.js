@@ -2018,20 +2018,22 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
   } catch {}
 
   // ── HTML — archetype-routed ─────────────────────────────────
+  // Attach gallery photos to client object so archetype templates can use them
+  const clientWithPhotos = { ...client, gallery_photos: galleryPhotos };
   const archetype = detectArchetypeFromPersonality(brief.personality?.category, client.industry);
   let html;
   if (archetype === 'experience') {
-    html = generateExperienceHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+    html = generateExperienceHTML(contentTokens, heroUrl, clientWithPhotos, null, pkg, gbpData, richBrandBrief);
   } else if (archetype === 'emergency') {
-    html = generateEmergencyHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+    html = generateEmergencyHTML(contentTokens, heroUrl, clientWithPhotos, null, pkg, gbpData, richBrandBrief);
   } else if (archetype === 'trust') {
-    html = generateTrustHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+    html = generateTrustHTML(contentTokens, heroUrl, clientWithPhotos, null, pkg, gbpData, richBrandBrief);
   } else if (archetype === 'local') {
-    html = generateLocalHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+    html = generateLocalHTML(contentTokens, heroUrl, clientWithPhotos, null, pkg, gbpData, richBrandBrief);
   } else if (archetype === 'results') {
-    html = generateResultsHTML(contentTokens, heroUrl, client, null, pkg, gbpData, richBrandBrief);
+    html = generateResultsHTML(contentTokens, heroUrl, clientWithPhotos, null, pkg, gbpData, richBrandBrief);
   } else {
-    html = generateFullHTML(contentTokens, cssBlock, heroUrl, client, null, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
+    html = generateFullHTML(contentTokens, cssBlock, heroUrl, clientWithPhotos, null, galleryPhotos, pkg, heroLayout, openingStrategy, brief.personality?.image_treatment || {});
   }
 
   // ── STORE ───────────────────────────────────────────────────
