@@ -1484,9 +1484,9 @@ function detectArchetypeFromPersonality(personalityCategory, industry) {
   // Experience: sensory, immersive businesses
   if (['hospitality','personal_care','wellness','event_creative'].includes(personalityCategory)) return 'experience';
   if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|florist|flower|lodge|guest.house|wedding|tattoo|yoga|pilates/.test(k)) return 'experience';
-  // Results: transformation, renovation, visual change
+  // Results: transformation, renovation, visual change, home finishing
   if (['transformation'].includes(personalityCategory)) return 'results';
-  if (/floor|flooring|blind|curtain|renovate|renovation|paint|painting|tiling|tile|carpet|decor|interior|landscap|garden|pool|solar|roof|roofing|ceiling|kitchen|bathroom/.test(k)) return 'results';
+  if (/floor|flooring|blind|curtain|shutter|renovate|renovation|paint|painting|tiling|tile|carpet|decor|interior|interior.design|landscap|garden|pool|solar|roof|roofing|ceiling|kitchen|bathroom|home.improv|finishing|plastering|paving|driveway|fencing|gates|aluminium|awning|canopy|upholstery|furniture|cabinet|built.in|wardrobe/.test(k)) return 'results';
   // Trust: professional services
   if (['professional_trust','medical_trust'].includes(personalityCategory)) return 'trust';
   // Local: community
