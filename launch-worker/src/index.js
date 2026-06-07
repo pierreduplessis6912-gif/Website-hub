@@ -207,24 +207,7 @@ async function handleManagePanel(request, url, env) {
   const REFERRAL_GOAL = 10;
   const alreadyUpgraded = pkg === 'hub_pro' || pkg === 'premium';
   const referralLink = `https://websitehub.co.za/r/${slug}`;
-  const shareMessage = `Hey! Check out my new website 👉 https://${domain}\n\nGet yours built in 2 minutes: ${referralLink}`;
-
-  // Leaderboard — top 10 by conversions
-  const lbRows = await env.DB.prepare(`
-    SELECT c.slug, c.business_name, COUNT(*) as conversions
-    FROM clients c
-    WHERE c.status='live' AND c.referred_by IS NOT NULL AND c.referred_by != ''
-    GROUP BY c.referred_by
-    ORDER BY conversions DESC
-    LIMIT 10
-  `).all().catch(() => ({ results: [] }));
-
-  const leaderboard = (lbRows.results || []).map((row, i) => ({
-    rank: i + 1,
-    name: row.business_name || row.slug,
-    conversions: row.conversions,
-    isYou: row.slug === slug,
-  }));
+  const shareMessage = `Hey! Check out my new website 🔥\nGet yours built in 2 minutes: ${referralLink}`;
 
   // Upgrade offers — only Hub → Hub Pro
   const upgradeOffers = [];
@@ -270,7 +253,6 @@ async function handleManagePanel(request, url, env) {
       goal:        REFERRAL_GOAL,
       progress:    Math.min(conversions, REFERRAL_GOAL),
       upgraded:    alreadyUpgraded,
-      leaderboard,
     },
     upgradeOffers,
   });
