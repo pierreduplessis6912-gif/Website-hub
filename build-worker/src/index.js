@@ -1940,12 +1940,10 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
   let gbpGalleryPhotos = [];
 
   if (gbpData?.photos?.length) {
-    const isP = pkg === 'hub_pro';
-    const maxPhotos = isP ? 6 : 1;
-    const resolvedPhotos = await resolveGbpPhotos(gbpData.photos, env, maxPhotos);
+    const resolvedPhotos = await resolveGbpPhotos(gbpData.photos, env, 6);
     if (resolvedPhotos.length > 0) {
       heroUrl = resolvedPhotos[0];
-      if (isP) gbpGalleryPhotos = resolvedPhotos.slice(1);
+      gbpGalleryPhotos = resolvedPhotos.slice(1);
     }
   }
 
@@ -1963,19 +1961,15 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
   const heroLayout      = variants.hero_layout || brief.personality?.hero_layouts?.[0] || 'cinematic_left';
   const openingStrategy = brief.personality?.opening_strategies?.[0] || 'proof_first';
 
-  // ── GALLERY (Premium) ───────────────────────────────────────
-  const caps = PACKAGE_CAPS[pkg] || PACKAGE_CAPS.standard;
+  // ── GALLERY — all packages get gallery ─────────────────────
   let galleryPhotos = [...gbpGalleryPhotos]; // Start with GBP photos
-  if (caps.gallery) {
-    try {
-      const rows = await env.DB.prepare(
-        `SELECT url FROM gallery_photos WHERE client_id=? ORDER BY created_at DESC LIMIT 6`
-      ).bind(clientId).all();
-      const d1Photos = (rows.results || []).map(r => r.url);
-      // D1 uploaded photos take priority, GBP fills the rest
-      galleryPhotos = [...d1Photos, ...gbpGalleryPhotos].slice(0, 6);
-    } catch {}
-  }
+  try {
+    const rows = await env.DB.prepare(
+      `SELECT url FROM gallery_photos WHERE client_id=? ORDER BY created_at DESC LIMIT 6`
+    ).bind(clientId).all();
+    const d1Photos = (rows.results || []).map(r => r.url);
+    galleryPhotos = [...d1Photos, ...gbpGalleryPhotos].slice(0, 6);
+  } catch {}
 
   // ── HTML — archetype-routed ─────────────────────────────────
   const archetype = detectArchetypeFromPersonality(brief.personality?.category, client.industry);
