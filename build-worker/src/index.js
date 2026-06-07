@@ -1917,8 +1917,17 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
       env, { maxTokens: PASS_TOKENS.sub_3 }
     );
     const refined = parseJson(raw);
-    if (refined && Object.keys(refined).length > 0) {
-      contentTokens = { ...contentTokens, ...refined };
+    // Only merge if it's a plain object with string values — not audit text
+    if (refined && typeof refined === 'object' && !Array.isArray(refined)) {
+      const safeRefined = {};
+      for (const [k, v] of Object.entries(refined)) {
+        if (typeof v === 'string' || typeof v === 'number' || Array.isArray(v)) {
+          safeRefined[k] = v;
+        }
+      }
+      if (Object.keys(safeRefined).length > 0) {
+        contentTokens = { ...contentTokens, ...safeRefined };
+      }
     }
     await logEvent(env, clientId, 'build', 'pass6_quality_complete', 'success', {});
   } catch(e) {
@@ -2636,7 +2645,14 @@ Output this JSON exactly:
 }
 
 function substancePass3System() {
-  return `Two tests only. TEST 1 — MOBILE: Load on a mid-range Android phone, one hand. Is the hero one clear message? Is the CTA thumb-reachable (check word count)? Does any section feel like a wall of text? UX rules: ${UX_RULES.map(r => r.rule + ': ' + r.do).join(' | ')}. TEST 2 — SPECIFICITY: Could a competitor copy-paste the differentiators? Does the about section sound like a real person or a press release? Does the testimonial sound like a real SA customer? Fix failing fields only. Return partial JSON. If all pass return {}.`;
+  return `You are a mobile UX reviewer. Check the content tokens for two issues only:
+1. MOBILE: Is the hero CTA label clear and thumb-reachable? Is any field too long for mobile?
+2. SPECIFICITY: Do differentiators sound generic? Does the testimonial sound real?
+
+If you find issues, return ONLY a valid JSON object with the corrected field values.
+If everything passes, return exactly: {}
+
+CRITICAL: Output ONLY valid JSON. No markdown. No explanations. No audit text. No comments. Just JSON or {}.`;
 }
 
 function substancePass3User(contentTokens, cards, brief) {
