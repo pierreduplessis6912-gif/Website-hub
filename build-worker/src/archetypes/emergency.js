@@ -122,6 +122,7 @@ body::before{
 }
 .nav-link:hover{color:var(--rust)}
 .nav-call{
+  display:block!important;white-space:nowrap;
   background:var(--rust);color:#000!important;
   padding:8px 16px;font-weight:700;letter-spacing:.5px;
   border-radius:4px;transition:opacity .15s;
