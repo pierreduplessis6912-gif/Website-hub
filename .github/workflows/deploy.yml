@@ -15,7 +15,7 @@ jobs:
           cp design-db.js build-worker/src/design-db.js
           cp photo-db.js build-worker/src/photo-db.js
       - name: Deploy wh-build
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -30,7 +30,7 @@ jobs:
       - name: Sync shared-services
         run: cp build-worker/src/shared-services.js patch-worker/src/shared-services.js
       - name: Deploy wh-patch
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -45,7 +45,7 @@ jobs:
       - name: Sync shared-services
         run: cp build-worker/src/shared-services.js launch-worker/src/shared-services.js
       - name: Deploy wh-launch
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -60,7 +60,7 @@ jobs:
       - name: Sync shared-services
         run: cp build-worker/src/shared-services.js pulse-worker/src/shared-services.js
       - name: Deploy wh-pulse
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -75,7 +75,7 @@ jobs:
       - name: Sync shared-services
         run: cp build-worker/src/shared-services.js reactivate-worker/src/shared-services.js
       - name: Deploy wh-reactivate
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -88,7 +88,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy wh-sites
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
