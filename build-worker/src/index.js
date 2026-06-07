@@ -1970,27 +1970,27 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
       env, { skipTestRedirect: true }
     ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_owner_failed', 'error', { error: e?.message || String(e) }));
 
-    if (!isOutbound) {
-      const promoCode  = client.promo_code || null;
-      const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
-      await sendWhatsApp(client.phone,
-        `🎉 *${client.business_name}* — your site is ready!\n\n` +
-        `Have a look and go live when you're ready:\n\n` +
-        `👉 https://${PREVIEW_DOMAIN}/preview/${client.manage_token}${promoParam}\n\n` +
-        `— Website Hub`,
-        env
-      ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_client_failed', 'error', { error: e?.message || String(e) }));
-    } else {
-      // Outbound — send OG card link with promo if applicable
-      const promoCode  = client.promo_code || null;
-      const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
+    const promoCode  = client.promo_code || null;
+    const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
+
+    if (isOutbound || promoCode) {
+      // Outbound OR promo — send OG card link
       await sendWhatsApp(client.phone,
         `👋 Hi! We built something for *${client.business_name}*\n\n` +
         `Have a look:\n\n` +
         `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
         `— Website Hub`,
         env
-      ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_outbound_failed', 'error', { error: e?.message || String(e) }));
+      ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_client_failed', 'error', { error: e?.message || String(e) }));
+    } else {
+      // Inbound no promo — direct preview link
+      await sendWhatsApp(client.phone,
+        `🎉 *${client.business_name}* — your site is ready!\n\n` +
+        `Have a look and go live when you're ready:\n\n` +
+        `👉 https://${PREVIEW_DOMAIN}/preview/${client.manage_token}\n\n` +
+        `— Website Hub`,
+        env
+      ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_client_failed', 'error', { error: e?.message || String(e) }));
     }
   }
 
