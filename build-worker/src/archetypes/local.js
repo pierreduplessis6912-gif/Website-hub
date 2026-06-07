@@ -109,6 +109,7 @@ body::after{
 }
 .nav-link:hover{color:var(--primary)}
 .nav-wa{
+  display:block!important;white-space:nowrap;
   background:var(--primary);color:#fff!important;
   padding:9px 18px;border-radius:100px;
   font-weight:500;transition:opacity .2s;
