@@ -226,9 +226,9 @@ async function handleManagePanel(request, url, env) {
     isYou: row.slug === slug,
   }));
 
-  // Upgrade offers — only if on Hub
+  // Upgrade offers — only Hub → Hub Pro
   const upgradeOffers = [];
-  if (pkg === 'hub' || pkg === 'standard' || pkg === 'express') {
+  if (pkg !== 'hub_pro' && pkg !== 'premium') {
     upgradeOffers.push({ to: 'hub_pro', delta: 300, label: 'Get your own .co.za domain' });
   }
 
