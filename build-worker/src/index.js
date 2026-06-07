@@ -243,10 +243,11 @@ export default {
       if (path === '/admin/approve-prospect'   && method === 'POST') return handleApproveProspect(request, env);
       if (path === '/admin/reject-prospect'    && method === 'POST') return handleRejectProspect(request, env);
       if (path === '/admin/prospect-queue'     && method === 'GET')  return handleProspectQueue(env);
-        if (path === '/admin/migrate'         && method === 'POST') return handleAdminMigrate(request, env);
-        if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
-        if (path === '/admin/build-detail'     && method === 'GET')  return handleAdminBuildDetail(url, env);
-        return jsonResponse({ error: 'Unknown admin route' }, 404);
+      if (path === '/admin/migrate'         && method === 'POST') return handleAdminMigrate(request, env);
+      if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
+      if (path === '/admin/build-detail'     && method === 'GET')  return handleAdminBuildDetail(url, env);
+      if (path === '/admin/purge-cache'      && method === 'POST') return handleAdminPurgeCache(env);
+      return jsonResponse({ error: 'Unknown admin route' }, 404);
       }
 
       // ── DOMAIN CHECK ─────────────────────────────────────────
