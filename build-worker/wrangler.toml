@@ -47,7 +47,3 @@ queue = "wh-build-queue"
 queue = "wh-build-queue"
 max_batch_size = 5
 max_batch_timeout = 30
-
-# Cron — outbound prospecting (11pm SAST = 9pm UTC)
-[triggers]
-crons = ["0 21 * * *"]
