@@ -325,7 +325,10 @@ input[type=range]{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;
           <span class="nav-icon">◐</span> Building
         </button>
         <button class="nav-btn" id="nav-preview" onclick="showPage('preview')">
-          <span class="nav-icon">◇</span> Preview Ready
+          <span class="nav-icon">◇</span> Pre-live
+        </button>
+        <button class="nav-btn" id="nav-builds" onclick="showPage('builds')">
+          <span class="nav-icon">⚡</span> Recent Builds
         </button>
       </div>
       <div class="nav-sep"></div>
@@ -372,7 +375,7 @@ input[type=range]{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;
           <div class="stat-tile"><div class="stat-num cyan" id="s-total">—</div><div class="stat-lbl">Total</div></div>
           <div class="stat-tile"><div class="stat-num green" id="s-live">—</div><div class="stat-lbl">Live</div></div>
           <div class="stat-tile"><div class="stat-num purple" id="s-building">—</div><div class="stat-lbl">Building</div></div>
-          <div class="stat-tile"><div class="stat-num orange" id="s-preview">—</div><div class="stat-lbl">Preview</div></div>
+          <div class="stat-tile"><div class="stat-num orange" id="s-preview">—</div><div class="stat-lbl">Pre-live</div></div>
           <div class="stat-tile"><div class="stat-num magenta" id="s-suspended">—</div><div class="stat-lbl">Suspended</div></div>
         </div>
 
@@ -409,7 +412,7 @@ input[type=range]{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;
             <input class="search-box" type="text" placeholder="Search..." oninput="filterClients(this.value)">
             <button class="filter-btn active" id="f-all" onclick="setFilter('all')">All</button>
             <button class="filter-btn" id="f-live" onclick="setFilter('live')">Live</button>
-            <button class="filter-btn" id="f-preview_ready" onclick="setFilter('preview_ready')">Preview</button>
+            <button class="filter-btn" id="f-preview_ready" onclick="setFilter('preview_ready')">Pre-live</button>
             <button class="filter-btn" id="f-building" onclick="setFilter('building')">Building</button>
             <button class="filter-btn" id="f-suspended" onclick="setFilter('suspended')">Suspended</button>
           </div>
@@ -444,11 +447,25 @@ input[type=range]{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;
 
       <!-- ── PREVIEW ── -->
       <div class="page" id="page-preview">
-        <div class="ph"><div><div class="ph-title">Preview Ready</div></div></div>
+        <div class="ph"><div><div class="ph-title">Pre-live</div></div></div>
         <div class="card table-card">
           <div class="table-wrap">
             <table><thead><tr><th>Business</th><th>Plan</th><th>Domain</th><th>Preview</th><th>Phone</th><th>Created</th></tr></thead>
             <tbody id="previewBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BUILDS ── -->
+      <div class="page" id="page-builds">
+        <div class="ph">
+          <div><div class="ph-title">Recent Builds</div></div>
+          <div class="ph-actions"><button class="btn btn-ghost" onclick="loadBuilds()">↻ Refresh</button></div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table><thead><tr><th>Business</th><th>Status</th><th>Time</th><th>Built</th></tr></thead>
+            <tbody id="buildsBody"><tr><td colspan="4"><div class="empty-state">Loading...</div></td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -985,6 +1002,22 @@ function showPage(p){
   el('nav-'+p)?.classList.add('active');
   if(p==='health') loadHealth();
   if(p==='prospecting') loadQueue();
+  if(p==='builds') loadBuilds();
+}
+
+async function loadBuilds() {
+  try {
+    const d = await api('/admin/query', { method:'POST', body: JSON.stringify({ sql: `SELECT business_name, status, build_time_ms, created_at FROM builds ORDER BY created_at DESC LIMIT 50` }) });
+    const rows = d.results || [];
+    el('buildsBody').innerHTML = rows.length ? rows.map(r => `<tr>
+      <td><strong>${r.business_name || '—'}</strong></td>
+      <td><span class="badge ${r.status}">${r.status}</span></td>
+      <td>${r.build_time_ms ? Math.round(r.build_time_ms/1000)+'s' : '—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${(r.created_at||'').slice(0,16).replace('T',' ')}</td>
+    </tr>`).join('') : '<tr><td colspan="4"><div class="empty-state">No builds yet</div></td></tr>';
+  } catch(e) {
+    el('buildsBody').innerHTML = '<tr><td colspan="4"><div class="empty-state">Error loading builds</div></td></tr>';
+  }
 }
 
 // ── OUTBOUND MASTER ────────────────────────────────────────────
