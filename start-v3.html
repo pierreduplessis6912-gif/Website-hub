@@ -339,15 +339,15 @@ body::after{
       </div>
 
       <!-- Terms acceptance -->
-      <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;margin-bottom:4px">
-        <input type="checkbox" id="termsCheck" style="width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:#00f0ff;cursor:pointer">
+      <div style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;margin-bottom:12px" onclick="document.getElementById('termsCheck').click()">
+        <input type="checkbox" id="termsCheck" onclick="event.stopPropagation()" style="width:20px;height:20px;flex-shrink:0;margin-top:1px;accent-color:#00f0ff;cursor:pointer">
         <span style="font-size:13px;color:rgba(240,237,232,.7);line-height:1.5">
-          I agree to the <a href="/terms" target="_blank" style="color:#00f0ff;text-decoration:none">Terms of Service</a>,
-          <a href="/privacy" target="_blank" style="color:#00f0ff;text-decoration:none">Privacy Policy</a>, and
-          <a href="/cancellation" target="_blank" style="color:#00f0ff;text-decoration:none">Cancellation Policy</a>.
+          I agree to the <a href="/terms" target="_blank" onclick="event.stopPropagation()" style="color:#00f0ff;text-decoration:none">Terms of Service</a>,
+          <a href="/privacy" target="_blank" onclick="event.stopPropagation()" style="color:#00f0ff;text-decoration:none">Privacy Policy</a>, and
+          <a href="/cancellation" target="_blank" onclick="event.stopPropagation()" style="color:#00f0ff;text-decoration:none">Cancellation Policy</a>.
           I understand this is a monthly subscription and I can cancel anytime.
         </span>
-      </label>
+      </div>
 
       <button class="claim-btn" id="claimBtn" onclick="submitIntake()">
         Build my site →
@@ -706,11 +706,12 @@ async function submitIntake() {
 
   // Terms must be accepted
   if (!document.getElementById('termsCheck').checked) {
-    document.getElementById('termsCheck').closest('label').style.borderColor = 'rgba(255,59,68,.5)';
-    document.getElementById('termsCheck').closest('label').style.background = 'rgba(255,59,68,.05)';
+    var termsBox = document.getElementById('termsCheck').closest('div');
+    termsBox.style.borderColor = 'rgba(255,59,68,.5)';
+    termsBox.style.background = 'rgba(255,59,68,.05)';
     setTimeout(() => {
-      document.getElementById('termsCheck').closest('label').style.borderColor = 'rgba(255,255,255,.08)';
-      document.getElementById('termsCheck').closest('label').style.background = 'rgba(255,255,255,.03)';
+      termsBox.style.borderColor = 'rgba(255,255,255,.08)';
+      termsBox.style.background = 'rgba(255,255,255,.03)';
     }, 2000);
     return;
   }
