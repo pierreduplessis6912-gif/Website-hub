@@ -127,6 +127,7 @@ export default {
     if (path === '/submit-revision')  return handleSubmitRevision(request, env);
     if (path === '/send-email-setup') return handleSendEmailSetup(request, env);
     if (path === '/cancel-site')      return handleCancelSite(request, env);
+    if (path === '/cancel-subscription') return handleCancelSubscription(request, env);
 
     return jsonResponse({ error: 'Not found', path }, 404);
   },
@@ -357,6 +358,63 @@ async function handleSubmitRevision(request, env) {
 }
 
 // ── /cancel-site — flag for cancellation ─────────────────────────────────────
+async function handleCancelSubscription(request, env) {
+  const { token } = await request.json().catch(() => ({}));
+  if (!token) return jsonResponse({ error: 'token required' }, 400);
+
+  const client = await env.DB.prepare(
+    `SELECT * FROM clients WHERE manage_token=? LIMIT 1`
+  ).bind(token).first();
+  if (!client) return jsonResponse({ error: 'Client not found' }, 404);
+
+  const pfToken = client.payfast_token;
+
+  // Cancel PayFast subscription if token exists
+  if (pfToken) {
+    const isTest = isTestMode(env);
+    const baseUrl = isTest ? 'https://sandbox.payfast.co.za' : 'https://api.payfast.co.za';
+    const timestamp = new Date().toISOString().slice(0, 19);
+    const merchantId = isTest ? env.PAYFAST_SANDBOX_MERCHANT_ID : env.PAYFAST_MERCHANT_ID;
+    const passphrase = isTest ? env.PAYFAST_SANDBOX_MERCHANT_KEY : env.PAYFAST_PASSPHRASE;
+
+    const pfRes = await fetch(`${baseUrl}/subscriptions/${pfToken}/cancel`, {
+      method: 'PUT',
+      headers: {
+        'merchant-id': merchantId,
+        'version':     'v1',
+        'timestamp':   timestamp,
+        'passphrase':  passphrase,
+      },
+    }).catch(() => null);
+
+    if (pfRes && !pfRes.ok) {
+      console.warn('PayFast cancel failed:', pfRes.status);
+    }
+  }
+
+  // Update D1 — cancellation pending, site stays live until next_invoice_date
+  await env.DB.prepare(
+    `UPDATE clients SET status='cancellation_pending', updated_at=CURRENT_TIMESTAMP WHERE id=?`
+  ).bind(client.id).run();
+
+  // WhatsApp client
+  await sendWhatsApp(client.phone,
+    `Hi ${client.client_name?.split(' ')[0] || 'there'} 👋\n\n` +
+    `Your *${client.business_name}* subscription has been cancelled.\n\n` +
+    `Your site will stay live until *${client.next_invoice_date || 'end of billing period'}*.\n\n` +
+    `Changed your mind? Just reply and we'll sort it out.\n\n— Website Hub`,
+    env
+  ).catch(() => {});
+
+  // WhatsApp owner
+  await sendWhatsApp(env.WH_PHONE,
+    `⚠️ CANCELLATION: ${client.business_name} (${client.slug})\nSite live until: ${client.next_invoice_date}`,
+    env, { skipTestRedirect: true }
+  ).catch(() => {});
+
+  return jsonResponse({ success: true });
+}
+
 async function handleCancelSite(request, env) {
   const { token } = await request.json().catch(() => ({}));
   if (!token) return jsonResponse({ error: 'token_required' }, 400);
@@ -550,6 +608,7 @@ async function handlePayfastWebhook(request, env, ctx) {
   const customStr2    = formData.get('custom_str2') || '';
   const paymentId     = formData.get('m_payment_id') || formData.get('pf_payment_id') || null;
   const amount        = parseFloat(formData.get('amount_gross') || '0');
+  const pfToken       = formData.get('token') || null; // PayFast subscription token
 
   if (!clientId) return new Response('Missing custom_str1', { status: 400 });
 
@@ -588,7 +647,7 @@ async function handlePayfastWebhook(request, env, ctx) {
       await handleRevisionPayment(clientId, customStr2, paymentId, amount, env);
     } else {
       // Default: first-month subscription / go-live (monthly or annual)
-      await handleGoLivePayment(clientId, paymentId, amount, customStr2, env, ctx);
+      await handleGoLivePayment(clientId, paymentId, amount, customStr2, env, ctx, pfToken);
     }
     await logHealth(env, 'payfast', 'success');
   } catch (err) {
@@ -611,7 +670,7 @@ async function handlePayfastWebhook(request, env, ctx) {
  *   suspended                      → reinstate
  *   live                           → recurring retainer
  */
-async function handleGoLivePayment(clientId, paymentId, amount, customStr2, env, ctx) {
+async function handleGoLivePayment(clientId, paymentId, amount, customStr2, env, ctx, pfToken = null) {
   const client = await env.DB.prepare(
     `SELECT * FROM clients WHERE id=? LIMIT 1`
   ).bind(clientId).first();
@@ -684,8 +743,8 @@ async function handleGoLivePayment(clientId, paymentId, amount, customStr2, env,
   }
 
   await env.DB.prepare(
-    `UPDATE clients SET payfast_payment_id=?, payment_date=?, billing_cycle=?, next_invoice_date=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
-  ).bind(paymentId || '', todayDateString(), isAnnual ? 'annual' : 'monthly', nextInvoice, clientId).run();
+    `UPDATE clients SET payfast_payment_id=?, payment_date=?, billing_cycle=?, next_invoice_date=?, payfast_token=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+  ).bind(paymentId || '', todayDateString(), isAnnual ? 'annual' : 'monthly', nextInvoice, pfToken || null, clientId).run();
 
   await logActivity(env, 'payment_received', { clientId, business: client.business_name, amount, type: isAnnual ? 'annual_first_payment' : 'first_time_subscription' });
 
