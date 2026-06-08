@@ -832,6 +832,20 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
   });
 })();
 </script>
+
+<style>
+.fab-stack{position:fixed;bottom:24px;right:20px;display:flex;flex-direction:column;gap:10px;z-index:999}
+.fab-btn{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.3);text-decoration:none;font-size:22px;transition:transform .2s}
+.fab-btn:hover{transform:scale(1.08)}
+.fab-wa{background:#25D366}
+.fab-call{background:#007AFF}
+</style>
+
+${phone ? `<div class="fab-stack">
+  <a href="tel:${esc(phone)}" class="fab-btn fab-call" aria-label="Call">📞</a>
+  <a href="${esc(waLink)}" class="fab-btn fab-wa" aria-label="WhatsApp">💬</a>
+</div>` : `<a href="${esc(waLink)}" class="fab-btn fab-wa" style="position:fixed;bottom:24px;right:20px;z-index:999" aria-label="WhatsApp">💬</a>`}
+
 </body>
 </html>`;
 }
