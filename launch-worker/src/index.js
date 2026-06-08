@@ -487,8 +487,8 @@ async function handleGoLiveLink(request, env, ctx) {
 
   const notifyUrl = `https://${PREVIEW_DOMAIN}/payfast-webhook`;
 
-  const returnUrl = `https://websitehub.co.za/manage/${token}`;
-  const cancelUrl = `https://websitehub.co.za/manage/${token}`;
+  const returnUrl = `https://${PREVIEW_DOMAIN}/manage/${token}`;
+  const cancelUrl = `https://${PREVIEW_DOMAIN}/preview/${token}`;
 
   const itemName  = activePromo ? 'Website Hub — Exclusive Offer' : 'Website Hub Monthly Subscription';
   const customStr2 = promoCode ? `${pkg}_promo_${promoCode}` : pkg;
