@@ -862,7 +862,9 @@ async function handleAdminForceLive(request, env) {
   const html = await env.SITES.get(`site:${slug}`);
   if (!html) return jsonResponse({ error: 'No built HTML found at site:' + slug }, 404);
 
-  const domain = client.domain || `${slug}.co.za`;
+  const pkg = pkgKey(client.package || 'hub');
+  const isHubPro = pkg === 'hub_pro' || pkg === 'premium';
+  const domain = client.domain || (isHubPro ? `${slug}.co.za` : `${slug}.websitehub.co.za`);
 
   // Write to all the right places
   await env.SITES.put(`preview:${slug}`, html, { expirationTtl: 60 * 60 * 24 * 35 });
@@ -876,13 +878,14 @@ async function handleAdminForceLive(request, env) {
     `UPDATE clients SET status='live', go_live_date=?, next_invoice_date=?, domain=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
   ).bind(today, nextMonth, domain, client.id).run();
 
-  // Trigger domain registration + WhatsApp via launch worker
-  const launchUrl = `https://${PREVIEW_DOMAIN}`;
-  fetch(`${launchUrl}/internal-golive`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientId: client.id, slug }),
-  }).catch(e => console.warn('Internal go-live trigger failed:', e?.message));
+  // Trigger go-live via launch worker service binding
+  if (env.LAUNCH_WORKER) {
+    env.LAUNCH_WORKER.fetch(new Request('https://internal/internal-golive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: client.id, slug }),
+    })).catch(e => console.warn('Internal go-live failed:', e?.message));
+  }
 
   return jsonResponse({ success: true, slug, domain, status: 'live' });
 }
