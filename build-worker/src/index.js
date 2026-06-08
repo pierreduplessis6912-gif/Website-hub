@@ -2246,16 +2246,45 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
     const promoCode  = client.promo_code || null;
     const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
 
-    // All clients get OG card — rich preview, shareable, works for both inbound and outbound
-    // Inbound: husband fills form, forwards OG card to wife for approval
-    // Outbound: we send the OG card as the hook
-    await sendWhatsApp(client.phone,
-      `👋 *${client.business_name}* — your site is ready!\n\n` +
-      `Have a look:\n\n` +
-      `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
-      `— Website Hub`,
-      env
-    ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_client_failed', 'error', { error: e?.message || String(e) }));
+    // All clients get OG card
+    // Inbound: client filled in form — they know us
+    // Outbound promo: cold contact — needs warm intro with value prop
+    const isPromo = !!promoCode;
+
+    let clientMsg;
+    if (isOutbound && isPromo) {
+      clientMsg =
+        `👋 Hi *${client.business_name}*!\n\n` +
+        `Website Hub is on a mission to make professional websites accessible to every South African small business.\n\n` +
+        `We built one for you — have a look:\n` +
+        `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
+        `Normally R7,000 build fee + R699/month.\n` +
+        `Today only: *no build fee* · R599/month · Cancel anytime.\n\n` +
+        `— Website Hub`;
+    } else if (isOutbound && !isPromo) {
+      clientMsg =
+        `👋 Hi *${client.business_name}*!\n\n` +
+        `Website Hub believes every South African business deserves a professional online presence.\n\n` +
+        `We built one for you — have a look:\n` +
+        `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
+        `R7,000 build fee · R699/month · Cancel anytime.\n\n` +
+        `— Website Hub`;
+    } else {
+      // Inbound — they know us
+      clientMsg =
+        `👋 *${client.business_name}* — your site is ready!\n\n` +
+        `Have a look:\n` +
+        `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
+        `— Website Hub`;
+    }
+
+    await sendWhatsApp(client.phone, clientMsg, env)
+      .catch(e => logEvent(env, clientId, 'build', 'whatsapp_client_failed', 'error', { error: e?.message || String(e) }));
+
+    // Store OG card send time for 24hr nudge (promo only)
+    if (isOutbound && isPromo) {
+      await env.SITES.put(`promo_nudge:${clientId}`, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), { expirationTtl: 60 * 60 * 48 });
+    }
   }
 
   return slug;
