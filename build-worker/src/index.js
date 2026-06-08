@@ -1265,6 +1265,16 @@ async function handleWhatsAppIncoming(request, env) {
       || msg?.message?.imageMessage?.caption
       || '[media message]';
 
+    // Debug — log full payload to find real phone
+    await logEvent(env, null, 'whatsapp', 'incoming_debug', 'info', {
+      metadata: {
+        remoteJid: msg?.key?.remoteJid,
+        participant: msg?.key?.participant,
+        pushName: msg?.pushName,
+        fromMe: msg?.key?.fromMe,
+      }
+    }).catch(() => {});
+
     // Extract sender phone — handle @s.whatsapp.net, @c.us, @lid formats
     const rawJid = msg?.key?.remoteJid || '';
     // @lid is a WhatsApp internal ID — use pushName or participant instead
