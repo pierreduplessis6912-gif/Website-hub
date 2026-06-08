@@ -781,6 +781,17 @@ ${address ? `
 ${esc(phone) ? `<div class="fab-stack"><a href="tel:${esc(phone)}" class="fab-btn fab-call" aria-label="Call">📞</a><a href="${esc(waLink)}" class="fab-btn fab-wa" aria-label="WhatsApp">💬</a></div>` : `<a href="${esc(waLink)}" class="fab-btn fab-wa" style="position:fixed;bottom:24px;right:20px;z-index:999" aria-label="WhatsApp">💬</a>`}
 
 <script>
+
+// Licence check — self-hosting protection
+(function(){
+  var slug = '${esc(client.slug)}';
+  var allowed = [slug+'.websitehub.co.za', slug+'.co.za', 'preview.websitehub.co.za', 'localhost', '127.0.0.1'];
+  var host = window.location.hostname.toLowerCase();
+  if(!allowed.some(function(d){ return host === d || host.endsWith('.'+d); })){
+    window.location.replace('https://websitehub.co.za');
+  }
+})();
+
 const nav=document.getElementById('nav');
 window.addEventListener('scroll',()=>{nav.classList.toggle('scrolled',window.scrollY>60)},{passive:true});
 
