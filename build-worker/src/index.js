@@ -2238,7 +2238,31 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
     galleryPhotos = [...d1Photos, ...gbpGalleryPhotos].slice(0, 6);
   } catch {}
 
-  // ── HTML — archetype-routed ─────────────────────────────────
+  // Unsplash fallback — use industry-relevant photos when no GBP photos
+  if (galleryPhotos.length === 0) {
+    const industry = (client.industry || '').toLowerCase();
+    const UNSPLASH_FALLBACKS = {
+      plumb:       ['plumbing','pipe','water','bathroom'],
+      electr:      ['electrician','wiring','electrical'],
+      hair:        ['hair+salon','hairstyle','beauty+salon'],
+      salon:       ['hair+salon','beauty','nail+salon'],
+      barber:      ['barbershop','haircut','barber'],
+      restaurant:  ['restaurant','food','dining'],
+      food:        ['restaurant','cooking','food'],
+      shisanyama:  ['braai','grill','meat'],
+      carwash:     ['car+wash','clean+car','auto+detail'],
+      floor:       ['flooring','tiles','interior'],
+      blind:       ['window+blinds','interior+design','curtains'],
+      optical:     ['optometrist','glasses','eyewear'],
+      dental:      ['dentist','dental','teeth'],
+      construct:   ['construction','building','contractor'],
+      paint:       ['painting','house+paint','decorator'],
+      clean:       ['cleaning+service','commercial+cleaning','maid'],
+    };
+    const key = Object.keys(UNSPLASH_FALLBACKS).find(k => industry.includes(k)) || 'business';
+    const terms = UNSPLASH_FALLBACKS[key] || ['small+business','south+africa','professional'];
+    galleryPhotos = terms.slice(0, 4).map(t => `https://source.unsplash.com/800x600/?${t}`);
+  }
   // Attach gallery photos to client object so archetype templates can use them
   const clientWithPhotos = { ...client, gallery_photos: galleryPhotos };
   const archetype = detectArchetypeFromPersonality(brief.personality?.category, client.industry);
