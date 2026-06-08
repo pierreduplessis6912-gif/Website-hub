@@ -1277,13 +1277,30 @@ async function handleWhatsAppIncoming(request, env) {
 
     // Extract sender phone — handle @s.whatsapp.net, @c.us, @lid formats
     const rawJid = msg?.key?.remoteJid || '';
-    // @lid is a WhatsApp internal ID — use pushName or participant instead
     let phone = rawJid.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '').replace(/@lid$/, '');
-    // Also try participant field for group/lid messages
-    if (rawJid.endsWith('@lid') && msg?.key?.participant) {
-      phone = msg.key.participant.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '');
+
+    // If @lid — try to resolve real phone via Evolution contacts API
+    if (rawJid.endsWith('@lid') && env.EVOLUTION_URL && env.EVOLUTION_KEY) {
+      try {
+        const res = await fetch(
+          `${env.EVOLUTION_URL}/chat/findContacts/${env.EVOLUTION_INSTANCE}`,
+          {
+            method: 'POST',
+            headers: { 'apikey': env.EVOLUTION_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ where: { id: rawJid } }),
+          }
+        );
+        const contacts = await res.json();
+        const contact = Array.isArray(contacts) ? contacts[0] : contacts;
+        const resolved = contact?.remoteJid || contact?.jid || contact?.phoneNumber;
+        if (resolved) {
+          phone = resolved.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '');
+        }
+      } catch(e) {
+        console.warn('LID resolution failed:', e?.message);
+      }
     }
-    // Clean — digits only, remove leading country code duplication
+
     phone = phone.replace(/\D/g, '');
     if (!phone || phone.length < 7) return new Response('OK', { status: 200 });
 
