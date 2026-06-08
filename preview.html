@@ -721,6 +721,12 @@ async function bootstrap() {
         selectPlanSilent(d.package);
       }
 
+      if (d.status === 'live') {
+        // Already live — go straight to manage panel
+        openManage();
+        return;
+      }
+
       if (d.status === 'preview_ready') {
         showScreen('preview');
         if (S.promo) showPromoBanner();
