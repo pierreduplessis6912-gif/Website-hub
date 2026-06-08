@@ -878,7 +878,18 @@ async function handleAdminForceLive(request, env) {
     `UPDATE clients SET status='live', go_live_date=?, next_invoice_date=?, domain=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
   ).bind(today, nextMonth, domain, client.id).run();
 
-  // Trigger go-live via launch worker service binding
+  // Always notify immediately
+  const manageUrl = `https://${PREVIEW_DOMAIN}/manage/${client.manage_token}`;
+  await sendWhatsApp(env.WH_PHONE,
+    `✅ FORCE LIVE: ${client.business_name}\n🌐 https://${domain}`,
+    env, { skipTestRedirect: true }
+  ).catch(() => {});
+  await sendWhatsApp(client.phone,
+    `🎉 *${client.business_name}* is live!\n\n🌐 https://${domain}\n📱 Manage: ${manageUrl}\n\n📬 Your email:\nhello@${domain}\ninfo@${domain}\n\n— Website Hub`,
+    env
+  ).catch(() => {});
+
+  // Also trigger full go-live via launch worker for email provisioning etc
   if (env.LAUNCH_WORKER) {
     env.LAUNCH_WORKER.fetch(new Request('https://internal/internal-golive', {
       method: 'POST',
