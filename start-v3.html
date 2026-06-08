@@ -716,9 +716,9 @@ async function submitIntake() {
 
   // Terms must be accepted
   if (!termsAccepted) {
-    document.getElementById('termsBox').style.borderColor = 'var(--red)';
-    setTimeout(() => { document.getElementById('termsBox').style.borderColor = 'rgba(255,255,255,.08)'; }, 2000);
-    return;
+    // soft reminder only — don't block
+    document.getElementById('termsBox').style.borderColor = 'rgba(0,240,255,.3)';
+    setTimeout(() => { document.getElementById('termsBox').style.borderColor = 'rgba(255,255,255,.08)'; }, 1000);
   }
 
   var name  = document.getElementById('nameInput').value.trim();
