@@ -279,7 +279,7 @@ body::after{
           style="background:transparent;border:none;outline:none;color:inherit;font:inherit;width:140px;min-width:60px;max-width:200px"
           autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"
           oninput="onSlugEdit(this.value)">
-        <span style="color:var(--muted);font-size:12px">.websitehub.co.za</span>
+        <span style="color:var(--muted);font-size:12px" id="domainSuffixDisplay">.websitehub.co.za</span>
       </div>
       <div id="slugStatus" style="font-size:11px;color:var(--muted);margin-top:2px;min-height:14px;text-align:center"></div>
 
@@ -461,6 +461,8 @@ function hideIndustrySuggestions() {
   var promo  = params.get('promo') || getCookie('promo') || '';
   S.plan = plan;
   S.promo = promo;
+  // Update suffix display based on plan
+  window.addEventListener('DOMContentLoaded', function() { updateDomainSuffixDisplay(); });
 
   // Show promo banner if promo code present
   if (promo) {
@@ -476,7 +478,7 @@ function hideIndustrySuggestions() {
   if (biz && domain) {
     S.biz    = biz;
     S.domain = domain;
-    S.slug   = domain.replace('.co.za','');
+    S.slug   = domain.replace('.websitehub.co.za','').replace('.co.za','');
     window.addEventListener('DOMContentLoaded', function() {
       var input = document.getElementById('bizInput');
       if (input) {
@@ -515,15 +517,26 @@ function normalisePhone(v) {
 }
 
 /* ── BIZ INPUT ───────────────────────────────────────────── */
+function domainSuffix() {
+  return (S.plan === 'hub_pro') ? '.co.za' : '.websitehub.co.za';
+}
+
+function updateDomainSuffixDisplay() {
+  var el = document.getElementById('domainSuffixDisplay');
+  if (el) el.textContent = domainSuffix();
+}
+
 function onBizInput() {
   var val  = document.getElementById('bizInput').value.trim();
   var slug = slugify(val);
-  S.biz = val; S.slug = slug; S.domain = slug ? slug+'.co.za' : '';
+  S.biz = val; S.slug = slug; S.domain = slug ? slug + domainSuffix() : '';
   S.confirmed = false;
 
   var badge = document.getElementById('domainBadge');
   var text  = document.getElementById('dbText');
   var btn   = document.getElementById('checkBtn');
+
+  updateDomainSuffixDisplay();
 
   if (slug) {
     text.value = slug;
@@ -540,7 +553,8 @@ function onBizInput() {
 
 /* ── DOMAIN CHECK ────────────────────────────────────────── */
 async function checkDomain(override) {
-  var domain = override || S.domain;
+  var domain = override || (S.slug + domainSuffix());
+  S.domain = domain;
   if (!domain) return;
 
   var btn = document.getElementById('checkBtn');
@@ -575,7 +589,7 @@ function showResult(data, domain) {
     block.classList.add('avail');
     icon.textContent = '✅';
     lbl.textContent  = 'Available — this domain is yours to claim';
-    S.domain = domain; S.slug = domain.replace('.co.za',''); S.confirmed = true;
+    S.domain = domain; S.slug = domain.replace('.websitehub.co.za','').replace('.co.za',''); S.confirmed = true;
 
     setTimeout(function() {
       document.getElementById('s2Domain').textContent = '✓ ' + domain;
@@ -609,7 +623,7 @@ function showResult(data, domain) {
 }
 
 function useSuggestion(domain) {
-  S.domain = domain; S.slug = domain.replace('.co.za','');
+  S.domain = domain; S.slug = domain.replace('.websitehub.co.za','').replace('.co.za','');
   document.getElementById('dbText').value = S.slug;
   document.getElementById('domainBadge').classList.add('ready');
   checkDomain(domain);
@@ -670,7 +684,7 @@ let slugCheckTimer = null;
 function onSlugEdit(val) {
   const slug = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   S.slug = slug;
-  S.domain = slug + '.co.za';
+  S.domain = slug + domainSuffix();
   const status = el('slugStatus');
   if (!slug || !S.confirmed) { if (status) status.textContent = ''; return; }
   if (status) { status.style.color = 'var(--muted)'; status.textContent = 'Checking...'; }
@@ -708,7 +722,7 @@ async function submitIntake() {
   // Use edited slug if customer changed it in the badge
   var slugInputVal = document.getElementById('dbText')?.value?.trim()
     .toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  if (slugInputVal) { S.slug = slugInputVal; S.domain = slugInputVal + '.websitehub.co.za'; }
+  if (slugInputVal) { S.slug = slugInputVal; S.domain = slugInputVal + domainSuffix(); }
 
   if (!name || !phone) {
     document.getElementById('nameInput').style.borderColor  = name  ? '' : 'var(--red)';
@@ -767,7 +781,7 @@ function showBuilding() {
   document.getElementById('step1').style.display = 'none';
   document.getElementById('step2').style.display = 'none';
   document.getElementById('step3').style.display = 'flex';
-  document.getElementById('buildDomain').textContent = S.slug + '.co.za';
+  document.getElementById('buildDomain').textContent = S.slug + domainSuffix();
   setBuildMsg(0);
 
   _msgIdx = 0;
