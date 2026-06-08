@@ -1146,13 +1146,26 @@ body::after{
 
   </div>
 
-  <!-- ── SHOWCASE STRIP — full viewport width ── -->
-  <div class="showcase-strip">
-    <div class="showcase-track" id="showcaseTrack">
-      <div class="sc-card"><div class="sc-skeleton"></div></div>
-      <div class="sc-card"><div class="sc-skeleton"></div></div>
-      <div class="sc-card"><div class="sc-skeleton"></div></div>
-      <div class="sc-card"><div class="sc-skeleton"></div></div>
+  <!-- ── INDUSTRY STATS STRIP ── -->
+  <div style="padding:32px 20px 0;max-width:680px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px">
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:800;font-family:var(--f-display);color:var(--cyan);letter-spacing:-1px">2min</div>
+        <div style="font-size:11px;color:rgba(240,237,232,.4);margin-top:4px;line-height:1.4">Average build time</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:800;font-family:var(--f-display);color:var(--cyan);letter-spacing:-1px">R0</div>
+        <div style="font-size:11px;color:rgba(240,237,232,.4);margin-top:4px;line-height:1.4">Build fee this month</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:800;font-family:var(--f-display);color:var(--cyan);letter-spacing:-1px">KZN</div>
+        <div style="font-size:11px;color:rgba(240,237,232,.4);margin-top:4px;line-height:1.4">Based in Richards Bay</div>
+      </div>
+    </div>
+
+    <!-- Industries -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:32px">
+      ${['🔧 Plumbing','💈 Barbershop','🌸 Florist','🍖 Butchery','👁️ Optometrist','🏠 Flooring','⚡ Electrical','🍕 Restaurant','💅 Salon','🚗 Panel Beating','🏗️ Construction','🦷 Dentist'].map(i=>`<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:6px 12px;font-size:12px;color:rgba(240,237,232,.7)">${i}</div>`).join('')}
     </div>
   </div>
 
@@ -1565,7 +1578,26 @@ body::after{
       <a href="/cancellation">Cancellation</a>
       <a href="/dpa">Data Processing</a>
     </nav>
-    <div class="footer-copy">© 2026 Website Hub · South African business sites · Built with care</div>
+    <!-- Trust badges -->
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:16px 0;padding:16px 0;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(240,237,232,.4)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        POPIA Compliant
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(240,237,232,.4)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Secured by PayFast
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(240,237,232,.4)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+        Hosted on Cloudflare
+      </div>
+    </div>
+    <div style="font-size:10px;color:rgba(240,237,232,.25);text-align:center;line-height:1.6">
+      Website Hub (Pty) Ltd · Registered with the Information Regulator of South Africa<br>
+      Registration No. 2026-024548 · Information Officer: B.P. du Plessis
+    </div>
+    <div class="footer-copy" style="margin-top:8px">© 2026 Website Hub · South African business sites · Built with care</div>
   </div>
 </footer>
 
