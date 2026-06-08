@@ -761,7 +761,7 @@ async function submitIntake() {
         instagram:        (document.getElementById('instaInput')?.value || '').trim().replace(/^@/, ''),
         facebook:         (document.getElementById('fbInput')?.value || '').trim(),
         referred_by:      getCookie('ref') || '',
-        promo_code:       getCookie('promo') || params.get('promo') || '',
+        promo_code:       getCookie('promo') || new URLSearchParams(window.location.search).get('promo') || '',
         terms_accepted:   termsAccepted,
         terms_version:    '2026-06',
       }),
