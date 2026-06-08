@@ -1438,12 +1438,15 @@ async function handleIntake(request, env) {
     const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
     const packageKey    = pkgKey(pkg);
 
+    const termsAccepted = body.terms_accepted ? new Date().toISOString() : null;
+    const clientIp = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || null;
+
     await env.DB.prepare(`
       INSERT INTO clients
         (id, business_name, client_name, slug, phone, email, package, retainer,
          industry, area, vibe, manage_token, referral_slug, promo_code, status, source, business_type,
-         instagram, facebook, referred_by)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?,?,?,?)
+         instagram, facebook, referred_by, terms_accepted_at, terms_accepted_ip)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?,?,?,?,?,?)
     `).bind(
       id, business_name, client_name || null, slug, normPhone, email || null,
       packageKey, body.promo_code ? (PRICING.promo?.retainer || 599) : (PRICING[packageKey]?.retainer || 699),
@@ -1453,6 +1456,8 @@ async function handleIntake(request, env) {
       body.instagram || null,
       body.facebook || null,
       body.referred_by || null,
+      termsAccepted,
+      clientIp,
     ).run();
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
