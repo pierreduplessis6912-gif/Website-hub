@@ -1,15 +1,27 @@
 # Website Hub — Master Context
 _Read this first. Every session. Before touching any file._
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-08_
+
+---
 
 ## What this is
 
 Website Hub is a fully automated website-as-a-service platform for South African small businesses. Owner: Pierre du Plessis. Solo founder, no coding background, builds entirely via AI-assisted sessions from an Android phone using Termux.
 
-- **Repo:** github.com/pierreduplessis6912-gif/Website-hub
-- **Production:** preview.websitehub.co.za
-- **Admin:** preview.websitehub.co.za/admin (key: rotate before launch — see Security section)
+- **Repo:** github.com/pierreduplessis6912-gif/Website-hub (public)
+- **Production:** websitehub.co.za (landing) + preview.websitehub.co.za (platform)
+- **Admin:** preview.websitehub.co.za/admin — key: ADMIN_KEY_CLAUDEROX
 - **Goal:** R1M ARR by December 25, 2026
+- **Live clients:** Classic Touch Salon (classictouchsalon) — Pierre's mom
+
+---
+
+## Critical workflow rule
+**Always run before reading or editing any file:**
+```bash
+cd ~/Website-hub && git pull --rebase origin main
+```
+GitHub API returns stale cached content. Always pull first.
 
 ---
 
@@ -17,593 +29,370 @@ Website Hub is a fully automated website-as-a-service platform for South African
 
 | Service | Detail |
 |---------|--------|
-| Cloudflare Workers | 5 workers — wh-build, wh-patch, wh-launch, wh-pulse, wh-reactivate |
+| Cloudflare Workers | 6 workers — see below |
 | Cloudflare D1 | database_id: 9c422081-af06-4c1b-b59e-f40e0d08fefa |
 | Cloudflare KV | SITES namespace: b63e5b885ead4c02a9e184dd6477e711 |
 | Cloudflare R2 | wh-assets bucket |
 | Cloudflare Zone | websitehub.co.za — Zone ID: e6b58b08eb80ea03a46d010455f6b25d |
 | CF Account ID | 4c559b9dff9fae56803b9c275b518597 |
-| DNSimple | Account: 175950 — domain registration for Standard/Premium |
-| Evolution API | https://evolution.websitehub.co.za — instance: wa1 — WhatsApp |
-| GitHub Actions | Deploy on push to main — all 5 workers deploy simultaneously |
+| Evolution API | https://evolution.websitehub.co.za — instance: wa1 — key: mysecretkey123 |
+| PayFast | Live mode — TEST_MODE = "false" — merchant: 13581217 |
+| cPanel Proxy | classictouchsalon.co.za/rd-proxy.php — secret: mysecretkey123 |
+| Registerdomain | API key in launch-worker wrangler.toml |
+| GitHub Actions | Smart deploy — only changed workers — wrangler-action@v4, wrangler 3.90.0 |
 
 ---
 
-## Architecture (locked — do not change without discussion)
+## DNS (Cloudflare zone — websitehub.co.za)
 
-### First principle: Zero human touch
-Every customer flow must complete without Pierre intervening.
-Every failure must self-resolve or auto-escalate via WhatsApp to WH_PHONE.
+| Route | Worker |
+|-------|--------|
+| websitehub.co.za/* | wh-build |
+| preview.websitehub.co.za/* | wh-build |
+| *.websitehub.co.za/* | wh-sites |
 
-### Data layer
-- **D1** = single source of truth. Write here first, always. Never expires.
-- **KV** = read cache only. Write after D1.
-- **Queue** = async build pipeline. Carries clientId + manage_token only.
-
-### Worker architecture
-- **wh-build** = single public entry point for preview.websitehub.co.za/*
-- **wh-launch** = called via Service Binding (LAUNCH_WORKER) from build worker — NOT publicly routed
-- **wh-patch** = called via Service Binding (PATCH_WORKER) from build worker
-- **wh-pulse** = cron worker — daily health checks, renewals, post-go-live touches
-- **wh-reactivate** = handles reactivations after suspension
-
-### Service Bindings (CRITICAL)
-Build worker uses `env.LAUNCH_WORKER.fetch(request)` to call launch worker.
-Routes `/internal-golive`, `/go-live-link`, `/activate-free` are proxied via service binding.
-Never add public Cloudflare routes to launch/patch workers — build worker catches everything.
-
-### shared-services.js (CRITICAL)
-One source of truth: `build-worker/src/shared-services.js`
-GitHub Actions deploy workflow COPIES it to all other workers on every deploy.
-NEVER edit shared-services.js in any worker except build-worker.
-Changes to any other worker's shared-services.js will be overwritten on next deploy.
-
-### One token per client: manage_token
-Generated once in createClient. Used everywhere:
-- D1: manage_token column
-- KV: build_status:{manage_token}
-- URL: /manage/{manage_token}
-- WhatsApp links
+Wildcard A record `*` → proxied → Cloudflare.
+Routes managed manually in Cloudflare zone — NOT in wrangler.toml (causes conflicts).
 
 ---
 
-## Pricing & Plans (as of 2026-06-05)
+## Worker Architecture (6 workers)
 
-| Plan | Price | Domain | Status |
-|------|-------|--------|--------|
-| Express | R399/mo | slug.websitehub.co.za (free CNAME) | PRE-LAUNCH — full site as launch bonus |
-| Standard | R699/mo | slug.co.za (DNSimple $10.90/yr) | Launches in 2 weeks |
-| Premium | R999/mo | slug.co.za + full features | Launches in 2 weeks |
+| Worker | Job | Bindings |
+|--------|-----|----------|
+| wh-build | Public entry point, admin, builds, intake, OG cards, incoming WhatsApp | DB, SITES, R2, Queue, LAUNCH_WORKER, PATCH_WORKER |
+| wh-launch | Go-live, PayFast webhook, email provisioning, subscriptions, manage panel API | DB, SITES |
+| wh-patch | Revisions | DB, SITES, R2 |
+| wh-pulse | Daily cron — dunning, post-golive touches, promo nudge, referral vesting, win-back | DB, SITES |
+| wh-reactivate | Reactivations after suspension | DB, SITES |
+| wh-sites | Serve live client sites from KV by hostname | SITES |
 
-**Pre-launch strategy:** 2 weeks Express-only at R399. Full 5-page archetype site as early access bonus. After 2 weeks, Express becomes 1-page only. Early access customers keep full site forever at R399.
-
-**Express go-live flow:** Creates DNS CNAME `slug` → `preview.websitehub.co.za` on websitehub.co.za zone via Cloudflare API. No DNSimple needed. No Cloudflare Pro needed.
-
-**Standard/Premium go-live flow:** DNSimple registers `slug.co.za` → Cloudflare Custom Hostnames (requires Pro plan — upgrade websitehub.co.za zone to Pro when Standard launches).
+### Data layer rules (LOCKED)
+- **D1** = single source of truth. Write here first, always.
+- **KV** = read cache only. Write after D1. Key: `live:{domain}`, `preview:{slug}`, `app:{page}`
+- **Queue** = carries clientId only. Never secrets.
 
 ---
 
-## The 5 Archetypes
+## Packages & Pricing
 
-Built in `build-worker/src/archetypes/`. Each is a complete HTML file with `{{token}}` placeholders.
+| Package | Build Fee | Monthly | Domain |
+|---------|-----------|---------|--------|
+| Hub | R7,000 | R699/mo | slug.websitehub.co.za |
+| Hub Pro | R7,000 | R999/mo | slug.co.za (registered via registerdomain) |
+| Promo (LAUNCH2026) | R0 | R599/mo | slug.websitehub.co.za |
 
-| Archetype | Industries | Style |
-|-----------|-----------|-------|
-| experience.js | hospitality, personal_care, wellness, event_creative | Cormorant Garamond, warm gold/cream, botanical SVG, particles |
-| emergency.js | trade_authority, technical_expertise | Barlow Condensed 900, rust accent, always-visible phone strip |
-| trust.js | professional_trust, medical_trust | Playfair Display, navy/gold, credentials bar |
-| local.js | community_local, retail_utility | Fraunces serif, amber warmth, paper grain texture |
-| results.js | transformation | Syne display, dark cinematic green, stats bar |
-
-Routing in `build-worker/src/index.js` → `detectArchetypeFromPersonality(personalityCategory, industry)`
+- `packageKey()` in shared-services.js maps all legacy names (express/standard/premium) → hub/hub_pro
+- Only upgrade path: Hub → Hub Pro (+R300/mo)
+- All plans: gallery, 2 email reroutes, WhatsApp + Call FAB, referral program (promo only)
+- Hub: 2 revisions/month. Hub Pro: 5 revisions/month.
 
 ---
 
 ## Build Pipeline
 
-1. `/start` → intake form (3 fields) → `/intake`
-2. `handleIntake` → creates client in D1 → queues substance build
-3. `handleSubstanceBuild` → GBP data fetch → Claude Pass 1 (content JSON) → `tokenReplace()` → archetype HTML
-4. KV writes: `site:{slug}` AND `preview:{slug}` simultaneously
-5. Client sees preview at `preview.websitehub.co.za/{slug}`
-6. Client taps "Activate" → `/activate-free` (Express) or PayFast (paid)
-7. `handleGoLiveInternal` fires via `ctx.waitUntil`:
-   - KV writes `live:{domain}` 
-   - D1 status → `live`
-   - DNS CNAME created (Express) OR domain registered via DNSimple (Standard/Premium)
-   - CF Custom Hostname bound (Standard/Premium only)
-   - WhatsApp to client + owner
+**Trigger:** intake → D1 insert → Queue → `triggerFullBuild`
+
+**6 passes:**
+1. Pass 0 — archetype selection (emergency/trust/experience/local/results)
+2. Pass 1 — brand + GBP data fetch
+3. Pass 2 — skeleton HTML
+4. Pass 3 — UX layer (non-fatal)
+5. Pass 4 — rich brand + GBP photos
+6. Pass 5 — content
+7. Pass 6 — quality gate (non-fatal)
+
+**Build time:** ~60 seconds. One Claude API call (Anthropic). One WhatsApp on completion.
+
+**Archetypes:** 5 files in `build-worker/src/archetypes/` — emergency.js, experience.js, local.js, results.js, trust.js. All have dual FAB (📞 Call + 💬 WhatsApp), rating badge top-right, photo gallery carousel.
+
+**Photo sources:** GBP photos via cPanel proxy → Unsplash fallback.
 
 ---
 
-## KV Key Patterns
+## Go-Live Flow (PayFast)
+
+1. Client taps Go Live in preview SPA → PayFast subscription created
+   - `frequency: 3` (monthly), `cycles: 0` (infinite)
+   - `notify_url`: preview.websitehub.co.za/payfast-webhook
+   - `return_url`: preview.websitehub.co.za/manage/{token}
+2. PayFast fires webhook → wh-launch `/payfast-webhook`
+3. Signature verified → `handleGoLivePayment` → `handleGoLiveInternal`
+4. `handleGoLiveInternal`:
+   - Writes `live:{domain}` to KV
+   - Updates D1 status → live
+   - Provisions email reroutes (hello@ + info@) via Cloudflare Email Routing API
+   - Sends go-live WhatsApp to client
+   - Sends 🎉 I GOT A SALE to WH_PHONE and Kimmy (27798916569)
+5. `payfast_token` stored on client for cancellation
+
+**Cancellation:** Client taps Cancel in manage panel → `/cancel-subscription` → PayFast API cancel → status → cancellation_pending → site live until next_invoice_date → pulse suspends.
+
+---
+
+## Email Rerouting (Cloudflare Email Routing API)
+
+- Provisioned on go-live: `hello@{domain}` + `info@{domain}` → client's personal email
+- Free on all Cloudflare plans
+- Hub clients: on websitehub.co.za zone
+- Hub Pro clients: on their own .co.za zone (added to Cloudflare on registration)
+- Token: `CF_API_TOKEN` secret on wh-launch (Zone: Email Routing Rules: Edit + Zone: DNS: Edit + Zone: SSL: Edit + Zone: Zone: Read)
+
+---
+
+## WhatsApp Touchpoints (Complete)
+
+| Trigger | Recipient | Message |
+|---------|-----------|---------|
+| Build complete (outbound promo) | Client | Brand intro, R7k value, today only, R599/mo |
+| Build complete (outbound non-promo) | Client | Brand intro, R7k build fee, R699/mo |
+| Build complete (inbound) | Client | "Your site is ready" + OG card link |
+| 24hr nudge (promo, no payment) | Client | "Complimentary build worth R7k still waiting" |
+| Go-live | Client | Site URL, manage panel, emails, next invoice, referral link |
+| D1 check-in | Client | "How's it going, any tweaks?" |
+| D7 | Client | Referral nudge — 10 friends → Hub Pro domain free |
+| D30 Hub | Client | Upgrade R300/mo or refer 10 free |
+| D30 Hub Pro | Client | "Hope it's bringing in customers" |
+| Dunning D0 | Client | Payment due today |
+| Dunning D3 | Client | 3 days late nudge |
+| Dunning D7 | Client | Suspension warning |
+| Win-back (D90) | Client | Reactivation offer, no rebuild fee within a year |
+| Go-live | WH_PHONE | LIVE: business, domain, plan, retainer |
+| Every sale | WH_PHONE + 27798916569 | 🎉 I GOT A SALE |
+| Client reply (incoming WA) | WH_PHONE | Forwarded with business name + reply link |
+| Email setup request | Client | Personalised Gmail Send-As instructions |
+
+---
+
+## Referral Program
+
+- **Eligibility:** Promo clients only (promo_code = LAUNCH2026)
+- **Mechanic:** Share `websitehub.co.za/r/{slug}` — referred friends get same promo deal automatically
+- **Reward:** 10 live referrals → Hub Pro upgrade (own .co.za domain registered free)
+- **Automation:** Pulse worker `runReferralVesting` checks daily → upgrades → WhatsApp
+- **Manage panel:** Progress bar 0/10, copy link, WhatsApp share button
+- **No leaderboard. No cash. No credit. Domain upgrade only.**
+- Terms: /referral-terms
+
+---
+
+## KV Key Schema
 
 ```
-site:{slug}              — built HTML (substance build output)
-preview:{slug}           — preview HTML (same as site, with watermark)
-live:{domain}            — live HTML (watermark removed, served by hostname)
-live:{domain}:index      — live HTML index page
-draft:{slug}:{page}      — panel choice overrides
-build_status:{token}     — build progress
-app:admin                — admin panel HTML (bootstrapped via /admin/bootstrap-admin)
-app:start                — /start intake form
-app:preview              — preview page HTML
-app:manage               — manage panel HTML
-health:{service}         — service health status
-optout:{phone}           — POPIA opt-out flag
+app:landing          — landing-v4.html
+app:start-v2         — start-v3.html (intake form)
+app:preview          — preview.html (preview SPA)
+app:manage           — manage.html (manage panel SPA)
+app:admin            — admin.html
+app:privacy          — privacy.html
+app:terms            — terms.html
+app:cancellation     — cancellation.html
+app:aup              — aup.html
+app:dpa              — dpa.html
+app:referral-terms   — referral-terms.html
+
+preview:{slug}       — built HTML (pre-live, watermarked)
+live:{domain}        — live HTML (served by wh-sites)
+site:{slug}          — raw built HTML
+
+promo_nudge_sent:{clientId}    — guard: 24hr nudge sent
+post_golive_d1:{clientId}      — schedule: D1 check-in
+post_golive_d7:{clientId}      — schedule: D7 referral nudge
+upsell:{clientId}              — schedule: D30 upsell
+winback_eligible:{clientId}    — schedule: D90 win-back
+rate:intake:ip:{ip}            — rate limit: 3/hr per IP
+rate:intake:global:{date}      — rate limit: 50/day global
+optout:{phone}                 — POPIA opt-out flag
 ```
 
 ---
 
-## Go-Live Pipeline (detailed)
+## D1 Schema (clients table — key columns)
 
-`handleGoLiveInternal` in `launch-worker/src/index.js`:
-
-1. `go_live_started` logged
-2. Apply panel choices to draft KV
-3. Strip watermark, write `live:{domain}` and `live:{domain}:index` to KV
-4. D1 update: status=live, go_live_date, next_invoice_date, domain
-5. Push to showcase queue (newest 5 slugs)
-6. CF hostname binding — Standard/Premium only (skipped for Express)
-7. Domain setup:
-   - Express → `createSubdomainCname(slug, env)` → Cloudflare DNS API
-   - Standard/Premium → `registerDomainViaProxy(slug, env)` → DNSimple API
-8. Email routing (Premium only)
-9. WhatsApp to client (if phone exists)
-10. Post go-live KV keys set (d1, d7, upsell, winback)
-11. Owner WhatsApp notification
-12. `site_went_live` logged
-
----
-
-## Secrets (per worker)
-
-### wh-build
-ANTHROPIC_KEY, ADMIN_KEY, UNSPLASH_ACCESS_KEY, EVOLUTION_API_KEY (mysecretkey123), EVOLUTION_API_URL, EVOLUTION_INSTANCE (wa1), WH_PHONE (27790128508), CF_API_TOKEN, CF_ZONE_ID, CF_ACCOUNT_ID
-
-### wh-launch
-ADMIN_KEY, EVOLUTION_API_KEY (mysecretkey123), EVOLUTION_API_URL, EVOLUTION_INSTANCE (wa1), WH_PHONE, CF_API_TOKEN, CF_ZONE_ID, CF_ACCOUNT_ID, DNSIMPLE_TOKEN, DNSIMPLE_ACCOUNT_ID (175950)
-
-### wh-reactivate
-ADMIN_KEY, EVOLUTION_API_KEY (mysecretkey123), EVOLUTION_API_URL, EVOLUTION_INSTANCE (wa1), WH_PHONE, CF_API_TOKEN, CF_ZONE_ID, CF_ACCOUNT_ID, DNSIMPLE_TOKEN, DNSIMPLE_ACCOUNT_ID
-
-### wh-pulse, wh-patch
-EVOLUTION_API_KEY (mysecretkey123), EVOLUTION_API_URL, EVOLUTION_INSTANCE (wa1), WH_PHONE
-
-**CRITICAL:** Evolution API key is `mysecretkey123` (lowercase m). Capital M = 401 Unauthorized.
-
----
-
-## Admin Endpoints
-
-All require `x-admin-key` header.
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| /admin/health | GET | System health + recent events |
-| /admin/clients | GET | Client list with manage_token and phone |
-| /admin/query | POST | Raw SQL (all queries allowed — SECURE BEFORE LAUNCH) |
-| /admin/force-live | POST | Force client live + trigger go-live pipeline |
-| /admin/reset-build | POST | Reset client to preview_ready |
-| /admin/trigger-rebuild | POST | Queue new substance build |
-| /admin/register-domain | POST | Trigger DNSimple domain registration |
-| /admin/test-whatsapp | POST | Send test WhatsApp message |
-| /admin/bootstrap-admin | POST | Upload new admin.html to KV |
-| /admin/migrate | POST | Run D1 migration SQL |
-
----
-
-## DNSimple Integration
-
-- Account ID: 175950
-- Token: stored as DNSIMPLE_ACCOUNT_ID + DNSIMPLE_TOKEN secrets on wh-launch and wh-reactivate
-- Contact: "Website Hub" — created as registrant for all domains
-- .co.za price: $10.90/year
-- WHOIS privacy: false (.co.za does not support it)
-- Auto-renew: true
-
-## Cloudflare Custom Hostnames
-- Requires Pro plan on websitehub.co.za zone ($20/month)
-- Only needed for Standard/Premium (own domain customers)
-- Express uses free CNAME subdomain — no Pro plan needed
-
----
-
-## Termux Constraints
-
-- Wrangler CLI does not work in Termux — never use it
-- All deploys via GitHub push to main
-- Python scripts must use heredoc syntax: `python3 - << 'PYEOF'`
-- No emoji in Python scripts
-- No backtick template literals in Python
-- File paths: use `$HOME` not `~` in curl commands
-- GitHub token for pushes: rotate before launch (currently exposed in chat history)
-
----
-
-## Security — TODO BEFORE LAUNCH (Sunday)
-
-1. Rotate ADMIN_KEY (currently exposed in chat history as ADMIN_KEY_CLAUDEROX)
-2. Rotate GitHub token (exposed in chat history)
-3. Rotate DNSIMPLE_TOKEN (exposed in chat history)
-4. Rotate CF_API_TOKEN (exposed in chat history)
-5. Lock admin/query back to SELECT only
-6. Add auth to /internal-golive
-7. Rate limiting on admin endpoints
-8. Delete CPANEL_PASSWORD from all workers (cPanel is dead)
-
----
-
-## What's Working (2026-06-05)
-
-- ✅ Full build pipeline — intake → GBP → Claude → archetype → preview
-- ✅ All 5 archetypes built and routing correctly
-- ✅ Express go-live — CNAME created, WhatsApp fires, client + owner notified
-- ✅ Service binding build→launch worker
-- ✅ Evolution WhatsApp from all workers (mysecretkey123 lowercase)
-- ✅ DNSimple domain registration (Standard/Premium — $10.90/domain)
-- ✅ Admin panel with Operations buttons per client
-- ✅ Events feed showing in admin dashboard
-- ✅ /internal-golive route working via service binding
-
-## What's NOT Working / Pending
-
-- ❌ Cloudflare Custom Hostnames — needs Pro plan ($20/mo) for Standard/Premium
-- ❌ registerdomain.co.za API — all actions return "Action not found" (support ticket open, now replaced by DNSimple)
-- ❌ Admin panel Operations buttons — cache issue, not showing new version
-- ❌ Classic Touch mom's domain — registered in DNSimple but not pointed anywhere yet (temporary: host on cPanel)
-- ❌ PayFast verification — dragging due to business profile change
-- ❌ Manage panel countdown timer (2-week pre-launch window)
-- ❌ Express 1-page version (after pre-launch, Express strips to 1 page)
-- ❌ Existing domain flow (customer already has domain → nameserver change instructions)
-- ❌ WhatsApp inbox in admin panel
-- ❌ Opt-in/opt-out webhook handler for Evolution
-
-## Pending Security Work (Sunday)
-See Security section above.
-
----
-
-## Real Customers
-
-| Business | Slug | Status | Plan | Domain |
-|---------|------|--------|------|--------|
-| Classic Touch Salon (Pierre's mom) | classictouchsalon | live | premium | classictouchsalon.co.za (registered DNSimple, not pointed yet) |
-| Izinga Flora | izingaflora2 | live | express | izingaflora2.websitehub.co.za ✅ |
-
----
-
-## Working Style
-
-- Pierre works from Android phone via Termux
-- Prefers complete file replacements over patches
-- Single commands over multi-step processes
-- Zero human intervention in all automated flows
-- Honest pushback welcomed
-- Never mention AI/Claude to customers — always "Website Hub team"
-- Never use desktop-first UX assumptions
-
----
-
-## Session Update 2026-06-06
-
-### What changed this session
-
-**Pipeline fully working end to end:**
-- `/start` → `/intake` → build → `/preview/{token}` → PayFast → go-live → `slug.websitehub.co.za`
-- Post-build WhatsApp sends to `/preview/{token}` — the SPA with iframe + Go Live button
-- preview.html is the customer SPA — served from `app:preview` KV key at `/preview/{token}`
-- Go Live button in preview.html calls `/go-live-link` → PayFast R399 subscription
-- PayFast webhook at `/payfast-webhook` → `handleGoLiveInternal` → CNAME → live
-
-**Service bindings complete:**
-- ALL routes go through build worker (wh-build) wildcard `preview.websitehub.co.za/*`
-- Launch and patch workers have NO public routes — called via service binding only
-- Proxied routes: `/internal-golive`, `/go-live-link`, `/activate-free`, `/manage-panel`, `/client-status`, `/submit-revision`, `/cancel-site`, `/go-live`, `/payfast-webhook`
-- Removed conflicting routes from `patch-worker/wrangler.toml` and `launch-worker/wrangler.toml`
-
-**Key files:**
-- `preview.html` → `app:preview` KV → `/preview/{token}` — customer SPA with iframe + Go Live
-- `manage.html` → `app:manage` KV → `/manage/{token}` — post-live management dashboard  
-- `start-v3.html` → `app:start-v2` KV → `/start` — intake form, sends `package:legacy`
-- `admin.html` → `app:admin` KV → `/admin` — operator dashboard with Operations buttons + Purge Cache
-
-**Legacy plan:**
-- Package name: `legacy` — maps to `express` in pkgKey() and packageKey()
-- Price: R399/month
-- Domain: `slug.websitehub.co.za` — free CNAME on websitehub.co.za zone
-- Full 5-page archetype site during pre-launch window (2 weeks)
-- After pre-launch: Express returns, Legacy grandfathered at R399 forever
-- Start-v3 sends `package:'legacy'` to `/intake`
-
-**PayFast:**
-- VERIFIED ✅ — can take real payments
-- buildPayFastLink now supports subscription params (frequency=3 monthly, cycles=0 infinite)
-- notifyUrl fixed to use `preview.websitehub.co.za/payfast-webhook` not workers.dev
-- R399 subscription from day one — no R0 trial
-
-**Admin operations:**
-- 🧹 Purge Cache button in dashboard — calls `/admin/purge-cache` → CF API purge_everything
-- CF_API_TOKEN, CF_ZONE_ID, CF_ACCOUNT_ID now on wh-build for cache purge
-- `/admin/query` allows all SQL (SELECT + UPDATE) — LOCK DOWN BEFORE LAUNCH
-
-**DNSimple:**
-- Token: `dnsimple_u_bRjDRdaHxMHh1l0XCnRRH4TKxWW1tTz0`
-- Account: 175950
-- Contact created: "Website Hub" as registrant
-- .co.za price: $10.90/year, whois_privacy: false
-
-**Classic Touch Salon (mom):**
-- Site live at `preview.websitehub.co.za/classictouchsalon`
-- Domain `classictouchsalon.co.za` registered in DNSimple, A record → 156.38.165.210 (cPanel)
-- Emails created in cPanel: info@, hello@, bookings@classictouchsalon.co.za
-- Manage panel: `preview.websitehub.co.za/manage/6117ae0e-7e16-4a4c-97f7-dec0778e5512`
-
-**Test client:**
-- terayneelectricalmaintenance — package=legacy, retainer=0 in D1
-- manage_token: 3d5a607c-a8af-478b-8a71-af379bf51892
-- Preview SPA: `preview.websitehub.co.za/preview/3d5a607c-a8af-478b-8a71-af379bf51892`
-
-**registerdomain.co.za:**
-- Support ticket open — all API actions return "Action not found"
-- Replaced by DNSimple for Standard/Premium domain registration
-- PHP proxy at `websitehub.co.za/domain-proxy.php` still exists but irrelevant
-
-**Sunday security checklist (MUST DO BEFORE LAUNCH):**
-1. Rotate ADMIN_KEY (ADMIN_KEY_CLAUDEROX exposed in chat)
-2. Rotate GitHub token (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 exposed)
-3. Rotate DNSIMPLE_TOKEN (exposed in chat)
-4. Rotate CF_API_TOKEN (exposed in chat)  
-5. Lock `/admin/query` back to SELECT only
-6. Add auth to `/internal-golive`
-7. Delete CPANEL_PASSWORD from all workers
-8. Rate limiting on admin endpoints
-
----
-
-## Session Update 2026-06-07
-
-### Domain Architecture (FINAL)
-- **`websitehub.co.za`** — the whole platform. One domain. Everything.
-  - `/` → landing page (app:landing)
-  - `/start` → intake form (app:start-v2)
-  - `/preview/{token}` → customer preview SPA (app:preview)
-  - `/manage/{token}` → manage panel (app:manage)
-  - `/admin` → operator dashboard (app:admin)
-  - `/privacy`, `/terms`, `/aup`, `/cancellation`, `/dpa`, `/referral-terms` → legal docs
-  - All API routes fall through to normal routing
-- **`preview.websitehub.co.za`** — client sites ONLY
-  - `slug.websitehub.co.za` → live Express/promo client sites via CNAME
-  - `preview.websitehub.co.za/{slug}` → built site preview
-  - All platform routes also work here (same worker, same routes)
-- **`www.websitehub.co.za`** → same as main domain
-
-### Build Worker Routing (locked)
-- Hostname check fires FIRST in fetch handler
-- `websitehub.co.za` and `www.websitehub.co.za` → serve platform pages from KV
-- API routes (intake, domain-check, build-status etc) fall through to normal routing
-- Unknown paths on main domain → landing page
-
-### Legal Pages (all bootstrapped)
-All served from KV, available on both `websitehub.co.za` and `preview.websitehub.co.za`:
-- `app:landing` → landing-v4.html (footer has real legal links)
-- `app:privacy` → privacy.html (Airtable/Twilio/Anthropic removed)
-- `app:terms` → terms.html
-- `app:referral-terms` → referral-terms.html
-- `app:aup` → aup.html
-- `app:cancellation` → cancellation.html
-- `app:dpa` → dpa.html
-
-### Preview SPA (preview.html → app:preview)
-Major rebuild this session:
-- Build fees: Express R5,000 · Standard R7,000 · Premium R9,000
-- Monthly retainers: R399 · R699 · R999 (invoiced separately — NOT via PayFast)
-- PayFast charges build fee ONLY (one-time)
-- No annual toggle, no promo code input field
-- Plan sheet auto-shows pricing with build fee in description
-- Legal links in confirm screen → websitehub.co.za/terms etc
-- Bottom bar: "{build fee} · then R{retainer}/mo"
-- processPayment sends buildAmount not monthly retainer
-
-### Promo Pipeline (LAUNCH2026)
-- URL: `/preview/{token}?promo=LAUNCH2026`
-- detectPromo() reads ?promo= param on load
-- Premium plan force-selected and locked
-- Express and Standard plan rows locked (opacity .4, pointer-events none)
-- Promo banner slides in above bottom bar: "🎁 Exclusive offer applied — saving R9,000"
-- Plan sheet: Premium shows ~~R9,000~~ → Free, ~~R999~~ → R599/mo
-- Confirm screen: build fee struck through → Free, retainer struck through → R599/mo
-- "You're saving R9,000 today 🎉" callout
-- PayFast: R0 build fee (promo.buildAmount = 0), R599/mo
-- promoCode passed to /go-live-link for storage
-- Month 3: pulse worker to trigger domain upgrade (PENDING — not built yet)
-
-### Promo Code Object
-```js
-const PROMO_CODES = {
-  LAUNCH2026: { plan:'premium', buildAmount:0, monthly:599, buildFee:'Free', label:'🎁 Exclusive offer applied', saving:'R9,000' },
-};
+```sql
+id, business_name, client_name, slug, phone, email
+package          — hub | hub_pro | promo (legacy: express/standard/premium)
+retainer         — 599 | 699 | 999
+promo_code       — LAUNCH2026 | null
+status           — lead | building | preview_ready | live | cancellation_pending | suspended | cancelled
+manage_token     — UUID (client's auth token for manage panel)
+referral_slug    — short slug for referral link
+referred_by      — slug of referring client
+domain           — null (Hub) | slug.co.za (Hub Pro)
+payfast_token    — PayFast subscription token (for cancel API)
+visits           — counter (incremented by /{slug}/ping)
+wa_taps          — counter (incremented by /{slug}/wa)
+go_live_date, next_invoice_date, payment_date
 ```
 
-### Start Intake (start-v3.html → app:start-v2)
-- Business name search → Google Places autocomplete (kept — needed for GBP accuracy)
-- Domain badge in step 1 is now an editable input field
-- Customer can customise their slug directly in the badge
-- Live availability check via `/check-slug?slug={slug}` endpoint
-- Address field: "Where are you based?" with area/suburb autocomplete
-- Slug from badge input is used as slug_requested in intake POST
-- package sent: 'standard' (main pipeline — no legacy)
-- No plan cards in start — plan selection happens in preview SPA
-- Button: "Build my site →" calls submitIntake() directly
+---
 
-### /check-slug Endpoint
-- GET /check-slug?slug={slug}
-- Checks D1 for existing clients with that slug (non-lead status)
-- Returns { slug, available: true/false }
-- Used for real-time availability in the domain badge
+## Brand Stack
 
-### PayFast (VERIFIED — ready for payments)
-- Build fee only — one time payment
-- Retainer invoiced separately via accounting system
-- buildPayFastLink supports subscription params but not used for main pipeline
-- notifyUrl: preview.websitehub.co.za/payfast-webhook (proxied via service binding)
-- /payfast-webhook → service binding → launch worker → handleGoLiveInternal
+| Element | Value |
+|---------|-------|
+| Background | #0e0c09 |
+| Accent | #00f0ff (cyan) |
+| Text | #f0ede8 |
+| Display font | Syne (400/600/700/800) |
+| Body font | DM Sans (300/400/500) |
+| Mono font | DM Mono (400/500) |
+| Google Fonts import | Syne + DM Sans + DM Mono |
 
-### Pending — PayFast End-to-End Test
-- Not yet tested with real payment
-- Need to confirm: payment → webhook → go-live → site live → WhatsApp
-- Test with terayneelectricalmaintenance (package=legacy, retainer=0 in D1)
-- Next session priority
-
-### Pending — registerdomain.co.za API
-- Support ticket open
-- Pierre has documentation to try
-- Should be wired as backup to DNSimple for Standard/Premium domain registration
-
-### Pending — Promo Month-3 Domain Upgrade
-- Promo clients get slug.websitehub.co.za for months 1-2
-- Month 3 (60 days after go-live): automatic upgrade to slug.co.za
-- Pulse worker needs d60 sequence: DNSimple register + CF hostname bind
-- promoCode needs to be stored on client record in D1
-
-### Design System (PINNED — not blocking)
-- Three demo cards built: wh-intake-card-demo.html, wh-intake-v2.html, wh-intake-v3.html, wh-intake-v4.html
-- Direction agreed: warm, Cormorant Garamond, conversational one-field-at-a-time flow, gold accent
-- Light theme preferred over dark
-- No emoji in UI — SVG icons only
-- Not blocking launch — revisit after first paying customer
-
-### Security — Sunday (MUST BEFORE LAUNCH)
-1. Rotate ADMIN_KEY (ADMIN_KEY_CLAUDEROX exposed)
-2. Rotate GitHub token (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 exposed)
-3. Rotate DNSIMPLE_TOKEN (exposed)
-4. Rotate CF_API_TOKEN (exposed)
-5. Lock /admin/query to SELECT only
-6. Add auth to /internal-golive
-7. Rate limiting on admin endpoints
-8. Delete CPANEL_PASSWORD from workers
-
-### URLs (all working)
-- https://websitehub.co.za — landing
-- https://websitehub.co.za/start — intake
-- https://websitehub.co.za/privacy — privacy policy
-- https://websitehub.co.za/terms — terms
-- https://preview.websitehub.co.za/preview/{token} — customer preview SPA
-- https://preview.websitehub.co.za/manage/{token} — manage panel
-- https://preview.websitehub.co.za/admin — operator dashboard
-- https://izingaflora2.websitehub.co.za — live Express client site
+All customer-facing pages use this stack: landing, start, preview, manage, all legal pages.
 
 ---
 
-## Session Update 2026-06-07 (continued)
+## Customer-Facing Pages
 
-### wh-sites Worker
-- New dedicated worker for serving client sites from KV
-- Wildcard route: `*.websitehub.co.za/*`
-- Reads `live:{hostname}` and `live:{hostname}:{page}` from KV
-- System subdomains (evolution, preview, www, mail, etc) pass through via `fetch(request)` — not served from KV
-- Cache: `public, max-age=300, stale-while-revalidate=3600`
-- Added to deploy workflow — 6 workers total now
+| URL | KV Key | File | Description |
+|-----|--------|------|-------------|
+| websitehub.co.za | app:landing | landing-v4.html | Dark glassmorphism landing |
+| /start | app:start-v2 | start-v3.html | Intake form |
+| /preview/{token} | app:preview | preview.html | Preview SPA + payment |
+| /manage/{token} | app:manage | manage.html | Client manage panel |
+| /privacy | app:privacy | privacy.html | POPIA privacy policy |
+| /terms | app:terms | terms.html | Terms of service |
+| /cancellation | app:cancellation | cancellation.html | Cancellation policy |
+| /aup | app:aup | aup.html | Acceptable use policy |
+| /dpa | app:dpa | dpa.html | Data processing agreement |
+| /referral-terms | app:referral-terms | referral-terms.html | Referral programme terms |
 
-### Evolution Fix
-- `evolution.websitehub.co.za` was being caught by wh-sites wildcard
-- Fixed: system subdomain list in wh-sites passes through to origin
-- Evolution now responds 200 correctly
-- Build worker WhatsApps were silently failing — now logging errors to events table
-
-### WhatsApp Debugging
-- `logHealth` writes to KV not D1 — was silently failing when `health_log` table didn't exist
-- Added direct error logging to events table for Evolution failures
-- Build WhatsApps now log `whatsapp_send` error events with Evolution response
-- Root cause of missing WhatsApps: Evolution 404 because wildcard was intercepting evolution.websitehub.co.za
-
-### Start Intake Flow (FIXED)
-- After build completes, redirects to `/preview/{manage_token}` — NOT `/{slug}/`
-- Old flow was redirecting to raw site then showing intake cards
-- New flow: build completes → preview SPA with iframe + Go Live button
-
-### Promo Pipeline (COMPLETE)
-- `promo_code` column added to clients table (migration 0003)
-- OG card preserves `?promo=` param through redirect to `/preview/{token}`
-- Post-build WhatsApp includes promo param if `client.promo_code` is set
-- `/admin/promo-blast` endpoint: scrape + auto-approve + premium build + LAUNCH2026
-- Promo Blast button in admin → Prospecting panel
-- `handleGoLiveLink` reads `promoCode` from request, sets correct recurring amount (R599)
-- PayFast amount check skipped for promo payments (`customStr2` contains `_promo_`)
-
-### Promo Code Object (in preview.html and launch worker)
-```js
-LAUNCH2026: { plan:'premium', buildAmount:0, monthly:599, buildFee:'Free', saving:'R9,000' }
+**Bootstrap command pattern:**
+```bash
+curl -s -X POST "https://preview.websitehub.co.za/admin/bootstrap-{page}" \
+  -H "x-admin-key: ADMIN_KEY_CLAUDEROX" -H "Content-Type: text/html" \
+  --data-binary @"$HOME/Website-hub/{file}.html"
 ```
-
-### Landing Page
-- Pricing section replaced with scrolling carousel
-- Three cards: Express R5,000 build/R399mo · Standard R7,000/R699mo · Premium R9,000/R999mo
-- Standard card highlighted as POPULAR
-- Swipe dots indicator
-- Footer has real legal links
-
-### websitehub.co.za (unified platform)
-- All platform routes served from build worker on main domain
-- Landing, legal, start, preview, manage, admin, intake all work on websitehub.co.za
-- preview.websitehub.co.za still works — same worker, same routes
-- www.websitehub.co.za also works
-
-### Pending
-- PayFast end-to-end test (R0 promo and R5k normal)
-- Sunday security audit (rotate all exposed secrets)
-- Promo month-3 domain upgrade in pulse worker (d60 sequence)
-- Build WhatsApp — verify fixed after Evolution wildcard fix
-- Cookie Crumble — needs rebuild + promo WhatsApp resent
-- places-proxy.websitehub.co.za — may also be affected by wildcard (check)
-- registerdomain.co.za API — support ticket open, Pierre has docs
 
 ---
 
-## Session Update 2026-06-07 (registerdomain.co.za)
+## Legal & Compliance
 
-### registerdomain.co.za API — WIRED ✅
+- **POPIA registered:** Information Regulator of South Africa — Reg. No. 2026-024548
+- **Information Officer:** B.P. du Plessis
+- **Subscription disclosure:** On all pricing surfaces — "monthly recurring debit until cancelled"
+- **Cancellation:** Self-serve in manage panel → PayFast API cancel → site live until billing period end
+- **STOP opt-out:** Reply STOP to any WhatsApp → optout:{phone} KV flag → no further messages
 
-**Status:** Auth working, proxy working, credits confirmed. Domain lookup/register blocked by account permissions — email support to enable.
+---
 
-**Architecture:**
-- Worker → cPanel proxy (`classictouchsalon.co.za/rd-proxy.php`) → registerdomain.co.za
-- Proxy bypasses Cloudflare IP restriction (registerdomain blocks Cloudflare IPs)
-- Proxy secret: `mysecretkey123`
-- Proxy location: `/home/websiteh/classictouchsalon.co.za/rd-proxy.php`
+## Security
 
-**Token formula (CRITICAL — took 4.5 hours to get right):**
-```js
-// PHP: base64_encode(hash_hmac("sha256", apiKey, email:gmdate("y-m-d H")))
-// hash_hmac returns HEX string by default — base64 encode the HEX string, NOT raw bytes
-const hexStr = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
-return btoa(hexStr);
-// 2-digit year: "26-06-07 20" not "2026-06-07 20"
+| Surface | Protection |
+|---------|-----------|
+| /admin/* | x-admin-key: ADMIN_KEY_CLAUDEROX |
+| /manage/* /preview/* | UUID manage_token required |
+| /payfast-webhook | PayFast ITN signature verification |
+| /whatsapp-incoming | Evolution apikey header verification |
+| /intake | IP rate limit 3/hr + phone dedup 24hr + global 50/day |
+| /trigger-rebuild | Valid manage_token required |
+| Public HTML | No secrets, no admin endpoints |
+
+**Cloudflare secrets set on workers (not in wrangler.toml):**
+- wh-build: ANTHROPIC_KEY, EVOLUTION_URL, EVOLUTION_KEY, EVOLUTION_INSTANCE, WH_PHONE, GOOGLE_MAPS_API_KEY, DOMAIN_PROXY_SECRET, UNSPLASH_ACCESS_KEY, ADMIN_KEY
+- wh-launch: CF_API_TOKEN (Email Routing), PAYFAST_MERCHANT_KEY, PAYFAST_PASSPHRASE, PAYFAST_SANDBOX_MERCHANT_ID, PAYFAST_SANDBOX_MERCHANT_KEY, DOMAIN_PROXY_SECRET, ADMIN_KEY
+
+---
+
+## GitHub Actions (Smart Deploy)
+
+Uses `dorny/paths-filter` — only deploys workers whose files changed.
+- build-worker changes → deploys wh-build only (~30s)
+- launch-worker changes → deploys wh-launch only (~30s)
+- HTML file changes → 0 workers deployed (bootstrap manually)
+
+**Important:** HTML files (landing, start, preview, manage, legal) are NOT deployed by GitHub Actions. They must be bootstrapped manually to KV after each change.
+
+---
+
+## Admin Routes (all require x-admin-key)
+
+```
+POST /admin/query               — raw D1 SQL
+POST /admin/migrate             — run migration SQL
+POST /admin/force-live          — force client live (bypasses payment)
+POST /admin/trigger-rebuild     — rebuild a client's site by slug
+POST /admin/delete-kv           — delete KV keys by array
+POST /admin/purge-cache         — clear SPA cache from KV
+POST /admin/bootstrap-{page}    — write HTML to KV
+POST /admin/delete-client       — delete client by slug
+POST /admin/test-whatsapp       — send test WhatsApp
+POST /admin/simulate-payment    — simulate PayFast payment (testing)
+GET  /admin/health              — platform health check
+GET  /admin/clients             — all clients JSON
 ```
 
-**Confirmed working:**
-- `GET /billing/credits` → returns `"271.00"` ✅
-- Auth headers: `username: loc10@live.co.za` + `token: {generated}`
+On wh-launch:
+```
+POST /admin/simulate-payment    — trigger full go-live pipeline for testing
+```
 
-**Blocked by permissions:**
-- `POST /domains/lookup` → "Action is not allowed"
-- `POST /order/domains/register` → likely same issue
-- Email registerdomain support to enable domain API permissions for reseller account
+---
 
-**Registrar priority:**
-1. registerdomain.co.za (primary) — SA reseller, cheaper, no verification emails
-2. DNSimple (fallback) — sends verification emails, not zero-touch, last resort
+## Migrations Applied
 
-**Pending:**
-- Email registerdomain support to enable domain lookup + registration permissions
-- Test `/domains/websitehub.co.za/information` (free, no charge) to confirm domain endpoints
-- Test `/order/domains/register` once permissions enabled (R50 test domain)
-- Remove `test-rd.php` from classictouchsalon.co.za cPanel after testing done
+```
+0001_initial_schema.sql
+0002_config_and_credits.sql
+0003_promo_code_on_clients.sql
+0004_design_fingerprint.sql
+0005_social_handles.sql
+0006_referred_by.sql
+0007_visit_counters.sql         — visits, wa_taps columns
+0008_payfast_token.sql          — payfast_token column
+```
 
-### Other wins this session
-- Cookie Crumble — promo code set, WhatsApp sent with OG card link
-- Pricing carousel live on websitehub.co.za landing page
-- Start flow fixed — redirects to /preview/{token} after build, not raw site
-- Build WhatsApp errors now logged to events table
-- wh-sites passthrough fixed for Evolution and system subdomains
-- classictouchsalon.co.za — A record added to DNSimple, DNS propagating
+**Run migration:**
+```bash
+curl -s -X POST "https://preview.websitehub.co.za/admin/migrate" \
+  -H "x-admin-key: ADMIN_KEY_CLAUDEROX" \
+  -H "Content-Type: application/json" \
+  -d '{"sql":"ALTER TABLE clients ADD COLUMN new_col TEXT"}'
+```
+
+---
+
+## Known Issues / Pending
+
+1. **@lid WhatsApp** — Android users send @lid JID. Evolution contacts API lookup attempted but may not resolve. Debug logging in events table (`event_type = 'incoming_debug'`).
+2. **0008_payfast_token migration** — needs running on D1 if not yet done.
+3. **PayFast sandbox webhooks** — unreliable in sandbox. Live webhooks work correctly. Use `/admin/simulate-payment` for testing.
+4. **DOMAIN_PROXY_SECRET** — should be set as Cloudflare secret on wh-build and wh-launch (value: mysecretkey123). Fallback hardcoded so not breaking.
+5. **Enrichment worker** — deprecated Claude model string on line 369. Fix before use.
+
+---
+
+## Useful Commands
+
+```bash
+# Pull latest (ALWAYS FIRST)
+cd ~/Website-hub && git pull --rebase origin main
+
+# Check deploy status
+curl -s -H "Authorization: token {GITHUB_TOKEN}" \
+  "https://api.github.com/repos/pierreduplessis6912-gif/Website-hub/actions/runs?per_page=1" | \
+  python3 -c "import sys,json; r=json.load(sys.stdin)['workflow_runs'][0]; print(r['conclusion'] or 'running', r['head_commit']['message'][:50])"
+
+# Purge cache
+curl -s -X POST "https://preview.websitehub.co.za/admin/purge-cache" \
+  -H "x-admin-key: ADMIN_KEY_CLAUDEROX"
+
+# Check D1 clients
+curl -s -X POST "https://preview.websitehub.co.za/admin/query" \
+  -H "x-admin-key: ADMIN_KEY_CLAUDEROX" \
+  -H "Content-Type: application/json" \
+  -d '{"sql":"SELECT business_name, slug, status, package FROM clients ORDER BY created_at DESC LIMIT 10"}'
+
+# Simulate payment (test go-live pipeline)
+curl -s -X POST "https://wh-launch.pierreduplessis6912.workers.dev/admin/simulate-payment" \
+  -H "x-admin-key: ADMIN_KEY_CLAUDEROX" \
+  -H "Content-Type: application/json" \
+  -d '{"slug":"yourslug","amount":599}'
+
+# Test WhatsApp
+curl -s -X POST "https://preview.websitehub.co.za/admin/test-whatsapp" \
+  -H "x-admin-key: ADMIN_KEY_CLAUDEROX" \
+  -H "Content-Type: application/json" \
+  -d '{"to":"27790128508","message":"Test"}'
+```
