@@ -935,7 +935,7 @@ async function handleGoLiveInternal(clientId, client, env) {
   const manageUrl = `https://preview.websitehub.co.za/manage/${client.manage_token}`;
 
   // ── 4. Cloudflare hostname binding (Standard/Premium only) ──
-  if (!isExpress) {
+  if (!isSubdomain) {
     bindCustomHostname(domain, env).catch(e => {
       console.warn('CF hostname binding failed:', e?.message || e);
       logActivity(env, 'go_live_cf_hostname_failed', { clientId, domain, error: e?.message });
@@ -948,7 +948,7 @@ async function handleGoLiveInternal(clientId, client, env) {
 
   // ── 5. Domain setup ─────────────────────────────────────────
   if (!isTestMode(env)) {
-    if (!isExpress) {
+    if (!isSubdomain) {
       // Standard/Premium — register .co.za via DNSimple
       registerDomainViaProxy(slug, env).catch(e => {
         console.warn('Domain registration failed (non-fatal):', e?.message || e);
@@ -963,7 +963,7 @@ async function handleGoLiveInternal(clientId, client, env) {
   } else {
     await env.SITES.put(
       `test_log:domain:${slug}:${Date.now()}`,
-      JSON.stringify({ action: isExpress ? 'wildcard' : 'register', slug, domain, ts: new Date().toISOString() }),
+      JSON.stringify({ action: isSubdomain ? 'wildcard' : 'register', slug, domain, ts: new Date().toISOString() }),
       { expirationTtl: 86400 * 30 },
     );
   }
