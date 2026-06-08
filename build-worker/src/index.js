@@ -184,15 +184,28 @@ export default {
         if (path.startsWith('/r/')) {
           // Referral link — set cookie and redirect to /start
           const referralSlug = path.replace('/r/', '').split('/')[0];
-          if (referralSlug) {
-            return new Response(null, {
-              status: 302,
-              headers: {
-                'Location': `https://websitehub.co.za/start`,
-                'Set-Cookie': `ref=${referralSlug}; Path=/; Max-Age=2592000; SameSite=Lax`,
-              },
-            });
-          }
+        if (referralSlug) {
+          // Check if referrer is a promo client — pass promo through
+          const referrer = await env.DB.prepare(
+            `SELECT promo_code FROM clients WHERE slug=? AND status IN ('live','preview_ready') LIMIT 1`
+          ).bind(referralSlug).first().catch(() => null);
+
+          const promoCode = referrer?.promo_code || null;
+          const destination = promoCode
+            ? `https://websitehub.co.za/start?promo=${encodeURIComponent(promoCode)}`
+            : `https://websitehub.co.za/start`;
+
+          return new Response(null, {
+            status: 302,
+            headers: {
+              'Location': destination,
+              'Set-Cookie': [
+                `ref=${referralSlug}; Path=/; Max-Age=2592000; SameSite=Lax`,
+                promoCode ? `promo=${promoCode}; Path=/; Max-Age=2592000; SameSite=Lax` : null,
+              ].filter(Boolean).join(', '),
+            },
+          });
+        }
         }
         if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
         if (path.startsWith('/preview/')) return servePwa(env, 'app:preview');
