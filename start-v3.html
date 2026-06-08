@@ -397,7 +397,7 @@ body::after{
 <script>
 'use strict';
 
-var S = { biz:'', slug:'', domain:'', confirmed:false, token:null, placeId:null, address:null, area:null };
+var S = { biz:'', slug:'', domain:'', confirmed:false, token:null, placeId:null, address:null, area:null, plan: new URLSearchParams(window.location.search).get('plan') || 'hub' };
 
 const ALL_INDUSTRIES = [
   'Plumber','Electrician','Builder','Painter','Roofer','Tiler / Paver','Welder','Carpenter',
