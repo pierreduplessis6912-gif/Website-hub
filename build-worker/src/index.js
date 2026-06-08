@@ -278,7 +278,7 @@ export default {
       if (path === '/config' && method === 'GET') return handleConfig(env);
 
       // ── INTAKE ───────────────────────────────────────────────
-      if (path === '/intake' && method === 'POST') return handleIntake(request, env);
+      if (path === '/whatsapp-incoming' && method === 'POST') return handleWhatsAppIncoming(request, env);
 
       // ── BUILD STATUS (polling) ───────────────────────────────
       if (path === '/build-status'  && method === 'GET') return handleBuildStatus(url, env);
@@ -1249,6 +1249,48 @@ async function handleConfig(env) {
 }
 
 // ── INTAKE ────────────────────────────────────────────────────
+
+async function handleWhatsAppIncoming(request, env) {
+  try {
+    const body = await request.json().catch(() => null);
+    if (!body) return new Response('OK', { status: 200 });
+
+    // Only handle incoming messages — not our own sends
+    const msg = body?.data;
+    if (!msg || msg?.key?.fromMe) return new Response('OK', { status: 200 });
+
+    // Extract message content
+    const text = msg?.message?.conversation
+      || msg?.message?.extendedTextMessage?.text
+      || msg?.message?.imageMessage?.caption
+      || '[media message]';
+
+    // Extract sender phone — format is 27821234567@s.whatsapp.net
+    const rawJid = msg?.key?.remoteJid || '';
+    const phone = rawJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+    if (!phone) return new Response('OK', { status: 200 });
+
+    // Look up client by phone
+    const client = await env.DB.prepare(
+      `SELECT business_name, slug FROM clients WHERE phone=? OR phone=? LIMIT 1`
+    ).bind(phone, '+' + phone).first().catch(() => null);
+
+    const businessLabel = client
+      ? `*${client.business_name}*`
+      : `Unknown (${phone})`;
+
+    // Forward to owner
+    await sendWhatsApp(env.WH_PHONE,
+      `📩 ${businessLabel}:\n${text}\n\n_Reply directly to: wa.me/${phone}_`,
+      env,
+      { skipTestRedirect: true }
+    ).catch(() => {});
+
+  } catch(e) {
+    console.warn('WhatsApp incoming handler error:', e?.message);
+  }
+  return new Response('OK', { status: 200 });
+}
 
 async function handleIntake(request, env) {
   let body;
