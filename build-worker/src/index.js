@@ -1264,6 +1264,13 @@ async function handleConfig(env) {
 // ── INTAKE ────────────────────────────────────────────────────
 
 async function handleWhatsAppIncoming(request, env) {
+  // Verify it's from our Evolution instance
+  const secret = request.headers.get('apikey') || request.headers.get('x-api-key') || '';
+  const expectedSecret = env.EVOLUTION_KEY || env.DOMAIN_PROXY_SECRET || 'mysecretkey123';
+  if (secret !== expectedSecret) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   try {
     const body = await request.json().catch(() => null);
     if (!body) return new Response('OK', { status: 200 });
@@ -1370,6 +1377,15 @@ async function handleIntake(request, env) {
         }
         await env.SITES.put(ipKey, String(ipCount + 1), { expirationTtl: 3600 });
       }
+
+      // Global daily cap — max 50 builds per day
+      const today = new Date().toISOString().split('T')[0];
+      const globalKey = `rate:intake:global:${today}`;
+      const globalCount = parseInt(await env.SITES.get(globalKey) || '0');
+      if (globalCount >= 50) {
+        return jsonResponse({ error: 'Daily build limit reached — please try again tomorrow.' }, 429);
+      }
+      await env.SITES.put(globalKey, String(globalCount + 1), { expirationTtl: 86400 });
 
       // Phone deduplication — one build per phone per 24 hours
       const existing = await env.DB.prepare(
