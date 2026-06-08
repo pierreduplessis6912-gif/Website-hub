@@ -1458,12 +1458,20 @@ async function handleIntake(request, env) {
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
 
     // GBP lookup — resolve by place_id, fall back to name+area if geocode.
-    // Awaited before pre-build fires so data is in D1.
-    if (place_id || business_name) {
+    // If gbp_url passed (short URL), try to extract place_id from it first
+    let resolvedPlaceId = place_id;
+    if (!resolvedPlaceId && body.gbp_url) {
       try {
-        const data = await resolveGbp(env, place_id, business_name, area);
+        const gbpFromUrl = await fetchGbpData(body.gbp_url, env);
+        if (gbpFromUrl?.id) resolvedPlaceId = gbpFromUrl.id;
+      } catch(e) { console.warn('Short URL GBP resolve failed:', e.message); }
+    }
+
+    if (resolvedPlaceId || business_name) {
+      try {
+        const data = await resolveGbp(env, resolvedPlaceId, business_name, area);
         await logEvent(env, id, 'build', 'gbp_diag', 'success', { metadata: {
-          place_id,
+          place_id: resolvedPlaceId,
           resolved: !!data,
           name_found: data?.displayName?.text || 'NONE',
           reviews: data?.userRatingCount || 0,
@@ -1473,7 +1481,7 @@ async function handleIntake(request, env) {
           const gbp = shapeGbp(data, business_name);
           await env.DB.prepare(
             `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
-          ).bind(JSON.stringify(gbp), gbp.placeId || place_id, gbp.address?.split(',')[1]?.trim() || area || '', id).run()
+          ).bind(JSON.stringify(gbp), gbp.placeId || resolvedPlaceId, gbp.address?.split(',')[1]?.trim() || area || '', id).run()
             .then(() => logEvent(env, id, 'build', 'gbp_write', 'success', { metadata: { wrote: gbp.name, reviews: gbp.reviewCount } }))
             .catch(e => logEvent(env, id, 'build', 'gbp_write', 'error', { error: e.message }));
         }
@@ -1793,8 +1801,9 @@ async function handleBuildStatus(url, env) {
   return jsonResponse({
     status:     client.status,
     slug:       client.slug,
-    package:    client.package || 'standard',
+    package:    client.package || 'hub',
     retainer:   client.retainer || 699,
+    promo_code: client.promo_code || null,
     previewUrl: client.preview_url || null,
     domain:     client.domain || null,
   });
