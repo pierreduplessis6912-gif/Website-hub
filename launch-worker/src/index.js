@@ -439,7 +439,7 @@ async function handleTestRd(env) {
   const apiKey = env.REGISTERDOMAIN_API_KEY;
   const email  = env.REGISTERDOMAIN_EMAIL || 'loc10@live.co.za';
   const PROXY  = 'https://classictouchsalon.co.za/rd-proxy.php';
-  const SECRET = 'mysecretkey123';
+  const SECRET = env.DOMAIN_PROXY_SECRET || 'mysecretkey123';
 
   if (!apiKey) return jsonResponse({ error: 'REGISTERDOMAIN_API_KEY not set' }, 400);
 
@@ -1527,7 +1527,7 @@ async function generateRdToken(apiKey, email) {
 
 async function registerViaRegisterDomain(domain, apiKey, email, env) {
   const PROXY  = 'https://classictouchsalon.co.za/rd-proxy.php';
-  const SECRET = 'mysecretkey123';
+  const SECRET = env.DOMAIN_PROXY_SECRET || 'mysecretkey123';
   const token  = await generateRdToken(apiKey, email);
 
   const rdHeaders = [
