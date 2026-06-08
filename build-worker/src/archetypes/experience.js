@@ -107,6 +107,10 @@ html{scroll-behavior:smooth}
 body{font-family:var(--font-body);background:var(--warm-white);color:var(--dark);overflow-x:hidden}
 
 /* NAV */
+
+.map-section{padding:0}
+.map-embed{width:100%;height:220px;border:none;display:block;filter:grayscale(20%)}
+
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;transition:background .4s,backdrop-filter .4s}
 .nav.scrolled{background:rgba(14,12,9,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .nav-brand{font-family:var(--font-display);font-size:17px;font-weight:400;color:#fff;letter-spacing:.5px;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55vw}
@@ -448,6 +452,13 @@ ${galleryPhotos.length ? `
   </div>
 </section>
 
+
+${address ? `
+<section class="map-section" id="map">
+  <iframe class="map-embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+    src="https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed"
+    title="Find us"></iframe>
+</section>` : ''}
 <footer class="footer">
   <div class="footer-brand">${esc(t.short_name || client.business_name)}</div>
   <div class="footer-domain">${esc(domain)}</div>
