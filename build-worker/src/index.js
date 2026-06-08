@@ -394,10 +394,10 @@ export default {
   async queue(batch, env) {
     for (const msg of batch.messages) {
       try {
-        const { type, clientId, cardPayload, isOutbound } = msg.body;
+        const { type, clientId, cardPayload, isOutbound, silent } = msg.body;
         if (type === 'pre_build')       await triggerPreBuild(clientId, env, isOutbound);
         if (type === 'substance_build') await triggerSubstanceBuild(clientId, cardPayload, env);
-        if (type === 'full_build')      await triggerFullBuild(clientId, env, isOutbound);
+        if (type === 'full_build')      await triggerFullBuild(clientId, env, isOutbound, silent);
         msg.ack();
       } catch (err) {
         console.error('Queue message failed:', err);
@@ -808,13 +808,13 @@ async function handleAdminRegisterDomain(request, env) {
 }
 
 async function handleAdminTriggerRebuild(request, env) {
-  const { clientId, slug } = await request.json().catch(() => ({}));
+  const { clientId, slug, silent } = await request.json().catch(() => ({}));
   const client = clientId
     ? await env.DB.prepare(`SELECT * FROM clients WHERE id=? LIMIT 1`).bind(clientId).first()
     : await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
   if (!client) return jsonResponse({ error: 'Client not found' }, 404);
   await env.DB.prepare(`UPDATE clients SET status='preview_ready', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(client.id).run();
-  await env.BUILD_QUEUE.send({ type: 'full_build', clientId: client.id, isOutbound: false });
+  await env.BUILD_QUEUE.send({ type: 'full_build', clientId: client.id, isOutbound: false, silent: !!silent });
   return jsonResponse({ success: true, clientId: client.id, slug: client.slug });
 }
 
@@ -2013,7 +2013,7 @@ async function serveBuiltSite(url, path, request, env) {
 // Pass 5: Full content generation
 // Pass 6: Quality gate (non-fatal)
 
-async function triggerFullBuild(clientId, env, isOutbound = false) {
+async function triggerFullBuild(clientId, env, isOutbound = false, silent = false) {
   const client = await getClientById(clientId, env);
   if (!client) throw new Error(`Client not found: ${clientId}`);
 
@@ -2318,52 +2318,49 @@ async function triggerFullBuild(clientId, env, isOutbound = false) {
   // ── NOTIFY ──────────────────────────────────────────────────
   if (!isTestMode(env)) {
     await sendWhatsApp(env.WH_PHONE,
-      `✅ FULL BUILD: ${client.business_name}\n${fingerprint}\n${buildMs}ms`,
+      `✅ FULL BUILD: ${client.business_name}\n${fingerprint}\n${buildMs}ms${silent ? ' [SILENT]' : ''}`,
       env, { skipTestRedirect: true }
     ).catch(e => logEvent(env, clientId, 'build', 'whatsapp_owner_failed', 'error', { error: e?.message || String(e) }));
 
-    const promoCode  = client.promo_code || null;
-    const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
+    if (!silent) {
+      const promoCode  = client.promo_code || null;
+      const promoParam = promoCode ? `?promo=${encodeURIComponent(promoCode)}` : '';
+      const isPromo = !!promoCode;
 
-    // All clients get OG card
-    // Inbound: client filled in form — they know us
-    // Outbound promo: cold contact — needs warm intro with value prop
-    const isPromo = !!promoCode;
+      let clientMsg;
+      if (isOutbound && isPromo) {
+        clientMsg =
+          `👋 Hi *${client.business_name}*!\n\n` +
+          `Website Hub is on a mission to make professional websites accessible to every South African small business.\n\n` +
+          `We built one for you — have a look:\n` +
+          `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
+          `Normally R7,000 build fee + R699/month.\n` +
+          `Today only: *no build fee* · R599/month · Cancel anytime.\n\n` +
+          `— Website Hub`;
+      } else if (isOutbound && !isPromo) {
+        clientMsg =
+          `👋 Hi *${client.business_name}*!\n\n` +
+          `Website Hub believes every South African business deserves a professional online presence.\n\n` +
+          `We built one for you — have a look:\n` +
+          `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
+          `R7,000 build fee · R699/month · Cancel anytime.\n\n` +
+          `— Website Hub`;
+      } else {
+        clientMsg =
+          `👋 *${client.business_name}* — your site is ready!\n\n` +
+          `Have a look:\n` +
+          `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
+          `— Website Hub`;
+      }
 
-    let clientMsg;
-    if (isOutbound && isPromo) {
-      clientMsg =
-        `👋 Hi *${client.business_name}*!\n\n` +
-        `Website Hub is on a mission to make professional websites accessible to every South African small business.\n\n` +
-        `We built one for you — have a look:\n` +
-        `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
-        `Normally R7,000 build fee + R699/month.\n` +
-        `Today only: *no build fee* · R599/month · Cancel anytime.\n\n` +
-        `— Website Hub`;
-    } else if (isOutbound && !isPromo) {
-      clientMsg =
-        `👋 Hi *${client.business_name}*!\n\n` +
-        `Website Hub believes every South African business deserves a professional online presence.\n\n` +
-        `We built one for you — have a look:\n` +
-        `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
-        `R7,000 build fee · R699/month · Cancel anytime.\n\n` +
-        `— Website Hub`;
-    } else {
-      // Inbound — they know us
-      clientMsg =
-        `👋 *${client.business_name}* — your site is ready!\n\n` +
-        `Have a look:\n` +
-        `👉 https://${PREVIEW_DOMAIN}/${slug}/og${promoParam}\n\n` +
-        `— Website Hub`;
-    }
-
-    await sendWhatsApp(client.phone, clientMsg, env)
+      await sendWhatsApp(client.phone, clientMsg, env)
       .catch(e => logEvent(env, clientId, 'build', 'whatsapp_client_failed', 'error', { error: e?.message || String(e) }));
 
-    // Store OG card send time for 24hr nudge (promo only)
-    if (isOutbound && isPromo) {
-      await env.SITES.put(`promo_nudge:${clientId}`, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), { expirationTtl: 60 * 60 * 48 });
-    }
+      // Store OG card send time for 24hr nudge (promo only)
+      if (isOutbound && isPromo) {
+        await env.SITES.put(`promo_nudge:${clientId}`, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), { expirationTtl: 60 * 60 * 48 });
+      }
+    } // end !silent
   }
 
   return slug;
