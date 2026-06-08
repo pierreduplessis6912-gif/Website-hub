@@ -104,12 +104,15 @@ export default {
       const { slug, amount } = await request.json().catch(() => ({}));
       const client = await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
       if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
-      // Update to live directly then fire go-live internal
       const today = new Date().toISOString().split('T')[0];
       const nextMonth = new Date(Date.now() + 30 * 864e5).toISOString().split('T')[0];
       await env.DB.prepare(
         `UPDATE clients SET status='live', go_live_date=?, next_invoice_date=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
       ).bind(today, nextMonth, client.id).run();
+      // Sale notification
+      const saleMsg = `🎉 I GOT A SALE\n\n*${client.business_name}*\nR${amount || client.retainer || 599}\nMonthly — ${client.package || 'hub'}`;
+      await sendWhatsApp(env.WH_PHONE, saleMsg, env, { skipTestRedirect: true }).catch(() => {});
+      await sendWhatsApp('27798916569', saleMsg, env, { skipTestRedirect: true }).catch(() => {});
       ctx.waitUntil(handleGoLiveInternal(client.id, client, env).catch(e => {
         console.error('simulate-payment go-live failed:', e?.message);
       }));
