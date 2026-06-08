@@ -552,16 +552,12 @@ body::after{
 .footer-copy{font-size:11px;color:rgba(255,255,255,.15)}
 
 /* ── FLOATING WA ──────────────────────────── */
-.wa-float{
-  position:fixed;bottom:24px;right:24px;z-index:90;
-  background:var(--primary);color:#fff;
-  width:56px;height:56px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:24px;text-decoration:none;
-  box-shadow:0 4px 20px rgba(212,114,42,.4);
-  transition:transform .2s;
-}
-.wa-float:hover{transform:scale(1.08)}
+/* Dual FAB — WhatsApp + Call */
+.fab-stack{position:fixed;bottom:24px;right:20px;display:flex;flex-direction:column;gap:10px;z-index:999}
+.fab-btn{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.25);text-decoration:none;font-size:22px;transition:transform .2s,box-shadow .2s}
+.fab-btn:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.fab-wa{background:#25D366}
+.fab-call{background:#007AFF}
 
 /* ── ANIMATIONS ──────────────────────────────── */
 @keyframes heroReveal{from{transform:scale(1.06)}to{transform:scale(1)}}
@@ -745,7 +741,7 @@ ${t.testimonial_quote && !isExp ? `
   <div class="footer-copy">© ${new Date().getFullYear()} ${esc(client.business_name)} · ${esc(domain)}</div>
 </footer>
 
-<a href="${esc(waLink)}" class="wa-float" aria-label="WhatsApp">💬</a>
+${esc(phone) ? `<div class="fab-stack"><a href="tel:${esc(phone)}" class="fab-btn fab-call" aria-label="Call">📞</a><a href="${esc(waLink)}" class="fab-btn fab-wa" aria-label="WhatsApp">💬</a></div>` : `<a href="${esc(waLink)}" class="fab-btn fab-wa" style="position:fixed;bottom:24px;right:20px;z-index:999" aria-label="WhatsApp">💬</a>`}
 
 <script>
 const nav=document.getElementById('nav');
