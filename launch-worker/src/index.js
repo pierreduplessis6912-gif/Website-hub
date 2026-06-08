@@ -237,7 +237,7 @@ async function handleManagePanel(request, url, env) {
 
   // Email
   const emailActive = caps.email && client.email_provisioned;
-  const emailAddress = emailActive ? `hello@${client.domain || slug + '.co.za'}` : null;
+  const emailAddress = emailActive ? `hello@${client.domain || (packageKey(client.package || pkg) === 'hub_pro' || packageKey(client.package || pkg) === 'premium' ? slug + '.co.za' : slug + '.websitehub.co.za')}` : null;
 
   const domain = client.domain || `${slug}.websitehub.co.za`;
   const isSubdomain = domain.endsWith('.websitehub.co.za');
@@ -544,7 +544,7 @@ async function handleGoLiveLink(request, env, ctx) {
   const recurringAmount = activePromo ? activePromo.monthly : (amount || client.retainer || 399);
 
   const isAnnual = billing === 'annual';
-  const domain = client.domain || `${client.slug}.co.za`;
+  const domain = client.domain || (packageKey(client.package) === 'hub_pro' || packageKey(client.package) === 'premium' ? `${client.slug}.co.za` : `${client.slug}.websitehub.co.za`);
 
   const notifyUrl = `https://${PREVIEW_DOMAIN}/payfast-webhook`;
 
@@ -1254,7 +1254,7 @@ async function handleSuspendSite(request, env) {
   const client = await getClientById(id, env);
   if (!client) return jsonResponse({ error: 'Client not found' }, 404);
 
-  const domain = (client.domain || `${client.slug}.co.za`).replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+  const domain = (client.domain || (packageKey(client.package) === 'hub_pro' || packageKey(client.package) === 'premium' ? `${client.slug}.co.za` : `${client.slug}.websitehub.co.za`)).replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
   const tier   = getPricingTier(client.package || 'standard');
   const payLink = buildPayFastLink(
     tier.retainer, 'Website Hub Subscription Reinstatement', id, env,
@@ -1297,7 +1297,7 @@ async function handleReinstateSite(request, env) {
 }
 
 async function reinstateInternal(clientId, client, env) {
-  const domain = (client.domain || `${client.slug}.co.za`).replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+  const domain = (client.domain || (packageKey(client.package) === 'hub_pro' || packageKey(client.package) === 'premium' ? `${client.slug}.co.za` : `${client.slug}.websitehub.co.za`)).replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
 
   await env.SITES.delete(`suspended:${domain}`);
   await updateClient(clientId, { status: 'live', next_invoice_date: nextMonthDate() }, env);
