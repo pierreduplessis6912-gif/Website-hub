@@ -578,9 +578,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <div class="s-row hl"><span>Pay today</span><strong id="cPrice">R7,000</strong></div>
   </div>
   <div id="promoSaving" style="font-size:13px;color:var(--green);font-weight:700;text-align:center;margin:4px 0;display:none"></div>
-  <div style="font-size:12px;color:var(--muted);text-align:center;margin:8px 0 16px">Monthly retainer invoiced separately · Cancel anytime</div>
-  <button id="payBtn" onclick="processPayment()">Pay — Go Live →</button>
-  <div class="confirm-legal" id="confirmLegal">Secure payment via PayFast · No contracts</div>
+  <div style="font-size:12px;color:var(--muted);text-align:center;margin:8px 0 4px">Monthly recurring subscription · Cancel anytime from your dashboard</div>
+  <div style="font-size:12px;color:var(--muted);text-align:center;margin:0 0 16px">By tapping Subscribe you authorise a monthly debit of <strong id="cSubAmount">R699</strong> until cancelled.</div>
+  <button id="payBtn" onclick="processPayment()">Subscribe &amp; Go Live →</button>
+  <div class="confirm-legal" id="confirmLegal">Secure payment via PayFast · No contracts · Cancel anytime</div>
   <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--muted)">
     <a href="https://websitehub.co.za/terms" target="_blank" style="color:inherit">Terms</a> ·
     <a href="https://websitehub.co.za/privacy" target="_blank" style="color:inherit">Privacy</a> ·
@@ -897,23 +898,23 @@ function setBilling(mode) {
 }
 
 function updateConfirmPricing() {
-  const p = PLANS[S.selectedPlan] || PLANS.standard;
+  const p = PLANS[S.selectedPlan] || PLANS.hub;
   const promo = S.promo;
 
   if (promo) {
-    // Promo mode — show savings
     el('cBuildFee').innerHTML = `<s style="color:var(--muted);font-size:12px">${p.buildFee}</s> <span style="color:var(--green);font-weight:700">Free</span>`;
     el('cRetainer').innerHTML = `<s style="color:var(--muted);font-size:12px">R${p.monthly}/mo</s> <span style="color:var(--cyan);font-weight:700">R${promo.monthly}/mo</span>`;
     el('cPrice').textContent = `R${promo.monthly}/mo`;
-    el('payBtn').textContent = `Activate — R${promo.monthly}/mo →`;
-    // Add saving callout
+    if (el('cSubAmount')) el('cSubAmount').textContent = `R${promo.monthly}`;
+    el('payBtn').textContent = `Subscribe & Go Live — R${promo.monthly}/mo →`;
     const saving = el('promoSaving');
     if (saving) saving.textContent = `You're saving ${promo.saving} today 🎉`;
   } else {
     el('cBuildFee').textContent = p.buildFee;
     el('cRetainer').textContent = `R${p.monthly}/mo`;
     el('cPrice').textContent = p.buildFee;
-    el('payBtn').textContent = `Pay ${p.buildFee} — Go Live →`;
+    if (el('cSubAmount')) el('cSubAmount').textContent = `R${p.monthly}`;
+    el('payBtn').textContent = `Pay ${p.buildFee} + Subscribe R${p.monthly}/mo →`;
   }
 }
 
