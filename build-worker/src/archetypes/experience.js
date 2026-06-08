@@ -460,7 +460,7 @@ ${galleryPhotos.length ? `
   <div class="footer-copy">© ${new Date().getFullYear()} ${esc(client.business_name)} · ${esc(domain)}</div>
 </footer>
 
-<a href="${esc(waLink)}" class="wa-float" aria-label="WhatsApp">💬</a>
+${esc(phone) ? `<div class="fab-stack"><a href="tel:${esc(phone)}" class="fab-btn fab-call" aria-label="Call">📞</a><a href="${esc(waLink)}" class="fab-btn fab-wa" aria-label="WhatsApp">💬</a></div>` : `<a href="${esc(waLink)}" class="fab-btn fab-wa" style="position:fixed;bottom:24px;right:20px;z-index:999" aria-label="WhatsApp">💬</a>`}
 
 <script>
 const nav=document.getElementById('nav');
