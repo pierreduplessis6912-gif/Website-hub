@@ -1265,23 +1265,31 @@ async function handleWhatsAppIncoming(request, env) {
       || msg?.message?.imageMessage?.caption
       || '[media message]';
 
-    // Extract sender phone — format is 27821234567@s.whatsapp.net
+    // Extract sender phone — handle @s.whatsapp.net, @c.us, @lid formats
     const rawJid = msg?.key?.remoteJid || '';
-    const phone = rawJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
-    if (!phone) return new Response('OK', { status: 200 });
+    // @lid is a WhatsApp internal ID — use pushName or participant instead
+    let phone = rawJid.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '').replace(/@lid$/, '');
+    // Also try participant field for group/lid messages
+    if (rawJid.endsWith('@lid') && msg?.key?.participant) {
+      phone = msg.key.participant.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '');
+    }
+    // Clean — digits only, remove leading country code duplication
+    phone = phone.replace(/\D/g, '');
+    if (!phone || phone.length < 7) return new Response('OK', { status: 200 });
 
     // Look up client by phone
     const client = await env.DB.prepare(
       `SELECT business_name, slug FROM clients WHERE phone=? OR phone=? LIMIT 1`
     ).bind(phone, '+' + phone).first().catch(() => null);
 
+    const pushName = msg?.pushName || '';
     const businessLabel = client
       ? `*${client.business_name}*`
-      : `Unknown (${phone})`;
+      : pushName ? `*${pushName}*` : `Unknown (${phone})`;
 
     // Forward to owner
     await sendWhatsApp(env.WH_PHONE,
-      `📩 ${businessLabel}:\n${text}\n\n_Reply directly to: wa.me/${phone}_`,
+      `📩 ${businessLabel}:\n${text}\n\n_Reply: wa.me/${phone}_`,
       env,
       { skipTestRedirect: true }
     ).catch(() => {});
