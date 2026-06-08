@@ -1044,7 +1044,7 @@ function updateMasterUI(){
   lbl.className='sob-label '+(P.masterOn?'on':'off');
   lbl.textContent=P.masterOn?'OUTBOUND LIVE':'OUTBOUND OFF';
   knob.className='sob-knob '+(P.masterOn?'on':'off');
-  sub.textContent=P.masterOn?'Cron fires 11pm SAST':'Tap to enable';
+  sub.textContent=P.masterOn?'Blasts will fire':'Tap to enable';
 }
 
 // ── PROSPECTING ────────────────────────────────────────────────
@@ -1101,6 +1101,7 @@ function buildIndustrySelect(){ const s=el('scrapeIndustry'); INDUSTRIES.forEach
 async function toggleAllInd(on){ INDUSTRIES.forEach(i=>P.industries[i.toLowerCase()]=on); document.querySelectorAll('[data-industry]').forEach(c=>c.classList.toggle('active',on)); await saveConfig('target_industries',on?INDUSTRIES.map(i=>i.toLowerCase()):[]); toast(on?'All industries on':'All industries off'); }
 
 async function runPromoBlast(){
+  if(!P.masterOn){toast('⛔ Outbound is OFF — flip the toggle first','err');return;}
   const industry=el('scrapeIndustry').value, province=el('scrapeProvince').value, area=el('scrapeArea').value.trim();
   if(!industry||!province){toast('Select industry and province','err');return;}
   if(!confirm(`🎁 Promo Blast — LAUNCH2026\n\nThis will:\n1. Scrape ${P.sLimit} businesses\n2. Auto-approve all\n3. Build full premium sites\n4. Send promo WhatsApp with OG card\n\nReady?`))return;
