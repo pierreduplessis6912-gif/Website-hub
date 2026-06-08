@@ -339,9 +339,9 @@ body::after{
       </div>
 
       <!-- Terms acceptance -->
-      <div style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;margin-bottom:12px" onclick="document.getElementById('termsCheck').click()">
-        <input type="checkbox" id="termsCheck" onclick="event.stopPropagation()" style="width:20px;height:20px;flex-shrink:0;margin-top:1px;accent-color:#00f0ff;cursor:pointer">
-        <span style="font-size:13px;color:rgba(240,237,232,.7);line-height:1.5">
+      <div id="termsBox" style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;margin-bottom:12px">
+        <input type="checkbox" id="termsCheck" style="width:20px;height:20px;flex-shrink:0;margin-top:1px;accent-color:#00f0ff;cursor:pointer">
+        <span style="font-size:13px;color:rgba(240,237,232,.7);line-height:1.5;cursor:pointer" onclick="document.getElementById('termsCheck').click()">
           I agree to the <a href="/terms" target="_blank" onclick="event.stopPropagation()" style="color:#00f0ff;text-decoration:none">Terms of Service</a>,
           <a href="/privacy" target="_blank" onclick="event.stopPropagation()" style="color:#00f0ff;text-decoration:none">Privacy Policy</a>, and
           <a href="/cancellation" target="_blank" onclick="event.stopPropagation()" style="color:#00f0ff;text-decoration:none">Cancellation Policy</a>.
@@ -706,13 +706,8 @@ async function submitIntake() {
 
   // Terms must be accepted
   if (!document.getElementById('termsCheck').checked) {
-    var termsBox = document.getElementById('termsCheck').closest('div');
-    termsBox.style.borderColor = 'rgba(255,59,68,.5)';
-    termsBox.style.background = 'rgba(255,59,68,.05)';
-    setTimeout(() => {
-      termsBox.style.borderColor = 'rgba(255,255,255,.08)';
-      termsBox.style.background = 'rgba(255,255,255,.03)';
-    }, 2000);
+    document.getElementById('termsBox').style.borderColor = 'var(--red)';
+    setTimeout(() => { document.getElementById('termsBox').style.borderColor = 'rgba(255,255,255,.08)'; }, 2000);
     return;
   }
 
