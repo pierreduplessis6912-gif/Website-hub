@@ -715,6 +715,12 @@ async function bootstrap() {
       const domainSuffix = (d.package === 'hub_pro' || d.package === 'premium') ? '.co.za' : '.websitehub.co.za';
       if (d.slug) el('buildSlug').textContent = d.slug + domainSuffix;
 
+      // Apply promo — from URL param first, then from client record
+      if (!S.promo && d.promo_code && PROMO_CODES[d.promo_code.toUpperCase()]) {
+        S.promoCode = d.promo_code.toUpperCase();
+        S.promo = PROMO_CODES[S.promoCode];
+      }
+
       // If promo detected — force premium plan and lock others
       if (S.promo) {
         selectPlanSilent('hub');
