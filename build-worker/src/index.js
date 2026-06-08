@@ -76,7 +76,11 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--fg);overflow-
 .testimonial-quote strong{font-style:normal;font-weight:700}
 .testimonial-attr{font-size:13px;color:var(--muted-fg)}
 .cta-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:56px;border-radius:14px;background:#25D366;color:#fff;font-size:16px;font-weight:700;text-decoration:none;margin-top:28px}
-.wa-fab{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;z-index:100;box-shadow:0 4px 20px rgba(37,211,102,0.4);text-decoration:none;font-size:24px}
+.fab-stack{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));right:20px;display:flex;flex-direction:column;gap:10px;z-index:100}
+.fab-btn{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.25);text-decoration:none;font-size:22px;transition:transform .2s}
+.fab-btn:hover{transform:scale(1.08)}
+.fab-wa{background:#25D366;box-shadow:0 4px 20px rgba(37,211,102,.4)}
+.fab-call{background:#007AFF;box-shadow:0 4px 20px rgba(0,122,255,.4)}
 .footer{background:var(--bg);border-top:1px solid var(--border);padding:32px 24px;text-align:center}
 .footer-brand{font-family:var(--font-heading);font-size:16px;font-weight:700;margin-bottom:6px}
 .footer-meta{font-size:12px;color:var(--muted-fg);line-height:1.8}
@@ -3418,7 +3422,10 @@ ${renderSections(sectionFlow, { aboutSection, servicesSection, gallerySection, w
   <div class="footer-credit">Built by Website Hub</div>
 </footer>
 
-<a href="${waLink}" class="wa-fab" aria-label="WhatsApp">💬</a>
+<div class="fab-stack">
+  ${client.phone ? `<a href="tel:${client.phone}" class="fab-btn fab-call" aria-label="Call">📞</a>` : ''}
+  <a href="${waLink}" class="fab-btn fab-wa" aria-label="WhatsApp">💬</a>
+</div>
 
 <script>
 // Gallery carousel
