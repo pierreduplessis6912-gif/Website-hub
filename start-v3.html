@@ -430,8 +430,21 @@ function hideIndustrySuggestions() {
   var params = new URLSearchParams(window.location.search);
   var biz    = params.get('biz');
   var domain = params.get('domain');
-  var plan   = params.get('plan') || 'hub'; // default to hub
+  var plan   = params.get('plan') || 'hub';
+  var promo  = params.get('promo') || getCookie('promo') || '';
   S.plan = plan;
+  S.promo = promo;
+
+  // Show promo banner if promo code present
+  if (promo) {
+    window.addEventListener('DOMContentLoaded', function() {
+      var banner = document.createElement('div');
+      banner.style.cssText = 'background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.3);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#00f0ff;text-align:center';
+      banner.textContent = '🎁 Exclusive offer applied — R0 build fee, R599/month';
+      var form = document.querySelector('.form-card') || document.body;
+      form.insertBefore(banner, form.firstChild);
+    });
+  }
 
   if (biz && domain) {
     S.biz    = biz;
@@ -689,6 +702,7 @@ async function submitIntake() {
         instagram:        (document.getElementById('instaInput')?.value || '').trim().replace(/^@/, ''),
         facebook:         (document.getElementById('fbInput')?.value || '').trim(),
         referred_by:      getCookie('ref') || '',
+        promo_code:       getCookie('promo') || params.get('promo') || '',
       }),
     });
     var data = await r.json();
