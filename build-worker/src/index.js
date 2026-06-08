@@ -266,6 +266,7 @@ export default {
       if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
       if (path === '/admin/build-detail'     && method === 'GET')  return handleAdminBuildDetail(url, env);
       if (path === '/admin/purge-cache'      && method === 'POST') return handleAdminPurgeCache(env);
+      if (path === '/admin/delete-kv'        && method === 'POST') return handleAdminDeleteKv(request, env);
       return jsonResponse({ error: 'Unknown admin route' }, 404);
       }
 
@@ -820,6 +821,17 @@ async function handleTestRegisterDomain(request, env) {
   } catch(e) {
     return jsonResponse({ success: false, error: e.message }, 500);
   }
+}
+
+async function handleAdminDeleteKv(request, env) {
+  const { keys } = await request.json().catch(() => ({}));
+  if (!keys?.length) return jsonResponse({ error: 'keys array required' }, 400);
+  const results = [];
+  for (const key of keys) {
+    await env.SITES.delete(key).catch(() => {});
+    results.push(key);
+  }
+  return jsonResponse({ success: true, deleted: results });
 }
 
 async function handleAdminPurgeCache(env) {
