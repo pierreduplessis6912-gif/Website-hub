@@ -1166,7 +1166,7 @@ body::after{
     <div style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:8px;scrollbar-width:none">
 
       <!-- Hub -->
-      <a href="/start?plan=hub" style="text-decoration:none;min-width:260px;flex-shrink:0;scroll-snap-align:start;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px;display:block;transition:border-color .2s" onclick="this.style.borderColor='rgba(0,240,255,.4)'">
+      <a href="/start?plan=hub" style="text-decoration:none;min-width:260px;flex-shrink:0;scroll-snap-align:start;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px;display:flex;flex-direction:column;transition:border-color .2s" onclick="this.style.borderColor='rgba(0,240,255,.4)'">
         <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(240,237,232,.4);margin-bottom:10px">Hub</div>
         <div style="margin-bottom:2px">
           <span style="font-size:11px;color:rgba(240,237,232,.5)">R</span>
@@ -1174,18 +1174,18 @@ body::after{
           <span style="font-size:11px;color:rgba(240,237,232,.5)"> once off</span>
         </div>
         <div style="font-size:12px;color:rgba(240,237,232,.4);margin-bottom:16px">then R699/mo · cancel anytime</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;flex:1">
           <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>Full professional website</div>
           <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>yourbusiness.websitehub.co.za</div>
           <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>2 email reroutes</div>
-          <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>Gallery · Referral program</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>Photo gallery</div>
           <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>Live in under 2 minutes</div>
         </div>
-        <div style="padding:10px;background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.2);border-radius:12px;text-align:center;font-size:13px;font-weight:700;color:var(--cyan)">Get started →</div>
+        <div style="padding:10px;background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.2);border-radius:12px;text-align:center;font-size:13px;font-weight:700;color:var(--cyan);margin-top:auto">Get started →</div>
       </a>
 
       <!-- Hub Pro -->
-      <a href="/start?plan=hub_pro" style="text-decoration:none;min-width:260px;flex-shrink:0;scroll-snap-align:start;background:rgba(0,240,255,.04);border:1px solid rgba(0,240,255,.2);border-radius:20px;padding:20px;display:block;position:relative;transition:border-color .2s" onclick="this.style.borderColor='rgba(0,240,255,.5)'">
+      <a href="/start?plan=hub_pro" style="text-decoration:none;min-width:260px;flex-shrink:0;scroll-snap-align:start;background:rgba(0,240,255,.04);border:1px solid rgba(0,240,255,.2);border-radius:20px;padding:20px;display:flex;flex-direction:column;position:relative;transition:border-color .2s" onclick="this.style.borderColor='rgba(0,240,255,.5)'">
         <div style="position:absolute;top:14px;right:14px;background:var(--cyan);color:#000;font-size:9px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:20px">OWN DOMAIN</div>
         <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--cyan);margin-bottom:10px">Hub Pro</div>
         <div style="margin-bottom:2px">
@@ -1194,13 +1194,13 @@ body::after{
           <span style="font-size:11px;color:rgba(240,237,232,.5)"> once off</span>
         </div>
         <div style="font-size:12px;color:rgba(240,237,232,.4);margin-bottom:16px">then R999/mo · cancel anytime</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;flex:1">
           <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>Everything in Hub</div>
           <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>yourbusiness.co.za domain</div>
           <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>hello@ and info@ on your domain</div>
           <div style="font-size:12px;color:var(--text);display:flex;gap:6px"><span style="color:var(--cyan)">✓</span>5 revisions per month</div>
         </div>
-        <div style="padding:10px;background:var(--cyan);border-radius:12px;text-align:center;font-size:13px;font-weight:700;color:#000">Get started →</div>
+        <div style="padding:10px;background:var(--cyan);border-radius:12px;text-align:center;font-size:13px;font-weight:700;color:#000;margin-top:auto">Get started →</div>
       </a>
 
     </div>
@@ -1388,8 +1388,8 @@ body::after{
       </div>
       <div class="feat">
         <span class="feat-check">✓ included</span>
-        <div class="feat-title">Referral program</div>
-        <div class="feat-desc">Refer 10 businesses and get your own .co.za domain free.</div>
+        <div class="feat-title">SSL + mobile-first</div>
+        <div class="feat-desc">Loads fast. Secure on all devices. Structured to rank on Google.</div>
       </div>
     </div>
 
