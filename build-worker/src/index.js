@@ -3760,6 +3760,14 @@ async function fetchHeroPhoto(brief, brandBrief, env) {
 
 async function handleCron(env) {
   if (isTestMode(env)) return;
+
+  // Respect master outbound toggle
+  const outboundEnabled = await env.DB.prepare(`SELECT value FROM config WHERE key='outbound_enabled' LIMIT 1`).first().catch(() => null);
+  if (!outboundEnabled || outboundEnabled.value !== 'true') {
+    await logEvent(env, null, 'build', 'cron_skipped', 'info', { metadata: { reason: 'outbound_enabled is false' } });
+    return;
+  }
+
   await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled' } });
 
   // Get approved prospects not yet contacted and not on cooldown
