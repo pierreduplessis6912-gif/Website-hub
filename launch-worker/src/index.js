@@ -865,11 +865,10 @@ async function handleGoLive(request, env, ctx) {
  */
 async function handleGoLiveInternal(clientId, client, env) {
   const slug    = client.slug;
-  const pkg     = (client.package || 'express').toLowerCase();
-  const isExpress = pkg === 'express';
+  const pkg     = packageKey(client.package || 'hub');
+  const isSubdomain = pkg === 'hub' || pkg === 'promo' || pkg === 'express';
 
-  // Express gets a free subdomain. Standard/Premium get their own .co.za
-  const defaultDomain = isExpress
+  const defaultDomain = isSubdomain
     ? `${slug}.websitehub.co.za`
     : `${slug}.co.za`;
 
