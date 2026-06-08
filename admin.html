@@ -380,12 +380,11 @@ input[type=range]{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;
         <div class="card" style="border:1px solid rgba(0,240,255,.2);background:rgba(0,240,255,.03)">
           <div class="card-header"><span class="card-title">🚀 Promo Blast</span><span class="card-meta">LAUNCH2026 · R0 build · R599/mo</span></div>
           <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0">
-            <input id="blastBiz"   class="search-box" type="text"  placeholder="Business name *" style="width:100%">
-            <input id="blastPhone" class="search-box" type="tel"   placeholder="WhatsApp number * (e.g. 0821234567)" style="width:100%">
-            <div style="display:flex;gap:8px">
-              <input id="blastArea"     class="search-box" type="text" placeholder="Area (e.g. Richards Bay)" style="flex:1">
-              <input id="blastIndustry" class="search-box" type="text" placeholder="Industry (e.g. plumbing)" style="flex:1">
-            </div>
+            <input id="blastBiz"     class="search-box" type="text" placeholder="Business name *" style="width:100%">
+            <input id="blastPhone"   class="search-box" type="tel"  placeholder="WhatsApp number * (e.g. 0821234567)" style="width:100%">
+            <input id="blastAddress" class="search-box" type="text" placeholder="Full address (e.g. 12 Main St, Richards Bay)" style="width:100%">
+            <input id="blastGbp"     class="search-box" type="text" placeholder="Google Maps URL or Place ID (optional)" style="width:100%">
+            <input id="blastIndustry" class="search-box" type="text" placeholder="Industry (e.g. plumbing)" style="width:100%">
             <button class="btn" id="blastBtn" onclick="manualPromoBlast()" style="background:var(--cyan);color:#000;font-weight:700;padding:12px">
               Blast →
             </button>
@@ -826,9 +825,10 @@ async function doReinstate(id,name){
 
 // ── OPERATIONS ─────────────────────────────────────────────────
 async function manualPromoBlast() {
-  const biz     = document.getElementById('blastBiz').value.trim();
-  const phone   = document.getElementById('blastPhone').value.trim().replace(/\s/g,'');
-  const area     = document.getElementById('blastArea').value.trim();
+  const biz      = document.getElementById('blastBiz').value.trim();
+  const phone    = document.getElementById('blastPhone').value.trim().replace(/\s/g,'');
+  const address  = document.getElementById('blastAddress').value.trim();
+  const gbpInput = document.getElementById('blastGbp').value.trim();
   const industry = document.getElementById('blastIndustry').value.trim();
 
   if (!biz)   { toast('Business name required', 'err'); return; }
@@ -839,30 +839,49 @@ async function manualPromoBlast() {
   if (normPhone.startsWith('0')) normPhone = '27' + normPhone.slice(1);
   if (!normPhone.startsWith('27')) normPhone = '27' + normPhone;
 
+  // Extract Place ID from Google Maps URL or use directly
+  let placeId  = null;
+  let gbpUrl   = null;
+  if (gbpInput) {
+    const placeMatch = gbpInput.match(/place_id[=:\/]([A-Za-z0-9_-]+)/);
+    const chMatch    = gbpInput.match(/ChI[A-Za-z0-9_-]+/);
+    if (placeMatch)      placeId = placeMatch[1];
+    else if (chMatch)    placeId = chMatch[0];
+    else if (gbpInput.startsWith('http')) gbpUrl = gbpInput;
+    else if (gbpInput.startsWith('ChI'))  placeId = gbpInput;
+  }
+
+  // Extract area from address
+  const area = address ? address.split(',').slice(-2).join(',').trim() : 'South Africa';
+
   const btn = document.getElementById('blastBtn');
   btn.disabled = true;
   btn.textContent = 'Building...';
 
   try {
-    const r = await api('/intake', {
+    await api('/intake', {
       method: 'POST',
       body: JSON.stringify({
         business_name: biz,
         phone:         normPhone,
-        area:          area || 'South Africa',
+        address:       address || '',
+        area:          area,
         industry:      industry || 'general',
+        place_id:      placeId || '',
+        gbp_url:       gbpUrl || '',
         package:       'hub',
         promo_code:    'LAUNCH2026',
         source:        'manual_blast',
         isOutbound:    true,
       })
     });
-    const result = document.getElementById('blastResult');
-    result.style.display = 'block';
-    result.textContent = `✅ Blasted! Building ${biz}...`;
-    document.getElementById('blastBiz').value   = '';
-    document.getElementById('blastPhone').value = '';
-    toast(`Building ${biz} — OG card coming in ~60s`, 'ok');
+    document.getElementById('blastResult').style.display = 'block';
+    document.getElementById('blastResult').textContent = `✅ Building ${biz} — OG card in ~60s`;
+    document.getElementById('blastBiz').value     = '';
+    document.getElementById('blastPhone').value   = '';
+    document.getElementById('blastAddress').value = '';
+    document.getElementById('blastGbp').value     = '';
+    toast(`Blasting ${biz}...`, 'ok');
   } catch(e) {
     toast('Blast failed: ' + e.message, 'err');
   } finally {
