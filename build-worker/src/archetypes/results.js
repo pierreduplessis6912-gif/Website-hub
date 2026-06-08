@@ -83,6 +83,10 @@ html{scroll-behavior:smooth}
 body{font-family:var(--font-body);background:var(--dark);color:var(--text);overflow-x:hidden}
 
 /* ── NAV ──────────────────────────────────── */
+
+.map-section{padding:0}
+.map-embed{width:100%;height:220px;border:none;display:block;filter:grayscale(20%)}
+
 .nav{
   position:fixed;top:0;left:0;right:0;z-index:100;
   display:flex;align-items:center;justify-content:space-between;
@@ -848,6 +852,13 @@ ${!isExp && (t.diff1_title || t.diff2_title) ? `
   </div>
 </section>
 
+
+${address ? `
+<section class="map-section" id="map">
+  <iframe class="map-embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+    src="https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed"
+    title="Find us"></iframe>
+</section>` : ''}
 <footer class="footer">
   <div class="footer-brand">${esc(t.short_name || client.business_name)}</div>
   <div class="footer-tagline">We don't finish until you love it.</div>
