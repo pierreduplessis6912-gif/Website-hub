@@ -752,7 +752,7 @@ function startBuildPoll() {
       failStreak = 0;
       if (d.slug) {
         S.slug = d.slug;
-        el('buildSlug').textContent = d.slug + '.co.za';
+        el('buildSlug').textContent = d.slug + (domainSuffix || '.websitehub.co.za');
       }
       if (d.status === 'preview_ready') {
         clearInterval(S._pollTimer);
@@ -843,12 +843,11 @@ function showPromoBanner() {
 }
 
 function selectPlan(plan) {
-  if (S.promo && plan !== 'premium') return;
   S.selectedPlan = plan;
-  const p = PLANS[plan];
+  const p = PLANS[plan] || PLANS.hub;
   const promo = S.promo;
   el('prevPrice').textContent = promo ? promo.buildFee : p.buildFee;
-  el('prevPlanName').textContent = promo ? `Premium — ${promo.label}` : p.label;
+  el('prevPlanName').textContent = promo ? `Hub — ${promo.label}` : p.label;
   if (el('prevPeriod')) el('prevPeriod').textContent = promo ? `build fee · then R${promo.monthly}/mo` : `build fee · then R${p.monthly}/mo`;
   updatePlanSelectors();
   closePlanSheet();
@@ -860,7 +859,7 @@ function selectPlanSilent(plan) {
 }
 
 function updatePlanSelectors() {
-  ['express','standard','premium'].forEach(p => {
+  ['hub','hub_pro','express','standard','premium'].forEach(p => {
     const s = el('sel-' + p);
     if (s) s.classList.toggle('sel', p === S.selectedPlan);
   });
@@ -913,13 +912,13 @@ function updateConfirmPricing() {
 }
 
 function onConfirm() {
-  const p = PLANS[S.selectedPlan] || PLANS.standard;
+  const p = PLANS[S.selectedPlan] || PLANS.hub;
   const promo = S.promo;
-  el('cPlan').textContent = promo ? 'Premium (Exclusive offer)' : p.name;
-  const isExpress = S.selectedPlan === 'express';
-  const domain = isExpress
-    ? (S.slug ? `${S.slug}.websitehub.co.za` : p.domain)
-    : (S.slug ? `${S.slug}.co.za` : p.domain);
+  el('cPlan').textContent = promo ? 'Hub (Exclusive offer)' : p.name;
+  const isHubPro = S.selectedPlan === 'hub_pro' || S.selectedPlan === 'premium';
+  const domain = isHubPro
+    ? (S.slug ? `${S.slug}.co.za` : p.domain)
+    : (S.slug ? `${S.slug}.websitehub.co.za` : 'yourbusiness.websitehub.co.za');
   el('cDomain').textContent = domain;
   const saving = el('promoSaving');
   if (saving) saving.style.display = promo ? 'block' : 'none';
