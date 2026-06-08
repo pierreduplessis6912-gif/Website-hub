@@ -1294,7 +1294,7 @@ async function handleIntake(request, env) {
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'lead','website',?,?,?,?)
     `).bind(
       id, business_name, client_name || null, slug, normPhone, email || null,
-      packageKey, PRICING[packageKey]?.retainer || 699,
+      packageKey, body.promo_code ? (PRICING.promo?.retainer || 599) : (PRICING[packageKey]?.retainer || 699),
       industry || '', area || '', 'professional', manage_token, referral_slug,
       body.promo_code || null,
       body.business_type || '',
