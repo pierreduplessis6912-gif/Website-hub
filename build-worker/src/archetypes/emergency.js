@@ -804,6 +804,17 @@ ${address ? `
 </a>
 
 <script>
+
+// Licence check — self-hosting protection
+(function(){
+  var slug = '${esc(client.slug)}';
+  var allowed = [slug+'.websitehub.co.za', slug+'.co.za', 'preview.websitehub.co.za', 'localhost', '127.0.0.1'];
+  var host = window.location.hostname.toLowerCase();
+  if(!allowed.some(function(d){ return host === d || host.endsWith('.'+d); })){
+    window.location.replace('https://websitehub.co.za');
+  }
+})();
+
 // Nav scroll
 const nav=document.getElementById('nav');
 window.addEventListener('scroll',()=>{nav.classList.toggle('scrolled',window.scrollY>56)},{passive:true});
