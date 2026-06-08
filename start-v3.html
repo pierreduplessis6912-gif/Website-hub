@@ -779,7 +779,7 @@ async function submitIntake() {
     }
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = 'Connection error — try again →';
+    btn.textContent = e.message || 'Error — try again →';
   }
 }
 
