@@ -246,6 +246,7 @@ async function runDailyCron(env) {
     { name: 'win_back',              fn: () => runWinBackCron(env, today) },
     { name: 'prospect_followup',     fn: () => runProspectLimboFollowUp(env, today) },
     { name: 'referral_vesting',      fn: () => runReferralVesting(env, today) },
+    { name: 'promo_nudge',           fn: () => runPromoNudge(env) },
     { name: 'outbound_scrape',        fn: () => runOutboundScrape(env) },
     { name: 'leaderboard_cache',     fn: () => precomputeLeaderboard(env, monthStr) },
     { name: 'showcase_validation',   fn: () => validateShowcaseQueue(env) },
@@ -895,6 +896,41 @@ async function runProspectLimboFollowUp(env, today) {
 // Grant = increment referral:conversions:{referrerSlug} + create
 // Zoho credit note on referrer's account for one month's retainer.
 // ============================================================
+
+async function runPromoNudge(env) {
+  // Find promo clients still in preview_ready after 24hrs — send one nudge
+  const rows = await env.DB.prepare(`
+    SELECT id, slug, business_name, phone, manage_token, promo_code
+    FROM clients
+    WHERE promo_code IS NOT NULL
+      AND status = 'preview_ready'
+      AND created_at <= datetime('now', '-20 hours')
+      AND created_at >= datetime('now', '-48 hours')
+  `).all().catch(() => ({ results: [] }));
+
+  let nudged = 0;
+  for (const client of (rows.results || [])) {
+    const guardKey = `promo_nudge_sent:${client.id}`;
+    if (await env.SITES.get(guardKey)) continue;
+
+    const promoParam = `?promo=${encodeURIComponent(client.promo_code)}`;
+    const ogLink = `https://preview.websitehub.co.za/${client.slug}/og${promoParam}`;
+
+    await sendWhatsApp(client.phone,
+      `👋 Hi *${client.business_name}*!\n\n` +
+      `Just checking — did you get a chance to look at your site?\n\n` +
+      `Your complimentary build (worth R7,000) is still waiting. This offer won't last.\n` +
+      `👉 ${ogLink}\n\n` +
+      `— Website Hub`,
+      env
+    ).catch(() => {});
+
+    await env.SITES.put(guardKey, new Date().toISOString(), { expirationTtl: 60 * 60 * 24 * 7 });
+    nudged++;
+  }
+
+  return { nudged };
+}
 
 async function runReferralVesting(env, today) {
   // New referral system: count live referrals per client
