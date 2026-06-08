@@ -348,6 +348,7 @@ export default {
       if (path === '/aup')                 return servePwa(env, 'app:aup');
       if (path === '/cancellation')        return servePwa(env, 'app:cancellation');
       if (path === '/dpa')                 return servePwa(env, 'app:dpa');
+      if (path === '/intake' && method === 'POST') return handleIntake(request, env);
       if (path.startsWith('/intake/'))     return servePwa(env, 'app:intake');
       if (path.startsWith('/preview/'))    return servePwa(env, 'app:preview');
       if (path.startsWith('/manage/'))     return servePwa(env, 'app:manage');
