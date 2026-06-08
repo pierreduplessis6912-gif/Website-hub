@@ -101,6 +101,21 @@ body::before{
 .phone-strip-label{font-size:11px;font-weight:600;letter-spacing:2px;opacity:.7;text-transform:uppercase}
 
 /* ── NAV ──────────────────────────────────── */
+
+.gallery{padding:60px 0;background:var(--bg,#0e0c09)}
+.gallery-header{padding:0 24px 28px;text-align:center}
+.gallery-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;opacity:.5;margin-bottom:8px}
+.gallery-title{font-size:26px;font-weight:700;margin-bottom:6px}
+.gallery-subtitle{font-size:14px;opacity:.6}
+.gallery-track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 24px 16px}
+.gallery-track::-webkit-scrollbar{display:none}
+.gallery-slide{flex:0 0 72vw;max-width:280px;scroll-snap-align:start;border-radius:14px;overflow:hidden;aspect-ratio:4/3}
+.gallery-img{width:100%;height:100%;object-fit:cover;display:block}
+
+
+.map-section{padding:0}
+.map-embed{width:100%;height:220px;border:none;display:block;filter:grayscale(20%)}
+
 .nav{
   position:fixed;top:40px;left:0;right:0;z-index:100;
   display:flex;align-items:center;justify-content:space-between;
@@ -764,6 +779,13 @@ ${galleryPhotos.length ? `
 </section>
 
 <!-- Footer -->
+
+${address ? `
+<section class="map-section" id="map">
+  <iframe class="map-embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+    src="https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed"
+    title="Find us"></iframe>
+</section>` : ''}
 <footer class="footer">
   <div class="footer-brand">${esc(t.short_name || client.business_name)}</div>
   <div class="footer-links">
