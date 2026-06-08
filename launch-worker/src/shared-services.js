@@ -847,7 +847,7 @@ export async function sendWhatsApp(to, message, env, opts = {}) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          number:      `+${finalTo}`,
+          number:      finalTo,
           textMessage: { text: finalMsg },
         }),
       },
