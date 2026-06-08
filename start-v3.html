@@ -337,6 +337,18 @@ body::after{
         <label class="field-label">Facebook page URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
         <input class="field-input" id="fbInput" type="url" placeholder="facebook.com/yourbusiness" autocomplete="off">
       </div>
+
+      <!-- Terms acceptance -->
+      <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;margin-bottom:4px">
+        <input type="checkbox" id="termsCheck" style="width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:#00f0ff;cursor:pointer">
+        <span style="font-size:13px;color:rgba(240,237,232,.7);line-height:1.5">
+          I agree to the <a href="/terms" target="_blank" style="color:#00f0ff;text-decoration:none">Terms of Service</a>,
+          <a href="/privacy" target="_blank" style="color:#00f0ff;text-decoration:none">Privacy Policy</a>, and
+          <a href="/cancellation" target="_blank" style="color:#00f0ff;text-decoration:none">Cancellation Policy</a>.
+          I understand this is a monthly subscription and I can cancel anytime.
+        </span>
+      </label>
+
       <button class="claim-btn" id="claimBtn" onclick="submitIntake()">
         Build my site →
       </button>
@@ -365,6 +377,21 @@ body::after{
     <div class="trust-item"><span class="trust-icon">🔒</span>No card required</div>
     <div class="trust-item"><span class="trust-icon">✏️</span>Cancel anytime</div>
   </div>
+
+  <!-- ── FOOTER ─────────────────────────────────────── -->
+  <footer style="padding:32px 24px 40px;max-width:480px;margin:0 auto">
+    <nav style="display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-bottom:16px">
+      <a href="/privacy" style="color:rgba(240,237,232,.4);font-size:12px;text-decoration:none">Privacy</a>
+      <a href="/terms" style="color:rgba(240,237,232,.4);font-size:12px;text-decoration:none">Terms</a>
+      <a href="/cancellation" style="color:rgba(240,237,232,.4);font-size:12px;text-decoration:none">Cancellation</a>
+      <a href="/aup" style="color:rgba(240,237,232,.4);font-size:12px;text-decoration:none">Acceptable Use</a>
+      <a href="/referral-terms" style="color:rgba(240,237,232,.4);font-size:12px;text-decoration:none">Referral Terms</a>
+    </nav>
+    <p style="text-align:center;font-size:11px;color:rgba(240,237,232,.25);line-height:1.6">
+      © 2026 Website Hub (Pty) Ltd · Monthly subscription · Cancel anytime<br>
+      Reg. No. 2026-024548 (Information Regulator of South Africa)
+    </p>
+  </footer>
 
 </div>
 <script>
@@ -663,6 +690,17 @@ function onSlugEdit(val) {
 async function submitIntake() {
   if (!S.confirmed) return;
 
+  // Terms must be accepted
+  if (!document.getElementById('termsCheck').checked) {
+    document.getElementById('termsCheck').closest('label').style.borderColor = 'rgba(255,59,68,.5)';
+    document.getElementById('termsCheck').closest('label').style.background = 'rgba(255,59,68,.05)';
+    setTimeout(() => {
+      document.getElementById('termsCheck').closest('label').style.borderColor = 'rgba(255,255,255,.08)';
+      document.getElementById('termsCheck').closest('label').style.background = 'rgba(255,255,255,.03)';
+    }, 2000);
+    return;
+  }
+
   var name  = document.getElementById('nameInput').value.trim();
   var phone = document.getElementById('phoneInput').value.trim();
   var email = document.getElementById('emailInput').value.trim();
@@ -703,6 +741,8 @@ async function submitIntake() {
         facebook:         (document.getElementById('fbInput')?.value || '').trim(),
         referred_by:      getCookie('ref') || '',
         promo_code:       getCookie('promo') || params.get('promo') || '',
+        terms_accepted:   true,
+        terms_version:    '2026-06',
       }),
     });
     var data = await r.json();
