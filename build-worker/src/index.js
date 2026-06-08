@@ -2250,27 +2250,38 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
   // Unsplash fallback — use industry-relevant photos when no GBP photos
   if (galleryPhotos.length === 0) {
     const industry = (client.industry || '').toLowerCase();
-    const UNSPLASH_FALLBACKS = {
-      plumb:       ['plumbing','pipe','water','bathroom'],
-      electr:      ['electrician','wiring','electrical'],
-      hair:        ['hair+salon','hairstyle','beauty+salon'],
-      salon:       ['hair+salon','beauty','nail+salon'],
-      barber:      ['barbershop','haircut','barber'],
-      restaurant:  ['restaurant','food','dining'],
-      food:        ['restaurant','cooking','food'],
-      shisanyama:  ['braai','grill','meat'],
-      carwash:     ['car+wash','clean+car','auto+detail'],
-      floor:       ['flooring','tiles','interior'],
-      blind:       ['window+blinds','interior+design','curtains'],
-      optical:     ['optometrist','glasses','eyewear'],
-      dental:      ['dentist','dental','teeth'],
-      construct:   ['construction','building','contractor'],
-      paint:       ['painting','house+paint','decorator'],
-      clean:       ['cleaning+service','commercial+cleaning','maid'],
+    const UNSPLASH_QUERIES = {
+      plumb:       'plumbing pipe repair',
+      electr:      'electrician electrical work',
+      hair:        'hair salon hairstyle',
+      salon:       'beauty salon',
+      barber:      'barbershop haircut',
+      restaurant:  'restaurant food dining',
+      food:        'restaurant cooking',
+      shisanyama:  'braai grill south africa',
+      carwash:     'car wash auto detailing',
+      floor:       'flooring tiles interior',
+      blind:       'window blinds interior',
+      optical:     'optometrist eyewear glasses',
+      dental:      'dentist dental clinic',
+      construct:   'construction building',
+      paint:       'house painting decorator',
+      clean:       'cleaning service professional',
     };
-    const key = Object.keys(UNSPLASH_FALLBACKS).find(k => industry.includes(k)) || 'business';
-    const terms = UNSPLASH_FALLBACKS[key] || ['small+business','south+africa','professional'];
-    galleryPhotos = terms.slice(0, 4).map(t => `https://source.unsplash.com/800x600/?${t}`);
+    const key = Object.keys(UNSPLASH_QUERIES).find(k => industry.includes(k));
+    const query = encodeURIComponent(UNSPLASH_QUERIES[key] || 'small business professional south africa');
+    const unsplashKey = env.UNSPLASH_ACCESS_KEY;
+    if (unsplashKey) {
+      try {
+        const res = await fetch(`https://api.unsplash.com/photos/random?count=4&query=${query}&orientation=landscape`, {
+          headers: { Authorization: `Client-ID ${unsplashKey}` }
+        });
+        if (res.ok) {
+          const photos = await res.json();
+          galleryPhotos = photos.map(p => p.urls?.regular || p.urls?.small).filter(Boolean);
+        }
+      } catch(e) { console.warn('Unsplash fallback failed:', e.message); }
+    }
   }
   // Attach gallery photos to client object so archetype templates can use them
   const clientWithPhotos = { ...client, gallery_photos: galleryPhotos };
