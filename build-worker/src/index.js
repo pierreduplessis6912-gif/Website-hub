@@ -503,7 +503,7 @@ async function handleScrape(request, env) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-proxy-secret': env.PLACES_PROXY_SECRET || 'mysecretkey123',
+      'x-proxy-secret': env.PLACES_PROXY_SECRET || env.DOMAIN_PROXY_SECRET || 'mysecretkey123',
     },
     body: JSON.stringify({
       url: 'https://places.googleapis.com/v1/places:searchText',
@@ -778,7 +778,7 @@ async function handleTestRegisterDomain(request, env) {
   const apiKey = env.REGISTERDOMAIN_API_KEY;
   const email  = env.REGISTERDOMAIN_EMAIL || 'loc10@live.co.za';
   const PROXY  = 'https://classictouchsalon.co.za/rd-proxy.php';
-  const SECRET = 'mysecretkey123';
+  const SECRET = env.DOMAIN_PROXY_SECRET || 'mysecretkey123';
 
   if (!apiKey) return jsonResponse({ error: 'REGISTERDOMAIN_API_KEY not set on build worker — add it' }, 400);
 
@@ -1483,7 +1483,7 @@ async function fetchInstagramPhotos(handle, env) {
   try {
     const cleanHandle = handle.replace(/^@/, '').replace(/https?:\/\/(www\.)?instagram\.com\/?/, '').replace(/\/$/, '').split('/')[0].split('?')[0];
     const PROXY  = 'https://classictouchsalon.co.za/rd-proxy.php';
-    const SECRET = 'mysecretkey123';
+    const SECRET = env.DOMAIN_PROXY_SECRET || 'mysecretkey123';
 
     // Use proxy to fetch Instagram profile info
     const res = await fetch(PROXY, {
@@ -2285,7 +2285,7 @@ async function callPlacesProxy(env, url, method = 'GET', postBody = null, extraH
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-proxy-secret': 'mysecretkey123',
+      'x-proxy-secret': env.DOMAIN_PROXY_SECRET || 'mysecretkey123',
     },
     body: JSON.stringify({
       url,
