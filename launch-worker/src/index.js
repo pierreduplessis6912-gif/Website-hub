@@ -125,6 +125,7 @@ export default {
     if (path === '/manage-panel')     return handleManagePanel(request, url, env);
     if (path === '/client-status')    return handleClientStatus(url, env);
     if (path === '/submit-revision')  return handleSubmitRevision(request, env);
+    if (path === '/send-email-setup') return handleSendEmailSetup(request, env);
     if (path === '/cancel-site')      return handleCancelSite(request, env);
 
     return jsonResponse({ error: 'Not found', path }, 404);
@@ -283,6 +284,44 @@ async function handleClientStatus(url, env) {
 }
 
 // ── /submit-revision — log revision request ───────────────────────────────────
+async function handleSendEmailSetup(request, env) {
+  const { token } = await request.json().catch(() => ({}));
+  if (!token) return jsonResponse({ error: 'token required' }, 400);
+
+  const client = await env.DB.prepare(
+    `SELECT * FROM clients WHERE manage_token=? LIMIT 1`
+  ).bind(token).first();
+  if (!client) return jsonResponse({ error: 'Client not found' }, 404);
+
+  const domain = client.domain || `${client.slug}.websitehub.co.za`;
+  const hello = `hello@${domain}`;
+  const info  = `info@${domain}`;
+
+  const msg =
+`📬 *Email setup for ${client.business_name}*
+
+Your two business email addresses are active:
+• *${hello}*
+• *${info}*
+
+Emails sent to these addresses arrive in your personal inbox automatically.
+
+*To send FROM your business address (Gmail):*
+
+1️⃣ Open Gmail → tap the menu (☰) → Settings
+2️⃣ Tap your account → *Send mail as* → Add email
+3️⃣ Type *${hello}* → tap Next
+4️⃣ Gmail sends a verification code to that address — check your inbox
+5️⃣ Enter the code → Done ✅
+
+Next time you compose an email, tap the *From* field and select *${hello}* to send as your business.
+
+— Website Hub`;
+
+  await sendWhatsApp(client.phone, msg, env);
+  return jsonResponse({ success: true });
+}
+
 async function handleSubmitRevision(request, env) {
   const { token, message, type = 'free' } = await request.json().catch(() => ({}));
   if (!token || !message) return jsonResponse({ error: 'missing_fields' }, 400);
