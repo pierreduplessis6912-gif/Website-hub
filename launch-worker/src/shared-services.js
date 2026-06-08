@@ -519,7 +519,7 @@ export function buildPayFastLink(amount, itemName, clientId, env, opts = {}) {
   const host    = sandbox ? 'sandbox.payfast.co.za' : 'www.payfast.co.za';
   const merchId = sandbox
     ? (env?.PAYFAST_SANDBOX_MERCHANT_ID || '10000100')
-    : (env?.PAYFAST_MERCHANT_ID         || '13581217');
+    : (env?.PAYFAST_MERCHANT_ID         || '');
 
   const params = new URLSearchParams();
   params.set('merchant_id', merchId);
