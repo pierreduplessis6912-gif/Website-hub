@@ -1208,8 +1208,8 @@ async function confirmCancel() {
   closeSheet();
   if (!S.token) { toast('Cancellation (demo mode)', 'ok'); return; }
   try {
-    await apiFetch('/cancel-site', { method:'POST', body: JSON.stringify({ token: S.token }) });
-    toast('Cancellation received. We\'ll send confirmation via WhatsApp.', 'ok');
+    await apiFetch('/cancel-subscription', { method:'POST', body: JSON.stringify({ token: S.token }) });
+    toast('Cancellation confirmed. Your site stays live until end of billing period.', 'ok');
   } catch {
     toast("Couldn't process — please WhatsApp us", 'err');
   }
