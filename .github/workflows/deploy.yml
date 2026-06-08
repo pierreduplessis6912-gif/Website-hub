@@ -85,7 +85,3 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: reactivate-worker
           wranglerVersion: "3.90.0"
-
-    runs-on: ubuntu-latest
-    steps:
-        with:
