@@ -104,9 +104,15 @@ export default {
       const { slug, amount } = await request.json().catch(() => ({}));
       const client = await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
       if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
-      const pkg = client.package || 'hub';
-      const customStr2 = client.promo_code ? `${pkg}_promo_${client.promo_code}` : pkg;
-      ctx.waitUntil(handleGoLivePayment(client.id, 'sim_' + Date.now(), amount || client.retainer || 599, customStr2, env, ctx));
+      // Update to live directly then fire go-live internal
+      const today = new Date().toISOString().split('T')[0];
+      const nextMonth = new Date(Date.now() + 30 * 864e5).toISOString().split('T')[0];
+      await env.DB.prepare(
+        `UPDATE clients SET status='live', go_live_date=?, next_invoice_date=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+      ).bind(today, nextMonth, client.id).run();
+      ctx.waitUntil(handleGoLiveInternal(client.id, client, env).catch(e => {
+        console.error('simulate-payment go-live failed:', e?.message);
+      }));
       return Response.json({ success: true, slug, clientId: client.id });
     }
     if (path === '/suspend-site')     return handleSuspendSite(request, env);
