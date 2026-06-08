@@ -100,6 +100,15 @@ export default {
     if (path === '/activate-free')    return handleActivateFree(request, env, ctx);
     if (path === '/admin/test-registerdomain') return handleTestRd(env);
     if (path === '/internal-golive' || path === '/internal-golive/')  return handleInternalGoLive(request, env, ctx);
+    if (path === '/admin/simulate-payment' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
+      const { slug, amount } = await request.json().catch(() => ({}));
+      const client = await env.DB.prepare(`SELECT * FROM clients WHERE slug=? LIMIT 1`).bind(slug).first();
+      if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
+      const pkg = client.package || 'hub';
+      const customStr2 = client.promo_code ? `${pkg}_promo_${client.promo_code}` : pkg;
+      ctx.waitUntil(handleGoLivePayment(client.id, 'sim_' + Date.now(), amount || client.retainer || 599, customStr2, env, ctx));
+      return Response.json({ success: true, slug, clientId: client.id });
+    }
     if (path === '/suspend-site')     return handleSuspendSite(request, env);
     if (path === '/reinstate-site')   return handleReinstateSite(request, env);
     if (path === '/upgrade')          return handleUpgrade(request, env);
@@ -634,6 +643,11 @@ async function handleGoLivePayment(clientId, paymentId, amount, customStr2, env,
   ).bind(paymentId || '', todayDateString(), isAnnual ? 'annual' : 'monthly', nextInvoice, clientId).run();
 
   await logActivity(env, 'payment_received', { clientId, business: client.business_name, amount, type: isAnnual ? 'annual_first_payment' : 'first_time_subscription' });
+
+  // Notify owner and Kimmy on every sale 🎉
+  const saleMsg = `🎉 I GOT A SALE\n\n*${client.business_name}*\nR${amount}\n${isAnnual ? 'Annual' : 'Monthly'} — ${client.package || 'hub'}`;
+  await sendWhatsApp(env.WH_PHONE, saleMsg, env, { skipTestRedirect: true }).catch(() => {});
+  await sendWhatsApp('27798916569', saleMsg, env, { skipTestRedirect: true }).catch(() => {});
 
   ctx.waitUntil(handleGoLiveInternal(clientId, client, env)
     .catch(async err => {
