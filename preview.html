@@ -10,11 +10,11 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#0d0d0d;
+  --bg:#080808;
   --surface:#161616;
   --surface2:#1e1e1e;
   --border:#2a2a2a;
-  --text:#f0ede8;
+  --text:#ede9e4;
   --muted:#6b6b6b;
   --muted2:#444;
   --cyan:#00f0ff;
@@ -23,11 +23,11 @@
   --green:#00e676;
   --red:#ff4444;
   --amber:#f5a623;
-  --font-display:'Syne',sans-serif;
-  --font-body:'DM Sans',sans-serif;
-  --font-mono:'DM Mono',monospace;
+  --f-display:'Syne',sans-serif;
+  --f-body:'DM Sans',sans-serif;
+  --f-mono:'DM Mono',monospace;
 }
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-body)}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--f-body)}
 
 /* ── SCREENS ── */
 .screen{
@@ -49,7 +49,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
 .build-wordmark{
   position:absolute;top:24px;left:24px;
-  font-family:var(--font-display);
+  font-family:var(--f-display);
   font-size:20px;
   color:var(--text);
 }
@@ -98,14 +98,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 }
 
 .build-slug{
-  font-family:var(--font-mono);
+  font-family:var(--f-mono);
   font-size:13px;
   color:var(--cyan);
   letter-spacing:.5px;
   margin-bottom:16px;
 }
 .build-status{
-  font-family:var(--font-display);
+  font-family:var(--f-display);
   font-size:clamp(22px,5vw,30px);
   color:var(--text);
   text-align:center;
@@ -134,7 +134,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   padding:14px 32px;border-radius:14px;
   background:var(--surface);border:1.5px solid var(--border);
   color:var(--text);font-size:14px;font-weight:600;
-  cursor:pointer;font-family:var(--font-body);
+  cursor:pointer;font-family:var(--f-body);
   transition:all .2s;
 }
 .btn-retry:active{border-color:var(--cyan)}
@@ -156,7 +156,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   position:relative;z-index:10;
 }
 .prev-brand{
-  font-family:var(--font-display);
+  font-family:var(--f-display);
   font-size:16px;
 }
 .prev-brand span{color:var(--cyan)}
@@ -165,7 +165,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   padding:5px 12px;border-radius:100px;
   background:rgba(0,230,118,.08);
   border:1px solid rgba(0,230,118,.2);
-  font-family:var(--font-mono);
+  font-family:var(--f-mono);
   font-size:10px;
   color:var(--green);
   letter-spacing:.5px;
@@ -200,14 +200,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   font-size:12px;color:var(--cyan);
   cursor:pointer;font-weight:600;
   border:none;background:transparent;
-  font-family:var(--font-body);
+  font-family:var(--f-body);
 }
 .prev-price-row{
   display:flex;align-items:baseline;gap:4px;
   margin-bottom:12px;
 }
 .prev-price{
-  font-family:var(--font-display);
+  font-family:var(--f-display);
   font-size:32px;
   color:var(--text);
 }
@@ -219,7 +219,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   background:linear-gradient(135deg,var(--cyan),var(--purple),var(--magenta));
   border:none;
   color:#fff;font-size:16px;font-weight:700;
-  cursor:pointer;font-family:var(--font-body);
+  cursor:pointer;font-family:var(--f-body);
   transition:all .25s;
   box-shadow:0 4px 24px rgba(0,240,255,.15);
   animation:glow 3s ease-in-out infinite;
@@ -241,7 +241,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   padding:6px 12px;border-radius:8px;
   background:var(--surface);border:1px solid var(--border);
   color:var(--muted);font-size:11px;font-weight:500;
-  cursor:pointer;font-family:var(--font-body);
+  cursor:pointer;font-family:var(--f-body);
   transition:all .2s;
 }
 #btnOpenTab:active{border-color:var(--cyan);color:var(--cyan)}
@@ -272,7 +272,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   background:var(--muted2);margin:0 auto 20px;
 }
 .sheet-title{
-  font-family:var(--font-display);
+  font-family:var(--f-display);
   font-size:22px;margin-bottom:20px;
 }
 .plan-row{
@@ -301,7 +301,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .plan-row-name{font-size:16px;font-weight:600;margin-bottom:3px}
 .plan-row-desc{font-size:12px;color:var(--muted);line-height:1.5}
 .plan-row-price{
-  font-family:var(--font-mono);
+  font-family:var(--f-mono);
   font-size:15px;color:var(--cyan);
   flex-shrink:0;
 }
@@ -330,13 +330,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 }
 .confirm-back:active{color:var(--text)}
 .confirm-eyebrow{
-  font-family:var(--font-mono);
+  font-family:var(--f-mono);
   font-size:11px;color:var(--cyan);
   letter-spacing:1px;margin-bottom:12px;
   animation:slideUp .4s ease both;
 }
 .confirm-title{
-  font-family:var(--font-display);
+  font-family:var(--f-display);
   font-size:clamp(28px,7vw,38px);
   line-height:1.15;
   margin-bottom:8px;
@@ -375,7 +375,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .promo-input{
   flex:1;background:var(--surface);
   border:1.5px solid var(--border);border-radius:12px;
-  padding:13px 16px;font-family:var(--font-body);font-size:14px;
+  padding:13px 16px;font-family:var(--f-body);font-size:14px;
   color:var(--text);outline:none;
   transition:border-color .2s;
 }
@@ -385,7 +385,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   padding:13px 18px;border-radius:12px;
   background:var(--surface);border:1.5px solid var(--border);
   color:var(--muted);font-size:14px;font-weight:600;
-  cursor:pointer;font-family:var(--font-body);
+  cursor:pointer;font-family:var(--f-body);
   transition:all .2s;white-space:nowrap;
 }
 .promo-btn:active{border-color:var(--cyan);color:var(--cyan)}
@@ -399,7 +399,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   width:100%;padding:18px;border-radius:16px;
   background:linear-gradient(135deg,var(--cyan),var(--purple),var(--magenta));
   border:none;color:#fff;font-size:16px;font-weight:700;
-  cursor:pointer;font-family:var(--font-body);
+  cursor:pointer;font-family:var(--f-body);
   transition:all .25s;margin-bottom:12px;
   animation:slideUp .4s .25s ease both;
   box-shadow:0 4px 24px rgba(0,240,255,.15);
@@ -424,7 +424,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   flex:1;padding:11px 8px;text-align:center;
   font-size:13px;font-weight:600;color:var(--muted);
   cursor:pointer;transition:all .2s;position:relative;
-  font-family:var(--font-body);background:transparent;border:none;
+  font-family:var(--f-body);background:transparent;border:none;
 }
 .billing-opt.sel{
   background:var(--surface2);color:var(--text);
@@ -455,7 +455,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 }
 .proc-wordmark{
   position:absolute;top:24px;left:24px;
-  font-family:var(--font-display);font-size:20px;
+  font-family:var(--f-display);font-size:20px;
 }
 .proc-wordmark span{color:var(--cyan)}
 .proc-rings{
@@ -477,7 +477,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   animation:pulse-core 2s ease-in-out infinite;
 }
 #procStatus{
-  font-family:var(--font-display);
+  font-family:var(--f-display);
   font-size:clamp(20px,5vw,26px);
   text-align:center;margin-bottom:8px;
 }
@@ -491,12 +491,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   width:100%;padding:14px;border-radius:14px;
   background:var(--surface);border:1.5px solid var(--border);
   color:var(--text);font-size:14px;font-weight:600;
-  cursor:pointer;font-family:var(--font-body);
+  cursor:pointer;font-family:var(--f-body);
 }
 .btn-proc-ghost{
   font-size:13px;color:var(--muted);
   background:transparent;border:none;cursor:pointer;
-  font-family:var(--font-body);padding:8px;
+  font-family:var(--f-body);padding:8px;
 }
 
 /* ── TOAST ── */
