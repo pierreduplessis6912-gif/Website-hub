@@ -507,9 +507,9 @@ async function handlePromoBlast(request, env) {
         INSERT INTO clients
           (id, business_name, slug, phone, industry, area, manage_token,
            referral_slug, promo_code, status, source, package, retainer)
-        VALUES (?,?,?,?,?,?,?,?,?,'lead','outbound','premium',?)
+        VALUES (?,?,?,?,?,?,?,?,?,'lead','outbound','hub',?)
       `).bind(id, p.business_name, slug, p.phone || '', p.industry || '', p.area || '',
-          manage_token, referral_slug, promoCode, PRICING.premium.retainer).run();
+          manage_token, referral_slug, promoCode, PRICING.promo?.retainer || 599).run();
 
       await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
         .bind(id, p.id).run();
@@ -3790,10 +3790,10 @@ async function handleCron(env) {
       await env.DB.prepare(`
         INSERT INTO clients
           (id, business_name, slug, phone, industry, area, vibe, manage_token,
-           referral_slug, status, source, package, retainer)
-        VALUES (?,?,?,?,?,?,?,?,?,'lead','outbound','standard',?)
+           referral_slug, promo_code, status, source, package, retainer)
+        VALUES (?,?,?,?,?,?,?,?,?,'LAUNCH2026','lead','outbound','hub',?)
       `).bind(id, p.business_name, slug, p.phone || '', p.industry || '', p.area || '',
-          'professional', manage_token, referral_slug, PRICING.express.retainer).run();
+          'professional', manage_token, referral_slug, PRICING.promo?.retainer || 599).run();
 
       await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
         .bind(id, p.id).run();
