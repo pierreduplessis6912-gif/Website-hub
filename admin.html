@@ -804,6 +804,7 @@ function openModal(id){
           <button class="btn btn-success" onclick="opForceLive('${c.slug}','${esc(c.business_name)}')">🚀 Force Live</button>
           <button class="btn btn-ghost" onclick="opResetBuild('${c.slug}','${esc(c.business_name)}')">🔄 Reset to Preview</button>
           <button class="btn btn-ghost" onclick="opTriggerRebuild('${c.id}','${esc(c.business_name)}')">🔨 Trigger Rebuild</button>
+          <button class="btn btn-ghost" onclick="opSilentRebuild('${c.id}','${esc(c.business_name)}')">🔇 Silent Rebuild</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-ghost" onclick="opResendGoLive('${c.slug}','${esc(c.business_name)}')">💬 Resend Go-Live WA</button>
@@ -937,6 +938,15 @@ async function opTriggerRebuild(clientId, name) {
   try {
     const d = await api('/admin/trigger-rebuild', {method:'POST', body:JSON.stringify({clientId})});
     if(d.success){ toast(`🔨 Rebuild queued for ${name}`,'ok'); }
+    else toast(`✗ ${d.error||'Failed'}`,'err');
+  } catch(e){ toast(`✗ ${e.message}`,'err'); }
+}
+
+async function opSilentRebuild(clientId, name) {
+  if(!confirm(`Silent rebuild for ${name}?\nNo WhatsApp will be sent to the client.`)) return;
+  try {
+    const d = await api('/admin/trigger-rebuild', {method:'POST', body:JSON.stringify({clientId, silent:true})});
+    if(d.success){ toast(`🔇 Silent rebuild queued for ${name}`,'ok'); }
     else toast(`✗ ${d.error||'Failed'}`,'err');
   } catch(e){ toast(`✗ ${e.message}`,'err'); }
 }
