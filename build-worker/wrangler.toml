@@ -45,7 +45,7 @@ queue = "wh-build-queue"
 
 [[queues.consumers]]
 queue = "wh-build-queue"
-max_batch_size = 5
+max_batch_size = 1
 max_batch_timeout = 30
 
 [triggers]
