@@ -661,13 +661,14 @@ function renderBuilds() {
   }
 
   list.innerHTML = filtered.map(b => `
-    <div class="build-card" onclick="b.slug && window.open('/preview/${b.slug}','_blank')">
+    <div class="build-card" onclick="b.slug && window.open('https://preview.websitehub.co.za/' + b.slug,'_blank')" style="cursor:pointer">
       <div class="build-icon">${getIcon(b.industry)}</div>
       <div class="build-info">
         <div class="build-name">${b.business_name || '—'}</div>
         <div class="build-meta">${b.area || ''} · ${b.industry || ''} · ${timeAgo(b.created_at)}</div>
       </div>
       <div class="build-status ${b.status}">${b.status === 'preview_ready' ? 'ready' : b.status || 'building'}</div>
+      ${b.slug && b.status === 'preview_ready' ? `<a href="https://preview.websitehub.co.za/${b.slug}" target="_blank" onclick="event.stopPropagation()" style="font-family:var(--f-mono);font-size:9px;letter-spacing:1px;color:var(--cyan);text-decoration:none;flex-shrink:0;padding:4px 8px;border:1px solid rgba(0,240,255,.2);border-radius:6px">View →</a>` : ''}
     </div>
   `).join('');
 }
