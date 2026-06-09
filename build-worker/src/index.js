@@ -292,13 +292,23 @@ export default {
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/test-gbp'          && method === 'GET')  {
-        const testResult = await callPlacesProxy(env,
-          'https://places.googleapis.com/v1/places:searchText',
-          'POST',
-          { textQuery: 'Classic Touch Salon Richards Bay', regionCode: 'ZA', maxResultCount: 1 },
-          { 'X-Goog-FieldMask': 'places.id,places.displayName,places.rating' }
-        ).catch(e => ({ error: e.message }));
-        return jsonResponse({ result: testResult });
+        try {
+          const res = await fetch('https://classictouchsalon.co.za/places-proxy.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-proxy-secret': env.DOMAIN_PROXY_SECRET || 'mysecretkey123' },
+            body: JSON.stringify({
+              url: 'https://places.googleapis.com/v1/places:searchText',
+              method: 'POST',
+              postBody: { textQuery: 'Classic Touch Salon Richards Bay', regionCode: 'ZA', maxResultCount: 1 },
+              fieldMask: 'places.id,places.displayName,places.rating',
+              apiKey: env.GOOGLE_MAPS_API_KEY,
+            }),
+          });
+          const text = await res.text();
+          return jsonResponse({ status: res.status, ok: res.ok, body: text.slice(0, 500) });
+        } catch(e) {
+          return jsonResponse({ error: e.message });
+        }
       }
       if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
         has_maps_key: !!env.GOOGLE_MAPS_API_KEY,
