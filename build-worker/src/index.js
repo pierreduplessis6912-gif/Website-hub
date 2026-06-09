@@ -291,6 +291,15 @@ export default {
       if (path === '/admin/trigger-rebuild'    && method === 'POST') return handleAdminTriggerRebuild(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
+      if (path === '/admin/test-gbp'          && method === 'GET')  {
+        const testResult = await callPlacesProxy(env,
+          'https://places.googleapis.com/v1/places:searchText',
+          'POST',
+          { textQuery: 'Classic Touch Salon Richards Bay', regionCode: 'ZA', maxResultCount: 1 },
+          { 'X-Goog-FieldMask': 'places.id,places.displayName,places.rating' }
+        ).catch(e => ({ error: e.message }));
+        return jsonResponse({ result: testResult });
+      }
       if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
         has_maps_key: !!env.GOOGLE_MAPS_API_KEY,
         maps_key_prefix: env.GOOGLE_MAPS_API_KEY?.slice(0,10) || 'MISSING',
