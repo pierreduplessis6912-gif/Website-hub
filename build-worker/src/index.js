@@ -3946,6 +3946,40 @@ async function handleCron(env) {
   await logEvent(env, null, 'build', 'cron_complete', 'success', {
     metadata: { processed: prospects.results?.length || 0 }
   });
+
+  // ── 24HR NUDGE — outbound promo clients who haven't responded ──
+  try {
+    const nudgeClients = await env.DB.prepare(`
+      SELECT id, business_name, slug, phone, manage_token, promo_code FROM clients
+      WHERE source='outbound'
+        AND status='preview_ready'
+        AND created_at <= datetime('now', '-24 hours')
+        AND created_at >= datetime('now', '-48 hours')
+    `).all();
+
+    for (const c of (nudgeClients.results || [])) {
+      try {
+        const nudgeKey = `nudge_sent:${c.id}`;
+        const alreadySent = await env.SITES.get(nudgeKey);
+        if (alreadySent) continue;
+
+        const isPromo = c.promo_code === 'LAUNCH2026';
+        const promoSuffix = isPromo ? `?promo=LAUNCH2026` : '';
+        const link = `https://${PREVIEW_DOMAIN}/${c.slug}/og${promoSuffix}`;
+
+        const msg = `👋 Hi *${c.business_name}*!\n\n` +
+          `Your free website is still waiting for you — but it won't be around forever.\n\n` +
+          `Have a look before it expires:\n` +
+          `👉 ${link}\n\n` +
+          `${isPromo ? `R599/month · no build fee · cancel anytime.` : `R7,000 build fee · R699/month · cancel anytime.`}\n\n` +
+          `— Website Hub`;
+
+        await sendWhatsApp(c.phone, msg, env);
+        await env.SITES.put(nudgeKey, '1', { expirationTtl: 60 * 60 * 24 * 7 });
+        await logEvent(env, c.id, 'build', 'nudge_sent', 'success', { metadata: { slug: c.slug } });
+      } catch(e) { console.warn('Nudge failed for', c.slug, e.message); }
+    }
+  } catch(e) { console.warn('Nudge cron failed:', e.message); }
 }
 
 // ── D1 HELPERS ────────────────────────────────────────────────
