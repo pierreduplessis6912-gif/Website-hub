@@ -1462,8 +1462,7 @@ async function handleIntake(request, env) {
 
     await logEvent(env, null, 'build', 'intake_received', 'success', { metadata: { business_name, slug, pkg: packageKey } });
 
-    // GBP lookup — resolve by place_id, fall back to name+area if geocode.
-    // If gbp_url passed (short URL), try to extract place_id from it first
+    // GBP lookup — multipronged: phone → place_id/gbp_url → name+area
     let resolvedPlaceId = place_id;
     if (!resolvedPlaceId && body.gbp_url) {
       try {
@@ -1472,9 +1471,16 @@ async function handleIntake(request, env) {
       } catch(e) { console.warn('Short URL GBP resolve failed:', e.message); }
     }
 
-    if (resolvedPlaceId || business_name) {
+    // Extract area from address text if area not explicitly provided
+    let resolvedArea = area;
+    if (!resolvedArea && address) {
+      const parts = address.split(',').map(p => p.trim()).filter(Boolean);
+      resolvedArea = parts[parts.length - 1] || parts[0] || '';
+    }
+
+    if (normPhone || resolvedPlaceId || business_name) {
       try {
-        const data = await resolveGbp(env, resolvedPlaceId, business_name, area);
+        const data = await resolveGbp(env, resolvedPlaceId, business_name, resolvedArea, normPhone);
         await logEvent(env, id, 'build', 'gbp_diag', 'success', { metadata: {
           place_id: resolvedPlaceId,
           resolved: !!data,
@@ -1520,11 +1526,24 @@ function isRealEstablishment(data) {
     && !t.startsWith('administrative_area') && !t.startsWith('locality'));
 }
 
-async function resolveGbp(env, place_id, businessName, area) {
+async function resolveGbp(env, place_id, businessName, area, phone) {
   // PRINCIPLE: the business name identifies the business. The tapped place
   // only supplies a coordinate to bias proximity. The address never decides
   // *which* business — it only says "look near here." This is robust against
   // shared plaza addresses, wrong pins, geocodes, and anchor-tenant taps.
+
+  // Step 0: phone number search — most accurate, unique identifier
+  if (phone) {
+    const cleanPhone = phone.replace(/^\+/, '').replace(/\s/g, '');
+    const search = await callPlacesProxy(env,
+      'https://places.googleapis.com/v1/places:searchText',
+      'POST',
+      { textQuery: cleanPhone, regionCode: 'ZA', maxResultCount: 1 },
+      { 'X-Goog-FieldMask': GBP_SEARCH_MASK }
+    ).catch(() => null);
+    const best = search?.places?.[0];
+    if (isRealEstablishment(best)) return best;
+  }
 
   // Step 1: get a coordinate from the tapped place (works for geocode OR business)
   let coord = null;
