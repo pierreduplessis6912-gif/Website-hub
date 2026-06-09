@@ -250,18 +250,13 @@ input,select{font-family:var(--f-body)}
 </head>
 <body>
 
-<!-- AUTH -->
-<div id="authScreen">
-  <div class="auth-box">
-    <div class="auth-logo">Website<span>Hub</span> · Blast</div>
-    <input class="auth-input" id="authKey" type="password" placeholder="Admin key" onkeydown="if(event.key==='Enter')auth()">
-    <button class="auth-btn" onclick="auth()">Enter →</button>
-    <div class="auth-err" id="authErr">Incorrect key</div>
-  </div>
-</div>
+<!-- AUTH REMOVED - page is admin only -->
+<script>
+const ADMIN_KEY = 'ADMIN_KEY_CLAUDEROX';
+</script>
 
 <!-- APP -->
-<div id="app">
+<div id="app" style="display:block">
   <div class="topbar">
     <div class="topbar-logo">Website<span>Hub</span> · Blast</div>
     <div class="topbar-right">
@@ -405,22 +400,6 @@ let selectedAreas = new Set();
 let selectedIndustries = new Set();
 
 // ── AUTH ──────────────────────────────────────────────────
-function auth() {
-  const key = document.getElementById('authKey').value.trim();
-  if (!key) return;
-  ADMIN_KEY = key;
-  // Test key
-  api('/admin/health').then(() => {
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    init();
-  }).catch(() => {
-    document.getElementById('authErr').style.display = 'block';
-    ADMIN_KEY = '';
-  });
-}
-
-// ── API ──────────────────────────────────────────────────
 async function api(path, opts = {}) {
   const res = await fetch(path, {
     ...opts,
@@ -434,7 +413,6 @@ async function api(path, opts = {}) {
   return res.json();
 }
 
-// ── INIT ──────────────────────────────────────────────────
 function init() {
   buildChips('areaChips', AREAS, selectedAreas);
   buildChips('industryChips', INDUSTRIES, selectedIndustries);
@@ -718,6 +696,9 @@ function setStatus(text, live = false) {
   document.getElementById('statusText').textContent = text;
   document.getElementById('statusDot').className = 'status-dot' + (live ? ' live' : '');
 }
+
+// Auto-init
+init();
 </script>
 </body>
 </html>
