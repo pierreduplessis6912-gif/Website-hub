@@ -1548,12 +1548,23 @@ async function resolveGbp(env, place_id, businessName, area, phone) {
   // shared plaza addresses, wrong pins, geocodes, and anchor-tenant taps.
 
   // Step 0: phone number search — most accurate, unique identifier
+  // Google Places searches work with local SA format (0xx xxx xxxx) not international
   if (phone) {
-    const cleanPhone = phone.replace(/^\+/, '').replace(/\s/g, '');
+    const digits = phone.replace(/\D/g, '');
+    // Convert 27xxxxxxxxx → 0xxxxxxxxx for local format
+    let localPhone = digits;
+    if (digits.startsWith('27') && digits.length === 11) {
+      localPhone = '0' + digits.slice(2);
+    }
+    // Format as 0xx xxx xxxx
+    const formatted = localPhone.length === 10
+      ? `${localPhone.slice(0,3)} ${localPhone.slice(3,6)} ${localPhone.slice(6)}`
+      : localPhone;
+
     const search = await callPlacesProxy(env,
       'https://places.googleapis.com/v1/places:searchText',
       'POST',
-      { textQuery: cleanPhone, regionCode: 'ZA', maxResultCount: 1 },
+      { textQuery: formatted, regionCode: 'ZA', maxResultCount: 1 },
       { 'X-Goog-FieldMask': GBP_SEARCH_MASK }
     ).catch(() => null);
     const best = search?.places?.[0];
