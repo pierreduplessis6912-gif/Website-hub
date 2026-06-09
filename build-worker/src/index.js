@@ -1527,7 +1527,7 @@ async function handleIntake(request, env) {
 
 // ── GBP RESOLVE — fetch by place_id, fall back to proximity searchText if geocode ──
 const GBP_FIELD_MASK = 'id,displayName,formattedAddress,shortFormattedAddress,location,nationalPhoneNumber,internationalPhoneNumber,websiteUri,regularOpeningHours,currentOpeningHours,primaryTypeDisplayName,types,editorialSummary,reviews,rating,userRatingCount,photos,priceLevel,paymentOptions,goodForChildren,goodForGroups,liveMusic,servesBeer,servesCocktails,servesWine,servesVegetarianFood,outdoorSeating,reservable,takeout,delivery,dineIn,parkingOptions';
-const GBP_SEARCH_MASK = GBP_FIELD_MASK.split(',').map(f => 'places.' + f).join(',');
+const GBP_SEARCH_MASK = 'places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.location,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.regularOpeningHours,places.primaryTypeDisplayName,places.types,places.editorialSummary,places.reviews,places.rating,places.userRatingCount,places.photos';
 
 // A real business listing has reviews, a phone, or business types.
 // A geocode (street/suburb) has none of these — detect and re-resolve.
