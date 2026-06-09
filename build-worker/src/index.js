@@ -2080,14 +2080,14 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
   // ── PASS 0: Design Selection ────────────────────────────────
   // Fetch GBP data first — needed for selection pass
   let gbpData = null;
-  if (client.gbp_data) {
+  if (client.gbp_data && client.gbp_data !== 'null' && client.gbp_data !== '{}') {
     try { gbpData = JSON.parse(client.gbp_data); } catch {}
   }
   if (!gbpData && client.gbp_url) {
     gbpData = await fetchGbpData(client.gbp_url, env).catch(() => null);
   }
   // If still no GBP data — try resolving now using phone + name + area
-  const hasGbp = gbpData && typeof gbpData === 'object' && Object.keys(gbpData).length > 0;
+  const hasGbp = gbpData && typeof gbpData === 'object' && Object.keys(gbpData).length > 0 && gbpData.name;
   if (!hasGbp) {
     try {
       const fresh = await resolveGbp(env, client.gbp_place_id || null, client.business_name, client.area, client.phone || null);
