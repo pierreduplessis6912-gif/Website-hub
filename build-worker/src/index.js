@@ -2598,8 +2598,9 @@ async function triggerPreBuild(clientId, env, isOutbound = false) {
 
 // ── PLACES PROXY HELPER — routes all Google Places calls through VPS ─────────
 async function callPlacesProxy(env, url, method = 'GET', postBody = null, extraHeaders = {}) {
-  // API key is hardcoded in VPS proxy — Cloudflare Tunnel strips custom headers
-  const res = await fetch('https://places-proxy.websitehub.co.za', {
+  const fieldMask = extraHeaders['X-Goog-FieldMask'] || null;
+  const apiKey = env.GOOGLE_MAPS_API_KEY;
+  const res = await fetch('https://classictouchsalon.co.za/places-proxy.php', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -2609,7 +2610,8 @@ async function callPlacesProxy(env, url, method = 'GET', postBody = null, extraH
       url,
       method,
       postBody,
-      fieldMask: extraHeaders['X-Goog-FieldMask'] || null,
+      fieldMask,
+      apiKey,
     }),
   });
   if (!res.ok) return null;
