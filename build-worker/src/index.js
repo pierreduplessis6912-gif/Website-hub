@@ -530,10 +530,10 @@ async function handlePromoBlast(request, env) {
 
       await env.DB.prepare(`
         INSERT INTO clients
-          (id, business_name, slug, phone, industry, area, manage_token,
+          (id, business_name, slug, phone, industry, area, vibe, manage_token,
            referral_slug, promo_code, status, source, package, retainer)
-        VALUES (?,?,?,?,?,?,?,?,?,'lead','outbound','hub',?)
-      `).bind(id, p.business_name, slug, p.phone || '', p.industry || '', p.area || '',
+        VALUES (?,?,?,?,?,?,?,?,?,?,'lead','outbound','hub',?)
+      `).bind(id, p.business_name, slug, p.phone || '', p.industry || '', p.area || '', 'professional',
           manage_token, referral_slug, promoCode, PRICING.promo?.retainer || 599).run();
 
       await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
