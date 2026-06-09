@@ -322,6 +322,9 @@ input,select{font-family:var(--f-body)}
         <button class="scrape-btn" id="scrapeBtn" onclick="toggleScrape()">
           Start Blast →
         </button>
+        <button id="stopBtn" onclick="stopScrape()" style="display:none;width:100%;padding:12px;border-radius:10px;background:rgba(255,59,68,.1);border:1px solid rgba(255,59,68,.3);color:var(--red);font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">
+          ⛔ Stop Blast
+        </button>
         <div id="scrapeStatus" style="font-family:var(--f-mono);font-size:10px;color:var(--muted);text-align:center;margin-top:8px;min-height:14px"></div>
       </div>
 
@@ -536,6 +539,14 @@ async function manualBlast() {
 }
 
 // ── BULK SCRAPE ──────────────────────────────────────────
+var stopRequested = false;
+
+function stopScrape() {
+  stopRequested = true;
+  document.getElementById('stopBtn').textContent = '⛔ Stopping...';
+  document.getElementById('stopBtn').disabled = true;
+}
+
 async function toggleScrape() {
   if (scraping) return;
 
@@ -543,10 +554,15 @@ async function toggleScrape() {
   if (selectedIndustries.size === 0) { toast('Select at least one industry', 'err'); return; }
 
   scraping = true;
+  stopRequested = false;
   const btn = document.getElementById('scrapeBtn');
+  const stopBtn = document.getElementById('stopBtn');
   btn.classList.add('running');
   btn.textContent = 'Running...';
   btn.disabled = true;
+  stopBtn.style.display = 'block';
+  stopBtn.disabled = false;
+  stopBtn.textContent = '⛔ Stop Blast';
 
   const areas      = [...selectedAreas];
   const industries = [...selectedIndustries];
@@ -561,6 +577,7 @@ async function toggleScrape() {
   const status = document.getElementById('scrapeStatus');
 
   for (const pair of pairs) {
+    if (stopRequested) break;
     status.textContent = `${pair.industry} in ${pair.area} (${done + 1}/${pairs.length})`;
     try {
       await api('/admin/promo-blast', {
@@ -585,8 +602,9 @@ async function toggleScrape() {
   btn.classList.remove('running');
   btn.textContent = 'Start Blast →';
   btn.disabled = false;
-  status.textContent = `Done — ${done} combinations blasted`;
-  toast('Bulk blast complete', 'ok');
+  stopBtn.style.display = 'none';
+  status.textContent = stopRequested ? `Stopped after ${done} combinations` : `Done — ${done} combinations blasted`;
+  if (!stopRequested) toast('Bulk blast complete', 'ok');
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
