@@ -325,6 +325,9 @@ input,select{font-family:var(--f-body)}
         <button id="stopBtn" onclick="stopScrape()" style="display:none;width:100%;padding:12px;border-radius:10px;background:rgba(255,59,68,.1);border:1px solid rgba(255,59,68,.3);color:var(--red);font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">
           ⛔ Stop Blast
         </button>
+        <button onclick="buildPending()" style="width:100%;padding:12px;border-radius:10px;background:rgba(0,201,122,.1);border:1px solid rgba(0,201,122,.2);color:var(--green);font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">
+          Build Pending →
+        </button>
         <div id="scrapeStatus" style="font-family:var(--f-mono);font-size:10px;color:var(--muted);text-align:center;margin-top:8px;min-height:14px"></div>
       </div>
 
@@ -547,7 +550,18 @@ function stopScrape() {
   document.getElementById('stopBtn').disabled = true;
 }
 
-async function toggleScrape() {
+async function buildPending() {
+  try {
+    const result = await api('/admin/promo-blast', {
+      method: 'POST',
+      body: JSON.stringify({ industry: 'pending', province: 'pending', area: 'pending', limit: 50, skipScrape: true }),
+    });
+    toast(`✅ Built ${result.built} pending prospects`, 'ok');
+    await loadBuilds();
+  } catch(e) {
+    toast('Failed: ' + e.message, 'err');
+  }
+}
   if (scraping) return;
 
   if (selectedAreas.size === 0)      { toast('Select at least one area', 'err'); return; }
