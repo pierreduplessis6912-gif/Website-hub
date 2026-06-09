@@ -5,342 +5,143 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Blast — Website Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#0e0c09;
-  --surface:rgba(255,255,255,.04);
-  --border:rgba(255,255,255,.08);
-  --border-hi:rgba(255,255,255,.14);
-  --text:#ede9e4;
-  --muted:rgba(237,233,228,.5);
-  --cyan:#00f0ff;
-  --green:#00c97a;
-  --red:#ff3b44;
-  --orange:#f5a623;
-  --f-display:'Syne',sans-serif;
-  --f-body:'DM Sans',sans-serif;
-  --f-mono:'DM Mono',monospace;
+  --bg:#0e0c09;--border:rgba(255,255,255,.08);--border-hi:rgba(255,255,255,.14);
+  --text:#ede9e4;--muted:rgba(237,233,228,.5);
+  --cyan:#00f0ff;--green:#00c97a;--red:#ff3b44;--orange:#f5a623;
+  --f-display:'Syne',sans-serif;--f-body:'DM Sans',sans-serif;--f-mono:'DM Mono',monospace;
 }
 html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--f-body);-webkit-font-smoothing:antialiased}
 button{font-family:var(--f-body);cursor:pointer;border:none;background:none;color:inherit}
 input,select{font-family:var(--f-body)}
 
-/* ── AUTH SCREEN ── */
-#authScreen{
-  position:fixed;inset:0;background:var(--bg);
-  display:flex;align-items:center;justify-content:center;
-  z-index:100;
-}
-.auth-box{
-  width:100%;max-width:360px;padding:40px 32px;
-  background:rgba(255,255,255,.03);border:1px solid var(--border);
-  border-radius:16px;text-align:center;
-}
-.auth-logo{font-family:var(--f-display);font-size:20px;font-weight:800;margin-bottom:32px}
-.auth-logo span{color:var(--cyan)}
-.auth-input{
-  width:100%;padding:13px 16px;background:rgba(255,255,255,.06);
-  border:1px solid var(--border);border-radius:10px;
-  color:var(--text);font-size:14px;margin-bottom:12px;outline:none;
-  transition:border-color .2s;
-}
-.auth-input:focus{border-color:rgba(0,240,255,.4)}
-.auth-btn{
-  width:100%;padding:13px;border-radius:10px;
-  background:var(--cyan);color:#000;font-size:14px;font-weight:700;
-  cursor:pointer;transition:opacity .15s;
-}
-.auth-btn:hover{opacity:.9}
-.auth-err{font-size:12px;color:var(--red);margin-top:8px;display:none}
-
-/* ── LAYOUT ── */
-#app{display:none;min-height:100vh}
-.topbar{
-  position:sticky;top:0;z-index:50;
-  background:rgba(14,12,9,.9);backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--border);
-  padding:16px 24px;
-  display:flex;align-items:center;justify-content:space-between;
-}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(14,12,9,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
 .topbar-logo{font-family:var(--f-display);font-size:16px;font-weight:800}
 .topbar-logo span{color:var(--cyan)}
-.topbar-right{display:flex;align-items:center;gap:16px}
-.topbar-status{
-  display:flex;align-items:center;gap:6px;
-  font-family:var(--f-mono);font-size:10px;letter-spacing:1px;
-  text-transform:uppercase;color:var(--muted);
-}
-.status-dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
-.status-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-.layout{
-  display:grid;
-  grid-template-columns:400px 1fr;
-  min-height:calc(100vh - 57px);
-}
-@media(max-width:900px){
-  .layout{grid-template-columns:1fr}
-}
+.layout{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 57px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
 
-/* ── LEFT PANEL ── */
-.left{
-  border-right:1px solid var(--border);
-  overflow-y:auto;
-}
-.panel{padding:24px;border-bottom:1px solid var(--border)}
-.panel-title{
-  font-family:var(--f-display);font-size:13px;font-weight:700;
-  letter-spacing:.5px;text-transform:uppercase;
-  color:var(--muted);margin-bottom:16px;
-}
+.left{border-right:1px solid var(--border);overflow-y:auto}
+.panel{padding:20px;border-bottom:1px solid var(--border)}
+.panel-title{font-family:var(--f-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
 
-/* ── MANUAL BLAST ── */
 .field{margin-bottom:10px}
-.field label{
-  display:block;font-family:var(--f-mono);font-size:9px;
-  letter-spacing:2px;text-transform:uppercase;color:var(--muted);
-  margin-bottom:5px;
-}
-.field input,.field select{
-  width:100%;padding:10px 12px;
-  background:rgba(255,255,255,.05);
-  border:1px solid var(--border);border-radius:8px;
-  color:var(--text);font-size:13px;outline:none;
-  transition:border-color .2s;
-  -webkit-appearance:none;
-}
-.field input:focus,.field select:focus{border-color:rgba(0,240,255,.35)}
+.field label{display:block;font-family:var(--f-mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.field input,.field select{width:100%;padding:10px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;-webkit-appearance:none}
 .field input::placeholder{color:rgba(237,233,228,.25)}
-.field select option{background:#1a1814;color:var(--text)}
+.field select option{background:#1a1814}
 
-.blast-btn{
-  width:100%;padding:12px;border-radius:10px;
-  background:var(--cyan);color:#000;
-  font-family:var(--f-display);font-size:14px;font-weight:700;
-  cursor:pointer;transition:opacity .15s;margin-top:4px;
-}
-.blast-btn:hover{opacity:.9}
-.blast-btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-cyan{width:100%;padding:12px;border-radius:10px;background:var(--cyan);color:#000;font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;margin-top:4px}
+.btn-cyan:hover{opacity:.9}
+.btn-cyan:disabled{opacity:.4;cursor:not-allowed}
+.btn-outline{width:100%;padding:12px;border-radius:10px;background:rgba(0,240,255,.08);border:1px solid rgba(0,240,255,.2);color:var(--cyan);font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:8px}
+.btn-outline:hover{background:rgba(0,240,255,.15)}
+.btn-outline:disabled{opacity:.4;cursor:not-allowed}
+.btn-red{width:100%;padding:12px;border-radius:10px;background:rgba(255,59,68,.1);border:1px solid rgba(255,59,68,.3);color:var(--red);font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:8px;display:none}
+.btn-green{width:100%;padding:12px;border-radius:10px;background:rgba(0,201,122,.1);border:1px solid rgba(0,201,122,.2);color:var(--green);font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:8px}
 
-/* ── BULK BLAST ── */
-.toggle-row{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:16px;
-}
-.toggle-label{font-size:14px;font-weight:600}
-.toggle{
-  width:44px;height:24px;border-radius:12px;
-  background:rgba(255,255,255,.1);
-  position:relative;cursor:pointer;
-  transition:background .2s;border:none;
-}
-.toggle.on{background:var(--green)}
-.toggle::after{
-  content:'';position:absolute;top:3px;left:3px;
-  width:18px;height:18px;border-radius:50%;
-  background:#fff;transition:transform .2s;
-}
-.toggle.on::after{transform:translateX(20px)}
+.multi-label{font-family:var(--f-mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.chip{padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);transition:all .15s;user-select:none}
+.chip.on{background:rgba(0,240,255,.1);border-color:rgba(0,240,255,.3);color:var(--cyan)}
 
-.multi-select{margin-bottom:14px}
-.multi-select-label{
-  font-family:var(--f-mono);font-size:9px;letter-spacing:2px;
-  text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:block;
-}
-.chips{display:flex;flex-wrap:wrap;gap:5px}
-.chip{
-  padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;
-  background:rgba(255,255,255,.05);border:1px solid var(--border);
-  color:var(--muted);transition:all .15s;user-select:none;
-}
-.chip.selected{
-  background:rgba(0,240,255,.1);border-color:rgba(0,240,255,.3);
-  color:var(--cyan);
-}
+.scrape-status{font-family:var(--f-mono);font-size:10px;color:var(--muted);text-align:center;margin-top:8px;min-height:14px}
 
-.scrape-btn{
-  width:100%;padding:12px;border-radius:10px;
-  background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.2);
-  color:var(--cyan);font-family:var(--f-display);font-size:14px;font-weight:700;
-  cursor:pointer;transition:all .15s;
-}
-.scrape-btn:hover{background:rgba(0,240,255,.15)}
-.scrape-btn:disabled{opacity:.4;cursor:not-allowed}
-.scrape-btn.running{
-  background:rgba(245,166,35,.1);border-color:rgba(245,166,35,.3);
-  color:var(--orange);
-}
-
-/* ── RIGHT PANEL — FEED ── */
 .right{padding:24px;overflow-y:auto}
-.feed-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:20px;
-}
+.feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .feed-title{font-family:var(--f-display);font-size:18px;font-weight:700}
-.feed-count{
-  font-family:var(--f-mono);font-size:11px;color:var(--muted);
-  background:rgba(255,255,255,.05);border:1px solid var(--border);
-  padding:4px 10px;border-radius:20px;
-}
-
-.feed-tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)}
-.feed-tab{
-  padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;
-  color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;
-  margin-bottom:-1px;
-}
-.feed-tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.feed-count{font-family:var(--f-mono);font-size:11px;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--border);padding:4px 10px;border-radius:20px}
+.feed-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)}
+.tab{padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px}
+.tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
 
 .build-list{display:flex;flex-direction:column;gap:8px}
-.build-card{
-  padding:14px 16px;
-  background:rgba(255,255,255,.03);border:1px solid var(--border);
-  border-radius:12px;display:flex;align-items:center;gap:12px;
-  transition:border-color .2s;
-}
+.build-card{padding:14px 16px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .2s}
 .build-card:hover{border-color:var(--border-hi)}
-.build-icon{
-  width:36px;height:36px;border-radius:8px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;font-size:16px;
-  background:rgba(255,255,255,.05);
-}
+.build-icon{width:36px;height:36px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(255,255,255,.05)}
 .build-info{flex:1;min-width:0}
-.build-name{font-size:13px;font-weight:600;margin-bottom:2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.build-name{font-size:13px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .build-meta{font-family:var(--f-mono);font-size:10px;color:var(--muted);letter-spacing:.3px}
-.build-status{
-  font-family:var(--f-mono);font-size:9px;letter-spacing:1px;
-  text-transform:uppercase;padding:3px 8px;border-radius:20px;flex-shrink:0;
-}
+.build-status{font-family:var(--f-mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:20px;flex-shrink:0}
 .build-status.building{background:rgba(245,166,35,.1);color:var(--orange)}
-.build-status.sent{background:rgba(0,201,122,.1);color:var(--green)}
+.build-status.preview_ready,.build-status.complete{background:rgba(0,240,255,.1);color:var(--cyan)}
 .build-status.failed{background:rgba(255,59,68,.1);color:var(--red)}
-.build-status.preview_ready{background:rgba(0,240,255,.1);color:var(--cyan)}
+.build-status.lead{background:rgba(255,255,255,.05);color:var(--muted)}
+.view-btn{font-family:var(--f-mono);font-size:9px;letter-spacing:1px;color:var(--cyan);text-decoration:none;flex-shrink:0;padding:4px 8px;border:1px solid rgba(0,240,255,.2);border-radius:6px}
 
-.empty-feed{
-  text-align:center;padding:60px 20px;
-  font-size:13px;color:var(--muted);
-}
-.empty-feed .big{font-size:32px;margin-bottom:12px}
+.empty{text-align:center;padding:60px 20px;font-size:13px;color:var(--muted)}
+.empty .big{font-size:32px;margin-bottom:12px}
 
-/* ── TOAST ── */
-.toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-  background:#1a1814;border:1px solid var(--border-hi);
-  padding:10px 20px;border-radius:10px;font-size:13px;
-  z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;
-  white-space:nowrap;
-}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1814;border:1px solid var(--border-hi);padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
 .toast.ok{border-color:rgba(0,201,122,.3);color:var(--green)}
 .toast.err{border-color:rgba(255,59,68,.3);color:var(--red)}
 
-/* ── SPINNER ── */
-.spin{
-  display:inline-block;width:12px;height:12px;border-radius:50%;
-  border:2px solid rgba(0,0,0,.2);border-top-color:#000;
-  animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;
-}
+.spin{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid rgba(0,0,0,.2);border-top-color:#000;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 
-<!-- AUTH REMOVED - page is admin only -->
+<div class="topbar">
+  <div class="topbar-logo">Website<span>Hub</span> · Blast</div>
+  <div style="display:flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">
+    <div class="status-dot"></div>
+    <span>Live</span>
+  </div>
+</div>
 
-<!-- APP -->
-<div id="app" style="display:block">
-  <div class="topbar">
-    <div class="topbar-logo">Website<span>Hub</span> · Blast</div>
-    <div class="topbar-right">
-      <div class="topbar-status" id="statusBar">
-        <div class="status-dot" id="statusDot"></div>
-        <span id="statusText">Ready</span>
+<div class="layout">
+  <div class="left">
+
+    <!-- Manual Blast -->
+    <div class="panel">
+      <div class="panel-title">Manual Blast</div>
+      <div class="field"><label>Business name *</label><input id="mBiz" type="text" placeholder="e.g. Cape Town Plumbing"></div>
+      <div class="field"><label>WhatsApp number *</label><input id="mPhone" type="tel" placeholder="e.g. 082 123 4567"></div>
+      <div class="field"><label>City or town *</label><input id="mArea" type="text" placeholder="e.g. Richards Bay"></div>
+      <div class="field">
+        <label>Industry *</label>
+        <select id="mIndustry"><option value="">Select industry...</option></select>
       </div>
+      <div class="field"><label>Google Maps link <span style="opacity:.5">(optional)</span></label><input id="mGbp" type="url" placeholder="Paste Google Maps link"></div>
+      <button class="btn-cyan" id="manualBtn" onclick="manualBlast()">Blast →</button>
     </div>
+
+    <!-- Bulk Blast -->
+    <div class="panel">
+      <div class="panel-title">Bulk Scrape & Blast</div>
+      <span class="multi-label">Areas</span>
+      <div class="chips" id="areaChips"></div>
+      <span class="multi-label">Industries</span>
+      <div class="chips" id="industryChips"></div>
+      <button class="btn-outline" id="scrapeBtn" onclick="startBlast()">Start Blast →</button>
+      <button class="btn-red" id="stopBtn" onclick="stopBlast()">⛔ Stop Blast</button>
+      <button class="btn-green" onclick="buildPending()">Build Pending →</button>
+      <div class="scrape-status" id="scrapeStatus"></div>
+    </div>
+
   </div>
 
-  <div class="layout">
-
-    <!-- LEFT -->
-    <div class="left">
-
-      <!-- Manual Blast -->
-      <div class="panel">
-        <div class="panel-title">Manual Blast</div>
-        <div class="field">
-          <label>Business name *</label>
-          <input id="mBiz" type="text" placeholder="e.g. Cape Town Plumbing">
-        </div>
-        <div class="field">
-          <label>WhatsApp number *</label>
-          <input id="mPhone" type="tel" placeholder="e.g. 082 123 4567">
-        </div>
-        <div class="field">
-          <label>City or town *</label>
-          <input id="mArea" type="text" placeholder="e.g. Richards Bay">
-        </div>
-        <div class="field">
-          <label>Industry *</label>
-          <select id="mIndustry">
-            <option value="">Select industry...</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Google Maps link <span style="opacity:.5;font-size:9px">(optional — pulls photos & reviews)</span></label>
-          <input id="mGbp" type="url" placeholder="Paste Google Maps link">
-        </div>
-        <button class="blast-btn" id="manualBtn" onclick="manualBlast()">Blast →</button>
-      </div>
-
-      <!-- Bulk Blast -->
-      <div class="panel">
-        <div class="panel-title">Bulk Scrape & Blast</div>
-
-        <div class="multi-select">
-          <span class="multi-select-label">Areas</span>
-          <div class="chips" id="areaChips"></div>
-        </div>
-
-        <div class="multi-select">
-          <span class="multi-select-label">Industries</span>
-          <div class="chips" id="industryChips"></div>
-        </div>
-
-        <button class="scrape-btn" id="scrapeBtn" onclick="toggleScrape()">
-          Start Blast →
-        </button>
-        <button id="stopBtn" onclick="stopScrape()" style="display:none;width:100%;padding:12px;border-radius:10px;background:rgba(255,59,68,.1);border:1px solid rgba(255,59,68,.3);color:var(--red);font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">
-          ⛔ Stop Blast
-        </button>
-        <button onclick="buildPending()" style="width:100%;padding:12px;border-radius:10px;background:rgba(0,201,122,.1);border:1px solid rgba(0,201,122,.2);color:var(--green);font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">
-          Build Pending →
-        </button>
-        <div id="scrapeStatus" style="font-family:var(--f-mono);font-size:10px;color:var(--muted);text-align:center;margin-top:8px;min-height:14px"></div>
-      </div>
-
+  <div class="right">
+    <div class="feed-header">
+      <div class="feed-title">Builds</div>
+      <div class="feed-count" id="feedCount">0 builds</div>
     </div>
-
-    <!-- RIGHT — FEED -->
-    <div class="right">
-      <div class="feed-header">
-        <div class="feed-title">Builds</div>
-        <div class="feed-count" id="feedCount">0 builds</div>
-      </div>
-      <div class="feed-tabs">
-        <div class="feed-tab active" onclick="setTab('all')" id="tab-all">All</div>
-        <div class="feed-tab" onclick="setTab('manual')" id="tab-manual">Manual</div>
-        <div class="feed-tab" onclick="setTab('scrape')" id="tab-scrape">Scrape</div>
-      </div>
-      <div class="build-list" id="buildList">
-        <div class="empty-feed"><div class="big">📡</div>No builds yet — fire your first blast</div>
-      </div>
+    <div class="feed-tabs">
+      <div class="tab on" id="tab-all" onclick="setTab('all')">All</div>
+      <div class="tab" id="tab-manual" onclick="setTab('manual')">Manual</div>
+      <div class="tab" id="tab-scrape" onclick="setTab('scrape')">Scrape</div>
     </div>
-
+    <div class="build-list" id="buildList">
+      <div class="empty"><div class="big">📡</div>No builds yet</div>
+    </div>
   </div>
 </div>
 
@@ -351,176 +152,105 @@ input,select{font-family:var(--f-body)}
 
 const ADMIN_KEY = 'ADMIN_KEY_CLAUDEROX';
 
-const AREAS = [
-  'Richards Bay','Empangeni','Durban','Pietermaritzburg','Newcastle',
-  'Johannesburg','Pretoria','Sandton','Randburg','Soweto',
-  'Cape Town','Stellenbosch','Paarl','George',
-  'Bloemfontein','Kimberley',
-  'Port Elizabeth','East London',
-  'Nelspruit','Polokwane',
-  'Rustenburg','Klerksdorp',
-];
+const AREAS = ['Richards Bay','Empangeni','Durban','Pietermaritzburg','Newcastle','Johannesburg','Pretoria','Sandton','Randburg','Soweto','Cape Town','Stellenbosch','Paarl','George','Bloemfontein','Kimberley','Port Elizabeth','East London','Nelspruit','Polokwane','Rustenburg','Klerksdorp'];
 
-const INDUSTRIES = [
-  'Plumber','Electrician','Builder','Painter','Roofer','Flooring',
-  'Curtains / Blinds','Panel Beater','Car Wash','Landscaping',
-  'Hair Salon','Barber','Nails','Spa / Massage','Beauty Salon',
-  'Restaurant','Coffee Shop','Bakery','Catering','Shisa Nyama',
-  'Butchery','Cleaning Service','Laundry','Pest Control',
-  'Florist','Optometrist','Dentist','Physiotherapy','Gym / Fitness',
-  'Security Company','Solar Installation','HVAC / Aircon',
-  'Photographer','Videographer','Event Planning','Mechanic','Tyre Shop',
-];
+const INDUSTRIES = ['Plumber','Electrician','Builder','Painter','Roofer','Flooring','Curtains / Blinds','Panel Beater','Car Wash','Landscaping','Hair Salon','Barber','Nails','Spa / Massage','Beauty Salon','Restaurant','Coffee Shop','Bakery','Catering','Shisa Nyama','Butchery','Cleaning Service','Laundry','Pest Control','Florist','Optometrist','Dentist','Physiotherapy','Gym / Fitness','Security Company','Solar Installation','HVAC / Aircon','Photographer','Videographer','Event Planning','Mechanic','Tyre Shop'];
 
-const INDUSTRY_MAP = {
-  'Plumber':'plumbing','Electrician':'electrician','Builder':'construction',
-  'Painter':'painting','Roofer':'roofing','Flooring':'flooring',
-  'Curtains / Blinds':'blinds curtains','Panel Beater':'panel beating',
-  'Car Wash':'car wash','Landscaping':'landscaping',
-  'Hair Salon':'hair salon','Barber':'barbershop','Nails':'nail salon',
-  'Spa / Massage':'spa massage','Beauty Salon':'beauty salon',
-  'Restaurant':'restaurant','Coffee Shop':'coffee shop cafe',
-  'Bakery':'bakery','Catering':'catering','Shisa Nyama':'shisanyama',
-  'Butchery':'butchery','Cleaning Service':'cleaning',
-  'Laundry':'laundry','Pest Control':'pest control',
-  'Florist':'florist','Optometrist':'optometrist',
-  'Dentist':'dentist','Physiotherapy':'physiotherapy',
-  'Gym / Fitness':'gym fitness','Security Company':'security',
-  'Solar Installation':'solar','HVAC / Aircon':'aircon hvac',
-  'Photographer':'photographer','Videographer':'videographer',
-  'Event Planning':'events','Mechanic':'mechanic','Tyre Shop':'tyres',
-};
+const INDUSTRY_MAP = {'Plumber':'plumbing','Electrician':'electrician','Builder':'construction','Painter':'painting','Roofer':'roofing','Flooring':'flooring','Curtains / Blinds':'blinds curtains','Panel Beater':'panel beating','Car Wash':'car wash','Landscaping':'landscaping','Hair Salon':'hair salon','Barber':'barbershop','Nails':'nail salon','Spa / Massage':'spa massage','Beauty Salon':'beauty salon','Restaurant':'restaurant','Coffee Shop':'coffee shop cafe','Bakery':'bakery','Catering':'catering','Shisa Nyama':'shisanyama','Butchery':'butchery','Cleaning Service':'cleaning','Laundry':'laundry','Pest Control':'pest control','Florist':'florist','Optometrist':'optometrist','Dentist':'dentist','Physiotherapy':'physiotherapy','Gym / Fitness':'gym fitness','Security Company':'security','Solar Installation':'solar','HVAC / Aircon':'aircon hvac','Photographer':'photographer','Videographer':'videographer','Event Planning':'events','Mechanic':'mechanic','Tyre Shop':'tyres'};
+
+const ICONS = {'plumb':'🔧','electr':'⚡','build':'🏗️','paint':'🎨','roof':'🏠','floor':'🪵','blind':'🪟','panel':'🚗','car':'🚗','wash':'🚿','landscape':'🌿','hair':'💈','barber':'✂️','nail':'💅','spa':'🧖','beauty':'💄','restaurant':'🍽️','coffee':'☕','caf':'☕','bak':'🥐','cater':'🍱','shisa':'🔥','butch':'🥩','clean':'🧹','laun':'👕','pest':'🐛','florist':'🌸','flower':'🌸','optom':'👁️','dent':'🦷','physio':'💪','gym':'🏋️','secur':'🛡️','solar':'☀️','hvac':'❄️','photo':'📸','video':'🎥','event':'🎉','mech':'🔩','tyre':'🛞'};
 
 let activeTab = 'all';
 let builds = [];
 let scraping = false;
+let stopRequested = false;
 let selectedAreas = new Set();
 let selectedIndustries = new Set();
 
-// ── AUTH ──────────────────────────────────────────────────
 async function api(path, opts = {}) {
-  const res = await fetch(path, {
-    ...opts,
-    headers: {
-      'x-admin-key': ADMIN_KEY,
-      'Content-Type': 'application/json',
-      ...(opts.headers || {}),
-    },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const res = await fetch(path, { ...opts, headers: { 'x-admin-key': ADMIN_KEY, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
 }
 
 function init() {
-  buildChips('areaChips', AREAS, selectedAreas);
-  buildChips('industryChips', INDUSTRIES, selectedIndustries);
-  populateIndustrySelect();
+  // Build area chips
+  document.getElementById('areaChips').innerHTML = AREAS.map(a => `<div class="chip" onclick="toggleChip(this,'${a}',true)">${a}</div>`).join('');
+  // Build industry chips
+  document.getElementById('industryChips').innerHTML = INDUSTRIES.map(i => `<div class="chip" onclick="toggleChip(this,'${i}',false)">${i}</div>`).join('');
+  // Populate industry select
+  const sel = document.getElementById('mIndustry');
+  INDUSTRIES.forEach(i => { const o = document.createElement('option'); o.value = INDUSTRY_MAP[i] || i.toLowerCase(); o.textContent = i; sel.appendChild(o); });
+  // Load builds
   loadBuilds();
   setInterval(loadBuilds, 10000);
 }
 
-function buildChips(containerId, items, set) {
-  const el = document.getElementById(containerId);
-  el.innerHTML = items.map(item => `
-    <div class="chip" onclick="toggleChip(this,'${item}',${containerId === 'areaChips' ? 'true' : 'false'})">${item}</div>
-  `).join('');
-}
-
 function toggleChip(el, value, isArea) {
   const set = isArea ? selectedAreas : selectedIndustries;
-  if (set.has(value)) { set.delete(value); el.classList.remove('selected'); }
-  else { set.add(value); el.classList.add('selected'); }
+  if (set.has(value)) { set.delete(value); el.classList.remove('on'); }
+  else { set.add(value); el.classList.add('on'); }
 }
 
-function populateIndustrySelect() {
-  const sel = document.getElementById('mIndustry');
-  INDUSTRIES.forEach(i => {
-    const opt = document.createElement('option');
-    opt.value = INDUSTRY_MAP[i] || i.toLowerCase();
-    opt.textContent = i;
-    sel.appendChild(opt);
-  });
-}
-
-// ── MANUAL BLAST ──────────────────────────────────────────
 async function manualBlast() {
-  const biz     = document.getElementById('mBiz').value.trim();
-  const phone   = document.getElementById('mPhone').value.trim();
-  const area    = document.getElementById('mArea').value.trim();
+  const biz = document.getElementById('mBiz').value.trim();
+  const phone = document.getElementById('mPhone').value.trim();
+  const area = document.getElementById('mArea').value.trim();
   const industry = document.getElementById('mIndustry').value;
-  const gbpUrl  = document.getElementById('mGbp').value.trim();
-
-  if (!biz)      { toast('Business name required', 'err'); return; }
-  if (!phone)    { toast('Phone number required', 'err'); return; }
-  if (!area)     { toast('City or town required', 'err'); return; }
+  const gbpUrl = document.getElementById('mGbp').value.trim();
+  if (!biz) { toast('Business name required', 'err'); return; }
+  if (!phone) { toast('Phone number required', 'err'); return; }
+  if (!area) { toast('City required', 'err'); return; }
   if (!industry) { toast('Select an industry', 'err'); return; }
-
   let normPhone = phone.replace(/\D/g,'');
   if (normPhone.startsWith('0')) normPhone = '27' + normPhone.slice(1);
   if (!normPhone.startsWith('27')) normPhone = '27' + normPhone;
-
-  // Extract place_id from Maps URL if provided
-  let placeId = '';
-  let gbpUrlFinal = '';
-  if (gbpUrl) {
-    const chMatch = gbpUrl.match(/ChI[A-Za-z0-9_-]+/);
-    if (chMatch) placeId = chMatch[0];
-    else gbpUrlFinal = gbpUrl;
-  }
-
+  let placeId = '', gbpUrlFinal = '';
+  if (gbpUrl) { const m = gbpUrl.match(/ChI[A-Za-z0-9_-]+/); if (m) placeId = m[0]; else gbpUrlFinal = gbpUrl; }
   const btn = document.getElementById('manualBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span>Blasting...';
-
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Blasting...';
   try {
-    const result = await api('/intake', {
-      method: 'POST',
-      body: JSON.stringify({
-        business_name: biz,
-        phone:         normPhone,
-        area:          area,
-        address:       area,
-        industry:      industry,
-        place_id:      placeId,
-        gbp_url:       gbpUrlFinal,
-        package:       'hub',
-        promo_code:    'LAUNCH2026',
-        source:        'manual_blast',
-        isOutbound:    true,
-      }),
-    });
-
-    toast(`✅ Blasting ${biz}`, 'ok');
-    document.getElementById('mBiz').value   = '';
+    await api('/intake', { method: 'POST', body: JSON.stringify({ business_name: biz, phone: normPhone, area, address: area, industry, place_id: placeId, gbp_url: gbpUrlFinal, package: 'hub', promo_code: 'LAUNCH2026', source: 'manual_blast', isOutbound: true }) });
+    toast('✅ Blasting ' + biz, 'ok');
+    document.getElementById('mBiz').value = '';
     document.getElementById('mPhone').value = '';
-    document.getElementById('mArea').value  = '';
-    document.getElementById('mGbp').value   = '';
+    document.getElementById('mArea').value = '';
+    document.getElementById('mGbp').value = '';
     document.getElementById('mIndustry').value = '';
-
-    // Add to feed immediately
-    builds.unshift({
-      business_name: biz,
-      slug: result.slug,
-      status: 'building',
-      source: 'manual',
-      area: area,
-      industry: industry,
-      created_at: new Date().toISOString(),
-    });
-    renderBuilds();
-
-  } catch(e) {
-    toast('Blast failed: ' + e.message, 'err');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Blast →';
-  }
+    await loadBuilds();
+  } catch(e) { toast('Failed: ' + e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = 'Blast →'; }
 }
 
-// ── BULK SCRAPE ──────────────────────────────────────────
-var stopRequested = false;
+async function startBlast() {
+  if (selectedAreas.size === 0) { toast('Select at least one area', 'err'); return; }
+  if (selectedIndustries.size === 0) { toast('Select at least one industry', 'err'); return; }
+  scraping = true; stopRequested = false;
+  document.getElementById('scrapeBtn').disabled = true;
+  document.getElementById('scrapeBtn').textContent = 'Running...';
+  document.getElementById('stopBtn').style.display = 'block';
+  const pairs = [];
+  for (const area of selectedAreas) for (const ind of selectedIndustries) pairs.push({ area, industry: INDUSTRY_MAP[ind] || ind.toLowerCase() });
+  let done = 0;
+  const status = document.getElementById('scrapeStatus');
+  for (const pair of pairs) {
+    if (stopRequested) break;
+    status.textContent = pair.industry + ' in ' + pair.area + ' (' + (done+1) + '/' + pairs.length + ')';
+    try { await api('/admin/promo-blast', { method: 'POST', body: JSON.stringify({ industry: pair.industry, province: pair.area, area: pair.area, limit: 20, promoCode: 'LAUNCH2026' }) }); }
+    catch(e) { console.warn('Blast failed:', e.message); }
+    done++;
+    await loadBuilds();
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  scraping = false;
+  document.getElementById('scrapeBtn').disabled = false;
+  document.getElementById('scrapeBtn').textContent = 'Start Blast →';
+  document.getElementById('stopBtn').style.display = 'none';
+  status.textContent = stopRequested ? 'Stopped after ' + done + ' combinations' : 'Done — ' + done + ' blasted';
+  if (!stopRequested) toast('Bulk blast complete', 'ok');
+}
 
-function stopScrape() {
+function stopBlast() {
   stopRequested = true;
   document.getElementById('stopBtn').textContent = '⛔ Stopping...';
   document.getElementById('stopBtn').disabled = true;
@@ -528,174 +258,69 @@ function stopScrape() {
 
 async function buildPending() {
   try {
-    const result = await api('/admin/promo-blast', {
-      method: 'POST',
-      body: JSON.stringify({ industry: 'pending', province: 'pending', area: 'pending', limit: 50, skipScrape: true }),
-    });
-    toast(`✅ Built ${result.built} pending prospects`, 'ok');
+    const r = await api('/admin/promo-blast', { method: 'POST', body: JSON.stringify({ industry: 'x', province: 'x', area: 'x', limit: 50, skipScrape: true }) });
+    toast('✅ Built ' + r.built + ' pending', 'ok');
     await loadBuilds();
-  } catch(e) {
-    toast('Failed: ' + e.message, 'err');
-  }
-}
-  if (scraping) return;
-
-  if (selectedAreas.size === 0)      { toast('Select at least one area', 'err'); return; }
-  if (selectedIndustries.size === 0) { toast('Select at least one industry', 'err'); return; }
-
-  scraping = true;
-  stopRequested = false;
-  const btn = document.getElementById('scrapeBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  btn.classList.add('running');
-  btn.textContent = 'Running...';
-  btn.disabled = true;
-  stopBtn.style.display = 'block';
-  stopBtn.disabled = false;
-  stopBtn.textContent = '⛔ Stop Blast';
-
-  const areas      = [...selectedAreas];
-  const industries = [...selectedIndustries];
-  const pairs      = [];
-  for (const area of areas) {
-    for (const ind of industries) {
-      pairs.push({ area, industry: INDUSTRY_MAP[ind] || ind.toLowerCase() });
-    }
-  }
-
-  let done = 0;
-  const status = document.getElementById('scrapeStatus');
-
-  for (const pair of pairs) {
-    if (stopRequested) break;
-    status.textContent = `${pair.industry} in ${pair.area} (${done + 1}/${pairs.length})`;
-    try {
-      await api('/admin/promo-blast', {
-        method: 'POST',
-        body: JSON.stringify({
-          industry:   pair.industry,
-          province:   pair.area,
-          area:       pair.area,
-          limit:      20,
-          promoCode:  'LAUNCH2026',
-        }),
-      });
-    } catch(e) {
-      console.warn('Blast failed:', pair, e.message);
-    }
-    done++;
-    await loadBuilds();
-    await sleep(2000);
-  }
-
-  scraping = false;
-  btn.classList.remove('running');
-  btn.textContent = 'Start Blast →';
-  btn.disabled = false;
-  stopBtn.style.display = 'none';
-  status.textContent = stopRequested ? `Stopped after ${done} combinations` : `Done — ${done} combinations blasted`;
-  if (!stopRequested) toast('Bulk blast complete', 'ok');
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ── BUILDS FEED ──────────────────────────────────────────
-async function loadBuilds() {
-  try {
-    const d = await api('/admin/query', {
-      method: 'POST',
-      body: JSON.stringify({
-        sql: `SELECT business_name, slug, status, source, industry, area, created_at
-              FROM clients
-              ORDER BY created_at DESC
-              LIMIT 100`
-      }),
-    });
-    builds = (d.results || []).map(r => ({...r, fromDB: true}));
-    renderBuilds();
-  } catch(e) { console.warn('Feed load failed:', e.message); }
+  } catch(e) { toast('Failed: ' + e.message, 'err'); }
 }
 
 function setTab(tab) {
   activeTab = tab;
-  document.querySelectorAll('.feed-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
+  ['all','manual','scrape'].forEach(t => { document.getElementById('tab-'+t).className = 'tab' + (t===tab?' on':''); });
   renderBuilds();
+}
+
+async function loadBuilds() {
+  try {
+    const d = await api('/admin/query', { method: 'POST', body: JSON.stringify({ sql: 'SELECT business_name, slug, status, source, industry, area, created_at FROM clients ORDER BY created_at DESC LIMIT 100' }) });
+    builds = d.results || [];
+    renderBuilds();
+  } catch(e) {}
+}
+
+function getIcon(industry) {
+  if (!industry) return '🏢';
+  const k = industry.toLowerCase();
+  for (const [key, icon] of Object.entries(ICONS)) { if (k.includes(key)) return icon; }
+  return '🏢';
+}
+
+function timeAgo(d) {
+  const diff = Date.now() - new Date(d).getTime();
+  const m = Math.floor(diff/60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m/60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h/24) + 'd ago';
 }
 
 function renderBuilds() {
   const list = document.getElementById('buildList');
   const count = document.getElementById('feedCount');
-
   let filtered = builds;
-  if (activeTab === 'manual') filtered = builds.filter(b => b.source === 'manual_blast' || b.source === 'website' || b.source === 'manual');
+  if (activeTab === 'manual') filtered = builds.filter(b => b.source === 'manual_blast' || b.source === 'website');
   if (activeTab === 'scrape') filtered = builds.filter(b => b.source === 'outbound');
-
   count.textContent = filtered.length + ' build' + (filtered.length !== 1 ? 's' : '');
-
-  if (!filtered.length) {
-    list.innerHTML = '<div class="empty-feed"><div class="big">📡</div>No builds yet</div>';
-    return;
-  }
-
-  const ICONS = {
-    plumb:'🔧', electr:'⚡', build:'🏗️', paint:'🎨', roof:'🏠',
-    floor:'🪵', blind:'🪟', panel:'🚗', car:'🚗', wash:'🚿',
-    landscape:'🌿', hair:'💈', barber:'✂️', nail:'💅', spa:'🧖',
-    beauty:'💄', restaurant:'🍽️', coffee:'☕', caf:'☕', bak:'🥐',
-    cater:'🍱', shisa:'🔥', butch:'🥩', clean:'🧹', laun:'👕',
-    pest:'🐛', florist:'🌸', flower:'🌸', optom:'👁️', dent:'🦷',
-    physio:'💪', gym:'🏋️', secur:'🛡️', solar:'☀️', hvac:'❄️',
-    photo:'📸', video:'🎥', event:'🎉', mech:'🔩', tyre:'🛞',
-  };
-
-  function getIcon(industry) {
-    if (!industry) return '🏢';
-    const k = industry.toLowerCase();
-    for (const [key, icon] of Object.entries(ICONS)) {
-      if (k.includes(key)) return icon;
-    }
-    return '🏢';
-  }
-
-  function timeAgo(dateStr) {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return m + 'm ago';
-    const h = Math.floor(m / 60);
-    if (h < 24) return h + 'h ago';
-    return Math.floor(h / 24) + 'd ago';
-  }
-
+  if (!filtered.length) { list.innerHTML = '<div class="empty"><div class="big">📡</div>No builds yet</div>'; return; }
   list.innerHTML = filtered.map(b => `
-    <div class="build-card" onclick="b.slug && window.open('https://preview.websitehub.co.za/' + b.slug,'_blank')" style="cursor:pointer">
+    <div class="build-card" onclick="b.slug && window.open('https://preview.websitehub.co.za/'+b.slug,'_blank')">
       <div class="build-icon">${getIcon(b.industry)}</div>
       <div class="build-info">
         <div class="build-name">${b.business_name || '—'}</div>
         <div class="build-meta">${b.area || ''} · ${b.industry || ''} · ${timeAgo(b.created_at)}</div>
       </div>
-      <div class="build-status ${b.status}">${b.status === 'preview_ready' ? 'ready' : b.status || 'building'}</div>
-      ${b.slug && b.status === 'preview_ready' ? `<a href="https://preview.websitehub.co.za/${b.slug}" target="_blank" onclick="event.stopPropagation()" style="font-family:var(--f-mono);font-size:9px;letter-spacing:1px;color:var(--cyan);text-decoration:none;flex-shrink:0;padding:4px 8px;border:1px solid rgba(0,240,255,.2);border-radius:6px">View →</a>` : ''}
-    </div>
-  `).join('');
+      <div class="build-status ${b.status}">${b.status || 'building'}</div>
+      ${b.slug && (b.status === 'preview_ready' || b.status === 'complete') ? `<a href="https://preview.websitehub.co.za/${b.slug}" target="_blank" onclick="event.stopPropagation()" class="view-btn">View →</a>` : ''}
+    </div>`).join('');
 }
 
-// ── TOAST ──────────────────────────────────────────────────
-function toast(msg, type = 'ok') {
+function toast(msg, type) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast show ' + type;
+  el.textContent = msg; el.className = 'toast show ' + (type||'ok');
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// ── STATUS BAR ──────────────────────────────────────────────
-function setStatus(text, live = false) {
-  document.getElementById('statusText').textContent = text;
-  document.getElementById('statusDot').className = 'status-dot' + (live ? ' live' : '');
-}
-
-// Auto-init
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
