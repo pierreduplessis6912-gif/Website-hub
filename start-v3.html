@@ -316,11 +316,9 @@ body::after{
           oninput="onIndustryInput(this.value)" onblur="setTimeout(hideIndustrySuggestions,300)">
         <div id="industrySuggestions" style="display:none;position:absolute;z-index:100;width:100%;background:#1e1e1e;border:1.5px solid rgba(0,240,255,.3);border-radius:12px;margin-top:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);max-height:200px;overflow-y:auto"></div>
       </div>
-      <div class="field-group" style="position:relative">
-        <label class="field-label">Where are you based?</label>
-        <input class="field-input" id="addressInput" type="text" placeholder="e.g. Sandton, Richards Bay, Bellville..." autocomplete="off"
-          oninput="onAddressInput(this.value)" onblur="setTimeout(hideAddressSuggestions,300)">
-        <div id="addressSuggestions" style="display:none;position:absolute;z-index:100;width:calc(100% - 32px);background:#1e1e1e;border:1.5px solid rgba(0,240,255,.3);border-radius:12px;margin-top:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
+      <div class="field-group">
+        <label class="field-label">City or town</label>
+        <input class="field-input" id="addressInput" type="text" placeholder="e.g. Richards Bay, Nigel, Durban" autocomplete="off" autocapitalize="words">
       </div>
       <div class="field-group">
         <label class="field-label">WhatsApp number</label>
@@ -331,12 +329,12 @@ body::after{
         <input class="field-input" id="emailInput" type="email" placeholder="e.g. you@gmail.com" autocomplete="email">
       </div>
       <div class="field-group">
-        <label class="field-label">Instagram handle <span style="color:var(--muted);font-weight:400">(optional)</span></label>
-        <input class="field-input" id="instaInput" type="text" placeholder="@yourbusiness" autocomplete="off" autocapitalize="none">
+        <label class="field-label">Google Business link <span style="color:var(--muted);font-weight:400">(optional — helps us pull your photos & reviews)</span></label>
+        <input class="field-input" id="gbpInput" type="url" placeholder="Paste your Google Maps link" autocomplete="off">
       </div>
       <div class="field-group">
-        <label class="field-label">Facebook page URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
-        <input class="field-input" id="fbInput" type="url" placeholder="facebook.com/yourbusiness" autocomplete="off">
+        <label class="field-label">Instagram handle <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <input class="field-input" id="instaInput" type="text" placeholder="@yourbusiness" autocomplete="off" autocapitalize="none">
       </div>
 
       <!-- Terms acceptance -->
@@ -748,9 +746,10 @@ async function submitIntake() {
       body: JSON.stringify({
         business_name:    S.biz,
         industry:         document.getElementById('industryInput')?.value || '',
-        address:          S.address || document.getElementById('addressInput')?.value || '',
-        area:             S.area || '',
+        address:          document.getElementById('addressInput')?.value?.trim() || '',
+        area:             document.getElementById('addressInput')?.value?.trim() || '',
         place_id:         S.placeId || '',
+        gbp_url:          document.getElementById('gbpInput')?.value?.trim() || '',
         client_name:      name,
         phone:            normalisePhone(phone),
         email:            email,
