@@ -2075,6 +2075,19 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
   if (!gbpData && client.gbp_url) {
     gbpData = await fetchGbpData(client.gbp_url, env).catch(() => null);
   }
+  // If still no GBP data — try resolving now using phone + name + area
+  if (!gbpData) {
+    try {
+      const fresh = await resolveGbp(env, client.gbp_place_id || null, client.business_name, client.area, client.phone || null);
+      if (fresh && isRealEstablishment(fresh)) {
+        gbpData = shapeGbp(fresh, client.business_name);
+        await env.DB.prepare(
+          `UPDATE clients SET gbp_data=?, gbp_place_id=? WHERE id=?`
+        ).bind(JSON.stringify(gbpData), gbpData.placeId || '', clientId).run().catch(() => {});
+        await logEvent(env, clientId, 'build', 'gbp_write', 'success', { metadata: { wrote: gbpData.name, reviews: gbpData.reviewCount } });
+      }
+    } catch(e) { console.warn('triggerFullBuild GBP lookup failed:', e.message); }
+  }
 
   // Fetch Instagram photos if handle provided
   let instaPhotos = [];
