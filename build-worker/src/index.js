@@ -2089,6 +2089,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
   // If still no GBP data — try resolving now using phone + name + area
   if (!gbpData) {
     try {
+      await logEvent(env, clientId, 'build', 'gbp_attempt', 'info', { metadata: { phone: client.phone, name: client.business_name, area: client.area } });
       const fresh = await resolveGbp(env, client.gbp_place_id || null, client.business_name, client.area, client.phone || null);
       if (fresh && isRealEstablishment(fresh)) {
         gbpData = shapeGbp(fresh, client.business_name);
