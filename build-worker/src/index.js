@@ -622,6 +622,13 @@ async function handleScrape(request, env) {
     const phone = normalisePhone(p.internationalPhoneNumber || p.nationalPhoneNumber || '');
     if (!phone) { skipped++; continue; }
 
+    // Skip landlines — can't WhatsApp them
+    // Normalised format: 27XXXXXXXXX
+    // SA mobiles start with 276x, 277x, 278x (i.e. 06x, 07x, 08x locally)
+    // Landlines start with 271x, 272x, 273x, 274x, 275x (i.e. 01x-05x locally)
+    const thirdDigit = parseInt(phone[2]); // digit after "27"
+    if (thirdDigit < 6) { skipped++; continue; }
+
     // Check if already in prospects or clients
     const existing = await env.DB.prepare(
       `SELECT id FROM prospects WHERE phone=? OR google_place_id=? LIMIT 1`
