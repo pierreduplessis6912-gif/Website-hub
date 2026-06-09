@@ -2098,7 +2098,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
         ).bind(JSON.stringify(gbpData), gbpData.placeId || '', clientId).run().catch(() => {});
         await logEvent(env, clientId, 'build', 'gbp_write', 'success', { metadata: { wrote: gbpData.name, reviews: gbpData.reviewCount } });
       }
-    } catch(e) { console.warn('triggerFullBuild GBP lookup failed:', e.message); }
+    } catch(e) { await logEvent(env, clientId, 'build', 'gbp_resolve_error', 'error', { error: e?.message || String(e) }); }
   }
 
   // Fetch Instagram photos if handle provided
