@@ -1505,11 +1505,14 @@ async function handleIntake(request, env) {
         }});
         if (isRealEstablishment(data)) {
           const gbp = shapeGbp(data, business_name);
-          await env.DB.prepare(
-            `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
-          ).bind(JSON.stringify(gbp), gbp.placeId || resolvedPlaceId, gbp.address?.split(',')[1]?.trim() || area || '', id).run()
-            .then(() => logEvent(env, id, 'build', 'gbp_write', 'success', { metadata: { wrote: gbp.name, reviews: gbp.reviewCount } }))
-            .catch(e => logEvent(env, id, 'build', 'gbp_write', 'error', { error: e.message }));
+          try {
+            await env.DB.prepare(
+              `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
+            ).bind(JSON.stringify(gbp), gbp.placeId || resolvedPlaceId, gbp.address?.split(',')[1]?.trim() || area || '', id).run();
+            await logEvent(env, id, 'build', 'gbp_write', 'success', { metadata: { wrote: gbp.name, reviews: gbp.reviewCount } });
+          } catch(e) {
+            await logEvent(env, id, 'build', 'gbp_write', 'error', { error: e.message });
+          }
         }
       } catch(e) { console.warn('GBP lookup failed:', e.message); }
     }
