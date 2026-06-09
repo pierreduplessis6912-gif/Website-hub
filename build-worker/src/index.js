@@ -243,6 +243,7 @@ export default {
             path === '/check-slug' || path === '/build-status' || path.endsWith('/og') ||
             path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free' ||
             path === '/manage-panel' || path === '/client-status' || path === '/payfast-webhook' ||
+            path === '/whatsapp-incoming' || path === '/address-suggest' || path === '/showcase' ||
             path.startsWith('/site/')) {
           // Fall through to main routing
         } else {
