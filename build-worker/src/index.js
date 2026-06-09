@@ -580,11 +580,11 @@ async function handleScrape(request, env) {
   const query = `${industry} in ${searchArea} South Africa`;
 
   // Route through VPS proxy — Cloudflare IPs blocked by Google Places
-  const res = await fetch('https://places-proxy.websitehub.co.za', {
+  const res = await fetch('https://classictouchsalon.co.za/places-proxy.php', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-proxy-secret': env.PLACES_PROXY_SECRET || env.DOMAIN_PROXY_SECRET || 'mysecretkey123',
+      'x-proxy-secret': env.DOMAIN_PROXY_SECRET || 'mysecretkey123',
     },
     body: JSON.stringify({
       url: 'https://places.googleapis.com/v1/places:searchText',
