@@ -1821,7 +1821,7 @@ async function handleAddressSuggest(url, env) {
     const data = await callPlacesProxy(env,
       'https://places.googleapis.com/v1/places:autocomplete',
       'POST',
-      { input: q, includedRegionCodes: ['ZA'], languageCode: 'en', includedPrimaryTypes: ['establishment'] },
+      { input: q, includedRegionCodes: ['ZA'], languageCode: 'en' },
       { 'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text' }
     );
     if (!data) return jsonResponse({ suggestions: [] });
