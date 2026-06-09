@@ -505,18 +505,20 @@ async function handleSetConfig(request, env) {
 // ── GOOGLE PLACES SCRAPE ──────────────────────────────────────────────────────
 async function handlePromoBlast(request, env) {
   const body = await request.json().catch(() => ({}));
-  const { industry, province, area, limit = 20, promoCode = 'LAUNCH2026' } = body;
-  if (!industry || !province) return jsonResponse({ error: 'industry and province required' }, 400);
+  const { industry, province, area, limit = 20, promoCode = 'LAUNCH2026', skipScrape = false } = body;
+  if (!skipScrape && (!industry || !province)) return jsonResponse({ error: 'industry and province required' }, 400);
 
-  // 1. Scrape Google Places
-  const scrapeReq = new Request(request.url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ industry, province, area, limit }),
-  });
-  await handleScrape(scrapeReq, env);
+  // 1. Scrape Google Places (unless skipping)
+  if (!skipScrape) {
+    const scrapeReq = new Request(request.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ industry, province, area, limit }),
+    });
+    await handleScrape(scrapeReq, env);
+  }
 
-  // 2. Fetch all pending prospects just scraped
+  // 2. Fetch all pending prospects
   const prospects = await env.DB.prepare(
     `SELECT * FROM prospects WHERE status='pending' ORDER BY id DESC LIMIT ?`
   ).bind(limit).all();
