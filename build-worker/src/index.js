@@ -527,6 +527,10 @@ async function handlePromoBlast(request, env) {
 
   for (const p of (prospects.results || [])) {
     try {
+      // Skip if phone already has a client record
+      const existing = await env.DB.prepare(`SELECT id FROM clients WHERE phone=? LIMIT 1`).bind(p.phone || '').first().catch(() => null);
+      if (existing) { skipped++; continue; }
+
       const id           = crypto.randomUUID();
       const slug         = await uniqueSlug(p.business_name, env);
       const manage_token = crypto.randomUUID();
