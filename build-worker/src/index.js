@@ -2095,8 +2095,9 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
         gbpData = shapeGbp(fresh, client.business_name);
         await env.DB.prepare(
           `UPDATE clients SET gbp_data=?, gbp_place_id=? WHERE id=?`
-        ).bind(JSON.stringify(gbpData), gbpData.placeId || '', clientId).run().catch(() => {});
-        await logEvent(env, clientId, 'build', 'gbp_write', 'success', { metadata: { wrote: gbpData.name, reviews: gbpData.reviewCount } });
+        ).bind(JSON.stringify(gbpData), gbpData.placeId || '', clientId).run()
+          .catch(e => logEvent(env, clientId, 'build', 'gbp_write_error', 'error', { error: e?.message || String(e) }));
+        await logEvent(env, clientId, 'build', 'gbp_write', 'success', { metadata: { wrote: gbpData.name, reviews: gbpData.reviewCount, placeId: gbpData.placeId } });
       }
     } catch(e) { await logEvent(env, clientId, 'build', 'gbp_resolve_error', 'error', { error: e?.message || String(e) }); }
   }
