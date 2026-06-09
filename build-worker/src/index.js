@@ -516,7 +516,7 @@ async function handlePromoBlast(request, env) {
 
   // 2. Fetch all pending prospects just scraped
   const prospects = await env.DB.prepare(
-    `SELECT * FROM prospects WHERE status='pending' AND scrape_date=date('now') ORDER BY id DESC LIMIT ?`
+    `SELECT * FROM prospects WHERE status='pending' ORDER BY id DESC LIMIT ?`
   ).bind(limit).all();
 
   let built = 0, skipped = 0;
