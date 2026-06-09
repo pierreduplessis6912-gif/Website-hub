@@ -289,6 +289,8 @@ export default {
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
       if (path === '/admin/trigger-rebuild'    && method === 'POST') return handleAdminTriggerRebuild(request, env);
+      if (path === '/admin/promo-blast'        && method === 'POST') return handlePromoBlast(request, env);
+      if (path === '/admin/scrape'             && method === 'POST') return handleScrape(request, env);
       if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
       if (path === '/admin/test-gbp'          && method === 'GET')  {
