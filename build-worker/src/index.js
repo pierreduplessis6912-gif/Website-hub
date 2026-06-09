@@ -206,6 +206,7 @@ export default {
         if (path === '/aup')             return servePwa(env, 'app:aup');
         if (path === '/cancellation')    return servePwa(env, 'app:cancellation');
         if (path === '/dpa')             return servePwa(env, 'app:dpa');
+        if (path === '/blast')           return servePwa(env, 'app:blast');
         if (path === '/start')           return servePwa(env, 'app:start-v2');
         if (path.startsWith('/r/')) {
           // Referral link — set cookie and redirect to /start
@@ -274,6 +275,7 @@ export default {
       if (path === '/admin/bootstrap-preview'  && method === 'POST') return handleAdminBootstrapPreview(request, env);
       if (path === '/admin/bootstrap-manage'   && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-intake'   && method === 'POST') return handleAdminBootstrapIntake(request, env);
+      if (path === '/admin/bootstrap-blast'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
       if (path === '/admin/bootstrap-landing'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:landing');
       if (path === '/admin/bootstrap-privacy'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:privacy');
       if (path === '/admin/bootstrap-terms'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:terms');
@@ -344,6 +346,7 @@ export default {
       if (path === '/google-auth') return handleGoogleAuth(url, env);
 
       // ── PWA SHELLS ───────────────────────────────────────────
+      if (path === '/blast')               return servePwa(env, 'app:blast');
       if (path === '/start')               return servePwa(env, 'app:start-v2');
       if (path === '/privacy')             return servePwa(env, 'app:privacy');
       if (path === '/terms')               return servePwa(env, 'app:terms');
@@ -514,7 +517,19 @@ async function handlePromoBlast(request, env) {
       await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
         .bind(id, p.id).run();
 
-      // Queue pre_build — same as normal outbound, promo_code on client handles WhatsApp param
+      // GBP lookup — use prospect's place_id and phone from scraper
+      try {
+        const gbpData = await resolveGbp(env, p.google_place_id || null, p.business_name, p.area, p.phone || null);
+        if (gbpData && isRealEstablishment(gbpData)) {
+          const gbp = shapeGbp(gbpData, p.business_name);
+          await env.DB.prepare(
+            `UPDATE clients SET gbp_data=?, gbp_place_id=?, area=COALESCE(NULLIF(area,''),?) WHERE id=?`
+          ).bind(JSON.stringify(gbp), gbp.placeId || p.google_place_id, gbp.address?.split(',')[1]?.trim() || p.area || '', id).run();
+          await logEvent(env, id, 'build', 'gbp_write', 'success', { metadata: { wrote: gbp.name, reviews: gbp.reviewCount } });
+        }
+      } catch(e) { console.warn('Promo blast GBP lookup failed:', e.message); }
+
+      // Queue build
       await env.BUILD_QUEUE.send({ type: 'full_build', clientId: id, isOutbound: true });
       built++;
     } catch (err) {
