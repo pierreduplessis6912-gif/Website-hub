@@ -318,6 +318,7 @@ export default {
         maps_key_prefix: env.GOOGLE_MAPS_API_KEY?.slice(0,10) || 'MISSING',
         has_anthropic: !!env.ANTHROPIC_KEY,
         has_google_refresh: !!env.GOOGLE_REFRESH_TOKEN,
+        has_evolution_key: !!env.EVOLUTION_KEY,
         proxy_secret: env.DOMAIN_PROXY_SECRET ? env.DOMAIN_PROXY_SECRET.slice(0,6) + '...' : 'NOT SET',
       });
       if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
