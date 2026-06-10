@@ -282,7 +282,8 @@ export default {
         if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
         await env.SITES.put('app:godmode', html);
         return jsonResponse({ success: true, key: 'app:godmode', size: html.length });
-      }    && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
+      }
+      if (path === '/admin/bootstrap-blast'     && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
       if (path === '/admin/bootstrap-landing'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:landing');
       if (path === '/admin/bootstrap-privacy'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:privacy');
       if (path === '/admin/bootstrap-terms'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:terms');
