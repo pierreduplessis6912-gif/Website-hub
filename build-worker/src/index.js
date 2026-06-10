@@ -2416,7 +2416,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
   // Attach gallery photos to client object so archetype templates can use them
   const clientWithPhotos = { ...client, gallery_photos: galleryPhotos };
   const archetype = detectArchetypeFromPersonality(brief.personality?.category, client.industry);
-  await logEvent(env, clientId, 'build', 'archetype_selected', 'info', { metadata: { archetype, personalityCategory: brief.personality?.category, industry: client.industry } }).catch(()=>{});
+  await logEvent(env, clientId, 'build', 'archetype_selected', 'info', { metadata: { archetype, personalityCategory: brief.personality?.category, industry: client.industry, briefIndustry: client.industry || client.business_name, briefCategory: getDesignBrief(client.industry || client.business_name, client.vibe)?.personality?.category } }).catch(()=>{});
   let html;
   if (archetype === 'experience') {
     html = generateExperienceHTML(contentTokens, heroUrl, clientWithPhotos, null, pkg, gbpData, richBrandBrief);
