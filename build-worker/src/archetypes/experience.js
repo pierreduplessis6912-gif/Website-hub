@@ -13,7 +13,7 @@
 
 export function generateExperienceHTML(t, heroUrl, client, cards, pkg, gbpData, brandBrief) {
   const phone   = (client.phone || '').replace(/\D/g, '');
-  const domain  = client.domain || `${client.slug}.co.za`;
+  const domain  = client.domain || (pkg === 'hub_pro' ? `${client.slug}.co.za` : `${client.slug}.websitehub.co.za`);
   const waLink  = `https://wa.me/${phone}`;
   const isExp   = pkg === 'express';
   const isPrem  = pkg === 'premium';
