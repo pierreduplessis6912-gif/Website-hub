@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>God Mode — Website Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0e0c09;--border:rgba(255,255,255,.08);--border-hi:rgba(255,255,255,.15);--text:#ede9e4;--muted:rgba(237,233,228,.5);--cyan:#00f0ff;--green:#00c97a;--red:#ff3b44;--orange:#f5a623;--f-display:'Syne',sans-serif;--f-body:'DM Sans',sans-serif;--f-mono:'DM Mono',monospace}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--f-body);-webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(14,12,9,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.topbar-logo{font-family:var(--f-display);font-size:16px;font-weight:800}
+.topbar-logo span{color:var(--cyan)}
+.topbar-badge{font-family:var(--f-mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;background:rgba(255,59,68,.15);border:1px solid rgba(255,59,68,.3);color:var(--red);padding:4px 10px;border-radius:20px}
+.container{max-width:680px;margin:0 auto;padding:32px 24px}
+.section{margin-bottom:32px}
+.section-title{font-family:var(--f-mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.grid{grid-template-columns:1fr}}
+.field{margin-bottom:0}
+.field.full{grid-column:1/-1}
+.field label{display:block;font-family:var(--f-mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:11px 14px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--f-body);outline:none;transition:border-color .2s;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(0,240,255,.3)}
+.field input::placeholder,.field textarea::placeholder{color:rgba(237,233,228,.25)}
+.field select option{background:#1a1814}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px}
+.toggle-label{font-size:13px;font-weight:500}
+.toggle-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:24px;cursor:pointer;transition:.3s}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked + .toggle-slider{background:var(--cyan)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(20px);background:#000}
+.btn-fire{width:100%;padding:16px;border-radius:12px;background:var(--cyan);color:#000;font-family:var(--f-display);font-size:16px;font-weight:800;cursor:pointer;border:none;transition:opacity .15s;letter-spacing:.5px}
+.btn-fire:hover{opacity:.9}
+.btn-fire:disabled{opacity:.4;cursor:not-allowed}
+.log{margin-top:16px;padding:16px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;font-family:var(--f-mono);font-size:12px;color:var(--muted);min-height:60px;white-space:pre-wrap;line-height:1.6}
+.log.ok{border-color:rgba(0,201,122,.2);color:var(--green)}
+.log.err{border-color:rgba(255,59,68,.2);color:var(--red)}
+.log.loading{color:var(--orange)}
+.slug-preview{font-family:var(--f-mono);font-size:11px;color:var(--cyan);margin-top:6px;opacity:.7}
+.hint{font-family:var(--f-mono);font-size:10px;color:var(--muted);margin-top:5px;opacity:.6}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">Website<span>Hub</span> · God Mode</div>
+  <div class="topbar-badge">⚡ Admin Override</div>
+</div>
+
+<div class="container">
+
+  <div class="section">
+    <div class="section-title">Business Identity</div>
+    <div class="grid">
+      <div class="field full">
+        <label>Business Name *</label>
+        <input id="biz" type="text" placeholder="e.g. Richards Bay Airport Venue" oninput="updateSlug()">
+      </div>
+      <div class="field">
+        <label>Custom Slug</label>
+        <input id="slug" type="text" placeholder="auto-generated">
+        <div class="slug-preview" id="slugPreview">preview.websitehub.co.za/…</div>
+      </div>
+      <div class="field">
+        <label>WhatsApp Phone</label>
+        <input id="phone" type="tel" placeholder="e.g. 082 123 4567 or dummy">
+        <div class="hint">Use 000 0000 001 for no GBP lookup</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Location & Industry</div>
+    <div class="grid">
+      <div class="field">
+        <label>Industry *</label>
+        <input id="industry" type="text" placeholder="e.g. conference venue function hall">
+      </div>
+      <div class="field">
+        <label>Area / City</label>
+        <input id="area" type="text" placeholder="e.g. Richards Bay Airport">
+      </div>
+      <div class="field full">
+        <label>Map Address (shown on site)</label>
+        <input id="address" type="text" placeholder="e.g. Richards Bay Airport, KwaZulu-Natal">
+        <div class="hint">This is what appears on the map — be specific</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Content Brief</div>
+    <div class="grid">
+      <div class="field full">
+        <label>About / Brief for Claude</label>
+        <textarea id="about" rows="4" placeholder="Describe the business in detail — services, vibe, target customers, unique features, opening hours, anything Claude should know..."></textarea>
+        <div class="hint">The more detail here, the better the output</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Build Controls</div>
+    <div class="grid">
+      <div class="field">
+        <label>Force Archetype</label>
+        <select id="archetype">
+          <option value="">Auto-detect</option>
+          <option value="experience">Experience (hospitality, salon, restaurant)</option>
+          <option value="emergency">Emergency (plumber, electrician, trades)</option>
+          <option value="trust">Trust (medical, professional)</option>
+          <option value="local">Local (community, cleaning, laundry)</option>
+          <option value="results">Results (flooring, renovation, painter)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Package</label>
+        <select id="package">
+          <option value="hub">Hub — slug.websitehub.co.za</option>
+          <option value="hub_pro">Hub Pro — slug.co.za</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Promo Code</label>
+        <input id="promo" type="text" placeholder="e.g. LAUNCH2026" value="LAUNCH2026">
+      </div>
+      <div class="field">
+        <label>Hero Photo URL</label>
+        <input id="heroUrl" type="url" placeholder="Leave blank for auto">
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Skip GBP Lookup</div>
+          <div class="toggle-desc">Don't search Google Business Profile</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="skipGbp"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Silent Build</div>
+          <div class="toggle-desc">No WhatsApp notification sent</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="silent" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-fire" id="fireBtn" onclick="fire()">⚡ Fire Build →</button>
+  <div class="log" id="log">Ready. Fill in the details above and fire.</div>
+
+</div>
+
+<script>
+'use strict';
+
+const ADMIN_KEY = 'ADMIN_KEY_CLAUDEROX';
+
+function slugify(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 60);
+}
+
+function updateSlug() {
+  const biz = document.getElementById('biz').value;
+  const slugEl = document.getElementById('slug');
+  if (!slugEl.dataset.manual) {
+    const s = slugify(biz);
+    slugEl.value = s;
+    document.getElementById('slugPreview').textContent = s ? `preview.websitehub.co.za/${s}` : 'preview.websitehub.co.za/…';
+  }
+}
+
+document.getElementById('slug').addEventListener('input', function() {
+  this.dataset.manual = '1';
+  document.getElementById('slugPreview').textContent = this.value ? `preview.websitehub.co.za/${this.value}` : 'preview.websitehub.co.za/…';
+});
+
+async function fire() {
+  const biz      = document.getElementById('biz').value.trim();
+  const slug     = document.getElementById('slug').value.trim();
+  const phone    = document.getElementById('phone').value.trim().replace(/\D/g,'');
+  const industry = document.getElementById('industry').value.trim();
+  const area     = document.getElementById('area').value.trim();
+  const address  = document.getElementById('address').value.trim();
+  const about    = document.getElementById('about').value.trim();
+  const archetype = document.getElementById('archetype').value;
+  const pkg      = document.getElementById('package').value;
+  const promo    = document.getElementById('promo').value.trim();
+  const heroUrl  = document.getElementById('heroUrl').value.trim();
+  const skipGbp  = document.getElementById('skipGbp').checked;
+  const silent   = document.getElementById('silent').checked;
+
+  if (!biz)      { log('Business name is required', 'err'); return; }
+  if (!industry) { log('Industry is required', 'err'); return; }
+  if (!area)     { log('Area is required', 'err'); return; }
+
+  let normPhone = phone;
+  if (normPhone && normPhone.startsWith('0')) normPhone = '27' + normPhone.slice(1);
+  if (normPhone && !normPhone.startsWith('27')) normPhone = '27' + normPhone;
+  if (!normPhone) normPhone = '27000000001'; // dummy if empty
+
+  log('Firing build…', 'loading');
+  document.getElementById('fireBtn').disabled = true;
+
+  try {
+    // Step 1 — intake
+    const intake = await api('/intake', {
+      method: 'POST',
+      body: JSON.stringify({
+        business_name: biz,
+        phone: normPhone,
+        industry,
+        area,
+        address: address || area,
+        package: pkg,
+        promo_code: promo || undefined,
+        source: 'godmode',
+        about: about || undefined,
+        hero_url: heroUrl || undefined,
+        force_archetype: archetype || undefined,
+        skip_gbp: skipGbp,
+      }),
+    });
+
+    const clientId = intake.clientId;
+    const builtSlug = intake.slug;
+    log(`✅ Client created: ${builtSlug}\nQueuing build…`, 'loading');
+
+    // Step 2 — if custom slug requested, update it
+    if (slug && slug !== builtSlug) {
+      await api('/admin/query', {
+        method: 'POST',
+        body: JSON.stringify({ sql: `UPDATE clients SET slug='${slug}' WHERE id='${clientId}'` }),
+      });
+    }
+
+    // Step 3 — override about if provided (intake might not save it)
+    if (about) {
+      await api('/admin/query', {
+        method: 'POST',
+        body: JSON.stringify({ sql: `UPDATE clients SET about='${about.replace(/'/g,"''")}' WHERE id='${clientId}'` }),
+      });
+    }
+
+    // Step 4 — trigger rebuild with overrides
+    await api('/admin/trigger-rebuild', {
+      method: 'POST',
+      body: JSON.stringify({ slug: slug || builtSlug, silent: true }),
+    });
+
+    const finalSlug = slug || builtSlug;
+    log(`🚀 Build queued!\n\nPreview: preview.websitehub.co.za/${finalSlug}\nSlug: ${finalSlug}\nPackage: ${pkg}\n\nWatch for WhatsApp notification.`, 'ok');
+
+  } catch(e) {
+    log('❌ Error: ' + e.message, 'err');
+  } finally {
+    document.getElementById('fireBtn').disabled = false;
+  }
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'x-admin-key': ADMIN_KEY, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+function log(msg, type) {
+  const el = document.getElementById('log');
+  el.textContent = msg;
+  el.className = 'log ' + (type || '');
+}
+</script>
+</body>
+</html>
