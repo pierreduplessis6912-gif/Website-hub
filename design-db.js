@@ -623,6 +623,8 @@ function normaliseIndustryKey(industry) {
   if (/web.dev|web.design/.test(k))              return 'it_support';
   if (/courier|deliver/.test(k))                 return 'transport';
 
+  if (/bed.and.breakfast|bed.breakfast|guest.house|guesthouse|\bbnb\b|b&b/.test(k)) return 'guest_house';
+  if (/\blodge\b/.test(k)) return 'lodge';
   return 'general';
 }
 
