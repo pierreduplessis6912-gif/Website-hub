@@ -2121,10 +2121,10 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
     gbpData = await fetchGbpData(client.gbp_url, env).catch(() => null);
   }
   // If still no GBP data — try resolving now using phone + name + area
-  // Skip GBP for dummy phones (27000000xxx) — used by God Mode no-GBP builds
+  // Skip GBP for dummy phones (27000000xxx) or if skip_gbp flag is set
   const isDummyPhone = (client.phone || '').startsWith('2700000');
   const hasGbp = gbpData && typeof gbpData === 'object' && Object.keys(gbpData).length > 0 && gbpData.name;
-  if (!hasGbp && !isDummyPhone) {
+  if (!hasGbp && !isDummyPhone && !client.skip_gbp) {
     try {
       const fresh = await resolveGbp(env, client.gbp_place_id || null, client.business_name, client.area, client.phone || null);
       if (fresh && isRealEstablishment(fresh)) {
