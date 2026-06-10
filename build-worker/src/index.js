@@ -1,6 +1,6 @@
 // ============================================================
 // WH-BUILD — Website Hub Build Worker
-// Clean rewrite — Session D10 2026-05-27 — domain fix 2026-06-10
+// Clean rewrite — Session D10 2026-05-27
 // ============================================================
 // Bindings (wrangler.toml):
 //   DB           — D1 database (all client data, 12 tables)
@@ -1769,8 +1769,6 @@ async function fetchInstagramPhotos(handle, env) {
 
 function detectArchetypeFromPersonality(personalityCategory, industry) {
   const k = (industry || '').toLowerCase();
-  // Force experience for known hospitality industries regardless of personality
-  if (/bed.and.breakfast|bed.breakfast|guest.house|guesthouse|lodge|hotel|accommodation|bnb|b&b/.test(k)) return 'experience';
   // Experience: sensory, immersive businesses
   if (['hospitality','personal_care','wellness','event_creative'].includes(personalityCategory)) return 'experience';
   if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|florist|flower|lodge|guest.house|wedding|tattoo|yoga|pilates/.test(k)) return 'experience';
@@ -2418,8 +2416,6 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
   // Attach gallery photos to client object so archetype templates can use them
   const clientWithPhotos = { ...client, gallery_photos: galleryPhotos };
   const archetype = detectArchetypeFromPersonality(brief.personality?.category, client.industry);
-  const _dbg = getDesignBrief(client.industry || client.business_name, client.vibe);
-  await logEvent(env, clientId, 'build', 'archetype_selected', 'info', { metadata: { archetype, personalityCategory: brief.personality?.category, industry: client.industry, briefCategory: _dbg?.personality?.category, normKey: _dbg?._source } }).catch(()=>{});
   let html;
   if (archetype === 'experience') {
     html = generateExperienceHTML(contentTokens, heroUrl, clientWithPhotos, null, pkg, gbpData, richBrandBrief);
@@ -2826,7 +2822,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   // Use personality genome directly — don't let Claude override layout
   const heroLayout       = brief.personality?.hero_layouts?.[0]       || 'cinematic_left';
   const openingStrategy  = brief.personality?.opening_strategies?.[0] || 'proof_first';
-  const personalityCategory = brief.personality?.category || 'hospitality';
+  const personalityCategory = brief.personality?.category || 'trade_authority';
 
   // ── GALLERY PHOTOS from D1 (Premium only) ──────────────────
   const caps        = PACKAGE_CAPS[pkg] || PACKAGE_CAPS.standard;
@@ -2942,6 +2938,7 @@ function preBuildPass2User(client, brief, brandBrief) {
   return `Business: ${client.business_name}
 Area: ${client.area}
 Industry: ${client.industry}
+${client.about ? `About: ${client.about}` : ''}
 Brand tone: ${brandBrief.inferred_tone}
 Hero angle: ${brandBrief.hero_angle}
 Trust signals: ${brandBrief.trust_signals?.join(', ')}
