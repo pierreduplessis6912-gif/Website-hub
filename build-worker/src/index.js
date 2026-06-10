@@ -207,7 +207,6 @@ export default {
         if (path === '/cancellation')    return servePwa(env, 'app:cancellation');
         if (path === '/dpa')             return servePwa(env, 'app:dpa');
         if (path === '/blast')           return servePwa(env, 'app:blast');
-        if (path === '/godmode')         return servePwa(env, 'app:godmode');
         if (path === '/start')           return servePwa(env, 'app:start-v2');
         if (path.startsWith('/r/')) {
           // Referral link — set cookie and redirect to /start
@@ -278,7 +277,6 @@ export default {
       if (path === '/admin/bootstrap-manage'   && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-intake'   && method === 'POST') return handleAdminBootstrapIntake(request, env);
       if (path === '/admin/bootstrap-blast'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
-      if (path === '/admin/bootstrap-godmode'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:godmode');
       if (path === '/admin/bootstrap-landing'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:landing');
       if (path === '/admin/bootstrap-privacy'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:privacy');
       if (path === '/admin/bootstrap-terms'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:terms');
@@ -372,7 +370,6 @@ export default {
 
       // ── PWA SHELLS ───────────────────────────────────────────
       if (path === '/blast')               return servePwa(env, 'app:blast');
-      if (path === '/godmode')             return servePwa(env, 'app:godmode');
       if (path === '/start')               return servePwa(env, 'app:start-v2');
       if (path === '/privacy')             return servePwa(env, 'app:privacy');
       if (path === '/terms')               return servePwa(env, 'app:terms');
@@ -1526,8 +1523,8 @@ async function handleIntake(request, env) {
       resolvedArea = parts[parts.length - 1] || parts[0] || '';
     }
 
-    const isDummyPhone = normPhone.startsWith('2700000');
-    if (!isDummyPhone && (normPhone || resolvedPlaceId || business_name)) {
+    const isDummyIntakePhone = normPhone.startsWith('2700000');
+    if (!isDummyIntakePhone && (normPhone || resolvedPlaceId || business_name)) {
       try {
         const data = await resolveGbp(env, resolvedPlaceId, business_name, resolvedArea, normPhone);
         await logEvent(env, id, 'build', 'gbp_diag', 'success', { metadata: {
@@ -2124,8 +2121,10 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
     gbpData = await fetchGbpData(client.gbp_url, env).catch(() => null);
   }
   // If still no GBP data — try resolving now using phone + name + area
+  // Skip GBP for dummy phones (27000000xxx) — used by God Mode no-GBP builds
+  const isDummyPhone = (client.phone || '').startsWith('2700000');
   const hasGbp = gbpData && typeof gbpData === 'object' && Object.keys(gbpData).length > 0 && gbpData.name;
-  if (!hasGbp) {
+  if (!hasGbp && !isDummyPhone) {
     try {
       const fresh = await resolveGbp(env, client.gbp_place_id || null, client.business_name, client.area, client.phone || null);
       if (fresh && isRealEstablishment(fresh)) {
