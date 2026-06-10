@@ -244,6 +244,7 @@ export default {
             path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free' ||
             path === '/manage-panel' || path === '/client-status' || path === '/payfast-webhook' ||
             path === '/whatsapp-incoming' || path === '/address-suggest' || path === '/showcase' ||
+            path === '/godmode' ||
             path.startsWith('/site/')) {
           // Fall through to main routing
         } else {
@@ -276,7 +277,12 @@ export default {
       if (path === '/admin/bootstrap-preview'  && method === 'POST') return handleAdminBootstrapPreview(request, env);
       if (path === '/admin/bootstrap-manage'   && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-intake'   && method === 'POST') return handleAdminBootstrapIntake(request, env);
-      if (path === '/admin/bootstrap-blast'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
+      if (path === '/admin/bootstrap-godmode' && method === 'POST') {
+        const html = await request.text();
+        if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
+        await env.SITES.put('app:godmode', html);
+        return jsonResponse({ success: true, key: 'app:godmode', size: html.length });
+      }    && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
       if (path === '/admin/bootstrap-landing'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:landing');
       if (path === '/admin/bootstrap-privacy'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:privacy');
       if (path === '/admin/bootstrap-terms'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:terms');
@@ -370,6 +376,7 @@ export default {
 
       // ── PWA SHELLS ───────────────────────────────────────────
       if (path === '/blast')               return servePwa(env, 'app:blast');
+      if (path === '/godmode')             return servePwa(env, 'app:godmode');
       if (path === '/start')               return servePwa(env, 'app:start-v2');
       if (path === '/privacy')             return servePwa(env, 'app:privacy');
       if (path === '/terms')               return servePwa(env, 'app:terms');
