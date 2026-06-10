@@ -2822,7 +2822,7 @@ async function triggerSubstanceBuild(clientId, cards, env) {
   // Use personality genome directly — don't let Claude override layout
   const heroLayout       = brief.personality?.hero_layouts?.[0]       || 'cinematic_left';
   const openingStrategy  = brief.personality?.opening_strategies?.[0] || 'proof_first';
-  const personalityCategory = brief.personality?.category || 'trade_authority';
+  const personalityCategory = brief.personality?.category || 'hospitality';
 
   // ── GALLERY PHOTOS from D1 (Premium only) ──────────────────
   const caps        = PACKAGE_CAPS[pkg] || PACKAGE_CAPS.standard;
