@@ -1775,7 +1775,7 @@ function detectArchetypeFromPersonality(personalityCategory, industry) {
   const k = (industry || '').toLowerCase();
   // Experience: sensory, immersive businesses
   if (['hospitality','personal_care','wellness','event_creative'].includes(personalityCategory)) return 'experience';
-  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|florist|flower|lodge|guest.house|wedding|tattoo|yoga|pilates/.test(k)) return 'experience';
+  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|florist|flower|lodge|guest.house|guesthouse|bed.and.breakfast|b&b|bnb|wedding|tattoo|yoga|pilates/.test(k)) return 'experience';
   // Results: transformation, renovation, visual change, home finishing
   if (['transformation'].includes(personalityCategory)) return 'results';
   if (/floor|flooring|blind|curtain|shutter|renovate|renovation|paint|painting|tiling|tile|carpet|decor|interior|interior.design|landscap|garden|pool|solar|roof|roofing|ceiling|kitchen|bathroom|home.improv|finishing|plastering|paving|driveway|fencing|gates|aluminium|awning|canopy|upholstery|furniture|cabinet|built.in|wardrobe/.test(k)) return 'results';
@@ -1785,7 +1785,7 @@ function detectArchetypeFromPersonality(personalityCategory, industry) {
   if (['community_local','retail_utility'].includes(personalityCategory)) return 'local';
   // Emergency: trade callouts
   if (['trade_authority','technical_expertise'].includes(personalityCategory)) return 'emergency';
-  return 'experience'; // default
+  return 'experience'; // default — better than emergency for unknown industries
 }
 
 // ── SHOWCASE — live site carousel feed ───────────────────────────
@@ -2164,7 +2164,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
   // Apply selection or fall back to personality system
   const personalityCategory = selectionResult?.personality_category ||
     getDesignBrief(client.industry || client.business_name, client.vibe).personality?.category ||
-    'trade_authority';
+    'hospitality';
 
   const variants = {
     colour_mood:    selectionResult?.colour_mood    || 'dark',
