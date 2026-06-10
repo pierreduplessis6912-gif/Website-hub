@@ -14,7 +14,7 @@
 
 export function generateEmergencyHTML(t, heroUrl, client, cards, pkg, gbpData, brandBrief) {
   const phone   = (client.phone || '').replace(/\D/g, '');
-  const domain  = client.domain || `${client.slug}.co.za`;
+  const domain  = client.domain || (pkg === 'hub_pro' || pkg === 'premium' ? `${client.slug}.co.za` : `${client.slug}.websitehub.co.za`);
   const waLink  = `https://wa.me/${phone}`;
   const callLink = `tel:${client.phone || ''}`;
   const isExp   = pkg === 'express';
@@ -194,8 +194,8 @@ body::before{
 }
 .hero-h1{
   font-family:var(--font-display);
-  font-size:clamp(38px,10vw,72px);
-  font-weight:900;line-height:.95;
+  font-size:clamp(60px,16vw,110px);
+  font-weight:900;line-height:.92;
   letter-spacing:-1px;
   text-transform:uppercase;
   color:var(--light);
@@ -275,7 +275,7 @@ body::before{
 /* ── SERVICES ──────────────────────────────── */
 .services{
   background:var(--dark2);
-  padding:60px 24px;
+  padding:80px 24px;
 }
 .services-inner{max-width:680px;margin:0 auto}
 .section-eyebrow{
@@ -288,62 +288,70 @@ body::before{
 .section-eyebrow.visible{opacity:1;transform:none}
 .section-h1{
   font-family:var(--font-display);
-  font-size:clamp(28px,7vw,48px);
+  font-size:clamp(36px,9vw,64px);
   font-weight:900;line-height:.95;
   text-transform:uppercase;letter-spacing:-1px;
-  color:var(--light);margin-bottom:32px;
+  color:var(--light);margin-bottom:40px;
   opacity:0;transform:translateX(-16px);
   transition:opacity .35s .05s ease,transform .35s .05s ease;
 }
 .section-h1.visible{opacity:1;transform:none}
 .section-h1 em{font-style:italic;color:var(--rust)}
-.service-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-@media(max-width:360px){.service-grid{grid-template-columns:1fr}}
-.service-card{
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:10px;
-  padding:20px 16px;
-  opacity:0;transform:translateY(12px);
+.service-row{
+  display:flex;align-items:flex-start;gap:20px;
+  padding:24px 0;border-bottom:1px solid rgba(255,255,255,.07);
+  opacity:0;transform:translateX(-12px);
   transition:opacity .3s ease,transform .3s ease;
 }
-.service-card.visible{opacity:1;transform:none}
+.service-row:last-child{border-bottom:none}
+.service-row.visible{opacity:1;transform:none}
+.service-num{
+  font-family:var(--font-display);
+  font-size:13px;font-weight:700;
+  color:var(--rust);letter-spacing:1px;
+  min-width:28px;margin-top:3px;
+}
 .service-name{
   font-family:var(--font-display);
-  font-size:15px;font-weight:700;text-transform:uppercase;
+  font-size:clamp(20px,5vw,28px);
+  font-weight:700;text-transform:uppercase;
   letter-spacing:.5px;color:var(--light);
-  margin-bottom:6px;
+  margin-bottom:4px;
 }
 .service-desc{
-  font-size:13px;font-weight:300;
+  font-size:14px;font-weight:300;
   color:var(--warm-grey);line-height:1.5;
 }
 
 /* ── ABOUT ──────────────────────────────────── */
 .about{
-  background:#f5f2ed;
-  padding:60px 24px;position:relative;overflow:hidden;
+  background:var(--steel);
+  padding:80px 24px;position:relative;overflow:hidden;
 }
-.about .section-eyebrow{color:var(--rust)}
+/* Concrete texture overlay */
+.about::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(
+    0deg,
+    transparent,transparent 2px,
+    rgba(255,255,255,.015) 2px,rgba(255,255,255,.015) 3px
+  );pointer-events:none;
+}
 .about-inner{position:relative;z-index:2;max-width:680px;margin:0 auto}
 .about-headline{
   font-family:var(--font-display);
-  font-size:clamp(28px,7vw,48px);
+  font-size:clamp(32px,8vw,56px);
   font-weight:900;text-transform:uppercase;
   letter-spacing:-1px;line-height:.95;
-  color:var(--dark);margin-bottom:24px;
+  color:var(--light);margin-bottom:24px;
   opacity:0;transform:translateY(16px);
   transition:opacity .35s ease,transform .35s ease;
 }
 .about-headline.visible{opacity:1;transform:none}
 .about-headline em{display:block;font-style:italic;color:var(--rust)}
 .about-pull{
-  font-size:17px;font-weight:400;
-  color:rgba(10,9,8,.75);line-height:1.6;
+  font-size:18px;font-weight:400;
+  color:rgba(255,255,255,.8);line-height:1.6;
   border-left:3px solid var(--rust);
   padding-left:20px;margin-bottom:24px;
   opacity:0;transform:translateY(12px);
@@ -351,8 +359,8 @@ body::before{
 }
 .about-pull.visible{opacity:1;transform:none}
 .about-body{
-  font-size:15px;font-weight:400;
-  color:rgba(10,9,8,.6);line-height:1.8;
+  font-size:15px;font-weight:300;
+  color:var(--warm-grey);line-height:1.8;
   margin-bottom:16px;
   opacity:0;transform:translateY(10px);
   transition:opacity .35s .2s ease,transform .35s .2s ease;
@@ -645,13 +653,14 @@ body::before{
   <div class="services-inner">
     <div class="section-eyebrow">${esc(t.section_label_services || 'WHAT WE DO')}</div>
     <h2 class="section-h1">${esc(t.services_headline || '')}</h2>
-    <div class="service-grid">
     ${svcs.slice(0, isExp ? 4 : 6).map((s,i) => `
-    <div class="service-card" style="transition-delay:${i*.07}s">
-      <div class="service-name">${esc(s.name || '')}</div>
-      ${!isExp && s.desc ? `<div class="service-desc">${esc(s.desc)}</div>` : ''}
+    <div class="service-row" style="transition-delay:${i*.07}s">
+      <div class="service-num">0${i+1}</div>
+      <div>
+        <div class="service-name">${esc(s.name || '')}</div>
+        ${!isExp && s.desc ? `<div class="service-desc">${esc(s.desc)}</div>` : ''}
+      </div>
     </div>`).join('')}
-    </div>
   </div>
 </section>
 
@@ -815,7 +824,7 @@ const obs=new IntersectionObserver((entries)=>{
   entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}});
 },{threshold:0.12,rootMargin:'0px 0px -32px 0px'});
 
-document.querySelectorAll('.section-eyebrow,.section-h1,.service-card,.about-headline,.about-pull,.about-body,.diff-block,.review-block,.testimonial-inner,.contact-headline,.contact-subline,.contact-primary,.contact-item').forEach(el=>obs.observe(el));
+document.querySelectorAll('.section-eyebrow,.section-h1,.service-row,.about-headline,.about-pull,.about-body,.diff-block,.review-block,.testimonial-inner,.contact-headline,.contact-subline,.contact-primary,.contact-item').forEach(el=>obs.observe(el));
 
 // Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
