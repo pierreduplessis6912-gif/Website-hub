@@ -1,6 +1,6 @@
 // ============================================================
 // WH-BUILD — Website Hub Build Worker
-// Clean rewrite — Session D10 2026-05-27
+// Clean rewrite — Session D10 2026-05-27 — domain fix 2026-06-10
 // ============================================================
 // Bindings (wrangler.toml):
 //   DB           — D1 database (all client data, 12 tables)
@@ -1354,15 +1354,11 @@ async function handleWhatsAppIncoming(request, env) {
     const msg = body?.data;
     if (!msg || msg?.key?.fromMe) return new Response('OK', { status: 200 });
 
-    // Extract message content — handle all message types including automated replies
+    // Extract message content
     const text = msg?.message?.conversation
       || msg?.message?.extendedTextMessage?.text
       || msg?.message?.imageMessage?.caption
-      || msg?.message?.templateMessage?.hydratedTemplate?.hydratedContentText
-      || msg?.message?.buttonsResponseMessage?.selectedDisplayText
-      || msg?.message?.listResponseMessage?.title
-      || msg?.message?.reactionMessage?.text
-      || '[message received]';
+      || '[media message]';
 
     // Debug — log full payload to find real phone
     await logEvent(env, null, 'whatsapp', 'incoming_debug', 'info', {
@@ -1401,7 +1397,7 @@ async function handleWhatsAppIncoming(request, env) {
     }
 
     phone = phone.replace(/\D/g, '');
-    if (!phone || phone.length < 5) return new Response('OK', { status: 200 });
+    if (!phone || phone.length < 7) return new Response('OK', { status: 200 });
 
     // Look up client by phone
     const client = await env.DB.prepare(
@@ -1665,7 +1661,7 @@ function shapeGbp(data, business_name) {
     types:        data.types || [],
     description:  data.editorialSummary?.text || '',
     hours:        data.regularOpeningHours?.weekdayDescriptions || [],
-    reviews:      (data.reviews || []).filter(r => (r.rating || 0) >= 4).slice(0,5).map(r => ({
+    reviews:      (data.reviews || []).slice(0,5).map(r => ({
       text:   r.text?.text || '',
       rating: r.rating || 0,
       author: r.authorAttribution?.displayName || '',
@@ -1775,7 +1771,7 @@ function detectArchetypeFromPersonality(personalityCategory, industry) {
   const k = (industry || '').toLowerCase();
   // Experience: sensory, immersive businesses
   if (['hospitality','personal_care','wellness','event_creative'].includes(personalityCategory)) return 'experience';
-  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|florist|flower|lodge|guest.house|guesthouse|bed.and.breakfast|b&b|bnb|wedding|tattoo|yoga|pilates/.test(k)) return 'experience';
+  if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|florist|flower|lodge|guest.house|wedding|tattoo|yoga|pilates/.test(k)) return 'experience';
   // Results: transformation, renovation, visual change, home finishing
   if (['transformation'].includes(personalityCategory)) return 'results';
   if (/floor|flooring|blind|curtain|shutter|renovate|renovation|paint|painting|tiling|tile|carpet|decor|interior|interior.design|landscap|garden|pool|solar|roof|roofing|ceiling|kitchen|bathroom|home.improv|finishing|plastering|paving|driveway|fencing|gates|aluminium|awning|canopy|upholstery|furniture|cabinet|built.in|wardrobe/.test(k)) return 'results';
@@ -1785,7 +1781,7 @@ function detectArchetypeFromPersonality(personalityCategory, industry) {
   if (['community_local','retail_utility'].includes(personalityCategory)) return 'local';
   // Emergency: trade callouts
   if (['trade_authority','technical_expertise'].includes(personalityCategory)) return 'emergency';
-  return 'experience'; // default — better than emergency for unknown industries
+  return 'experience'; // default
 }
 
 // ── SHOWCASE — live site carousel feed ───────────────────────────
@@ -2164,7 +2160,7 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
   // Apply selection or fall back to personality system
   const personalityCategory = selectionResult?.personality_category ||
     getDesignBrief(client.industry || client.business_name, client.vibe).personality?.category ||
-    'hospitality';
+    'trade_authority';
 
   const variants = {
     colour_mood:    selectionResult?.colour_mood    || 'dark',
@@ -2711,7 +2707,7 @@ async function fetchGbpData(gbpUrl, env) {
     if (!place) return null;
 
     // Step 5: Extract useful data
-    const reviews = (place.reviews || []).filter(r => (r.rating || 0) >= 4).slice(0, 3).map(r => ({
+    const reviews = (place.reviews || []).slice(0, 3).map(r => ({
       text: r.text?.text || '',
       rating: r.rating || 5,
     }));
