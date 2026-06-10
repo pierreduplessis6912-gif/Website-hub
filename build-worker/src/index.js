@@ -1769,6 +1769,8 @@ async function fetchInstagramPhotos(handle, env) {
 
 function detectArchetypeFromPersonality(personalityCategory, industry) {
   const k = (industry || '').toLowerCase();
+  // Force experience for known hospitality industries regardless of personality
+  if (/bed.and.breakfast|bed.breakfast|guest.house|guesthouse|lodge|hotel|accommodation|bnb|b&b/.test(k)) return 'experience';
   // Experience: sensory, immersive businesses
   if (['hospitality','personal_care','wellness','event_creative'].includes(personalityCategory)) return 'experience';
   if (/restaurant|salon|spa|barber|nail|hotel|venue|bakery|coffee|cafe|hair|lash|brow|massage|beauty|florist|flower|lodge|guest.house|wedding|tattoo|yoga|pilates/.test(k)) return 'experience';
