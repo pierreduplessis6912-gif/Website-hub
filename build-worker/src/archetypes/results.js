@@ -29,7 +29,7 @@ export function generateResultsHTML(t, heroUrl, client, cards, pkg, gbpData, bra
   const rating      = gbpData?.rating || null;
   const reviewCount = gbpData?.reviewCount || 0;
   const hours       = gbpData?.hours || [];
-  const address     = gbpData?.address || cards?.address || client.address || '';
+  const address     = gbpData?.address || cards?.address || client.address || client.area || '';
   const galleryPhotos = (client.gallery_photos || []).slice(0, 6);
 
   const phoneDisplay = (client.phone || '')
