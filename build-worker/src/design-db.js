@@ -67,190 +67,63 @@ const TYPOGRAPHY_DB = [
 
 // ── INDUSTRY → PERSONALITY MAPPING ───────────────────────────
 export const INDUSTRY_PERSONALITY = {
+  // Trade Authority
+  plumbing:'trade_authority', electrical:'trade_authority', aircon:'trade_authority',
+  handyman:'trade_authority', carpentry:'trade_authority', roofing:'trade_authority',
+  waterproofing:'trade_authority', welding:'trade_authority', plastering:'trade_authority',
+  appliance_repair:'trade_authority', pest_control:'trade_authority',
+  signage:'trade_authority', cctv:'trade_authority',
 
-  // ── TRADE & CONSTRUCTION ──────────────────────────────────────
-  plumbing:'trade_authority', plumber:'trade_authority',
-  electrical:'trade_authority', electrician:'trade_authority',
-  aircon:'trade_authority', hvac:'trade_authority', air_conditioning:'trade_authority',
-  handyman:'trade_authority', general_contractor:'trade_authority',
-  carpentry:'trade_authority', joinery:'trade_authority', woodwork:'trade_authority',
-  roofing:'trade_authority', roof_repair:'trade_authority',
-  waterproofing:'trade_authority', damp_proofing:'trade_authority',
-  welding:'trade_authority', fabrication:'trade_authority', steel:'trade_authority',
-  plastering:'trade_authority', screeding:'trade_authority',
-  appliance_repair:'trade_authority', small_appliances:'trade_authority',
-  pest_control:'trade_authority', fumigation:'trade_authority',
-  signage:'trade_authority', branding:'trade_authority',
-  cctv:'trade_authority', alarm:'trade_authority', electric_fence:'trade_authority',
-  tiling:'trade_authority', paving:'trade_authority', bricklaying:'trade_authority',
-  glazier:'trade_authority', glass:'trade_authority', aluminium:'trade_authority',
-  pool_service:'trade_authority', pool_cleaning:'trade_authority',
-  solar:'trade_authority', solar_installation:'trade_authority',
-  gates:'trade_authority', fencing:'trade_authority', garage_doors:'trade_authority',
-  painting_contractor:'trade_authority',
-  building:'trade_authority', construction:'trade_authority', builder:'trade_authority',
-  demolition:'trade_authority', excavation:'trade_authority',
-  fire_protection:'trade_authority', sprinklers:'trade_authority',
-  locksmith:'trade_authority', locksmith_services:'trade_authority',
-  bathroom_renovation:'trade_authority', kitchen_renovation:'trade_authority',
+  // Transformation
+  flooring:'transformation', renovation:'transformation', panel_beater:'transformation',
+  landscaping:'transformation', garden:'transformation', florist:'transformation',
+  painting:'transformation',
 
-  // ── TRANSFORMATION ───────────────────────────────────────────
-  flooring:'transformation', carpet:'transformation', vinyl:'transformation', laminate:'transformation',
-  renovation:'transformation', interior_design:'transformation', decor:'transformation',
-  panel_beater:'transformation', auto_body:'transformation', smash_repair:'transformation',
-  landscaping:'transformation', garden:'transformation', garden_services:'transformation',
-  florist:'transformation', flowers:'transformation',
-  painting:'transformation', spray_painting:'transformation',
-  nursery:'transformation', plant_nursery:'transformation',
-  curtains:'transformation', blinds:'transformation', upholstery:'transformation',
-  pool_building:'transformation', pool_renovation:'transformation',
+  // Personal Care
+  hair_salon:'personal_care', barber:'personal_care', nails:'personal_care',
+  spa:'personal_care', lashes:'personal_care', makeup:'personal_care',
 
-  // ── PERSONAL CARE ────────────────────────────────────────────
-  hair_salon:'personal_care', hairdresser:'personal_care', hair:'personal_care',
-  barber:'personal_care', barbershop:'personal_care',
-  nails:'personal_care', nail_salon:'personal_care', manicure:'personal_care',
-  spa:'personal_care', massage:'personal_care', beauty_salon:'personal_care',
-  lashes:'personal_care', lash_studio:'personal_care', eyebrows:'personal_care',
-  makeup:'personal_care', makeup_artist:'personal_care', bridal_makeup:'personal_care',
-  tattoo:'personal_care', piercing:'personal_care', tattoo_studio:'personal_care',
-  waxing:'personal_care', threading:'personal_care',
-  skincare:'personal_care', aesthetics:'personal_care', skin_clinic:'personal_care',
+  // Wellness
+  gym:'wellness', personal_trainer:'wellness', yoga:'wellness',
 
-  // ── WELLNESS & FITNESS ────────────────────────────────────────
-  gym:'wellness', fitness:'wellness', crossfit:'wellness',
-  personal_trainer:'wellness', fitness_coach:'wellness',
-  yoga:'wellness', pilates:'wellness', dance:'wellness',
-  physiotherapy:'wellness', physio:'wellness', biokinetics:'wellness',
-  chiropractor:'wellness', sports_therapy:'wellness',
-  nutrition:'wellness', dietitian:'wellness',
-  mental_health:'wellness', counselling:'wellness', psychology:'wellness',
-  occupational_therapy:'wellness', speech_therapy:'wellness',
+  // Hospitality
+  restaurant:'hospitality', cafe:'hospitality', bakery:'hospitality',
+  catering:'hospitality', street_food:'hospitality', chicken_shop:'hospitality',
+  shisa_nyama:'hospitality',
 
-  // ── HOSPITALITY & FOOD ────────────────────────────────────────
-  restaurant:'hospitality', diner:'hospitality', bistro:'hospitality',
-  cafe:'hospitality', coffee_shop:'hospitality', coffee:'hospitality',
-  bakery:'hospitality', cake_shop:'hospitality', patisserie:'hospitality',
-  catering:'hospitality', corporate_catering:'hospitality',
-  street_food:'hospitality', food_truck:'hospitality',
-  chicken_shop:'hospitality', fast_food:'hospitality', takeaway:'hospitality',
-  shisa_nyama:'hospitality', braai:'hospitality', butchery:'hospitality',
-  pizza:'hospitality', sushi:'hospitality',
-  pub:'hospitality', bar:'hospitality', tavern:'hospitality', shebeen:'hospitality',
-  guest_house:'hospitality', bed_and_breakfast:'hospitality', airbnb:'hospitality',
-  lodge:'hospitality', guesthouse:'hospitality',
-  home_industry:'hospitality', home_baking:'hospitality',
-  meal_prep:'hospitality', meal_delivery:'hospitality',
-  butcher:'hospitality', deli:'hospitality', charcuterie:'hospitality',
-  farm_stall:'hospitality', farm_produce:'hospitality',
-  ice_cream:'hospitality', dessert:'hospitality',
-  juice_bar:'hospitality', smoothie:'hospitality',
+  // Community Local
+  childcare:'community_local', tutoring:'community_local',
+  cleaning:'community_local', laundry:'community_local',
+  optometrist:'medical_health', vet:'medical_health', driving_school:'community_local',
+  tattoo:'beauty_wellness', tiling:'trade_authority', glazier:'trade_authority',
+  furniture:'trade_authority', butchery:'food_beverage',
 
-  // ── COMMUNITY & LOCAL SERVICES ────────────────────────────────
-  childcare:'community_local', creche:'community_local', daycare:'community_local',
-  tutoring:'community_local', extra_lessons:'community_local', maths_tutor:'community_local',
-  cleaning:'community_local', domestic:'community_local', home_cleaning:'community_local',
-  laundry:'community_local', dry_cleaning:'community_local',
-  driving_school:'community_local', driving_lessons:'community_local',
-  funeral:'memorial_legacy', funeral_parlour:'memorial_legacy', tombstone:'memorial_legacy',
-  church:'community_local', community_centre:'community_local',
-  charity:'community_local', ngo:'community_local',
-  alterations:'community_local', seamstress:'community_local', tailoring:'community_local',
-  shoe_repair:'community_local', cobbler:'community_local',
-  key_cutting:'community_local',
+  // Professional Trust
+  legal:'professional_trust', accounting:'professional_trust', property:'professional_trust',
+  crypto:'professional_trust', ai_consulting:'professional_trust',
 
-  // ── PROFESSIONAL & FINANCIAL ──────────────────────────────────
-  legal:'professional_trust', attorney:'professional_trust', lawyer:'professional_trust',
-  accounting:'professional_trust', accountant:'professional_trust', bookkeeping:'professional_trust',
-  tax:'professional_trust', tax_consultant:'professional_trust',
-  property:'professional_trust', estate_agent:'professional_trust', real_estate:'professional_trust',
-  financial_advisor:'professional_trust', insurance:'professional_trust',
-  mortgage:'professional_trust', bond_originator:'professional_trust',
-  crypto:'professional_trust', investment:'professional_trust',
-  ai_consulting:'professional_trust', consulting:'professional_trust',
-  hr:'professional_trust', recruitment:'professional_trust',
-  translation:'professional_trust', interpreter:'professional_trust',
+  // Technical Expertise
+  it_support:'technical_expertise', social_media:'technical_expertise',
+  graphic_design:'technical_expertise', security:'technical_expertise',
 
-  // ── TECHNICAL & DIGITAL ───────────────────────────────────────
-  it_support:'technical_expertise', tech_support:'technical_expertise',
-  social_media:'technical_expertise', digital_marketing:'technical_expertise',
-  graphic_design:'technical_expertise', web_design:'technical_expertise',
-  software:'technical_expertise', app_development:'technical_expertise',
-  security:'technical_expertise', security_company:'technical_expertise',
-  data_recovery:'technical_expertise', computer_repair:'technical_expertise',
-  photography:'event_creative', videography:'event_creative',
-  drone:'technical_expertise', drone_services:'technical_expertise',
-  printing:'technical_expertise', print_shop:'technical_expertise',
+  // Retail Utility
+  spaza:'retail_utility', hardware:'retail_utility', bottle_store:'retail_utility',
 
-  // ── RETAIL ───────────────────────────────────────────────────
-  spaza:'retail_utility', tuck_shop:'retail_utility',
-  hardware:'retail_utility', hardware_store:'retail_utility',
-  bottle_store:'retail_utility', liquor_store:'retail_utility',
-  clothing:'retail_utility', fashion:'retail_utility', boutique:'retail_utility',
-  shoes:'retail_utility', footwear:'retail_utility',
-  furniture:'retail_utility', furniture_store:'retail_utility',
-  bedding:'retail_utility', linen:'retail_utility',
-  electronics:'retail_utility', cellphone:'retail_utility', phone_repair:'retail_utility',
-  tyres:'retail_utility', tyre_shop:'retail_utility', wheels:'retail_utility',
-  car_parts:'retail_utility', auto_parts:'retail_utility',
-  pet_shop:'retail_utility', pet_store:'retail_utility',
-  pharmacy:'medical_trust', chemist:'medical_trust',
-  health_shop:'wellness', health_food:'wellness',
-  toys:'retail_utility', baby_shop:'retail_utility',
-  books:'retail_utility', stationery:'retail_utility',
-  garden_centre:'transformation', nursery_garden:'transformation',
-  spare_parts:'retail_utility', spares:'retail_utility',
+  // Event & Creative
+  wedding:'event_creative', photography:'event_creative',
+  dj:'event_creative', events:'event_creative',
 
-  // ── AUTOMOTIVE ───────────────────────────────────────────────
-  mechanic:'trade_authority', auto_repair:'trade_authority', car_service:'trade_authority',
-  car_wash:'transformation', detailing:'transformation', car_detailing:'transformation',
-  panel_beating:'transformation',
-  car_rental:'mobility', vehicle_hire:'mobility',
-  towing:'mobility', recovery:'mobility',
-  truck_repair:'trade_authority', diesel_mechanic:'trade_authority',
+  // Mobility
+  transport:'mobility', kombi:'mobility', bakkie_hire:'mobility',
 
-  // ── EVENTS & CREATIVE ─────────────────────────────────────────
-  wedding:'event_creative', wedding_planner:'event_creative',
-  events:'event_creative', event_planning:'event_creative', event_hire:'event_creative',
-  dj:'event_creative', sound:'event_creative', entertainment:'event_creative',
-  decor_hire:'event_creative', tent_hire:'event_creative',
-  caricature:'event_creative', artist:'event_creative',
-  band:'event_creative', musician:'event_creative',
-  venue:'event_creative', function_venue:'event_creative',
-  party_hire:'event_creative', jumping_castle:'event_creative',
-  face_painting:'event_creative', magic:'event_creative',
+  // Medical Trust
+  medical:'medical_trust', dental:'medical_trust', pharmacy:'medical_trust', physio:'medical_trust',
 
-  // ── TRANSPORT & LOGISTICS ─────────────────────────────────────
-  transport:'mobility', kombi:'mobility', minibus:'mobility',
-  bakkie_hire:'mobility', truck_hire:'mobility',
-  courier:'mobility', delivery:'mobility', last_mile:'mobility',
-  taxi:'mobility', metered_taxi:'mobility', e_hailing:'mobility',
-  moving:'mobility', relocation:'mobility', removals:'mobility',
-  freight:'mobility', logistics:'mobility',
+  // Memorial & Legacy
+  funeral:'memorial_legacy',
 
-  // ── MEDICAL & HEALTH ──────────────────────────────────────────
-  medical:'medical_trust', gp:'medical_trust', doctor:'medical_trust',
-  dental:'medical_trust', dentist:'medical_trust', orthodontist:'medical_trust',
-  optometrist:'medical_trust', optical:'medical_trust', eye_care:'medical_trust',
-  vet:'medical_trust', veterinarian:'medical_trust', animal_clinic:'medical_trust',
-  specialist:'medical_trust', surgeon:'medical_trust',
-  home_care:'medical_trust', nursing:'medical_trust',
-  hearing:'medical_trust', audiologist:'medical_trust',
-
-  // ── EDUCATION ────────────────────────────────────────────────
-  school:'community_local', after_school:'community_local',
-  music_lessons:'community_local', art_lessons:'community_local',
-  martial_arts:'wellness', karate:'wellness', boxing:'wellness',
-  swimming_lessons:'wellness', swim_school:'wellness',
-  coding_school:'technical_expertise', stem:'technical_expertise',
-
-  // ── AGRICULTURE & OUTDOOR ─────────────────────────────────────
-  farming:'community_local', smallholding:'community_local',
-  beekeeping:'community_local', honey:'community_local',
-  fishing:'community_local', bait:'community_local',
-  hunting:'community_local', game:'community_local',
-
-  // ── DEFAULT ───────────────────────────────────────────────────
-  general:'hospitality',
+  // Default
+  general:'trade_authority',
 };
 
 // ── PERSONALITY GENOME LIBRARY ────────────────────────────────
@@ -278,7 +151,7 @@ export const PERSONALITY_GENOMES = {
 
   transformation: {
     label: 'Transformation',
-    hero_layouts: ['cinematic_left','trade_authority'],
+    hero_layouts: ['trade_authority','cinematic_left'],
     opening_strategies: ['before_after','proof_first'],
     typography_mode: 'bold_statement',
     spacing_rhythm: 'airy',
@@ -314,7 +187,7 @@ export const PERSONALITY_GENOMES = {
 
   wellness: {
     label: 'Wellness',
-    hero_layouts: ['trade_authority','cinematic_left'],
+    hero_layouts: ['quiet_premium','cinematic_left'],
     opening_strategies: ['emotional_story','manifesto'],
     typography_mode: 'bold_statement',
     spacing_rhythm: 'airy',
@@ -350,7 +223,7 @@ export const PERSONALITY_GENOMES = {
 
   community_local: {
     label: 'Community Local',
-    hero_layouts: ['cinematic_left','trade_authority'],
+    hero_layouts: ['trade_authority','cinematic_left'],
     opening_strategies: ['local_hero','emotional_story'],
     typography_mode: 'modern_professional',
     spacing_rhythm: 'airy',
@@ -404,7 +277,7 @@ export const PERSONALITY_GENOMES = {
 
   retail_utility: {
     label: 'Retail Utility',
-    hero_layouts: ['cinematic_left','trade_authority'],
+    hero_layouts: ['trade_authority','cinematic_left'],
     opening_strategies: ['direct_offer','local_hero'],
     typography_mode: 'modern_professional',
     spacing_rhythm: 'compact',
@@ -440,7 +313,7 @@ export const PERSONALITY_GENOMES = {
 
   mobility: {
     label: 'Mobility',
-    hero_layouts: ['cinematic_left','trade_authority'],
+    hero_layouts: ['trade_authority','cinematic_left'],
     opening_strategies: ['direct_offer','local_hero'],
     typography_mode: 'bold_statement',
     spacing_rhythm: 'compact',
@@ -512,8 +385,10 @@ export const SECTION_FLOWS = {
 // ── PERSONALITY RESOLUTION ────────────────────────────────────
 export function getPersonality(industryKey) {
   const category = INDUSTRY_PERSONALITY[industryKey] || 'trade_authority';
-  const genome   = PERSONALITY_GENOMES[category] || PERSONALITY_GENOMES['trade_authority'];
-  return { category, ...genome };
+  return {
+    category,
+    ...PERSONALITY_GENOMES[category],
+  };
 }
 
 // ── TYPOGRAPHY BY ID ──────────────────────────────────────────
@@ -659,178 +534,93 @@ function normaliseIndustryKey(industry) {
   if (!industry) return 'general';
   const k = industry.toLowerCase().replace(/[^a-z\s_]/g, '').trim();
 
-  // ── TRADES & CONSTRUCTION ──────────────────────────────────────
-  if (/plumb/.test(k))                              return 'plumbing';
-  if (/electr/.test(k))                             return 'electrical';
-  if (/aircon|hvac|air.con/.test(k))                return 'aircon';
-  if (/handyman/.test(k))                           return 'handyman';
-  if (/carpent|joinery|woodwork/.test(k))           return 'carpentry';
-  if (/roof/.test(k))                               return 'roofing';
-  if (/waterproof|damp.proof/.test(k))              return 'waterproofing';
-  if (/pest|exterminat|fumig/.test(k))              return 'pest_control';
-  if (/appliance|whitegood/.test(k))                return 'appliance_repair';
-  if (/weld|fabricat/.test(k))                      return 'welding';
-  if (/plaster|screed/.test(k))                     return 'plastering';
-  if (/signage/.test(k))                            return 'signage';
-  if (/cctv|alarm|electric.fence/.test(k))          return 'cctv';
-  if (/pool.build|pool.renov/.test(k))              return 'pool_building';
-  if (/pool.service|pool.clean/.test(k))            return 'pool_service';
-  if (/solar/.test(k))                              return 'solar';
-  if (/lock.?smith/.test(k))                        return 'locksmith';
-  if (/fencing|garage.door/.test(k))                return 'gates';
-  if (/tiler|tiling|paving|brick/.test(k))          return 'tiling';
-  if (/glazier/.test(k))                            return 'glazier';
-  if (/bathroom.renov|kitchen.renov/.test(k))       return 'renovation';
-  if (/demolit|excavat/.test(k))                    return 'demolition';
-  if (/fire.protect|sprinkler/.test(k))             return 'fire_protection';
-  if (/construct|builder/.test(k))                  return 'building';
+  if (/plumb/.test(k))                    return 'plumbing';
+  if (/electr/.test(k))                   return 'electrical';
+  if (/aircon|hvac|air.con/.test(k))      return 'aircon';
+  if (/handyman/.test(k))                 return 'handyman';
+  if (/carpent|joinery/.test(k))          return 'carpentry';
+  if (/paint(?!er.*photo)/.test(k))       return 'painting';
+  if (/roof/.test(k))                     return 'roofing';
+  if (/waterproof/.test(k))               return 'waterproofing';
+  if (/pest|exterminat/.test(k))          return 'pest_control';
+  if (/appliance|whitegoods/.test(k))     return 'appliance_repair';
+  if (/floor|carpet|vinyl|laminate/.test(k)) return 'flooring';
+  if (/hair.*salon|salon|hairdress/.test(k)) return 'hair_salon';
+  if (/barber/.test(k))                   return 'barber';
+  if (/nail/.test(k))                     return 'nails';
+  if (/spa|massage/.test(k))              return 'spa';
+  if (/lash/.test(k))                     return 'lashes';
+  if (/makeup|make.up|cosmetic/.test(k))  return 'makeup';
+  if (/restaurant|diner/.test(k))         return 'restaurant';
+  if (/cater/.test(k))                    return 'catering';
+  if (/baker/.test(k))                    return 'bakery';
+  if (/cafe|coffee/.test(k))              return 'cafe';
+  if (/street.food|food.stall/.test(k))   return 'street_food';
+  if (/chicken|kfc|chick/.test(k))        return 'chicken_shop';
+  if (/shisa|nyama|braai/.test(k))        return 'shisa_nyama';
+  if (/gym|fitness/.test(k))             return 'gym';
+  if (/personal.train/.test(k))           return 'personal_trainer';
+  if (/yoga|pilates/.test(k))             return 'yoga';
+  if (/mechanic|auto.repair/.test(k))     return 'mechanic';
+  if (/panel|body.shop/.test(k))          return 'panel_beater';
+  if (/tyre|tire/.test(k))               return 'tyres';
+  if (/carwash|car.wash/.test(k))         return 'carwash';
+  if (/bakkie.hire|truck.hire/.test(k))   return 'bakkie_hire';
+  if (/construct|build/.test(k))          return 'construction';
+  if (/renovat/.test(k))                  return 'renovation';
+  if (/plaster/.test(k))                  return 'plastering';
+  if (/weld/.test(k))                     return 'welding';
+  if (/sign/.test(k))                     return 'signage';
+  if (/cctv|camera/.test(k))              return 'cctv';
+  if (/clean|maid|domestic/.test(k))      return 'cleaning';
+  if (/laundry/.test(k))                  return 'laundry';
+  if (/medical|doctor|clinic/.test(k))    return 'medical';
+  if (/pharm/.test(k))                    return 'pharmacy';
+  if (/physio/.test(k))                   return 'physio';
+  if (/dental|dentist/.test(k))           return 'dental';
+  if (/property|estate.agent|realtor/.test(k)) return 'property';
+  if (/legal|law|attorney|advocate/.test(k))   return 'legal';
+  if (/account|bookkeep/.test(k))         return 'accounting';
+  if (/crypto|blockchain/.test(k))        return 'crypto';
+  if (/it.support|tech.support/.test(k))  return 'it_support';
+  if (/social.media/.test(k))             return 'social_media';
+  if (/graphic|design/.test(k))           return 'graphic_design';
+  if (/securi/.test(k))                   return 'security';
+  if (/spaza|tuck.shop/.test(k))          return 'spaza';
+  if (/hardware/.test(k))                 return 'hardware';
+  if (/bottle.store|liquor/.test(k))      return 'bottle_store';
+  if (/wedding/.test(k))                  return 'wedding';
+  if (/photo/.test(k))                    return 'photography';
+  if (/\bdj\b|disc.jockey/.test(k))       return 'dj';
+  if (/event/.test(k))                    return 'events';
+  if (/transport|logistics/.test(k))      return 'transport';
+  if (/kombi|minibus/.test(k))            return 'kombi';
+  if (/landscap/.test(k))                 return 'landscaping';
+  if (/garden|nursery/.test(k))           return 'garden';
+  if (/florist|flower/.test(k))           return 'florist';
+  if (/childcare|creche|daycare/.test(k)) return 'childcare';
+  if (/tutor|teach|educat/.test(k))       return 'tutoring';
+  if (/funeral/.test(k))                  return 'funeral';
+  if (/ai.consult/.test(k))               return 'ai_consulting';
 
-  // ── TRANSFORMATION ─────────────────────────────────────────────
-  if (/floor|carpet|vinyl|laminate/.test(k))        return 'flooring';
-  if (/interior.design|home.decor/.test(k))         return 'renovation';
-  if (/renovat/.test(k))                            return 'renovation';
-  if (/panel.?beat|panelbeat|auto.body|smash/.test(k)) return 'panel_beater';
-  if (/landscap/.test(k))                           return 'landscaping';
-  if (/garden.service/.test(k))                     return 'landscaping';
-  if (/plant.nursery|garden.centre/.test(k))        return 'nursery';
-  if (/florist|flower/.test(k))                     return 'florist';
-  if (/curtain|blind|upholster/.test(k))            return 'curtains';
-  if (/car.?wash|carwash|detailing/.test(k))        return 'car_wash';
-  if (/paint/.test(k))                              return 'painting';
-
-  // ── PERSONAL CARE ──────────────────────────────────────────────
-  if (/hair.salon|hairdress/.test(k))               return 'hair_salon';
-  if (/barber/.test(k))                             return 'barber';
-  if (/nail|manicure|pedicure/.test(k))             return 'nails';
-  if (/massage/.test(k))                            return 'spa';
-  if (/\bspa\b/.test(k))                          return 'spa';
-  if (/lash|eyebrow/.test(k))                       return 'lashes';
-  if (/makeup|make.up|cosmetic/.test(k))            return 'makeup';
-  if (/tattoo|piercing/.test(k))                    return 'tattoo';
-  if (/waxing|threading/.test(k))                   return 'waxing';
-  if (/skincare|aestheti/.test(k))                  return 'skincare';
-  if (/beauty.salon/.test(k))                       return 'beauty_salon';
-
-  // ── WELLNESS & FITNESS ─────────────────────────────────────────
-  if (/gym|fitness|crossfit/.test(k))               return 'gym';
-  if (/personal.train/.test(k))                     return 'personal_trainer';
-  if (/yoga|pilates|dance/.test(k))                 return 'yoga';
-  if (/physio|biokinet/.test(k))                    return 'physiotherapy';
-  if (/chiro/.test(k))                              return 'chiropractor';
-  if (/nutrition|dietitian/.test(k))                return 'nutrition';
-  if (/counsel|psycholog|mental.health/.test(k))    return 'mental_health';
-  if (/martial.art|karate|boxing/.test(k))          return 'martial_arts';
-  if (/swim.school|swimming/.test(k))               return 'swimming_lessons';
-  if (/health.shop|health.food/.test(k))            return 'health_shop';
-
-  // ── HOSPITALITY & FOOD ─────────────────────────────────────────
-  if (/restaurant|diner|bistro/.test(k))            return 'restaurant';
-  if (/cafe|coffee.shop/.test(k))                   return 'cafe';
-  if (/baker|cake.shop|patisser/.test(k))           return 'bakery';
-  if (/cater/.test(k))                              return 'catering';
-  if (/street.food|food.truck/.test(k))             return 'street_food';
-  if (/chicken|fast.food|takeaway/.test(k))         return 'chicken_shop';
-  if (/shisa|nyama|braai/.test(k))                  return 'shisa_nyama';
-  if (/butch/.test(k))                              return 'butchery';
-  if (/pizza/.test(k))                              return 'pizza';
-  if (/sushi/.test(k))                              return 'sushi';
-  if (/tavern|shebeen/.test(k))                     return 'pub';
-  if (/guest.house|guesthouse|bed.and.breakfast|bed.breakfast|\bbnb\b/.test(k)) return 'guest_house';
-  if (/lodge/.test(k))                              return 'lodge';
-  if (/home.indust|home.bak/.test(k))               return 'home_industry';
-  if (/deli|charcuter/.test(k))                     return 'deli';
-  if (/farm.stall|farm.produc/.test(k))             return 'farm_stall';
-  if (/ice.cream|dessert/.test(k))                  return 'ice_cream';
-  if (/juice.bar|smoothie/.test(k))                 return 'juice_bar';
-
-  // ── COMMUNITY & LOCAL ──────────────────────────────────────────
-  if (/childcare|creche|daycare/.test(k))           return 'childcare';
-  if (/tutor|extra.lesson|maths/.test(k))           return 'tutoring';
-  if (/clean|maid|domestic/.test(k))                return 'cleaning';
-  if (/laundry|dry.clean/.test(k))                  return 'laundry';
-  if (/driving.school|driving.lesson/.test(k))      return 'driving_school';
-  if (/funeral|tombstone/.test(k))                  return 'funeral';
-  if (/alteration|seamstress|tailor/.test(k))       return 'alterations';
-  if (/shoe.repair|cobbler/.test(k))                return 'shoe_repair';
-  if (/garden(?!.service|.centre)/.test(k))         return 'garden';
-  if (/nursery/.test(k))                            return 'nursery';
-  if (/beekeep|honey/.test(k))                      return 'beekeeping';
-
-  // ── PROFESSIONAL & FINANCIAL ───────────────────────────────────
-  if (/legal|law|attorney|advocate/.test(k))        return 'legal';
-  if (/account|bookkeep/.test(k))                   return 'accounting';
-  if (/tax.consult/.test(k))                        return 'tax';
-  if (/property|estate.agent|realtor/.test(k))      return 'property';
-  if (/financial.advis|wealth|insur/.test(k))       return 'financial_advisor';
-  if (/bond.origin|mortgage/.test(k))               return 'mortgage';
-  if (/crypto|blockchain|invest/.test(k))           return 'crypto';
-  if (/recruit|\bhr\b|human.resourc/.test(k))     return 'hr';
-  if (/consult/.test(k))                            return 'consulting';
-
-  // ── TECHNICAL & DIGITAL ────────────────────────────────────────
-  if (/it.support|tech.support|computer.repair/.test(k)) return 'it_support';
-  if (/social.media|digital.market/.test(k))        return 'social_media';
-  if (/graphic|web.design|web.dev/.test(k))         return 'graphic_design';
-  if (/securi/.test(k))                             return 'security';
-  if (/software|app.dev/.test(k))                   return 'software';
-  if (/drone/.test(k))                              return 'drone';
-  if (/print/.test(k))                              return 'printing';
-
-  // ── RETAIL ─────────────────────────────────────────────────────
-  if (/spaza|tuck.shop/.test(k))                    return 'spaza';
-  if (/hardware/.test(k))                           return 'hardware';
-  if (/bottle.store|liquor/.test(k))                return 'bottle_store';
-  if (/clothing|fashion|boutique/.test(k))          return 'clothing';
-  if (/\bshoes\b|footwear/.test(k))               return 'shoes';
-  if (/furniture/.test(k))                          return 'furniture';
-  if (/bedding|linen/.test(k))                      return 'bedding';
-  if (/electron|cellphone|phone.repair/.test(k))    return 'electronics';
-  if (/tyre|tire/.test(k))                          return 'tyres';
-  if (/car.parts|auto.parts|spare.parts|spares/.test(k)) return 'car_parts';
-  if (/pet.shop|pet.store/.test(k))                 return 'pet_shop';
-  if (/pharm|chemist/.test(k))                      return 'pharmacy';
-  if (/toys|baby.shop/.test(k))                     return 'toys';
-  if (/books|stationery/.test(k))                   return 'books';
-
-  // ── AUTOMOTIVE ─────────────────────────────────────────────────
-  if (/mechanic|auto.repair|car.service/.test(k))   return 'mechanic';
-  if (/towing|recovery/.test(k))                    return 'towing';
-  if (/car.rental|vehicle.hire/.test(k))            return 'car_rental';
-
-  // ── EVENTS & CREATIVE ──────────────────────────────────────────
-  if (/wedding/.test(k))                            return 'wedding';
-  if (/photo/.test(k))                              return 'photography';
-  if (/videograph/.test(k))                         return 'videography';
-  if (/\bdj\b|disc.jockey/.test(k))               return 'dj';
-  if (/function.venue|event.venue/.test(k))         return 'venue';
-  if (/event/.test(k))                              return 'events';
-  if (/party.hire|jumping.castle/.test(k))          return 'party_hire';
-  if (/musician|band/.test(k))                      return 'band';
-
-  // ── TRANSPORT & LOGISTICS ──────────────────────────────────────
-  if (/courier|deliver/.test(k))                    return 'courier';
-  if (/transport|logistics|freight/.test(k))        return 'transport';
-  if (/kombi|minibus/.test(k))                      return 'kombi';
-  if (/bakkie.hire/.test(k))                        return 'bakkie_hire';
-  if (/moving|remov|reloc/.test(k))                 return 'moving';
-  if (/metered.taxi/.test(k))                       return 'taxi';
-
-  // ── MEDICAL & HEALTH ───────────────────────────────────────────
-  if (/\bgp\b|general.pract/.test(k))             return 'gp';
-  if (/medical|doctor|clinic/.test(k))              return 'medical';
-  if (/dental|dentist|orthodont/.test(k))           return 'dental';
-  if (/optom|optical|eye.care|eyewear/.test(k))     return 'optometrist';
-  if (/vet(?:erinarian)?|animal.clinic/.test(k))    return 'vet';
-  if (/home.care|nursing/.test(k))                  return 'home_care';
-  if (/hearing|audiolog/.test(k))                   return 'hearing';
-
-  // ── EDUCATION ──────────────────────────────────────────────────
-  if (/after.school/.test(k))                       return 'after_school';
-  if (/coding.school|stem/.test(k))                 return 'coding_school';
-
-  // ── AGRICULTURE ────────────────────────────────────────────────
-  if (/beekeep|honey/.test(k))                      return 'beekeeping';
-  if (/fishing|bait/.test(k))                       return 'fishing';
+  // ── INTAKE LIST ADDITIONS ─────────────────────────────────
+  if (/optom|optical|eye.care|eyewear/.test(k))  return 'optometrist';
+  if (/vet(?:erinarian)?|animal.clinic|pet.care/.test(k)) return 'vet';
+  if (/driving.school|drive.school/.test(k))     return 'driving_school';
+  if (/tattoo|piercing/.test(k))                 return 'tattoo';
+  if (/makeup.artist/.test(k))                   return 'makeup';
+  if (/event.venue|venue/.test(k))               return 'events';
+  if (/wedding.plan/.test(k))                    return 'wedding';
+  if (/furniture/.test(k))                       return 'furniture';
+  if (/butch/.test(k))                           return 'butchery';
+  if (/food.truck/.test(k))                      return 'street_food';
+  if (/pool.service|pool.clean/.test(k))         return 'cleaning';
+  if (/tiler|tiling/.test(k))                    return 'tiling';
+  if (/glazier|glass/.test(k))                   return 'glazier';
+  if (/financial.advis|wealth/.test(k))          return 'accounting';
+  if (/videograph/.test(k))                      return 'photography';
+  if (/web.dev|web.design/.test(k))              return 'it_support';
+  if (/courier|deliver/.test(k))                 return 'transport';
 
   return 'general';
 }
@@ -966,4 +756,292 @@ function tintDark(hex, intensity) {
   } catch {
     return '#0a0a0a';
   }
+}
+
+// ============================================================
+// EXPANSION — New personality categories, variant tokens,
+// fingerprint system, selection pass helpers
+// Added: 2026-06-07
+// ============================================================
+
+// ── NEW INDUSTRY → PERSONALITY MAPPINGS ──────────────────────
+// Extend existing INDUSTRY_PERSONALITY with new categories
+Object.assign(INDUSTRY_PERSONALITY, {
+  // Luxury
+  boutique:'luxury', interior_design:'luxury', high_end_salon:'luxury',
+  jeweller:'luxury', luxury_car:'luxury', fine_dining:'luxury',
+  concierge:'luxury', private_chef:'luxury', wine:'luxury',
+
+  // Artisan
+  pottery:'artisan', woodwork:'artisan', leather:'artisan',
+  candlemaker:'artisan', seamstress:'artisan', tailor:'artisan',
+  bespoke:'artisan', craft_beer:'artisan', artisan_bakery:'artisan',
+  soap:'artisan', homeware:'artisan', ceramics:'artisan',
+
+  // Hustle
+  food_truck:'hustle', spaza:'hustle', street_vendor:'hustle',
+  mobile_barber:'hustle', mobile_mechanic:'hustle', kiosk:'hustle',
+  flea_market:'hustle', township_business:'hustle',
+
+  // Heritage
+  family_business:'heritage', established_restaurant:'heritage',
+  old_school_barber:'heritage', traditional_healer:'heritage',
+  pawn_shop:'heritage', second_hand:'heritage',
+
+  // Authority
+  chartered_accountant:'authority', specialist_doctor:'authority',
+  advocate:'authority', engineer:'authority', architect:'authority',
+  quantity_surveyor:'authority', financial_planner:'authority',
+  insurance_broker:'authority',
+});
+
+// ── NEW PERSONALITY GENOMES ───────────────────────────────────
+Object.assign(PERSONALITY_GENOMES, {
+
+  luxury: {
+    label: 'Luxury',
+    hero_layouts: ['quiet_premium', 'cinematic_left'],
+    opening_strategies: ['manifesto', 'emotional_story'],
+    typography_mode: 'luxury_serif',
+    typography_alt_id: 1,        // Classic Elegant as alt
+    spacing_rhythm: 'dramatic',
+    card_density: 'very_low',
+    alignment_bias: 'center',
+    visual_energy: 'restrained',
+    surface_style: 'deep_dark',
+    cta_style: 'minimal',
+    section_flow: 'emotion_first',
+    palette_row: 32,
+    palette_row_light: 'luxury_light',
+    typography_id: 12,
+    trust_signals: false,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center top', hero_height:'100svh', scrim:'minimal' },
+    archetype_code: 'LUX',
+  },
+
+  artisan: {
+    label: 'Artisan',
+    hero_layouts: ['cinematic_left', 'quiet_premium'],
+    opening_strategies: ['emotional_story', 'manifesto'],
+    typography_mode: 'retro_warm',
+    typography_alt_id: 4,        // Editorial Classic as alt
+    spacing_rhythm: 'airy',
+    card_density: 'very_low',
+    alignment_bias: 'left',
+    visual_energy: 'warm',
+    surface_style: 'warm_dark',
+    cta_style: 'inviting',
+    section_flow: 'story_first',
+    palette_row: 63,
+    palette_row_light: 'artisan_light',
+    typography_id: 10,
+    trust_signals: false,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center', hero_height:'100svh', scrim:'warm_bottom' },
+    archetype_code: 'ART',
+  },
+
+  hustle: {
+    label: 'Hustle',
+    hero_layouts: ['trade_authority', 'cinematic_left'],
+    opening_strategies: ['direct_offer', 'local_hero'],
+    typography_mode: 'bold_statement',
+    typography_alt_id: 2,        // Modern Professional as alt
+    spacing_rhythm: 'compact',
+    card_density: 'medium',
+    alignment_bias: 'left',
+    visual_energy: 'high',
+    surface_style: 'matte_dark',
+    cta_style: 'direct',
+    section_flow: 'service_first',
+    palette_row: 34,
+    palette_row_light: 'hustle_light',
+    typography_id: 7,
+    trust_signals: false,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center', hero_height:'88svh', scrim:'heavy_bottom' },
+    archetype_code: 'HST',
+  },
+
+  heritage: {
+    label: 'Heritage',
+    hero_layouts: ['quiet_premium', 'cinematic_left'],
+    opening_strategies: ['local_hero', 'emotional_story'],
+    typography_mode: 'editorial_classic',
+    typography_alt_id: 10,       // Retro Warm as alt
+    spacing_rhythm: 'dramatic',
+    card_density: 'very_low',
+    alignment_bias: 'left',
+    visual_energy: 'restrained',
+    surface_style: 'warm_dark',
+    cta_style: 'minimal',
+    section_flow: 'story_first',
+    palette_row: 63,
+    palette_row_light: 'heritage_light',
+    typography_id: 4,
+    trust_signals: true,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center', hero_height:'100svh', scrim:'cinematic' },
+    archetype_code: 'HER',
+  },
+
+  authority: {
+    label: 'Authority',
+    hero_layouts: ['quiet_premium', 'trade_authority'],
+    opening_strategies: ['proof_first', 'local_hero'],
+    typography_mode: 'corporate_trust',
+    typography_alt_id: 4,        // Editorial Classic as alt
+    spacing_rhythm: 'dramatic',
+    card_density: 'low',
+    alignment_bias: 'left',
+    visual_energy: 'restrained',
+    surface_style: 'deep_dark',
+    cta_style: 'minimal',
+    section_flow: 'proof_first',
+    palette_row: 40,
+    palette_row_light: 'authority_light',
+    typography_id: 16,
+    trust_signals: true,
+    colour_mood_default: 'dark',
+    image_treatment: { bg_position:'center', hero_height:'95svh', scrim:'minimal' },
+    archetype_code: 'AUT',
+  },
+
+});
+
+// ── LIGHT PALETTE VARIANTS ────────────────────────────────────
+// Dark is default for most archetypes.
+// Light variants for luxury, artisan, heritage when colour_mood=light
+export const LIGHT_PALETTES = {
+  luxury_light:    { primary:'#1a1a2e', onPrimary:'#ffffff', secondary:'#2d2d4e', accent:'#c9913a', bg:'#faf8f5', fg:'#1a1a2e', card:'#ffffff', muted:'#f0ece6', mutedFg:'#6b6460', border:'#e8e0d8', ring:'#c9913a', notes:'Warm cream + gold luxury' },
+  artisan_light:   { primary:'#3d2b1f', onPrimary:'#ffffff', secondary:'#6b4c38', accent:'#c47a3a', bg:'#fdf8f2', fg:'#3d2b1f', card:'#ffffff', muted:'#f2ede5', mutedFg:'#7a6458', border:'#e8ddd2', ring:'#c47a3a', notes:'Warm parchment + craft amber' },
+  heritage_light:  { primary:'#2c2418', onPrimary:'#ffffff', secondary:'#5c4d38', accent:'#8b6914', bg:'#faf7f0', fg:'#2c2418', card:'#ffffff', muted:'#f0ebe0', mutedFg:'#7a6e5a', border:'#e5dcc8', ring:'#8b6914', notes:'Aged paper + heritage gold' },
+  hustle_light:    { primary:'#1a0a00', onPrimary:'#ffffff', secondary:'#8b3a00', accent:'#ff6b00', bg:'#fff8f5', fg:'#1a0a00', card:'#ffffff', muted:'#ffe8d8', mutedFg:'#8b5a4a', border:'#ffd0b0', ring:'#ff6b00', notes:'Warm white + bold orange' },
+  authority_light: { primary:'#0f1e3d', onPrimary:'#ffffff', secondary:'#1e3a6e', accent:'#b45309', bg:'#f8f9fc', fg:'#0f1e3d', card:'#ffffff', muted:'#eef0f5', mutedFg:'#5a6580', border:'#d8dce8', ring:'#0f1e3d', notes:'Clean white + authority navy' },
+};
+
+// ── ARCHETYPE CODE MAP ────────────────────────────────────────
+// Short codes for fingerprint generation
+const ARCHETYPE_CODES = {
+  trade_authority:   'TRD',
+  transformation:    'TRN',
+  personal_care:     'PCA',
+  wellness:          'WEL',
+  hospitality:       'HOS',
+  community_local:   'COM',
+  professional_trust:'PRO',
+  technical_expertise:'TEC',
+  retail_utility:    'RET',
+  event_creative:    'EVT',
+  mobility:          'MOB',
+  medical_trust:     'MED',
+  memorial_legacy:   'MEM',
+  luxury:            'LUX',
+  artisan:           'ART',
+  hustle:            'HST',
+  heritage:          'HER',
+  authority:         'AUT',
+};
+
+const LAYOUT_CODES = {
+  trade_authority: 'BOLD',
+  cinematic_left:  'CIN',
+  quiet_premium:   'QP',
+};
+
+const FLOW_CODES = {
+  service_first: 'SVC',
+  story_first:   'STR',
+  emotion_first: 'EMO',
+  proof_first:   'PRF',
+};
+
+const TYPO_CODES = {
+  1:  'CLE',  // Classic Elegant
+  2:  'MPR',  // Modern Professional
+  4:  'EDC',  // Editorial Classic
+  6:  'PLC',  // Playful Creative
+  7:  'BLD',  // Bold Statement
+  8:  'WLC',  // Wellness Calm
+  10: 'RTW',  // Retro Warm
+  11: 'GEO',  // Geometric Modern
+  12: 'LSF',  // Luxury Serif
+  14: 'NEW',  // News Editorial
+  16: 'CRP',  // Corporate Trust
+  18: 'FFW',  // Fashion Forward
+};
+
+// ── FINGERPRINT GENERATOR ─────────────────────────────────────
+/**
+ * Generates a short design fingerprint for a build.
+ * Format: ARCH-TYPO-MOOD-LAYOUT-FLOW
+ * Example: ART-RTW-LIGHT-CIN-STR
+ *
+ * @param {string} category — personality category key
+ * @param {object} variants — { colour_mood, hero_layout, section_flow, typography_id }
+ * @returns {string} fingerprint
+ */
+export function generateFingerprint(category, variants = {}) {
+  const genome  = PERSONALITY_GENOMES[category] || PERSONALITY_GENOMES.trade_authority;
+  const arch    = ARCHETYPE_CODES[category]   || 'GEN';
+  const typo    = TYPO_CODES[variants.typography_id || genome.typography_id] || 'STD';
+  const mood    = (variants.colour_mood || genome.colour_mood_default || 'dark').toUpperCase().slice(0, 5);
+  const layout  = LAYOUT_CODES[variants.hero_layout || genome.hero_layouts[0]] || 'STD';
+  const flow    = FLOW_CODES[variants.section_flow || genome.section_flow] || 'STD';
+  return `${arch}-${typo}-${mood}-${layout}-${flow}`;
+}
+
+// ── SELECTION PASS SYSTEM PROMPT ──────────────────────────────
+/**
+ * Returns the system prompt for Pass 0 — the design selection pass.
+ * This pass reads all available signals and outputs a design decision object.
+ */
+export function selectionPassSystem() {
+  return `You are a South African brand designer making a single, confident design decision for a small business website.
+
+You will receive business data — name, industry, area, GBP category, reviews, review count, rating.
+
+Your job is to output ONLY a JSON object with these exact keys:
+- personality_category: one of [trade_authority, transformation, personal_care, wellness, hospitality, community_local, professional_trust, technical_expertise, retail_utility, event_creative, mobility, medical_trust, memorial_legacy, luxury, artisan, hustle, heritage, authority]
+- hero_layout: one of [trade_authority, cinematic_left, quiet_premium]
+- section_flow: one of [service_first, story_first, emotion_first, proof_first]
+- colour_mood: one of [dark, light]
+- typography_id: one of [1, 2, 4, 6, 7, 8, 10, 11, 12, 14, 16, 18]
+- reasoning: one sentence explaining the core decision
+
+DECISION RULES:
+- Trade/emergency/repair → trade_authority, dark, service_first, bold typography (7)
+- Salon/spa/beauty → personal_care, dark, story_first, elegant typography (1)
+- Bakery/artisan food/craft → artisan, light or dark, story_first, retro warm (10)
+- Restaurant/cafe/food → hospitality, dark, emotion_first, retro warm (10)
+- Legal/accounting/engineering → authority, light, proof_first, corporate trust (16)
+- Luxury/boutique/high-end → luxury, dark or light, emotion_first, luxury serif (12)
+- Street food/mobile/hustle → hustle, dark, service_first, bold (7)
+- Old established business → heritage, dark, story_first, editorial classic (4)
+- Medical/dental/physio → medical_trust, light, proof_first, wellness calm (8)
+- Photography/events/creative → event_creative, dark, emotion_first, fashion forward (18)
+- SA area signals: Sandton/Umhlanga/Constantia → luxury bias; township names → hustle/community bias; small towns → heritage/local bias
+- Review language: "family", "friendly", "like home" → community/heritage; "professional", "expert" → authority/professional_trust; "beautiful", "amazing" → experience/luxury; "fast", "saved us" → emergency/trade
+- Light mood: luxury, authority, heritage, artisan (often better in light), medical
+- Dark mood: trades, hustle, wellness, hospitality, events, photography
+
+Output ONLY valid JSON. No markdown. No explanation outside the reasoning field.`;
+}
+
+/**
+ * Returns the user prompt for Pass 0.
+ * @param {object} client — client record from D1
+ * @param {object} gbpData — GBP data or null
+ * @returns {string}
+ */
+export function selectionPassUser(client, gbpData) {
+  const reviewSample = gbpData?.reviews?.slice(0, 3).map(r => r.text).filter(Boolean).join(' | ') || '';
+  return `Business: ${client.business_name}
+Industry: ${client.industry || 'unknown'}
+Area: ${client.area || 'South Africa'}
+GBP Category: ${gbpData?.category || 'unknown'}
+GBP Rating: ${gbpData?.rating || 'unknown'} (${gbpData?.reviewCount || 0} reviews)
+Review snippets: ${reviewSample || 'none available'}
+Package: ${client.package || 'standard'}`;
 }
