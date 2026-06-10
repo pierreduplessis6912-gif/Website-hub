@@ -250,7 +250,7 @@ export const INDUSTRY_PERSONALITY = {
   hunting:'community_local', game:'community_local',
 
   // ── DEFAULT ───────────────────────────────────────────────────
-  general:'trade_authority',
+  general:'hospitality',
 };
 
 // ── PERSONALITY GENOME LIBRARY ────────────────────────────────
