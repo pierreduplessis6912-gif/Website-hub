@@ -1,104 +1,69 @@
 # Website Hub
 
-**Automated website-as-a-service for South African small businesses.**
-Built entirely from an Android phone. Runs while you sleep.
+**Automated website-as-a-service platform for South African small businesses.**
 
-> "Your website. Live in 2 minutes."
-
----
-
-## Live
-
-| URL | What |
-|-----|------|
-| websitehub.co.za | Landing page |
-| preview.websitehub.co.za | Platform (build, preview, manage) |
-| preview.websitehub.co.za/admin | Admin dashboard |
-| *.websitehub.co.za | Live client sites |
+Built by a solo founder on an Android phone using Termux and Claude AI.
 
 ---
 
-## The Product
+## What it does
 
-Website Hub builds and hosts professional websites for SA small businesses. No agency. No meetings. No waiting a week.
-
-**How it works:**
-1. We find a business (outbound) or they find us (inbound)
-2. We build their site automatically in ~2 minutes using Claude AI
-3. They get a WhatsApp with an OG card — their actual site, built for them
-4. They tap Go Live, pay via PayFast, site is live instantly
-5. Everything after that is automated — invoicing, reminders, support forwarding
+1. **Scrape** — finds businesses without websites on Google Places
+2. **Build** — generates a professional website in 60 seconds using Claude AI + GBP data
+3. **Blast** — sends a WhatsApp with their preview site and a promo offer
+4. **Convert** — customer taps link, sees their site, pays R599/month
+5. **Go live** — site deploys to their subdomain or custom .co.za domain
 
 ---
 
-## Packages
+## Pricing
 
-| Plan | Build Fee | Monthly | Domain |
-|------|-----------|---------|--------|
-| Hub | R7,000 | R699/mo | yourbusiness.websitehub.co.za |
-| Hub Pro | R7,000 | R999/mo | yourbusiness.co.za |
-| Promo (LAUNCH2026) | R0 | R599/mo | yourbusiness.websitehub.co.za |
+| Plan | Price | Domain |
+|------|-------|--------|
+| Hub | R599/month | slug.websitehub.co.za |
+| Hub Pro | R999/month | yourdomain.co.za |
 
-Monthly subscription. Cancel anytime. No contracts.
+Promo code `LAUNCH2026` waives the build fee.
 
 ---
 
 ## Architecture
 
-6 Cloudflare Workers on one zone:
-
-```
-wh-build      — public entry point, builds, admin, incoming WhatsApp
-wh-launch     — PayFast, go-live, email provisioning, manage panel API
-wh-patch      — revisions
-wh-pulse      — daily cron: dunning, follow-ups, referral vesting
-wh-reactivate — reactivations
-wh-sites      — serves live client sites from KV by hostname
-```
-
-**Stack:** Cloudflare Workers · D1 · KV · R2 · Queues · Evolution API (WhatsApp) · PayFast · Anthropic Claude
-
----
-
-## Brand
-
-| | |
-|-|-|
-| Background | #0e0c09 |
-| Accent | #00f0ff |
-| Display | Syne |
-| Body | DM Sans |
-| Mono | DM Mono |
+| Component | Technology |
+|-----------|-----------|
+| Workers | Cloudflare Workers (wh-build, wh-patch, wh-launch, wh-pulse, wh-reactivate) |
+| Database | Cloudflare D1 (SQLite) |
+| Cache | Cloudflare KV |
+| Storage | Cloudflare R2 |
+| Queue | Cloudflare Queues |
+| WhatsApp | Evolution API |
+| Payments | PayFast |
+| AI | Anthropic Claude |
+| Photos | Google Places API + Unsplash |
+| DNS | DNSimple |
 
 ---
 
-## Referral Programme
+## Key files
 
-Available to promo clients only. Refer 10 businesses that go live → get Hub Pro upgrade (own .co.za domain) free. See `/referral-terms`.
-
----
-
-## Legal & Compliance
-
-- POPIA registered — Information Regulator of South Africa — Reg. No. 2026-024548
-- Monthly subscription disclosure on all pricing surfaces
-- Self-serve cancellation via manage panel
-- All legal pages: /privacy · /terms · /cancellation · /aup · /dpa · /referral-terms
+- `build-worker/src/index.js` — main build worker (4000+ lines)
+- `build-worker/src/archetypes/` — 5 site archetypes (emergency, experience, trust, local, results)
+- `design-db.js` — industry → personality → archetype mapping (ROOT, imported by Worker)
+- `blast.html` — admin blast dashboard
+- `godmode.html` — admin custom build interface
+- `preview.html` — client preview and manage panel
 
 ---
 
-## For AI Sessions
+## Admin access
 
-Full technical context (workers, routes, KV schema, D1 schema, secrets, known issues, useful commands) lives in:
-
-```
-docs/CONTEXT.md
-```
-
-Read that first. Every session. Before touching any file.
+- Blast: `websitehub.co.za/blast`
+- God Mode: `websitehub.co.za/godmode`
+- Admin key: `ADMIN_KEY_CLAUDEROX`
 
 ---
 
-## Goal
+## See also
 
-R1,000,000 ARR by December 25, 2026.
+- `CONTRIBUTING.md` — deployment SOP and rules
+- `docs/CONTEXT.md` — full session history and architecture decisions
