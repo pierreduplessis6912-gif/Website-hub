@@ -28,7 +28,7 @@ export function generateEmergencyHTML(t, heroUrl, client, cards, pkg, gbpData, b
   const rating      = gbpData?.rating || null;
   const reviewCount = gbpData?.reviewCount || 0;
   const hours       = gbpData?.hours || [];
-  const address     = gbpData?.address || cards?.address || client.address || '';
+  const address     = gbpData?.address || cards?.address || client.address || client.area || '';
   const galleryPhotos = (client.gallery_photos || []).slice(0, 6);
 
   // Format phone for display — strip country code, add leading zero
