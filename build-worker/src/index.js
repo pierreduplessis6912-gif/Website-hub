@@ -1354,11 +1354,15 @@ async function handleWhatsAppIncoming(request, env) {
     const msg = body?.data;
     if (!msg || msg?.key?.fromMe) return new Response('OK', { status: 200 });
 
-    // Extract message content
+    // Extract message content — handle all message types including automated replies
     const text = msg?.message?.conversation
       || msg?.message?.extendedTextMessage?.text
       || msg?.message?.imageMessage?.caption
-      || '[media message]';
+      || msg?.message?.templateMessage?.hydratedTemplate?.hydratedContentText
+      || msg?.message?.buttonsResponseMessage?.selectedDisplayText
+      || msg?.message?.listResponseMessage?.title
+      || msg?.message?.reactionMessage?.text
+      || '[message received]';
 
     // Debug — log full payload to find real phone
     await logEvent(env, null, 'whatsapp', 'incoming_debug', 'info', {
@@ -1397,7 +1401,7 @@ async function handleWhatsAppIncoming(request, env) {
     }
 
     phone = phone.replace(/\D/g, '');
-    if (!phone || phone.length < 7) return new Response('OK', { status: 200 });
+    if (!phone || phone.length < 5) return new Response('OK', { status: 200 });
 
     // Look up client by phone
     const client = await env.DB.prepare(
