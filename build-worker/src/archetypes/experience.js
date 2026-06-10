@@ -13,7 +13,7 @@
 
 export function generateExperienceHTML(t, heroUrl, client, cards, pkg, gbpData, brandBrief) {
   const phone   = (client.phone || '').replace(/\D/g, '');
-  const domain  = client.domain || (pkg === 'hub_pro' || pkg === 'premium' ? `${client.slug}.co.za` : `${client.slug}.websitehub.co.za`);
+  const domain  = client.domain || `${client.slug}.co.za`;
   const waLink  = `https://wa.me/${phone}`;
   const isExp   = pkg === 'express';
   const isPrem  = pkg === 'premium';
@@ -113,7 +113,7 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--dark)
 
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;transition:background .4s,backdrop-filter .4s}
 .nav.scrolled{background:rgba(14,12,9,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.nav-brand{font-family:var(--font-display);font-size:17px;font-weight:400;color:#fff;letter-spacing:.5px;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55vw}
+.nav-brand{font-family:var(--font-display);font-size:16px;font-weight:400;color:#fff;letter-spacing:.5px;text-decoration:none;white-space:normal;overflow:hidden;text-overflow:ellipsis;max-width:55vw;line-height:1.2}
 .nav-links{display:flex;align-items:center;gap:14px;flex-shrink:0}
 .nav-link{color:rgba(255,255,255,.8);font-size:13px;font-weight:400;letter-spacing:.5px;text-decoration:none;transition:color .2s;display:none}
 .nav-link:hover{color:#fff}
@@ -459,6 +459,14 @@ ${address ? `
     src="https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed"
     title="Find us"></iframe>
 </section>` : ''}
+
+${client.cross_link_url ? `
+<div style="background:rgba(0,240,255,.08);border-top:1px solid rgba(0,240,255,.15);border-bottom:1px solid rgba(0,240,255,.15);padding:16px 24px;text-align:center">
+  <a href="${esc(client.cross_link_url)}" style="color:var(--accent,#00f0ff);font-family:var(--font-display);font-size:14px;font-weight:600;text-decoration:none;letter-spacing:.3px">
+    ${esc(client.cross_link_text || '🏡 Need accommodation? Visit our sister property →')}
+  </a>
+</div>` : ''}
+
 <footer class="footer">
   <div class="footer-brand">${esc(t.short_name || client.business_name)}</div>
   <div class="footer-domain">${esc(domain)}</div>
