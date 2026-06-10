@@ -735,7 +735,7 @@ function normaliseIndustryKey(industry) {
   if (/pizza/.test(k))                              return 'pizza';
   if (/sushi/.test(k))                              return 'sushi';
   if (/tavern|shebeen/.test(k))                     return 'pub';
-  if (/guest.house|guesthouse|bed.and.breakfast|\bbnb\b/.test(k)) return 'guest_house';
+  if (/guest.house|guesthouse|bed.and.breakfast|bed.breakfast|\bbnb\b/.test(k)) return 'guest_house';
   if (/lodge/.test(k))                              return 'lodge';
   if (/home.indust|home.bak/.test(k))               return 'home_industry';
   if (/deli|charcuter/.test(k))                     return 'deli';
