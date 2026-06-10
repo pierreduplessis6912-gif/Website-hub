@@ -89,7 +89,8 @@ export const INDUSTRY_PERSONALITY = {
   // Hospitality
   restaurant:'hospitality', cafe:'hospitality', bakery:'hospitality',
   catering:'hospitality', street_food:'hospitality', chicken_shop:'hospitality',
-  shisa_nyama:'hospitality',
+  shisa_nyama:'hospitality', guest_house:'hospitality', lodge:'hospitality',
+  pub:'hospitality', bar:'hospitality',
 
   // Community Local
   childcare:'community_local', tutoring:'community_local',
@@ -384,7 +385,7 @@ export const SECTION_FLOWS = {
 
 // ── PERSONALITY RESOLUTION ────────────────────────────────────
 export function getPersonality(industryKey) {
-  const category = INDUSTRY_PERSONALITY[industryKey] || 'trade_authority';
+  const category = INDUSTRY_PERSONALITY[industryKey] || 'hospitality';
   return {
     category,
     ...PERSONALITY_GENOMES[category],
@@ -621,6 +622,9 @@ function normaliseIndustryKey(industry) {
   if (/videograph/.test(k))                      return 'photography';
   if (/web.dev|web.design/.test(k))              return 'it_support';
   if (/courier|deliver/.test(k))                 return 'transport';
+  if (/bed.and.breakfast|bed.breakfast|guest.house|guesthouse|\bbnb\b|b&b/.test(k)) return 'guest_house';
+  if (/\blodge\b/.test(k))                       return 'lodge';
+  if (/accommodation|airbnb/.test(k))            return 'guest_house';
 
   return 'general';
 }
