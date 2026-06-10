@@ -26,7 +26,7 @@ export function generateExperienceHTML(t, heroUrl, client, cards, pkg, gbpData, 
   const rating      = gbpData?.rating || null;
   const reviewCount = gbpData?.reviewCount || 0;
   const hours       = gbpData?.hours || [];
-  const address     = gbpData?.address || cards?.address || client.address || '';
+  const address     = gbpData?.address || cards?.address || client.address || client.area || '';
 
   const phoneDisplay = (client.phone || '').replace(/^\+?27/, '0').replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
   function esc(s) {
