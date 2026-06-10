@@ -104,8 +104,8 @@ body{font-family:var(--font-body);background:var(--dark);color:var(--text);overf
   color:var(--text);text-decoration:none;text-transform:uppercase;
 }
 .nav-links{display:flex;align-items:center;gap:14px;flex-shrink:0}
-.nav-link{display:none;
-  color:rgba(255,255,255,.5);font-size:13px;font-weight:400;
+.nav-link{display:block;
+  color:rgba(255,255,255,.5);font-size:11px;font-weight:400;
   text-decoration:none;letter-spacing:.3px;transition:color .2s;
 }
 .nav-link:hover{color:var(--text)}
