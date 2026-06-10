@@ -318,7 +318,6 @@ export default {
         maps_key_prefix: env.GOOGLE_MAPS_API_KEY?.slice(0,10) || 'MISSING',
         has_anthropic: !!env.ANTHROPIC_KEY,
         has_google_refresh: !!env.GOOGLE_REFRESH_TOKEN,
-        has_evolution_key: !!env.EVOLUTION_KEY,
         proxy_secret: env.DOMAIN_PROXY_SECRET ? env.DOMAIN_PROXY_SECRET.slice(0,6) + '...' : 'NOT SET',
       });
       if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
@@ -505,20 +504,18 @@ async function handleSetConfig(request, env) {
 // ── GOOGLE PLACES SCRAPE ──────────────────────────────────────────────────────
 async function handlePromoBlast(request, env) {
   const body = await request.json().catch(() => ({}));
-  const { industry, province, area, limit = 20, promoCode = 'LAUNCH2026', skipScrape = false } = body;
-  if (!skipScrape && (!industry || !province)) return jsonResponse({ error: 'industry and province required' }, 400);
+  const { industry, province, area, limit = 20, promoCode = 'LAUNCH2026' } = body;
+  if (!industry || !province) return jsonResponse({ error: 'industry and province required' }, 400);
 
-  // 1. Scrape Google Places (unless skipping)
-  if (!skipScrape) {
-    const scrapeReq = new Request(request.url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ industry, province, area, limit }),
-    });
-    await handleScrape(scrapeReq, env);
-  }
+  // 1. Scrape Google Places
+  const scrapeReq = new Request(request.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ industry, province, area, limit }),
+  });
+  await handleScrape(scrapeReq, env);
 
-  // 2. Fetch all pending prospects
+  // 2. Fetch all pending prospects just scraped
   const prospects = await env.DB.prepare(
     `SELECT * FROM prospects WHERE status='pending' ORDER BY id DESC LIMIT ?`
   ).bind(limit).all();
@@ -527,10 +524,6 @@ async function handlePromoBlast(request, env) {
 
   for (const p of (prospects.results || [])) {
     try {
-      // Skip if phone already has a client record
-      const existing = await env.DB.prepare(`SELECT id FROM clients WHERE phone=? LIMIT 1`).bind(p.phone || '').first().catch(() => null);
-      if (existing) { skipped++; continue; }
-
       const id           = crypto.randomUUID();
       const slug         = await uniqueSlug(p.business_name, env);
       const manage_token = crypto.randomUUID();
@@ -1668,7 +1661,7 @@ function shapeGbp(data, business_name) {
     types:        data.types || [],
     description:  data.editorialSummary?.text || '',
     hours:        data.regularOpeningHours?.weekdayDescriptions || [],
-    reviews:      (data.reviews || []).slice(0,5).map(r => ({
+    reviews:      (data.reviews || []).filter(r => (r.rating || 0) >= 4).slice(0,5).map(r => ({
       text:   r.text?.text || '',
       rating: r.rating || 0,
       author: r.authorAttribution?.displayName || '',
@@ -2714,7 +2707,7 @@ async function fetchGbpData(gbpUrl, env) {
     if (!place) return null;
 
     // Step 5: Extract useful data
-    const reviews = (place.reviews || []).slice(0, 3).map(r => ({
+    const reviews = (place.reviews || []).filter(r => (r.rating || 0) >= 4).slice(0, 3).map(r => ({
       text: r.text?.text || '',
       rating: r.rating || 5,
     }));
@@ -3900,48 +3893,14 @@ async function fetchHeroPhoto(brief, brandBrief, env) {
 async function handleCron(env) {
   if (isTestMode(env)) return;
 
-  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled' } });
-
-  // ── 24HR NUDGE — runs regardless of outbound_enabled ──────────
-  try {
-    const nudgeClients = await env.DB.prepare(`
-      SELECT id, business_name, slug, phone, manage_token, promo_code FROM clients
-      WHERE source='outbound'
-        AND status='preview_ready'
-        AND created_at <= datetime('now', '-24 hours')
-        AND created_at >= datetime('now', '-48 hours')
-    `).all();
-
-    for (const c of (nudgeClients.results || [])) {
-      try {
-        const nudgeKey = `nudge_sent:${c.id}`;
-        const alreadySent = await env.SITES.get(nudgeKey);
-        if (alreadySent) continue;
-
-        const isPromo = c.promo_code === 'LAUNCH2026';
-        const promoSuffix = isPromo ? `?promo=LAUNCH2026` : '';
-        const link = `https://${PREVIEW_DOMAIN}/${c.slug}/og${promoSuffix}`;
-
-        const msg = `👋 Hi *${c.business_name}*!\n\n` +
-          `Your free website is still waiting for you — but it won't be around forever.\n\n` +
-          `Have a look before it expires:\n` +
-          `👉 ${link}\n\n` +
-          `${isPromo ? `R599/month · no build fee · cancel anytime.` : `R7,000 build fee · R699/month · cancel anytime.`}\n\n` +
-          `— Website Hub`;
-
-        await sendWhatsApp(c.phone, msg, env);
-        await env.SITES.put(nudgeKey, '1', { expirationTtl: 60 * 60 * 24 * 7 });
-        await logEvent(env, c.id, 'build', 'nudge_sent', 'success', { metadata: { slug: c.slug } });
-      } catch(e) { console.warn('Nudge failed for', c.slug, e.message); }
-    }
-  } catch(e) { console.warn('Nudge cron failed:', e.message); }
-
-  // Respect master outbound toggle for new scraping
+  // Respect master outbound toggle
   const outboundEnabled = await env.DB.prepare(`SELECT value FROM config WHERE key='outbound_enabled' LIMIT 1`).first().catch(() => null);
   if (!outboundEnabled || outboundEnabled.value !== 'true') {
     await logEvent(env, null, 'build', 'cron_skipped', 'info', { metadata: { reason: 'outbound_enabled is false' } });
     return;
   }
+
+  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled' } });
 
   // Get approved prospects not yet contacted and not on cooldown
   const prospects = await env.DB.prepare(
