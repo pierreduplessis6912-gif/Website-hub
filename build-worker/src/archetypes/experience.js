@@ -111,14 +111,13 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--dark)
 .map-section{padding:0}
 .map-embed{width:100%;height:220px;border:none;display:block;filter:grayscale(20%)}
 
-.nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;transition:background .4s,backdrop-filter .4s}
-.nav.scrolled{background:rgba(14,12,9,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.nav-brand{font-family:var(--font-display);font-size:17px;font-weight:400;color:#fff;letter-spacing:.5px;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55vw}
-.nav-links{display:flex;align-items:center;gap:14px;flex-shrink:0}
-.nav-link{color:rgba(255,255,255,.8);font-size:13px;font-weight:400;letter-spacing:.5px;text-decoration:none;transition:color .2s;display:none}
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;transition:background .4s,backdrop-filter .4s;background:rgba(14,12,9,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.nav.scrolled{background:rgba(14,12,9,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.nav-brand{font-family:var(--font-display);font-size:16px;font-weight:400;color:#fff;letter-spacing:.5px;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50vw}
+.nav-links{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.nav-link{color:rgba(255,255,255,.8);font-size:11px;font-weight:400;letter-spacing:.5px;text-decoration:none;transition:color .2s;display:block}
 .nav-link:hover{color:#fff}
-@media(min-width:640px){.nav-link{display:block}}
-.nav-wa{background:var(--primary);color:var(--dark)!important;padding:8px 16px;border-radius:100px;font-weight:600;display:block!important;font-size:13px;white-space:nowrap}
+.nav-wa{background:var(--primary);color:var(--dark)!important;padding:7px 14px;border-radius:100px;font-weight:600;font-size:12px;white-space:nowrap}
 
 /* HERO */
 .hero{position:relative;height:100svh;min-height:600px;display:flex;flex-direction:column;justify-content:flex-end;padding:0 28px 80px;overflow:hidden}
