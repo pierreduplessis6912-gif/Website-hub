@@ -207,6 +207,7 @@ export default {
         if (path === '/cancellation')    return servePwa(env, 'app:cancellation');
         if (path === '/dpa')             return servePwa(env, 'app:dpa');
         if (path === '/blast')           return servePwa(env, 'app:blast');
+        if (path === '/godmode')         return servePwa(env, 'app:godmode');
         if (path === '/start')           return servePwa(env, 'app:start-v2');
         if (path.startsWith('/r/')) {
           // Referral link — set cookie and redirect to /start
@@ -277,6 +278,7 @@ export default {
       if (path === '/admin/bootstrap-manage'   && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-intake'   && method === 'POST') return handleAdminBootstrapIntake(request, env);
       if (path === '/admin/bootstrap-blast'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
+      if (path === '/admin/bootstrap-godmode'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:godmode');
       if (path === '/admin/bootstrap-landing'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:landing');
       if (path === '/admin/bootstrap-privacy'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:privacy');
       if (path === '/admin/bootstrap-terms'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:terms');
