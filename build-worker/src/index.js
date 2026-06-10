@@ -190,7 +190,7 @@ export default {
         let html = await env.SITES.get(pageKey);
         if (!html) html = await env.SITES.get(rootKey);
         if (!html) return new Response(clientNotFoundHtml(hostname), { status: 404, headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store' } });
-        return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600', 'X-Served-By': 'wh-build' } });
+        return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache', 'X-Served-By': 'wh-build' } });
       } catch(e) {
         console.error('Client site serving error:', e?.message);
       }
