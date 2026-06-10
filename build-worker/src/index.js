@@ -190,7 +190,7 @@ export default {
         let html = await env.SITES.get(pageKey);
         if (!html) html = await env.SITES.get(rootKey);
         if (!html) return new Response(clientNotFoundHtml(hostname), { status: 404, headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store' } });
-        return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache', 'X-Served-By': 'wh-build' } });
+        return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600', 'X-Served-By': 'wh-build' } });
       } catch(e) {
         console.error('Client site serving error:', e?.message);
       }
@@ -244,7 +244,6 @@ export default {
             path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free' ||
             path === '/manage-panel' || path === '/client-status' || path === '/payfast-webhook' ||
             path === '/whatsapp-incoming' || path === '/address-suggest' || path === '/showcase' ||
-            path === '/godmode' ||
             path.startsWith('/site/')) {
           // Fall through to main routing
         } else {
@@ -277,13 +276,7 @@ export default {
       if (path === '/admin/bootstrap-preview'  && method === 'POST') return handleAdminBootstrapPreview(request, env);
       if (path === '/admin/bootstrap-manage'   && method === 'POST') return handleAdminBootstrapManage(request, env);
       if (path === '/admin/bootstrap-intake'   && method === 'POST') return handleAdminBootstrapIntake(request, env);
-      if (path === '/admin/bootstrap-godmode' && method === 'POST') {
-        const html = await request.text();
-        if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
-        await env.SITES.put('app:godmode', html);
-        return jsonResponse({ success: true, key: 'app:godmode', size: html.length });
-      }
-      if (path === '/admin/bootstrap-blast'     && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
+      if (path === '/admin/bootstrap-blast'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
       if (path === '/admin/bootstrap-landing'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:landing');
       if (path === '/admin/bootstrap-privacy'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:privacy');
       if (path === '/admin/bootstrap-terms'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:terms');
@@ -377,7 +370,6 @@ export default {
 
       // ── PWA SHELLS ───────────────────────────────────────────
       if (path === '/blast')               return servePwa(env, 'app:blast');
-      if (path === '/godmode')             return servePwa(env, 'app:godmode');
       if (path === '/start')               return servePwa(env, 'app:start-v2');
       if (path === '/privacy')             return servePwa(env, 'app:privacy');
       if (path === '/terms')               return servePwa(env, 'app:terms');
@@ -2128,8 +2120,10 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
     gbpData = await fetchGbpData(client.gbp_url, env).catch(() => null);
   }
   // If still no GBP data — try resolving now using phone + name + area
+  // Skip GBP if phone is a dummy number (27000000xxx)
+  const isDummyPhone = (client.phone || '').startsWith('2700000');
   const hasGbp = gbpData && typeof gbpData === 'object' && Object.keys(gbpData).length > 0 && gbpData.name;
-  if (!hasGbp) {
+  if (!hasGbp && !isDummyPhone) {
     try {
       const fresh = await resolveGbp(env, client.gbp_place_id || null, client.business_name, client.area, client.phone || null);
       if (fresh && isRealEstablishment(fresh)) {
@@ -2946,7 +2940,6 @@ function preBuildPass2User(client, brief, brandBrief) {
   return `Business: ${client.business_name}
 Area: ${client.area}
 Industry: ${client.industry}
-${client.about ? `About: ${client.about}` : ''}
 Brand tone: ${brandBrief.inferred_tone}
 Hero angle: ${brandBrief.hero_angle}
 Trust signals: ${brandBrief.trust_signals?.join(', ')}
