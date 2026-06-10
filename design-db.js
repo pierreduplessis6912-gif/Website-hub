@@ -1040,6 +1040,7 @@ export function selectionPassUser(client, gbpData) {
   return `Business: ${client.business_name}
 Industry: ${client.industry || 'unknown'}
 Area: ${client.area || 'South Africa'}
+${client.about ? `About: ${client.about}` : ''}
 GBP Category: ${gbpData?.category || 'unknown'}
 GBP Rating: ${gbpData?.rating || 'unknown'} (${gbpData?.reviewCount || 0} reviews)
 Review snippets: ${reviewSample || 'none available'}
