@@ -370,6 +370,13 @@ export default {
 
       // ── PWA SHELLS ───────────────────────────────────────────
       if (path === '/blast')               return servePwa(env, 'app:blast');
+      if (path === '/godmode')             return servePwa(env, 'app:godmode');
+      if (path === '/admin/bootstrap-godmode' && method === 'POST') {
+        const html = await request.text();
+        if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
+        await env.SITES.put('app:godmode', html);
+        return jsonResponse({ success: true, key: 'app:godmode', size: html.length });
+      }
       if (path === '/start')               return servePwa(env, 'app:start-v2');
       if (path === '/privacy')             return servePwa(env, 'app:privacy');
       if (path === '/terms')               return servePwa(env, 'app:terms');
