@@ -15,7 +15,7 @@
 
 export function generateResultsHTML(t, heroUrl, client, cards, pkg, gbpData, brandBrief) {
   const phone       = (client.phone || '').replace(/\D/g, '');
-  const domain      = client.domain || `${client.slug}.co.za`;
+  const domain      = client.domain || (pkg === 'hub_pro' || pkg === 'premium' ? `${client.slug}.co.za` : `${client.slug}.websitehub.co.za`);
   const waLink      = `https://wa.me/${phone}`;
   const callLink    = `tel:${client.phone || ''}`;
   const isExp       = pkg === 'express';
@@ -104,8 +104,8 @@ body{font-family:var(--font-body);background:var(--dark);color:var(--text);overf
   color:var(--text);text-decoration:none;text-transform:uppercase;
 }
 .nav-links{display:flex;align-items:center;gap:14px;flex-shrink:0}
-.nav-link{display:block;
-  color:rgba(255,255,255,.5);font-size:11px;font-weight:400;
+.nav-link{display:none;
+  color:rgba(255,255,255,.5);font-size:13px;font-weight:400;
   text-decoration:none;letter-spacing:.3px;transition:color .2s;
 }
 .nav-link:hover{color:var(--text)}
