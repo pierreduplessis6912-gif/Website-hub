@@ -160,7 +160,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
 <script>
 'use strict';
 
-const ADMIN_KEY = 'ADMIN_KEY_CLAUDEROX';
+const ADMIN_KEY = localStorage.getItem('wh_admin_key') || prompt('Admin key');
 
 function slugify(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 60);
