@@ -386,6 +386,20 @@ export default {
           headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' }
         });
       }
+      if (path.endsWith('/pv')) {
+        const slug = path.replace(/\/pv$/, '').replace(/^\//, '').split('/')[0];
+        if (slug) env.DB.prepare(`UPDATE clients SET preview_views = preview_views + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
+        return new Response(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), {
+          headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' }
+        });
+      }
+      if (path.endsWith('/gl')) {
+        const slug = path.replace(/\/gl$/, '').replace(/^\//, '').split('/')[0];
+        if (slug) env.DB.prepare(`UPDATE clients SET golive_taps = golive_taps + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
+        return new Response(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), {
+          headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' }
+        });
+      }
       if (path.endsWith('/wa')) {
         const slug = path.replace(/\/wa$/, '').replace(/^\//, '').split('/')[0];
         if (slug) env.DB.prepare(`UPDATE clients SET wa_taps = wa_taps + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
@@ -1983,7 +1997,8 @@ async function serveOgCard(path, env, request) {
   const client = await getClientBySlug(slug, env);
   if (!client) return new Response('Not found', { status: 404 });
 
-  // Preserve promo param through the redirect
+  // Track OG card tap (fire and forget)
+  env.DB.prepare(`UPDATE clients SET og_taps = og_taps + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
   const reqUrl = new URL(request?.url || `https://${PREVIEW_DOMAIN}${path}`);
   const promo  = reqUrl.searchParams.get('promo');
   const promoSuffix = promo ? `?promo=${encodeURIComponent(promo)}` : '';
