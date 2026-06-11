@@ -174,7 +174,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--text);over
   margin-bottom:20px;
   animation:fadeUp .6s .3s ease both;
 }
-.hero-h1 em{font-style:italic;color:var(--gold)}
+.hero-h1 em{font-style:italic;color:var(--gold);display:block;word-break:break-word;hyphens:auto;max-width:100%}
 .hero-subline{
   font-size:17px;font-weight:300;
   color:var(--muted);line-height:1.7;
