@@ -971,13 +971,12 @@ const PHOTO_DB = {
     'beauty treatment spa professional',
     'salon treatment professional warm',
   ],
-  beauty_salon: [
+  beauty_studio: [
     'beauty salon interior professional warm',
     'beauty treatment professional close',
     'salon chair professional warm interior',
     'beauty salon professional clean warm',
-  ],
-  chiropractor: [
+  ], [
     'chiropractic treatment professional close',
     'physiotherapy treatment professional',
     'spinal treatment professional clinic',
