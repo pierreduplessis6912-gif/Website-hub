@@ -111,6 +111,96 @@ export const WIN_BACK_TRIGGER_DAYS = 90;
 // Prospect cooldown after final "not interested" follow-up.
 export const PROSPECT_COOLDOWN_DAYS = 60;
 
+// ── KV_KEYS registry ──────────────────────────────────────────────────────────
+// Single source of truth for ALL KV key names across all workers.
+// RULE: Never hardcode a KV key string anywhere. Always reference KV_KEYS.
+// RULE: If you add a new KV key, add it here first.
+export const KV_KEYS = {
+  // ── App HTML pages (bootstrapped via admin endpoints) ──────────────────────
+  APP_LANDING:          'app:landing',
+  APP_START:            'app:start-v2',
+  APP_BLAST:            'app:blast',
+  APP_GODMODE:          'app:godmode',
+  APP_ADMIN:            'app:admin',
+  APP_PREVIEW:          'app:preview',
+  APP_MANAGE:           'app:manage',
+  APP_INTAKE:           'app:intake',
+  APP_INTAKE_EXP:       'app:intake-experience',
+  APP_PREVIEW_MANAGE:   'app:preview-manage',
+  APP_PWA:              'app:pwa',
+  APP_CONFIG:           'app:config',
+  // Legal pages
+  APP_TERMS:            'app:terms',
+  APP_PRIVACY:          'app:privacy',
+  APP_AUP:              'app:aup',
+  APP_DPA:              'app:dpa',
+  APP_CANCELLATION:     'app:cancellation',
+  APP_REFERRAL_TERMS:   'app:referral-terms',
+
+  // ── Route → KV mapping (used by route registry) ────────────────────────────
+  ROUTES: {
+    '/':                'app:landing',
+    '/landing':         'app:landing',
+    '/start':           'app:start-v2',
+    '/blast':           'app:blast',
+    '/godmode':         'app:godmode',
+    '/admin':           'app:admin',
+    '/terms':           'app:terms',
+    '/privacy':         'app:privacy',
+    '/aup':             'app:aup',
+    '/dpa':             'app:dpa',
+    '/cancellation':    'app:cancellation',
+    '/referral-terms':  'app:referral-terms',
+  },
+
+  // ── Bootstrap endpoint → KV mapping ────────────────────────────────────────
+  BOOTSTRAP: {
+    'landing':          'app:landing',
+    'start':            'app:start-v2',
+    'blast':            'app:blast',
+    'godmode':          'app:godmode',
+    'admin':            'app:admin',
+    'preview':          'app:preview',
+    'manage':           'app:manage',
+    'intake':           'app:intake',
+    'intake-experience':'app:intake-experience',
+    'preview-manage':   'app:preview-manage',
+    'pwa':              'app:pwa',
+    'terms':            'app:terms',
+    'privacy':          'app:privacy',
+    'aup':              'app:aup',
+    'dpa':              'app:dpa',
+    'cancellation':     'app:cancellation',
+    'referral-terms':   'app:referral-terms',
+  },
+
+  // ── Built site content ─────────────────────────────────────────────────────
+  SITE:                 (slug)        => `site:${slug}`,
+  PREVIEW:              (slug)        => `preview:${slug}`,
+  CONTENT:              (slug)        => `content:${slug}`,
+  DRAFT:                (slug)        => `draft:${slug}`,
+
+  // ── Client lifecycle flags ─────────────────────────────────────────────────
+  NUDGE_SENT:           (id)          => `nudge_sent:${id}`,
+  PROMO_NUDGE:          (id)          => `promo_nudge:${id}`,
+  POST_GOLIVE_D1:       (id)          => `post_golive_d1:${id}`,
+  POST_GOLIVE_D7:       (id)          => `post_golive_d7:${id}`,
+  UPSELL:               (id)          => `upsell:${id}`,
+  WINBACK:              (id)          => `winback_eligible:${id}`,
+
+  // ── Referral ───────────────────────────────────────────────────────────────
+  REFERRAL_CONVERSIONS: (slug)        => `referral:conversions:${slug}`,
+  REFERRAL_SENT:        (slug, month) => `referral:sent:${slug}:${month}`,
+
+  // ── Rate limiting & locks ──────────────────────────────────────────────────
+  RATE_LIMIT:           (key)         => `rate:${key}`,
+  PAYFAST_LOCK:         (id)          => `payfast_lock:${id}`,
+
+  // ── Health monitoring ──────────────────────────────────────────────────────
+  HEALTH:               (svc)         => `health:${svc}`,
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ────────────────────────────────────────────────────────────
 // TEST_MODE
 // ────────────────────────────────────────────────────────────
