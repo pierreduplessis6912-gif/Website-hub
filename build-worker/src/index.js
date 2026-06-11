@@ -1651,7 +1651,7 @@ function shapeGbp(data, business_name) {
     types:        data.types || [],
     description:  data.editorialSummary?.text || '',
     hours:        data.regularOpeningHours?.weekdayDescriptions || [],
-    reviews:      (data.reviews || []).slice(0,5).map(r => ({
+    reviews:      (data.reviews || []).filter(r => (r.rating || 0) >= 4).slice(0,5).map(r => ({
       text:   r.text?.text || '',
       rating: r.rating || 0,
       author: r.authorAttribution?.displayName || '',
@@ -2697,7 +2697,7 @@ async function fetchGbpData(gbpUrl, env) {
     if (!place) return null;
 
     // Step 5: Extract useful data
-    const reviews = (place.reviews || []).slice(0, 3).map(r => ({
+    const reviews = (place.reviews || []).filter(r => (r.rating || 0) >= 4).slice(0, 3).map(r => ({
       text: r.text?.text || '',
       rating: r.rating || 5,
     }));
