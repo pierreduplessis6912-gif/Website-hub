@@ -712,6 +712,8 @@ async function bootstrap() {
     try {
       const d = await apiFetch(`/build-status?token=${token}`, {}, { silent: true });
       S.slug = d.slug;
+      // Track preview view (fire and forget pixel)
+      if (d.slug) new Image().src = '/'+d.slug+'/pv';
       const domainSuffix = (d.package === 'hub_pro' || d.package === 'premium') ? '.co.za' : '.websitehub.co.za';
       if (d.slug) el('buildSlug').textContent = d.slug + domainSuffix;
 
@@ -971,6 +973,9 @@ function applyPromo() {
 
 async function processPayment() {
   if (isDev()) { showScreen('processing'); return; }
+
+  // Track Go Live tap
+  if (S.slug) new Image().src = '/'+S.slug+'/gl';
 
   const btn = el('payBtn');
   const orig = btn.textContent;
