@@ -1101,7 +1101,7 @@ async function handleAdminBootstrapManage(request, env) {
 async function handleAdminBootstrapStart(request, env) {
   const html = await request.text();
   if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
-  await env.SITES.put('app:start-v2', html);
+  await env.SITES.put('app:start', html);
   return jsonResponse({ success: true, size: html.length });
 }
 
@@ -2048,7 +2048,7 @@ async function serveBuiltSite(url, path, request, env) {
   const slug  = parts[0];
   const page  = parts[1] || 'index';
 
-  if (!slug) return servePwa(env, 'app:start-v2');
+  if (!slug) return servePwa(env, 'app:start');
 
   // Record visit (fire and forget)
   const client = await getClientBySlug(slug, env).catch(() => null);
