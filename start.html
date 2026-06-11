@@ -817,7 +817,7 @@ function startBuildPoll() {
       if (d.status === 'preview_ready' || d.status === 'live') {
         clearInterval(_pollTimer); clearInterval(_msgTimer);
         // Redirect to preview SPA — iframe + Go Live button
-        window.location.href = '/preview/' + S.token;
+        window.location.href = 'https://preview.websitehub.co.za/preview/' + S.token;
         return;
       }
 
