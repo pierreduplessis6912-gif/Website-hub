@@ -110,7 +110,7 @@ export const PROSPECT_COOLDOWN_DAYS = 60;
 export const KV_KEYS = {
   // App HTML blobs
   APP_PWA:             'app:pwa',
-  APP_START:           'app:start-v2',
+  APP_START:           'app:start',
   APP_ADMIN:           'app:admin',
   INTAKE_HTML:         'app:intake-experience',
 
