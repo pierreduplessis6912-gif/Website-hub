@@ -118,7 +118,7 @@ export const PROSPECT_COOLDOWN_DAYS = 60;
 export const KV_KEYS = {
   // ── App HTML pages (bootstrapped via admin endpoints) ──────────────────────
   APP_LANDING:          'app:landing',
-  APP_START:            'app:start-v2',
+  APP_START:            'app:start',
   APP_BLAST:            'app:blast',
   APP_GODMODE:          'app:godmode',
   APP_ADMIN:            'app:admin',
@@ -141,7 +141,7 @@ export const KV_KEYS = {
   ROUTES: {
     '/':                'app:landing',
     '/landing':         'app:landing',
-    '/start':           'app:start-v2',
+    '/start':           'app:start',
     '/blast':           'app:blast',
     '/godmode':         'app:godmode',
     '/admin':           'app:admin',
@@ -156,7 +156,7 @@ export const KV_KEYS = {
   // ── Bootstrap endpoint → KV mapping ────────────────────────────────────────
   BOOTSTRAP: {
     'landing':          'app:landing',
-    'start':            'app:start-v2',
+    'start':            'app:start',
     'blast':            'app:blast',
     'godmode':          'app:godmode',
     'admin':            'app:admin',
