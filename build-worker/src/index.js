@@ -13,7 +13,7 @@
 // Route: preview.websitehub.co.za/*
 // ============================================================
 
-import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS } from './shared-services.js';
+import { callClaudeInternal, sendWhatsApp, isTestMode, normaliseSaPhone, PRICING, PACKAGE_CAPS, KV_KEYS } from './shared-services.js';
 import { getDesignBrief, buildCssVariables, UX_RULES, getPersonality, SECTION_FLOWS, SPACING_RHYTHMS, generateFingerprint, selectionPassSystem, selectionPassUser, LIGHT_PALETTES } from '../../design-db.js';
 import { getHeroPhotoQuery, getHeroPhotoQueryByKey, getIndustryKey } from '../../photo-db.js';
 import { generateExperienceHTML } from './archetypes/experience.js';
@@ -199,46 +199,43 @@ export default {
     try {
       // ── MAIN DOMAIN — websitehub.co.za ──────────────────────
       if (hostname === 'websitehub.co.za' || hostname === 'www.websitehub.co.za') {
-        if (path === '/' || path === '' || path === '/landing') return servePwa(env, 'app:landing');
-        if (path === '/privacy')         return servePwa(env, 'app:privacy');
-        if (path === '/terms')           return servePwa(env, 'app:terms');
-        if (path === '/referral-terms')  return servePwa(env, 'app:referral-terms');
-        if (path === '/aup')             return servePwa(env, 'app:aup');
-        if (path === '/cancellation')    return servePwa(env, 'app:cancellation');
-        if (path === '/dpa')             return servePwa(env, 'app:dpa');
-        if (path === '/blast')           return servePwa(env, 'app:blast');
-        if (path === '/start')           return servePwa(env, 'app:start-v2');
+
+        // ── KV page routes (driven by KV_KEYS.ROUTES registry) ──
+        if (path === '/' || path === '' || path === '/landing') return servePwa(env, KV_KEYS.APP_LANDING);
+        const kvPage = KV_KEYS.ROUTES[path];
+        if (kvPage) return servePwa(env, kvPage);
+
+        // ── Dynamic KV page prefixes ──────────────────────────
+        if (path === '/admin' || path === '/admin/') return servePwa(env, KV_KEYS.APP_ADMIN);
+        if (path.startsWith('/preview/')) return servePwa(env, KV_KEYS.APP_PREVIEW);
+        if (path.startsWith('/manage/'))  return servePwa(env, KV_KEYS.APP_MANAGE);
+        if (path.startsWith('/intake/'))  return servePwa(env, KV_KEYS.APP_INTAKE);
+
+        // ── Referral link — set cookie and redirect ───────────
         if (path.startsWith('/r/')) {
-          // Referral link — set cookie and redirect to /start
           const referralSlug = path.replace('/r/', '').split('/')[0];
-        if (referralSlug) {
-          // Check if referrer is a promo client — pass promo through
-          const referrer = await env.DB.prepare(
-            `SELECT promo_code FROM clients WHERE slug=? AND status IN ('live','preview_ready') LIMIT 1`
-          ).bind(referralSlug).first().catch(() => null);
-
-          const promoCode = referrer?.promo_code || null;
-          const destination = promoCode
-            ? `https://websitehub.co.za/start?promo=${encodeURIComponent(promoCode)}`
-            : `https://websitehub.co.za/start`;
-
-          return new Response(null, {
-            status: 302,
-            headers: {
-              'Location': destination,
-              'Set-Cookie': [
-                `ref=${referralSlug}; Path=/; Max-Age=2592000; SameSite=Lax`,
-                promoCode ? `promo=${promoCode}; Path=/; Max-Age=2592000; SameSite=Lax` : null,
-              ].filter(Boolean).join(', '),
-            },
-          });
+          if (referralSlug) {
+            const referrer = await env.DB.prepare(
+              `SELECT promo_code FROM clients WHERE slug=? AND status IN ('live','preview_ready') LIMIT 1`
+            ).bind(referralSlug).first().catch(() => null);
+            const promoCode = referrer?.promo_code || null;
+            const destination = promoCode
+              ? `https://websitehub.co.za/start?promo=${encodeURIComponent(promoCode)}`
+              : `https://websitehub.co.za/start`;
+            return new Response(null, {
+              status: 302,
+              headers: {
+                'Location': destination,
+                'Set-Cookie': [
+                  `ref=${referralSlug}; Path=/; Max-Age=2592000; SameSite=Lax`,
+                  promoCode ? `promo=${promoCode}; Path=/; Max-Age=2592000; SameSite=Lax` : null,
+                ].filter(Boolean).join(', '),
+              },
+            });
+          }
         }
-        }
-        if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
-        if (path.startsWith('/preview/')) return servePwa(env, 'app:preview');
-        if (path.startsWith('/manage/'))  return servePwa(env, 'app:manage');
-        if (path.startsWith('/intake/'))  return servePwa(env, 'app:intake');
-        // API routes — fall through to normal handling below
+
+        // ── API routes — fall through to main routing ─────────
         if (path.startsWith('/admin/') || path === '/intake' || path === '/domain-check' || 
             path === '/check-slug' || path === '/build-status' || path.endsWith('/og') ||
             path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free' ||
@@ -247,8 +244,7 @@ export default {
             path.startsWith('/site/')) {
           // Fall through to main routing
         } else {
-          // Unknown path on main domain — serve landing
-          return servePwa(env, 'app:landing');
+          return servePwa(env, KV_KEYS.APP_LANDING);
         }
       }
 
@@ -273,19 +269,19 @@ export default {
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
       if (path === '/admin/bootstrap-admin'    && method === 'POST') return handleAdminBootstrapAdmin(request, env);
       if (path === '/admin/bootstrap-start'    && method === 'POST') return handleAdminBootstrapStart(request, env);
-      if (path === '/admin/bootstrap-preview'  && method === 'POST') return handleAdminBootstrapPreview(request, env);
-      if (path === '/admin/bootstrap-manage'   && method === 'POST') return handleAdminBootstrapManage(request, env);
-      if (path === '/admin/bootstrap-intake'   && method === 'POST') return handleAdminBootstrapIntake(request, env);
-      if (path === '/admin/bootstrap-blast'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:blast');
-      if (path === '/admin/bootstrap-godmode'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:godmode');
-      if (path === '/admin/bootstrap-landing'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:landing');
-      if (path === '/admin/bootstrap-privacy'  && method === 'POST') return handleAdminBootstrap(request, env, 'app:privacy');
-      if (path === '/admin/bootstrap-terms'    && method === 'POST') return handleAdminBootstrap(request, env, 'app:terms');
-      if (path === '/admin/bootstrap-referral-terms' && method === 'POST') return handleAdminBootstrap(request, env, 'app:referral-terms');
-      if (path === '/admin/bootstrap-aup'      && method === 'POST') return handleAdminBootstrap(request, env, 'app:aup');
-      if (path === '/admin/bootstrap-cancellation' && method === 'POST') return handleAdminBootstrap(request, env, 'app:cancellation');
-      if (path === '/admin/bootstrap-dpa'      && method === 'POST') return handleAdminBootstrap(request, env, 'app:dpa');
-      if (path === '/admin/bootstrap-pwa'      && method === 'POST') return handleAdminBootstrapPwa(request, env);
+      // ── Bootstrap endpoints — driven by KV_KEYS.BOOTSTRAP registry ──────────
+      if (path.startsWith('/admin/bootstrap-') && method === 'POST') {
+        const name = path.replace('/admin/bootstrap-', '');
+        const kvKey = KV_KEYS.BOOTSTRAP[name];
+        if (kvKey) return handleAdminBootstrap(request, env, kvKey);
+        // Legacy handlers for special bootstrap cases
+        if (name === 'admin')   return handleAdminBootstrapAdmin(request, env);
+        if (name === 'preview') return handleAdminBootstrapPreview(request, env);
+        if (name === 'manage')  return handleAdminBootstrapManage(request, env);
+        if (name === 'intake')  return handleAdminBootstrapIntake(request, env);
+        if (name === 'pwa')     return handleAdminBootstrapPwa(request, env);
+        return jsonResponse({ error: `Unknown bootstrap target: ${name}` }, 400);
+      }
       if (path === '/admin/test-registerdomain') return handleTestRegisterDomain(request, env);
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
@@ -293,9 +289,19 @@ export default {
       if (path === '/admin/trigger-rebuild'    && method === 'POST') return handleAdminTriggerRebuild(request, env);
       if (path === '/admin/promo-blast'        && method === 'POST') return handlePromoBlast(request, env);
       if (path === '/admin/scrape'             && method === 'POST') return handleScrape(request, env);
-      if (path === '/admin/test-whatsapp'     && method === 'POST') return handleTestWhatsapp(request, env);
+      if (path === '/admin/test-whatsapp'      && method === 'POST') return handleTestWhatsapp(request, env);
       if (path === '/admin/get-config'         && method === 'GET')  return handleGetConfig(env);
-      if (path === '/admin/test-gbp'          && method === 'GET')  {
+      if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
+      if (path === '/admin/approve-prospect'   && method === 'POST') return handleApproveProspect(request, env);
+      if (path === '/admin/reject-prospect'    && method === 'POST') return handleRejectProspect(request, env);
+      if (path === '/admin/prospect-queue'     && method === 'GET')  return handleProspectQueue(env);
+      if (path === '/admin/migrate'            && method === 'POST') return handleAdminMigrate(request, env);
+      if (path === '/admin/prospects'          && method === 'GET')  return handleAdminProspects(url, env);
+      if (path === '/admin/build-detail'       && method === 'GET')  return handleAdminBuildDetail(url, env);
+      if (path === '/admin/purge-cache'        && method === 'POST') return handleAdminPurgeCache(env);
+      if (path === '/admin/delete-kv'          && method === 'POST') return handleAdminDeleteKv(request, env);
+      // ── Debug endpoints (permanent, not debug-only) ───────────
+      if (path === '/admin/test-gbp'           && method === 'GET')  {
         try {
           const res = await fetch('https://classictouchsalon.co.za/places-proxy.php', {
             method: 'POST',
@@ -305,33 +311,20 @@ export default {
               method: 'POST',
               postBody: { textQuery: 'Classic Touch Salon Richards Bay', regionCode: 'ZA', maxResultCount: 1 },
               fieldMask: 'places.id,places.displayName,places.rating',
-              apiKey: env.GOOGLE_MAPS_API_KEY,
             }),
           });
           const text = await res.text();
           return jsonResponse({ status: res.status, ok: res.ok, body: text.slice(0, 500) });
-        } catch(e) {
-          return jsonResponse({ error: e.message });
-        }
+        } catch(e) { return jsonResponse({ error: e.message }); }
       }
-      if (path === '/admin/debug-env'           && method === 'GET')  return jsonResponse({
-        has_maps_key: !!env.GOOGLE_MAPS_API_KEY,
-        maps_key_prefix: env.GOOGLE_MAPS_API_KEY?.slice(0,10) || 'MISSING',
-        has_anthropic: !!env.ANTHROPIC_KEY,
-        has_google_refresh: !!env.GOOGLE_REFRESH_TOKEN,
-        proxy_secret: env.DOMAIN_PROXY_SECRET ? env.DOMAIN_PROXY_SECRET.slice(0,6) + '...' : 'NOT SET',
+      if (path === '/admin/debug-env'          && method === 'GET')  return jsonResponse({
+        has_maps_key:        !!env.GOOGLE_MAPS_API_KEY,
+        maps_key_prefix:     env.GOOGLE_MAPS_API_KEY?.slice(0,10) || 'MISSING',
+        has_anthropic:       !!env.ANTHROPIC_KEY,
+        has_google_refresh:  !!env.GOOGLE_REFRESH_TOKEN,
+        has_evolution_key:   !!env.EVOLUTION_KEY,
+        proxy_secret:        env.DOMAIN_PROXY_SECRET ? env.DOMAIN_PROXY_SECRET.slice(0,6) + '...' : 'NOT SET',
       });
-      if (path === '/admin/set-config'         && method === 'POST') return handleSetConfig(request, env);
-      if (path === '/admin/scrape'             && method === 'POST') return handleScrape(request, env);
-      if (path === '/admin/promo-blast'         && method === 'POST') return handlePromoBlast(request, env);
-      if (path === '/admin/approve-prospect'   && method === 'POST') return handleApproveProspect(request, env);
-      if (path === '/admin/reject-prospect'    && method === 'POST') return handleRejectProspect(request, env);
-      if (path === '/admin/prospect-queue'     && method === 'GET')  return handleProspectQueue(env);
-      if (path === '/admin/migrate'         && method === 'POST') return handleAdminMigrate(request, env);
-      if (path === '/admin/prospects'        && method === 'GET')  return handleAdminProspects(url, env);
-      if (path === '/admin/build-detail'     && method === 'GET')  return handleAdminBuildDetail(url, env);
-      if (path === '/admin/purge-cache'      && method === 'POST') return handleAdminPurgeCache(env);
-      if (path === '/admin/delete-kv'        && method === 'POST') return handleAdminDeleteKv(request, env);
       return jsonResponse({ error: 'Unknown admin route' }, 404);
       }
 
@@ -364,27 +357,23 @@ export default {
       if (path === '/trigger-rebuild' && method === 'POST') return handleTriggerRebuild(request, env);
 
       // ── ADMIN (no auth required — page handles its own auth) ──
-      if (path === '/admin' || path === '/admin/') return servePwa(env, 'app:admin');
+      if (path === '/admin' || path === '/admin/') return servePwa(env, KV_KEYS.APP_ADMIN);
 
       // ── GOOGLE AUTH — one-time OAuth setup ───────────────────
       if (path === '/google-auth') return handleGoogleAuth(url, env);
 
-      // ── PWA SHELLS ───────────────────────────────────────────
-      if (path === '/blast')               return servePwa(env, 'app:blast');
-      if (path === '/start')               return servePwa(env, 'app:start-v2');
-      if (path === '/privacy')             return servePwa(env, 'app:privacy');
-      if (path === '/terms')               return servePwa(env, 'app:terms');
-      if (path === '/referral-terms')      return servePwa(env, 'app:referral-terms');
-      if (path === '/aup')                 return servePwa(env, 'app:aup');
-      if (path === '/cancellation')        return servePwa(env, 'app:cancellation');
-      if (path === '/dpa')                 return servePwa(env, 'app:dpa');
+      // ── KV page routes (driven by KV_KEYS.ROUTES registry) ───
+      const kvPagePreview = KV_KEYS.ROUTES[path];
+      if (kvPagePreview) return servePwa(env, kvPagePreview);
+
+      // ── Dynamic KV page prefixes ──────────────────────────────
       if (path === '/intake' && method === 'POST') return handleIntake(request, env);
-      if (path.startsWith('/intake/'))     return servePwa(env, 'app:intake');
-      if (path.startsWith('/preview/'))    return servePwa(env, 'app:preview');
-      if (path.startsWith('/manage/'))     return servePwa(env, 'app:manage');
+      if (path.startsWith('/intake/'))     return servePwa(env, KV_KEYS.APP_INTAKE);
+      if (path.startsWith('/preview/'))    return servePwa(env, KV_KEYS.APP_PREVIEW);
+      if (path.startsWith('/manage/'))     return servePwa(env, KV_KEYS.APP_MANAGE);
       // Legacy routes — keep for backwards compatibility
-      if (path.startsWith('/experience/')) return servePwa(env, 'app:intake');
-      if (path.startsWith('/verify/'))     return servePwa(env, 'app:manage');
+      if (path.startsWith('/experience/')) return servePwa(env, KV_KEYS.APP_INTAKE);
+      if (path.startsWith('/verify/'))     return servePwa(env, KV_KEYS.APP_MANAGE);
 
       // ── OG CARD — WhatsApp rich preview, redirects to real site ──
       if (path.endsWith('/og')) return serveOgCard(path, env, request);
@@ -1524,8 +1513,7 @@ async function handleIntake(request, env) {
       resolvedArea = parts[parts.length - 1] || parts[0] || '';
     }
 
-    const isDummyIntakePhone = normPhone.startsWith('2700000');
-    if (!isDummyIntakePhone && (normPhone || resolvedPlaceId || business_name)) {
+    if (normPhone || resolvedPlaceId || business_name) {
       try {
         const data = await resolveGbp(env, resolvedPlaceId, business_name, resolvedArea, normPhone);
         await logEvent(env, id, 'build', 'gbp_diag', 'success', { metadata: {
@@ -2122,10 +2110,8 @@ async function triggerFullBuild(clientId, env, isOutbound = false, silent = fals
     gbpData = await fetchGbpData(client.gbp_url, env).catch(() => null);
   }
   // If still no GBP data — try resolving now using phone + name + area
-  // Skip GBP for dummy phones (27000000xxx) or if skip_gbp flag is set
-  const isDummyPhone = (client.phone || '').startsWith('2700000');
   const hasGbp = gbpData && typeof gbpData === 'object' && Object.keys(gbpData).length > 0 && gbpData.name;
-  if (!hasGbp && !isDummyPhone && !client.skip_gbp) {
+  if (!hasGbp) {
     try {
       const fresh = await resolveGbp(env, client.gbp_place_id || null, client.business_name, client.area, client.phone || null);
       if (fresh && isRealEstablishment(fresh)) {
