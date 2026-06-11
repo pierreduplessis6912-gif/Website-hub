@@ -159,14 +159,14 @@ body::before{
   background-size:cover;background-position:center;
   animation:heroSnap .4s cubic-bezier(.16,1,.3,1) both;
 }
-/* Heavy dark overlay — this is a workshop, not a gallery */
+/* Dark overlay — bold but photo still visible */
 .hero-bg::after{
   content:'';position:absolute;inset:0;
   background:linear-gradient(
     160deg,
-    rgba(10,9,8,.85) 0%,
-    rgba(10,9,8,.6) 50%,
-    rgba(10,9,8,.9) 100%
+    rgba(10,9,8,.75) 0%,
+    rgba(10,9,8,.45) 50%,
+    rgba(10,9,8,.75) 100%
   );
 }
 /* Tool silhouette watermark */
@@ -796,12 +796,6 @@ ${address ? `
   </div>
   <div class="footer-copy">© ${new Date().getFullYear()} ${esc(client.business_name)} · ${esc(domain)}</div>
 </footer>
-
-<!-- Floating call button -->
-<a href="${esc(callLink)}" class="call-float" aria-label="Call Now">
-  <span class="call-float-icon">📞</span>
-  <span>CALL</span>
-</a>
 
 <script>
 
