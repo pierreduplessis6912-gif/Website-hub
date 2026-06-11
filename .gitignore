@@ -1,1 +1,5 @@
 cf-sync-report/
+build-worker/node_modules/
+build-worker/dist/
+build-worker/package-lock.json
+build-worker/package.json
