@@ -274,8 +274,14 @@ input,select{font-family:var(--f-body)}
 
   <div class="layout">
 
-    <!-- LEFT -->
-    <div class="left">
+    <!-- MODE TABS -->
+    <div style="grid-column:1/-1;display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:4px">
+      <div id="mode-client" onclick="setMode('client')" style="padding:10px 20px;font-family:var(--f-display);font-size:13px;font-weight:700;cursor:pointer;color:var(--cyan);border-bottom:2px solid var(--cyan);letter-spacing:.5px">CLIENT BLAST</div>
+      <div id="mode-partner" onclick="setMode('partner')" style="padding:10px 20px;font-family:var(--f-display);font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;letter-spacing:.5px">PARTNER BLAST</div>
+    </div>
+
+    <!-- LEFT — CLIENT MODE -->
+    <div class="left" id="panel-client">
 
       <!-- Manual Blast -->
       <div class="panel">
@@ -326,6 +332,49 @@ input,select{font-family:var(--f-body)}
           ⛔ Stop Blast
         </button>
         <div id="scrapeStatus" style="font-family:var(--f-mono);font-size:10px;color:var(--muted);text-align:center;margin-top:8px;min-height:14px"></div>
+      </div>
+
+    </div>
+
+    <!-- LEFT — PARTNER MODE -->
+    <div class="left" id="panel-partner" style="display:none">
+
+      <!-- Partner Manual Invite -->
+      <div class="panel">
+        <div class="panel-title">Manual Partner Invite</div>
+        <div class="field">
+          <label>Business name *</label>
+          <input id="pBiz" type="text" placeholder="e.g. ABC Business Solutions">
+        </div>
+        <div class="field">
+          <label>WhatsApp number *</label>
+          <input id="pPhone" type="tel" placeholder="e.g. 082 123 4567">
+        </div>
+        <div class="field">
+          <label>City or town *</label>
+          <input id="pArea" type="text" placeholder="e.g. Richards Bay">
+        </div>
+        <button class="blast-btn" id="partnerManualBtn" onclick="partnerManualBlast()">Send Invite →</button>
+      </div>
+
+      <!-- Partner Bulk Blast -->
+      <div class="panel">
+        <div class="panel-title">Bulk Partner Outreach</div>
+        <div class="multi-select">
+          <span class="multi-select-label">Areas</span>
+          <div class="chips" id="partnerAreaChips"></div>
+        </div>
+        <div class="multi-select">
+          <span class="multi-select-label">Partner Types</span>
+          <div class="chips" id="partnerIndustryChips"></div>
+        </div>
+        <button class="scrape-btn" id="partnerScrapeBtn" onclick="togglePartnerScrape()">
+          Start Partner Outreach →
+        </button>
+        <button id="partnerStopBtn" onclick="stopPartnerScrape()" style="display:none;width:100%;padding:12px;border-radius:10px;background:rgba(255,59,68,.1);border:1px solid rgba(255,59,68,.3);color:var(--red);font-family:var(--f-display);font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">
+          ⛔ Stop Outreach
+        </button>
+        <div id="partnerScrapeStatus" style="font-family:var(--f-mono);font-size:10px;color:var(--muted);text-align:center;margin-top:8px;min-height:14px"></div>
       </div>
 
     </div>
@@ -426,8 +475,51 @@ let ADMIN_KEY = '';
 let activeTab = 'all';
 let builds = [];
 let scraping = false;
+let partnerScraping = false;
 let selectedAreas = new Set();
 let selectedIndustries = new Set();
+let selectedPartnerAreas = new Set();
+let selectedPartnerIndustries = new Set();
+let activeMode = 'client';
+
+const PARTNER_INDUSTRIES = [
+  'Business Registration','CIPC Agent','Company Secretary',
+  'Business Consultant','BEE Consultant','Tender Consultant',
+  'Accounting Services','Tax Consultant','Bookkeeper',
+  'Secretarial Services','Business Services','Compliance Consultant',
+  'Business Coaching','Franchise Consultant','HR Consultant',
+];
+
+const PARTNER_INDUSTRY_MAP = {
+  'Business Registration':'business registration consultant',
+  'CIPC Agent':'CIPC registration agent',
+  'Company Secretary':'company secretary services',
+  'Business Consultant':'business consulting services',
+  'BEE Consultant':'BEE certificate consultant',
+  'Tender Consultant':'tender consulting services',
+  'Accounting Services':'accounting services',
+  'Tax Consultant':'tax consultant',
+  'Bookkeeper':'bookkeeper',
+  'Secretarial Services':'secretarial services',
+  'Business Services':'business services centre',
+  'Compliance Consultant':'compliance consulting',
+  'Business Coaching':'business coach',
+  'Franchise Consultant':'franchise consultant',
+  'HR Consultant':'HR consultant',
+};
+
+const PARTNER_INVITE_MSG = (name, area) =>
+  `Hi ${name}! 👋\n\nWe build professional websites automatically for new businesses in ${area}.\n\nWhen your clients need a website — we build it in 2 minutes, for R599/month. You earn *R100 for every client that signs up*. No effort on your side, just share a link.\n\nInterested? Reply *YES* and I'll send your partner dashboard link 🚀`;
+
+function setMode(mode) {
+  activeMode = mode;
+  document.getElementById('panel-client').style.display = mode === 'client' ? '' : 'none';
+  document.getElementById('panel-partner').style.display = mode === 'partner' ? '' : 'none';
+  document.getElementById('mode-client').style.color = mode === 'client' ? 'var(--cyan)' : 'var(--muted)';
+  document.getElementById('mode-client').style.borderBottomColor = mode === 'client' ? 'var(--cyan)' : 'transparent';
+  document.getElementById('mode-partner').style.color = mode === 'partner' ? 'var(--cyan)' : 'var(--muted)';
+  document.getElementById('mode-partner').style.borderBottomColor = mode === 'partner' ? 'var(--cyan)' : 'transparent';
+}
 
 // ── AUTH ──────────────────────────────────────────────────
 function auth() {
@@ -463,6 +555,8 @@ async function api(path, opts = {}) {
 function init() {
   buildChips('areaChips', AREAS, selectedAreas);
   buildChips('industryChips', INDUSTRIES, selectedIndustries);
+  buildChips('partnerAreaChips', AREAS, selectedPartnerAreas);
+  buildChips('partnerIndustryChips', PARTNER_INDUSTRIES, selectedPartnerIndustries);
   populateIndustrySelect();
   loadBuilds();
   setInterval(loadBuilds, 10000);
@@ -470,15 +564,99 @@ function init() {
 
 function buildChips(containerId, items, set) {
   const el = document.getElementById(containerId);
+  const isPartner = containerId.startsWith('partner');
+  const isArea = containerId.includes('Area');
   el.innerHTML = items.map(item => `
-    <div class="chip" onclick="toggleChip(this,'${item}',${containerId === 'areaChips' ? 'true' : 'false'})">${item}</div>
+    <div class="chip" onclick="toggleChip(this,'${item}','${containerId}')">${item}</div>
   `).join('');
 }
 
-function toggleChip(el, value, isArea) {
-  const set = isArea ? selectedAreas : selectedIndustries;
+function toggleChip(el, value, containerId) {
+  let set;
+  if (containerId === 'areaChips') set = selectedAreas;
+  else if (containerId === 'industryChips') set = selectedIndustries;
+  else if (containerId === 'partnerAreaChips') set = selectedPartnerAreas;
+  else if (containerId === 'partnerIndustryChips') set = selectedPartnerIndustries;
+  else return;
   if (set.has(value)) { set.delete(value); el.classList.remove('selected'); }
   else { set.add(value); el.classList.add('selected'); }
+}
+
+// ── PARTNER MANUAL BLAST ──────────────────────────────────
+async function partnerManualBlast() {
+  const biz   = document.getElementById('pBiz').value.trim();
+  const phone = document.getElementById('pPhone').value.trim();
+  const area  = document.getElementById('pArea').value.trim();
+
+  if (!biz)   { toast('Business name required', 'err'); return; }
+  if (!phone) { toast('Phone number required', 'err'); return; }
+  if (!area)  { toast('City or town required', 'err'); return; }
+
+  const btn = document.getElementById('partnerManualBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  try {
+    // Send invite WhatsApp directly via Evolution
+    await api('/admin/send-partner-invite', {
+      method: 'POST',
+      body: JSON.stringify({ business_name: biz, phone, area }),
+    });
+    toast('Partner invite sent!', 'ok');
+    document.getElementById('pBiz').value = '';
+    document.getElementById('pPhone').value = '';
+    document.getElementById('pArea').value = '';
+  } catch(e) {
+    toast('Failed: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send Invite →';
+  }
+}
+
+// ── PARTNER BULK BLAST ────────────────────────────────────
+let partnerStopRequested = false;
+
+async function togglePartnerScrape() {
+  if (partnerScraping) return;
+  if (selectedPartnerAreas.size === 0)      { toast('Select at least one area', 'err'); return; }
+  if (selectedPartnerIndustries.size === 0) { toast('Select at least one partner type', 'err'); return; }
+
+  partnerScraping = true; partnerStopRequested = false;
+  document.getElementById('partnerScrapeBtn').style.display = 'none';
+  document.getElementById('partnerStopBtn').style.display = 'block';
+
+  const areas      = [...selectedPartnerAreas];
+  const industries = [...selectedPartnerIndustries];
+  const combos     = areas.flatMap(a => industries.map(i => [a, i]));
+  let done = 0;
+
+  for (const [area, industry] of combos) {
+    if (partnerStopRequested) break;
+    const query = PARTNER_INDUSTRY_MAP[industry] || industry.toLowerCase();
+    document.getElementById('partnerScrapeStatus').textContent = `Searching ${industry} in ${area}…`;
+    try {
+      await api('/admin/promo-blast', {
+        method: 'POST',
+        body: JSON.stringify({
+          area, industry: query,
+          skipScrape: false,
+          partnerMode: true,
+        }),
+      });
+      done++;
+    } catch(e) { console.warn(e); }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+
+  partnerScraping = false;
+  document.getElementById('partnerScrapeBtn').style.display = 'block';
+  document.getElementById('partnerStopBtn').style.display = 'none';
+  document.getElementById('partnerScrapeStatus').textContent = `Done — ${done} combinations searched`;
+  toast('Partner outreach complete', 'ok');
+}
+
+function stopPartnerScrape() {
+  partnerStopRequested = true;
+  toast('Stopping after current search…', 'ok');
 }
 
 function populateIndustrySelect() {
