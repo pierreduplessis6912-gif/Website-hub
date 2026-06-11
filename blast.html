@@ -821,7 +821,8 @@ async function loadBuilds() {
     const d = await api('/admin/query', {
       method: 'POST',
       body: JSON.stringify({
-        sql: `SELECT business_name, slug, status, source, industry, area, created_at
+        sql: `SELECT business_name, slug, status, source, industry, area, created_at,
+              og_taps, preview_views, golive_taps, visits
               FROM clients
               ORDER BY created_at DESC
               LIMIT 100`
@@ -890,6 +891,12 @@ function renderBuilds() {
       <div class="build-info">
         <div class="build-name">${b.business_name || '—'}</div>
         <div class="build-meta">${b.area || ''} · ${b.industry || ''} · ${timeAgo(b.created_at)}</div>
+        <div style="font-family:var(--f-mono);font-size:9px;color:var(--muted);margin-top:4px;display:flex;gap:10px">
+          <span title="OG card taps">🔗 ${b.og_taps || 0}</span>
+          <span title="Preview views">👀 ${b.preview_views || 0}</span>
+          <span title="Go Live taps">💳 ${b.golive_taps || 0}</span>
+          <span title="Site visits">🌐 ${b.visits || 0}</span>
+        </div>
       </div>
       <div class="build-status ${b.status}">${b.status === 'preview_ready' ? 'ready' : b.status || 'building'}</div>
       ${b.slug && b.status === 'preview_ready' ? `<a href="https://preview.websitehub.co.za/${b.slug}" target="_blank" onclick="event.stopPropagation()" style="font-family:var(--f-mono);font-size:9px;letter-spacing:1px;color:var(--cyan);text-decoration:none;flex-shrink:0;padding:4px 8px;border:1px solid rgba(0,240,255,.2);border-radius:6px">View →</a>` : ''}
