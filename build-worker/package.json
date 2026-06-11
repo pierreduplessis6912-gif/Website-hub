@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "esbuild": "^0.28.0",
+    "rollup": "^4.61.1"
+  }
+}
