@@ -102,13 +102,22 @@ export const INDUSTRY_PERSONALITY = {
   // Professional Trust
   legal:'professional_trust', accounting:'professional_trust', property:'professional_trust',
   crypto:'professional_trust', ai_consulting:'professional_trust',
+  attorney:'professional_trust', lawyer:'professional_trust', architect:'professional_trust',
+  engineer:'professional_trust', quantity_surveyor:'professional_trust',
+  financial_advisor:'professional_trust', insurance:'professional_trust',
+  psychologist:'professional_trust', audiologist:'professional_trust',
+  occupational_therapist:'professional_trust', dietitian:'professional_trust',
+  estate_agent:'professional_trust', notary:'professional_trust',
 
   // Technical Expertise
   it_support:'technical_expertise', social_media:'technical_expertise',
   graphic_design:'technical_expertise', security:'technical_expertise',
+  courier:'technical_expertise', printing:'technical_expertise',
+  signage:'technical_expertise', driving_school:'technical_expertise',
 
   // Retail Utility
   spaza:'retail_utility', hardware:'retail_utility', bottle_store:'retail_utility',
+  travel_agent:'retail_utility', tourism:'retail_utility',
 
   // Event & Creative
   wedding:'event_creative', photography:'event_creative',
@@ -119,6 +128,7 @@ export const INDUSTRY_PERSONALITY = {
 
   // Medical Trust
   medical:'medical_trust', dental:'medical_trust', pharmacy:'medical_trust', physio:'medical_trust',
+  veterinarian:'medical_trust', vet:'medical_trust', optometry:'medical_trust',
 
   // Memorial & Legacy
   funeral:'memorial_legacy',
@@ -618,10 +628,26 @@ function normaliseIndustryKey(industry) {
   if (/pool.service|pool.clean/.test(k))         return 'cleaning';
   if (/tiler|tiling/.test(k))                    return 'tiling';
   if (/glazier|glass/.test(k))                   return 'glazier';
-  if (/financial.advis|wealth/.test(k))          return 'accounting';
+  if (/financial.advis|wealth/.test(k))          return 'financial_advisor';
   if (/videograph/.test(k))                      return 'photography';
   if (/web.dev|web.design/.test(k))              return 'it_support';
-  if (/courier|deliver/.test(k))                 return 'transport';
+  if (/courier|deliver/.test(k))                 return 'courier';
+  if (/attorney|lawyer|advocate|legal/.test(k))  return 'attorney';
+  if (/architect/.test(k))                       return 'architect';
+  if (/engineer|engineering/.test(k))            return 'engineer';
+  if (/quantity.survey|qs\b/.test(k))            return 'quantity_surveyor';
+  if (/insurance|assurance/.test(k))             return 'insurance';
+  if (/estate.agent|realtor|property.agent/.test(k)) return 'estate_agent';
+  if (/psycholog|counsell|therapist/.test(k))    return 'psychologist';
+  if (/audiolog|hearing/.test(k))                return 'audiologist';
+  if (/dietitian|nutritionist/.test(k))          return 'dietitian';
+  if (/occupational.therap/.test(k))             return 'occupational_therapist';
+  if (/veterin|\bvet\b|animal.clinic/.test(k))   return 'vet';
+  if (/travel.agent|tour.operat/.test(k))        return 'travel_agent';
+  if (/funeral|undertaker|burial/.test(k))       return 'funeral';
+  if (/print|copy.shop/.test(k))                 return 'printing';
+  if (/signage|sign.maker/.test(k))              return 'signage';
+  if (/driving.school|drive.school/.test(k))     return 'driving_school';
 
   if (/bed.and.breakfast|bed.breakfast|guest.house|guesthouse|\bbnb\b|b&b/.test(k)) return 'guest_house';
   if (/\blodge\b/.test(k)) return 'lodge';
