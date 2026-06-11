@@ -283,6 +283,7 @@ export default {
         return jsonResponse({ error: `Unknown bootstrap target: ${name}` }, 400);
       }
       if (path === '/admin/test-registerdomain') return handleTestRegisterDomain(request, env);
+      if (path === '/admin/send-partner-invite'  && method === 'POST') return handleSendPartnerInvite(request, env);
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
@@ -815,6 +816,25 @@ async function handleAdminBootstrapPreview(request, env) {
   if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
   await env.SITES.put('app:preview', html);
   return jsonResponse({ success: true, size: html.length });
+}
+
+// ── PARTNER INVITE ────────────────────────────────────────────────────────────
+async function handleSendPartnerInvite(request, env) {
+  const { business_name, phone, area } = await request.json().catch(() => ({}));
+  if (!phone) return jsonResponse({ error: 'phone required' }, 400);
+  if (!business_name) return jsonResponse({ error: 'business_name required' }, 400);
+
+  const normPhone = normaliseSaPhone(phone);
+  if (!normPhone) return jsonResponse({ error: 'Invalid phone number' }, 400);
+
+  const name = business_name.split(' ')[0];
+  const areaStr = area || 'your area';
+
+  const msg = `Hi ${name}! 👋\n\nWe build professional websites automatically for new businesses in ${areaStr}.\n\nWhen your clients need a website — we build it in 2 minutes, for R599/month. You earn *R100 for every client that signs up*. No effort on your side, just share a link.\n\nInterested? Reply *YES* and I'll send your partner dashboard link 🚀`;
+
+  await sendWhatsApp(normPhone, msg, env);
+
+  return jsonResponse({ success: true, phone: normPhone, business_name });
 }
 
 async function handleTestWhatsapp(request, env) {
