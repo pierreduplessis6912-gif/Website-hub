@@ -49,6 +49,9 @@ export const PRICING = Object.freeze({
   hub:     { build: 7000, retainer: 699,  domain: 'subdomain', label: 'Hub' },
   hub_pro: { build: 7000, retainer: 999,  domain: 'co.za',     label: 'Hub Pro' },
   promo:   { build: 0,    retainer: 599,  domain: 'subdomain', label: 'Hub (Promo)' },
+  // Social inbound tiers — no build fee, GBP-first flow
+  gbp_standard: { build: 0, retainer: 699, domain: 'subdomain', label: 'Standard' },
+  gbp_premium:  { build: 0, retainer: 999, domain: 'co.za',     label: 'Premium'  },
   // Legacy keys — kept for backward compat with existing clients in D1
   express:  { build: 7000, retainer: 699, domain: 'subdomain', label: 'Hub' },
   standard: { build: 7000, retainer: 699, domain: 'subdomain', label: 'Hub' },
@@ -192,7 +195,8 @@ export const KV_KEYS = {
   REFERRAL_CONVERSIONS: (slug)        => `referral:conversions:${slug}`,
   REFERRAL_SENT:        (slug, month) => `referral:sent:${slug}:${month}`,
 
-  // ── Rate limiting & locks ──────────────────────────────────────────────────
+  // ── Conversation state (WhatsApp inbound flow) ────────────────────────────
+  CONVO_STATE:          (phone)      => `convo:${phone}`,
   RATE_LIMIT:           (key)         => `rate:${key}`,
   PAYFAST_LOCK:         (id)          => `payfast_lock:${id}`,
 
