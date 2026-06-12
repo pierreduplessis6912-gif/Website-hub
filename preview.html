@@ -547,7 +547,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     </div>
   </div>
   <iframe id="previewFrame" loading="lazy" allow="clipboard-write"></iframe>
-  <div id="prevBottom">
+
+  <!-- Floating Go Live button — shows first, no plan distraction -->
+  <div id="floatGoLive" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;width:calc(100% - 32px);max-width:400px">
+    <button onclick="showPlanCard()" style="width:100%;padding:18px;background:linear-gradient(135deg,#00f0ff,#b829dd);border:none;border-radius:16px;color:#000;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:.3px;box-shadow:0 8px 32px rgba(0,240,255,.3)">
+      🚀 Go Live — Claim Your Site →
+    </button>
+  </div>
+
+  <!-- Plan card — hidden until Go Live tapped -->
+  <div id="prevBottom" style="display:none">
     <div class="prev-plan-row">
       <div class="prev-plan-name" id="prevPlanName">Hub plan</div>
       <button class="prev-plan-switcher" onclick="openPlanSheet()">Change plan</button>
@@ -896,6 +905,16 @@ function openPlanSheet() {
 function closePlanSheet() { el('planSheet').classList.remove('open'); }
 
 // ── CONFIRM ──────────────────────────────────────────────────────
+function showPlanCard() {
+  const floatBtn = document.getElementById('floatGoLive');
+  const planCard = document.getElementById('prevBottom');
+  if (floatBtn) floatBtn.style.display = 'none';
+  if (planCard) {
+    planCard.style.display = 'block';
+    planCard.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+}
+
 function goToConfirm() { showScreen('confirm'); }
 
 function setBilling(mode) {
