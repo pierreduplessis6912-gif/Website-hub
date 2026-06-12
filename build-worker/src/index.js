@@ -382,28 +382,28 @@ export default {
       // ── COUNTERS — fire and forget, 1x1 gif response ─────────
       if (path.endsWith('/ping')) {
         const slug = path.replace(/\/ping$/, '').replace(/^\//, '').split('/')[0];
-        if (slug) env.DB.prepare(`UPDATE clients SET visits = visits + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
+        if (slug) await env.DB.prepare(`UPDATE clients SET visits = visits + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
         return new Response(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), {
           headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' }
         });
       }
       if (path.endsWith('/pv')) {
         const slug = path.replace(/\/pv$/, '').replace(/^\//, '').split('/')[0];
-        if (slug) env.DB.prepare(`UPDATE clients SET preview_views = preview_views + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
+        if (slug) await env.DB.prepare(`UPDATE clients SET preview_views = preview_views + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
         return new Response(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), {
           headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' }
         });
       }
       if (path.endsWith('/gl')) {
         const slug = path.replace(/\/gl$/, '').replace(/^\//, '').split('/')[0];
-        if (slug) env.DB.prepare(`UPDATE clients SET golive_taps = golive_taps + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
+        if (slug) await env.DB.prepare(`UPDATE clients SET golive_taps = golive_taps + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
         return new Response(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), {
           headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' }
         });
       }
       if (path.endsWith('/wa')) {
         const slug = path.replace(/\/wa$/, '').replace(/^\//, '').split('/')[0];
-        if (slug) env.DB.prepare(`UPDATE clients SET wa_taps = wa_taps + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
+        if (slug) await env.DB.prepare(`UPDATE clients SET wa_taps = wa_taps + 1 WHERE slug=?`).bind(slug).run().catch(() => {});
         return new Response(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), {
           headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' }
         });
