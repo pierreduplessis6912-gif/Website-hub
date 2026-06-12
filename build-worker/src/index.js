@@ -379,6 +379,9 @@ export default {
       // ── OG CARD — WhatsApp rich preview, redirects to real site ──
       if (path.endsWith('/og')) return serveOgCard(path, env, request);
 
+      // ── AUDIT CARD — GBP audit results with CTA ───────────────
+      if (path.startsWith('/audit/')) return handleServeAuditCard(path, env);
+
       // ── COUNTERS — fire and forget, 1x1 gif response ─────────
       if (path.endsWith('/ping')) {
         const slug = path.replace(/\/ping$/, '').replace(/^\//, '').split('/')[0];
@@ -816,6 +819,161 @@ async function handleAdminBootstrapPreview(request, env) {
   if (!html.includes('</html>')) return jsonResponse({ error: 'Invalid HTML' }, 400);
   await env.SITES.put('app:preview', html);
   return jsonResponse({ success: true, size: html.length });
+}
+
+// ── GBP AUDIT ────────────────────────────────────────────────────────────────
+async function runGbpAudit(placeId, env) {
+  try {
+    const proxyUrl = env.PLACES_PROXY_URL || 'https://classictouchsalon.co.za/places-proxy.php';
+    const res = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-proxy-secret': env.DOMAIN_PROXY_SECRET || 'mysecretkey123' },
+      body: JSON.stringify({
+        url: `https://places.googleapis.com/v1/places/${placeId}`,
+        method: 'GET',
+        fieldMask: 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,photos,rating,userRatingCount,editorialSummary,types,primaryType,businessStatus',
+      }),
+    });
+    const place = await res.json();
+    if (!place?.id) return null;
+
+    // Score the profile
+    const gaps = [];
+    let score = 10;
+
+    if (!place.websiteUri)          { gaps.push({ icon: '🌐', msg: 'No website linked',           impact: 'high'   }); score -= 2; }
+    if (!place.editorialSummary?.text){ gaps.push({ icon: '📝', msg: 'No business description',    impact: 'high'   }); score -= 2; }
+    const photoCount = place.photos?.length || 0;
+    if (photoCount < 5)             { gaps.push({ icon: '📸', msg: `Only ${photoCount} photos (aim for 15+)`, impact: 'medium' }); score -= 1; }
+    if (!place.regularOpeningHours) { gaps.push({ icon: '🕐', msg: 'Business hours not set',       impact: 'medium' }); score -= 1; }
+    if ((place.userRatingCount||0) < 10) { gaps.push({ icon: '⭐', msg: `Only ${place.userRatingCount||0} reviews`, impact: 'medium' }); score -= 1; }
+    if (!place.nationalPhoneNumber) { gaps.push({ icon: '📞', msg: 'No phone number listed',       impact: 'high'   }); score -= 1; }
+    if ((place.types?.length||0) < 2){ gaps.push({ icon: '🏷️', msg: 'Limited categories set',      impact: 'low'    }); score -= 1; }
+
+    score = Math.max(score, 1);
+
+    return {
+      placeId,
+      name:        place.displayName?.text || '',
+      address:     place.formattedAddress || '',
+      phone:       place.nationalPhoneNumber || '',
+      website:     place.websiteUri || null,
+      rating:      place.rating || 0,
+      reviewCount: place.userRatingCount || 0,
+      photoCount,
+      hasHours:    !!place.regularOpeningHours,
+      hasDesc:     !!place.editorialSummary?.text,
+      score,
+      gaps,
+    };
+  } catch(e) {
+    console.warn('GBP audit failed:', e?.message);
+    return null;
+  }
+}
+
+async function handleServeAuditCard(path, env) {
+  const token = path.replace('/audit/', '').split('/')[0];
+  if (!token) return new Response('Not found', { status: 404 });
+
+  const raw = await env.SITES.get(`audit:${token}`).catch(() => null);
+  if (!raw) return new Response('Audit expired or not found', { status: 404 });
+
+  const audit = JSON.parse(raw);
+  const scoreColor = audit.score >= 7 ? '#00c97a' : audit.score >= 4 ? '#f5a623' : '#ff3b44';
+  const standardUrl = `https://websitehub.co.za/start?promo=GBP699&place_id=${encodeURIComponent(audit.placeId)}`;
+  const premiumUrl  = `https://websitehub.co.za/start?promo=GBP999&place_id=${encodeURIComponent(audit.placeId)}&premium=1`;
+
+  const gapsHtml = audit.gaps.map(g => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="font-size:18px;flex-shrink:0">${g.icon}</span>
+      <div>
+        <div style="font-size:13px;color:#ede9e4;font-weight:500">${g.msg}</div>
+        <div style="font-size:11px;color:${g.impact==='high'?'#ff3b44':g.impact==='medium'?'#f5a623':'#aaa'};margin-top:2px;text-transform:uppercase;letter-spacing:.5px">${g.impact} impact</div>
+      </div>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Google Profile Audit — ${audit.name}</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0e0c09;color:#ede9e4;font-family:'DM Sans',sans-serif;min-height:100vh;padding:24px 16px 48px}
+.card{max-width:420px;margin:0 auto}
+.brand{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(240,237,232,.4);text-transform:uppercase;margin-bottom:24px}
+.biz-name{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;line-height:1.2;margin-bottom:4px}
+.biz-addr{font-size:13px;color:rgba(240,237,232,.5);margin-bottom:24px}
+.score-wrap{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;margin-bottom:20px;text-align:center}
+.score-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(240,237,232,.4);margin-bottom:8px}
+.score-num{font-family:'Syne',sans-serif;font-size:56px;font-weight:800;color:${scoreColor};line-height:1}
+.score-sub{font-size:12px;color:rgba(240,237,232,.4);margin-top:4px}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
+.stat{background:rgba(255,255,255,.04);border-radius:12px;padding:12px 8px;text-align:center}
+.stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
+.stat-lbl{font-size:10px;color:rgba(240,237,232,.4);margin-top:2px;letter-spacing:.5px;text-transform:uppercase}
+.gaps-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(240,237,232,.4);margin-bottom:8px}
+.gaps{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;margin-bottom:24px}
+.cta-section{margin-top:8px}
+.cta-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(240,237,232,.4);margin-bottom:12px;text-align:center}
+.btn-standard{display:block;background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.3);color:#00f0ff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:16px 20px;border-radius:14px;margin-bottom:10px;text-align:center;letter-spacing:.3px}
+.btn-premium{display:block;background:linear-gradient(135deg,rgba(184,41,221,.2),rgba(0,240,255,.1));border:1px solid rgba(184,41,221,.4);color:#ede9e4;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:16px 20px;border-radius:14px;text-align:center;letter-spacing:.3px}
+.btn-premium span{font-size:11px;color:rgba(240,237,232,.5);display:block;font-weight:400;margin-top:2px}
+.footer{text-align:center;font-size:11px;color:rgba(240,237,232,.25);margin-top:24px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">Website Hub · GBP Audit</div>
+  <div class="biz-name">${audit.name}</div>
+  <div class="biz-addr">${audit.address}</div>
+
+  <div class="score-wrap">
+    <div class="score-label">Profile Score</div>
+    <div class="score-num">${audit.score}<span style="font-size:24px;color:rgba(240,237,232,.3)">/10</span></div>
+    <div class="score-sub">${audit.gaps.length} issues found that are costing you customers</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val" style="color:${audit.rating>=4?'#00c97a':'#f5a623'}">${audit.rating||'—'}</div>
+      <div class="stat-lbl">Rating</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">${audit.reviewCount}</div>
+      <div class="stat-lbl">Reviews</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" style="color:${audit.photoCount>=10?'#00c97a':audit.photoCount>=5?'#f5a623':'#ff3b44'}">${audit.photoCount}</div>
+      <div class="stat-lbl">Photos</div>
+    </div>
+  </div>
+
+  ${audit.gaps.length > 0 ? `
+  <div class="gaps-title">Issues Found</div>
+  <div class="gaps">${gapsHtml}</div>` : `<div style="text-align:center;color:#00c97a;padding:16px 0">✅ Your profile looks good!</div>`}
+
+  <div class="cta-section">
+    <div class="cta-label">Fix everything — starting today</div>
+    <a href="${standardUrl}" class="btn-standard">
+      🌐 Standard — R699/month<br>
+      <span style="font-size:11px;font-weight:400;color:rgba(0,240,255,.6)">Website + Google profile linked · No setup fee</span>
+    </a>
+    <a href="${premiumUrl}" class="btn-premium">
+      🚀 Premium — R999/month
+      <span>Website + Full GBP optimisation + .co.za domain</span>
+    </a>
+  </div>
+
+  <div class="footer">Website Hub · Your business, found.</div>
+</div>
+</body>
+</html>`;
+
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store' } });
 }
 
 // ── PARTNER INVITE ────────────────────────────────────────────────────────────
@@ -1363,77 +1521,162 @@ async function handleConfig(env) {
 // ── INTAKE ────────────────────────────────────────────────────
 
 async function handleWhatsAppIncoming(request, env) {
-  // Verify it's from our Evolution instance
   const secret = request.headers.get('apikey') || request.headers.get('x-api-key') || '';
   const expectedSecret = env.EVOLUTION_KEY || env.DOMAIN_PROXY_SECRET || 'mysecretkey123';
-  if (secret !== expectedSecret) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+  if (secret !== expectedSecret) return new Response('Unauthorized', { status: 401 });
 
   try {
     const body = await request.json().catch(() => null);
     if (!body) return new Response('OK', { status: 200 });
 
-    // Only handle incoming messages — not our own sends
     const msg = body?.data;
     if (!msg || msg?.key?.fromMe) return new Response('OK', { status: 200 });
 
-    // Extract message content
-    const text = msg?.message?.conversation
+    const text = (msg?.message?.conversation
       || msg?.message?.extendedTextMessage?.text
       || msg?.message?.imageMessage?.caption
-      || '[media message]';
+      || '').trim();
 
-    // Debug — log full payload to find real phone
-    await logEvent(env, null, 'whatsapp', 'incoming_debug', 'info', {
-      metadata: {
-        remoteJid: msg?.key?.remoteJid,
-        participant: msg?.key?.participant,
-        pushName: msg?.pushName,
-        fromMe: msg?.key?.fromMe,
-      }
-    }).catch(() => {});
-
-    // Extract sender phone — handle @s.whatsapp.net, @c.us, @lid formats
+    // Extract sender phone
     const rawJid = msg?.key?.remoteJid || '';
     let phone = rawJid.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '').replace(/@lid$/, '');
-
-    // If @lid — try to resolve real phone via Evolution contacts API
     if (rawJid.endsWith('@lid') && env.EVOLUTION_URL && env.EVOLUTION_KEY) {
       try {
-        const res = await fetch(
-          `${env.EVOLUTION_URL}/chat/findContacts/${env.EVOLUTION_INSTANCE}`,
-          {
-            method: 'POST',
-            headers: { 'apikey': env.EVOLUTION_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ where: { id: rawJid } }),
-          }
-        );
+        const res = await fetch(`${env.EVOLUTION_URL}/chat/findContacts/${env.EVOLUTION_INSTANCE}`, {
+          method: 'POST',
+          headers: { 'apikey': env.EVOLUTION_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ where: { id: rawJid } }),
+        });
         const contacts = await res.json();
         const contact = Array.isArray(contacts) ? contacts[0] : contacts;
         const resolved = contact?.remoteJid || contact?.jid || contact?.phoneNumber;
-        if (resolved) {
-          phone = resolved.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '');
-        }
-      } catch(e) {
-        console.warn('LID resolution failed:', e?.message);
-      }
+        if (resolved) phone = resolved.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '');
+      } catch(e) {}
     }
-
     phone = phone.replace(/\D/g, '');
     if (!phone || phone.length < 7) return new Response('OK', { status: 200 });
 
-    // Look up client by phone
+    const pushName = msg?.pushName || '';
+
+    // ── CONVERSATION STATE MACHINE ────────────────────────────────────────
+    const stateKey = KV_KEYS.CONVO_STATE(phone);
+    const stateRaw = await env.SITES.get(stateKey).catch(() => null);
+    const state = stateRaw ? JSON.parse(stateRaw) : null;
+
+    // ── STEP 1: Detect START trigger ──────────────────────────────────────
+    const isStartTrigger = (t) => {
+      const k = t.toLowerCase().replace(/[^a-z]/g, '');
+      return ['start','statr','sater','satrt','strat','strta','tart','stat','star'].some(v => k.includes(v)) || k.startsWith('st');
+    };
+
+    if (!state && isStartTrigger(text)) {
+      // Save state — waiting for GBP link
+      await env.SITES.put(stateKey, JSON.stringify({ step: 'awaiting_gbp', name: pushName }), { expirationTtl: 3600 });
+      const name = pushName ? pushName.split(' ')[0] : 'there';
+      await sendWhatsApp(phone,
+        `Hi ${name}! 👋\n\nLet's get your business found on Google.\n\nPaste your *Google Business Profile link* here and we'll run a free audit 👇\n\n_(Find it by searching your business name on Google Maps and copying the link)_`,
+        env
+      ).catch(() => {});
+      return new Response('OK', { status: 200 });
+    }
+
+    // ── STEP 2: Waiting for GBP link ─────────────────────────────────────
+    if (state?.step === 'awaiting_gbp') {
+      // Try extract place ID or search query from URL
+      let placeId = null;
+      let searchQuery = null;
+
+      // Extract from google maps URL formats
+      const placeMatch = text.match(/place\/([^\/]+)\/([^\/\?]+)/);
+      const cidMatch = text.match(/[?&]cid=(\d+)/);
+      const queryMatch = text.match(/[?&]q=([^&]+)/);
+      const mapsSearch = text.match(/maps\.google\.com|google\.com\/maps|maps\.app\.goo\.gl/i);
+
+      if (placeMatch) placeId = placeMatch[2];
+      else if (cidMatch) placeId = cidMatch[1];
+      else if (queryMatch) searchQuery = decodeURIComponent(queryMatch[1]);
+      else if (mapsSearch) searchQuery = text;
+
+      if (!placeId && !searchQuery && text.length > 5) {
+        // Treat as business name search
+        searchQuery = text;
+      }
+
+      if (!placeId && !searchQuery) {
+        await sendWhatsApp(phone,
+          `Hmm, I couldn't read that link 🤔\n\nTry copying it directly from Google Maps — search your business name, tap "Share", and paste the link here.`,
+          env
+        ).catch(() => {});
+        return new Response('OK', { status: 200 });
+      }
+
+      // Send acknowledgement immediately
+      await sendWhatsApp(phone,
+        `Got it! Running your audit now... ⏳`,
+        env
+      ).catch(() => {});
+
+      // Resolve place ID from search query if needed
+      if (!placeId && searchQuery) {
+        try {
+          const proxyUrl = env.PLACES_PROXY_URL || 'https://classictouchsalon.co.za/places-proxy.php';
+          const res = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-proxy-secret': env.DOMAIN_PROXY_SECRET || 'mysecretkey123' },
+            body: JSON.stringify({
+              url: 'https://places.googleapis.com/v1/places:searchText',
+              method: 'POST',
+              postBody: { textQuery: searchQuery, regionCode: 'ZA', maxResultCount: 1 },
+              fieldMask: 'places.id,places.displayName',
+            }),
+          });
+          const data = await res.json();
+          placeId = data?.places?.[0]?.id;
+        } catch(e) {}
+      }
+
+      if (!placeId) {
+        await sendWhatsApp(phone,
+          `I couldn't find that business on Google 😕\n\nCan you try searching your exact business name on Google Maps and pasting the link?`,
+          env
+        ).catch(() => {});
+        return new Response('OK', { status: 200 });
+      }
+
+      // Run full GBP audit
+      const audit = await runGbpAudit(placeId, env);
+      if (!audit) {
+        await sendWhatsApp(phone,
+          `Something went wrong pulling your profile 😕 Try again in a moment.`,
+          env
+        ).catch(() => {});
+        return new Response('OK', { status: 200 });
+      }
+
+      // Store audit + advance state
+      const auditToken = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+      await env.SITES.put(`audit:${auditToken}`, JSON.stringify({ ...audit, phone, placeId }), { expirationTtl: 86400 });
+      await env.SITES.put(stateKey, JSON.stringify({ step: 'audit_sent', placeId, auditToken, name: pushName }), { expirationTtl: 86400 });
+
+      // Send audit card link
+      const auditUrl = `https://preview.websitehub.co.za/audit/${auditToken}`;
+      await sendWhatsApp(phone,
+        `✅ Audit complete for *${audit.name || 'your business'}*!\n\nHere's what we found 👇\n${auditUrl}`,
+        env
+      ).catch(() => {});
+
+      return new Response('OK', { status: 200 });
+    }
+
+    // ── DEFAULT: Forward to owner ─────────────────────────────────────────
     const client = await env.DB.prepare(
       `SELECT business_name, slug FROM clients WHERE phone=? OR phone=? LIMIT 1`
     ).bind(phone, '+' + phone).first().catch(() => null);
 
-    const pushName = msg?.pushName || '';
     const businessLabel = client
       ? `*${client.business_name}*`
       : pushName ? `*${pushName}*` : `Unknown (${phone})`;
 
-    // Forward to owner
     await sendWhatsApp(env.WH_PHONE,
       `📩 ${businessLabel}:\n${text}\n\n_Reply: wa.me/${phone}_`,
       env,
