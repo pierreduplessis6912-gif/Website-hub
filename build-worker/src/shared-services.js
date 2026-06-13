@@ -1016,8 +1016,8 @@ export async function sendWhatsApp(to, message, env, opts = {}) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          number:       finalTo,
-          textMessage:  { text: finalMsg },
+          number: finalTo,
+          text:   finalMsg,
         }),
       },
     );
