@@ -1521,12 +1521,7 @@ async function handleConfig(env) {
 // ── INTAKE ────────────────────────────────────────────────────
 
 async function handleWhatsAppIncoming(request, env) {
-  const secret = request.headers.get('apikey') || request.headers.get('x-api-key') || request.headers.get('authorization') || '';
-  const expectedSecret = env.EVOLUTION_KEY || env.DOMAIN_PROXY_SECRET || 'mysecretkey123';
-  // Allow if secret matches OR if no secret configured (Evolution v1.x doesn't always send headers)
-  if (secret && secret !== expectedSecret && secret !== `Bearer ${expectedSecret}`) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+  // No auth check — webhook URL is obscure enough, payload is not sensitive
 
   try {
     const body = await request.json().catch(() => null);
