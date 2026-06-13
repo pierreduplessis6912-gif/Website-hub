@@ -381,7 +381,7 @@ export default {
 
       // ── AUDIT CARD — GBP audit results with CTA ───────────────
       if (path.startsWith('/audit/') && path.endsWith('/go')) return handleAuditGo(url, path, env);
-      if (path.startsWith('/audit/')) return handleServeAuditCard(path, env);
+      if (path.startsWith('/audit/')) return handleServeAuditCard(path, env, ctx);
 
       // ── COUNTERS — fire and forget, 1x1 gif response ─────────
       if (path.endsWith('/ping')) {
@@ -902,6 +902,9 @@ async function runGbpAudit(placeId, env) {
 
     score = Math.max(score, 1);
 
+    // Extract photo reference names for the build pipeline
+    const photoRefs = (place.photos || []).slice(0, 6).map(p => p.name).filter(Boolean);
+
     return {
       placeId,
       name:        place.displayName?.text || '',
@@ -911,8 +914,11 @@ async function runGbpAudit(placeId, env) {
       rating:      place.rating || 0,
       reviewCount: place.userRatingCount || 0,
       photoCount,
+      photos:      photoRefs,
+      primaryType: place.primaryType || '',
       hasHours:    !!place.regularOpeningHours,
       hasDesc:     !!place.editorialSummary?.text,
+      description: place.editorialSummary?.text || '',
       score,
       gaps,
     };
@@ -922,7 +928,7 @@ async function runGbpAudit(placeId, env) {
   }
 }
 
-async function handleServeAuditCard(path, env) {
+async function handleServeAuditCard(path, env, ctx) {
   const token = path.replace('/audit/', '').split('/')[0];
   if (!token) return new Response('Not found', { status: 404 });
 
@@ -930,6 +936,30 @@ async function handleServeAuditCard(path, env) {
   if (!raw) return new Response('Audit expired or not found', { status: 404 });
 
   const audit = JSON.parse(raw);
+
+  // ── SPECULATIVE BUILD — fires when card is opened, not on CTA tap ──
+  if (!audit.manage_token && audit.phone && ctx) {
+    ctx.waitUntil((async () => {
+      try {
+        const normPhone = normaliseSaPhone(audit.phone);
+        const existing = await env.DB.prepare(`SELECT id, manage_token FROM clients WHERE phone=? LIMIT 1`).bind(normPhone).first().catch(() => null);
+        if (existing) {
+          await env.SITES.put(`audit:${token}`, JSON.stringify({ ...audit, manage_token: existing.manage_token }), { expirationTtl: 86400 });
+        } else {
+          const slug = slugify(audit.name || 'business');
+          const manage_token = crypto.randomUUID();
+          const clientId = crypto.randomUUID();
+          const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
+          await env.DB.prepare(`
+            INSERT INTO clients (id, business_name, slug, phone, industry, area, vibe, manage_token, referral_slug, promo_code, status, source, package, retainer, gbp_data, gbp_place_id)
+            VALUES (?, ?, ?, ?, ?, ?, 'professional', ?, ?, 'GBP699', 'lead', 'audit_inbound', 'hub', 699, ?, ?)
+          `).bind(clientId, audit.name || 'Business', slug, normPhone, audit.primaryType || 'business', audit.address?.split(',')[0] || '', manage_token, referral_slug, JSON.stringify(audit), audit.placeId).run();
+          await env.BUILD_QUEUE.send({ type: 'full_build', clientId, isOutbound: false });
+          await env.SITES.put(`audit:${token}`, JSON.stringify({ ...audit, manage_token, clientId }), { expirationTtl: 86400 });
+        }
+      } catch(e) { console.warn('Speculative build error:', e?.message); }
+    })());
+  }
   const scoreColor = audit.score >= 7 ? '#00c97a' : audit.score >= 4 ? '#f5a623' : '#ff3b44';
   const standardUrl = `https://preview.websitehub.co.za/audit/${token}/go?plan=standard`;
   const premiumUrl  = `https://preview.websitehub.co.za/audit/${token}/go?plan=premium`;
