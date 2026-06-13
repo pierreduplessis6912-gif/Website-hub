@@ -973,8 +973,8 @@ export function normaliseSaPhone(raw) {
  * @param {boolean} [opts.skipTestRedirect]   Bypass TEST_MODE redirect (rare; e.g. owner alerts)
  */
 export async function sendWhatsApp(to, message, env, opts = {}) {
-  const evoUrl = env.EVOLUTION_API_URL;
-  const evoKey = env.EVOLUTION_API_KEY;
+  const evoUrl = env.EVOLUTION_URL || env.EVOLUTION_API_URL;
+  const evoKey = env.EVOLUTION_KEY || env.EVOLUTION_API_KEY;
   const evoInstance = env.EVOLUTION_INSTANCE || 'wa1';
 
   if (!evoUrl || !evoKey) {
