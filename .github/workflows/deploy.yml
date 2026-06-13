@@ -85,3 +85,23 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: reactivate-worker
           wranglerVersion: "3.90.0"
+
+  bootstrap-html:
+    name: Bootstrap HTML to KV
+    runs-on: ubuntu-latest
+    needs: deploy-reactivate
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap all HTML pages to KV
+        run: |
+          for page in landing start preview blast admin; do
+            FILE="${page}.html"
+            if [ -f "$FILE" ]; then
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "https://websitehub.co.za/admin/bootstrap-${page}" \
+                -H "x-admin-key: ${{ secrets.ADMIN_KEY }}" \
+                -H "Content-Type: text/html" \
+                --data-binary @"$FILE")
+              echo "$FILE => $STATUS"
+            fi
+          done
