@@ -868,7 +868,7 @@ async function handleAuditGo(url, path, env) {
     console.warn('Audit go error:', e?.message);
   }
 
-  return Response.redirect(`https://preview.websitehub.co.za/preview/${manage_token}`, 302);
+  return Response.redirect(`https://preview.websitehub.co.za/preview/${manage_token}?promo=${promo}`, 302);
 }
 
 // ── GBP AUDIT ────────────────────────────────────────────────────────────────
