@@ -380,6 +380,7 @@ export default {
       if (path.endsWith('/og')) return serveOgCard(path, env, request);
 
       // ── AUDIT CARD — GBP audit results with CTA ───────────────
+      if (path.startsWith('/audit/') && path.endsWith('/go')) return handleAuditGo(url, path, env);
       if (path.startsWith('/audit/')) return handleServeAuditCard(path, env);
 
       // ── COUNTERS — fire and forget, 1x1 gif response ─────────
@@ -821,6 +822,59 @@ async function handleAdminBootstrapPreview(request, env) {
   return jsonResponse({ success: true, size: html.length });
 }
 
+// ── AUDIT GO — builds site directly from audit data ──────────────────────────
+async function handleAuditGo(url, path, env) {
+  const token = path.replace('/audit/', '').replace('/go', '').split('/')[0];
+  const plan = url.searchParams.get('plan') || 'standard';
+
+  const raw = await env.SITES.get(`audit:${token}`).catch(() => null);
+  if (!raw) return new Response('Audit expired', { status: 404 });
+
+  const audit = JSON.parse(raw);
+  const phone = audit.phone;
+  const pkg = plan === 'premium' ? 'hub_pro' : 'hub';
+  const promo = plan === 'premium' ? 'GBP999' : 'GBP699';
+
+  // Check if client already exists for this phone
+  const existing = await env.DB.prepare(
+    `SELECT id, manage_token FROM clients WHERE phone=? LIMIT 1`
+  ).bind(normaliseSaPhone(phone)).first().catch(() => null);
+
+  if (existing) {
+    return Response.redirect(`https://preview.websitehub.co.za/preview/${existing.manage_token}`, 302);
+  }
+
+  const slug = slugify(audit.name || 'business');
+  const manage_token = crypto.randomUUID();
+  const id = crypto.randomUUID();
+  const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
+
+  try {
+    await env.DB.prepare(`
+      INSERT INTO clients (id, business_name, slug, phone, industry, area, vibe, manage_token, referral_slug, promo_code, status, source, package, retainer)
+      VALUES (?, ?, ?, ?, ?, ?, 'professional', ?, ?, ?, 'lead', 'audit_inbound', ?, ?)
+    `).bind(
+      id, audit.name || 'Business', slug,
+      normaliseSaPhone(phone),
+      audit.primaryType || 'business',
+      audit.address?.split(',')[0] || '',
+      manage_token, referral_slug, promo,
+      pkg,
+      plan === 'premium' ? 999 : 699
+    ).run();
+
+    await env.DB.prepare(
+      `UPDATE clients SET gbp_data=?, gbp_place_id=? WHERE id=?`
+    ).bind(JSON.stringify(audit), audit.placeId, id).run();
+
+    await env.BUILD_QUEUE.send({ clientId: id, manage_token });
+  } catch(e) {
+    console.warn('Audit go error:', e?.message);
+  }
+
+  return Response.redirect(`https://preview.websitehub.co.za/preview/${manage_token}`, 302);
+}
+
 // ── GBP AUDIT ────────────────────────────────────────────────────────────────
 async function runGbpAudit(placeId, env) {
   try {
@@ -881,8 +935,8 @@ async function handleServeAuditCard(path, env) {
 
   const audit = JSON.parse(raw);
   const scoreColor = audit.score >= 7 ? '#00c97a' : audit.score >= 4 ? '#f5a623' : '#ff3b44';
-  const standardUrl = `https://websitehub.co.za/start?promo=GBP699&place_id=${encodeURIComponent(audit.placeId)}`;
-  const premiumUrl  = `https://websitehub.co.za/start?promo=GBP999&place_id=${encodeURIComponent(audit.placeId)}&premium=1`;
+  const standardUrl = `https://preview.websitehub.co.za/audit/${auditToken}/go?plan=standard`;
+  const premiumUrl  = `https://preview.websitehub.co.za/audit/${auditToken}/go?plan=premium`;
 
   const gapsHtml = audit.gaps.map(g => `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">
