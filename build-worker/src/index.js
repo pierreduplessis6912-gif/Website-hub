@@ -1730,50 +1730,6 @@ async function handleWhatsAppIncoming(request, env) {
       await env.SITES.put(`audit:${auditToken}`, JSON.stringify({ ...audit, phone, placeId }), { expirationTtl: 86400 });
       await env.SITES.put(stateKey, JSON.stringify({ step: 'audit_sent', placeId, auditToken, name: pushName }), { expirationTtl: 86400 });
 
-      // ── SPECULATIVE BUILD — fire immediately so site is ready when they tap CTA ──
-      try {
-        const slug = slugify(audit.name || 'business');
-        const manage_token = crypto.randomUUID();
-        const clientId = crypto.randomUUID();
-        const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
-        const normPhone = normaliseSaPhone(phone);
-
-        // Only create if not already exists
-        const existing = await env.DB.prepare(
-          `SELECT id FROM clients WHERE phone=? LIMIT 1`
-        ).bind(normPhone).first().catch(() => null);
-
-        if (!existing) {
-          await env.DB.prepare(`
-            INSERT INTO clients (id, business_name, slug, phone, industry, area, vibe, manage_token, referral_slug, promo_code, status, source, package, retainer)
-            VALUES (?, ?, ?, ?, ?, ?, 'professional', ?, ?, 'GBP699', 'lead', 'audit_inbound', 'hub', 699)
-          `).bind(
-            clientId, audit.name || 'Business', slug, normPhone,
-            audit.primaryType || 'business',
-            audit.address?.split(',')[0] || '',
-            manage_token, referral_slug
-          ).run();
-
-          await env.DB.prepare(
-            `UPDATE clients SET gbp_data=?, gbp_place_id=? WHERE id=?`
-          ).bind(JSON.stringify(audit), audit.placeId, clientId).run();
-
-          await env.BUILD_QUEUE.send({ clientId, manage_token });
-
-          // Update audit token with manage_token for redirect
-          await env.SITES.put(`audit:${auditToken}`, JSON.stringify({ ...audit, phone, placeId, manage_token, clientId }), { expirationTtl: 86400 });
-        } else {
-          const existingClient = await env.DB.prepare(
-            `SELECT manage_token FROM clients WHERE phone=? LIMIT 1`
-          ).bind(normPhone).first().catch(() => null);
-          if (existingClient) {
-            await env.SITES.put(`audit:${auditToken}`, JSON.stringify({ ...audit, phone, placeId, manage_token: existingClient.manage_token }), { expirationTtl: 86400 });
-          }
-        }
-      } catch(e) {
-        console.warn('Speculative build error:', e?.message);
-      }
-
       // Send audit card link
       const auditUrl = `https://preview.websitehub.co.za/audit/${auditToken}`;
       await sendWhatsApp(phone,
