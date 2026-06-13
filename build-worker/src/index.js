@@ -166,7 +166,7 @@ const DEFAULT_CONFIG = {
 const SYSTEM_SUBDOMAINS = new Set(['evolution','preview','www','mail','smtp','imap','ftp','cpanel','whm','webmail','admin','api','places-proxy']);
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url      = new URL(request.url);
     const path     = url.pathname;
     const method   = request.method;
@@ -337,7 +337,7 @@ export default {
       if (path === '/config' && method === 'GET') return handleConfig(env);
 
       // ── INTAKE ───────────────────────────────────────────────
-      if (path === '/whatsapp-incoming' && method === 'POST') return handleWhatsAppIncoming(request, env);
+      if (path === '/whatsapp-incoming' && method === 'POST') return handleWhatsAppIncoming(request, env, ctx);
 
       // ── BUILD STATUS (polling) ───────────────────────────────
       if (path === '/build-status'  && method === 'GET') return handleBuildStatus(url, env);
@@ -1570,7 +1570,7 @@ async function handleConfig(env) {
 
 // ── INTAKE ────────────────────────────────────────────────────
 
-async function handleWhatsAppIncoming(request, env) {
+async function handleWhatsAppIncoming(request, env, ctx) {
   // No auth check — webhook URL is obscure enough, payload is not sensitive
 
   try {
@@ -1682,12 +1682,14 @@ async function handleWhatsAppIncoming(request, env) {
         return new Response('OK', { status: 200 });
       }
 
-      // Send acknowledgement immediately
+      // Send acknowledgement immediately and return
       await sendWhatsApp(phone,
         `Got it! Running your audit now... ⏳`,
         env
       ).catch(() => {});
 
+      // Run heavy audit work in background using waitUntil
+      ctx.waitUntil((async () => {
       // Resolve place ID from search query if needed
       if (!placeId && searchQuery) {
         try {
@@ -1737,8 +1739,14 @@ async function handleWhatsAppIncoming(request, env) {
         env
       ).catch(() => {});
 
-      return new Response('OK', { status: 200 });
+      })());  // end ctx.waitUntil
+
+      return new Response(JSON.stringify({ text: 'OK' }), { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
+    // ── End awaiting_gbp step
 
     // ── DEFAULT: Forward to owner ─────────────────────────────────────────
     const client = await env.DB.prepare(
