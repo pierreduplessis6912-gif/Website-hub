@@ -931,8 +931,8 @@ async function handleServeAuditCard(path, env) {
 
   const audit = JSON.parse(raw);
   const scoreColor = audit.score >= 7 ? '#00c97a' : audit.score >= 4 ? '#f5a623' : '#ff3b44';
-  const standardUrl = `https://preview.websitehub.co.za/audit/${auditToken}/go?plan=standard`;
-  const premiumUrl  = `https://preview.websitehub.co.za/audit/${auditToken}/go?plan=premium`;
+  const standardUrl = `https://preview.websitehub.co.za/audit/${token}/go?plan=standard`;
+  const premiumUrl  = `https://preview.websitehub.co.za/audit/${token}/go?plan=premium`;
 
   const gapsHtml = audit.gaps.map(g => `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">
