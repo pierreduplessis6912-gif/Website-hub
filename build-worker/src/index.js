@@ -882,15 +882,13 @@ async function runGbpAudit(placeId, env) {
         url: `https://places.googleapis.com/v1/places/${placeId}`,
         method: 'GET',
         fieldMask: [
-          'id','displayName','formattedAddress','addressComponents','nationalPhoneNumber',
-          'websiteUri','regularOpeningHours','currentOpeningHours','photos',
-          'rating','userRatingCount','reviews','editorialSummary',
+          'id','displayName','formattedAddress','nationalPhoneNumber',
+          'websiteUri','regularOpeningHours','photos',
+          'rating','userRatingCount','editorialSummary',
           'types','primaryType','businessStatus','priceLevel',
-          'reservable','delivery','dineIn','takeout','servesBeer','servesWine',
-          'servesBrunch','servesBreakfast','servesLunch','servesDinner','servesCocktails',
-          'menuForChildren','goodForGroups','goodForWatchingSports','outdoorSeating',
-          'liveMusic','allowsDogs','wheelchairAccessibleEntrance','wheelchairAccessibleParking',
-          'paymentOptions','googleMapsLinks','plusCode'
+          'reservable','delivery','dineIn','takeout',
+          'menuForChildren','goodForGroups','outdoorSeating',
+          'wheelchairAccessibleEntrance','paymentOptions','googleMapsLinks'
         ].join(','),
       }),
     });
@@ -948,13 +946,7 @@ async function runGbpAudit(placeId, env) {
       gaps.push({ icon: '📉', msg: `Rating ${rating} — below 4.0 hurts visibility`, impact: 'high', category: 'Trust' });
       score -= 0.5;
     }
-    // Check if owner responds to reviews
-    const reviews = place.reviews || [];
-    const hasResponses = reviews.some(r => r.authorAttribution?.displayName === place.displayName?.text);
-    if (reviewCount > 0 && !hasResponses) {
-      gaps.push({ icon: '💬', msg: 'Not responding to reviews', impact: 'medium', category: 'Trust' });
-      score -= 0.5;
-    }
+    // Check review response (skip — reviews field removed from fieldMask for performance)
 
     // ── OPERATIONAL INFO (1 pt) ──────────────────────────────────
     if (!place.regularOpeningHours) {
