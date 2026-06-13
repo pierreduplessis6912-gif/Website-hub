@@ -1008,7 +1008,7 @@ async function handleTestWhatsapp(request, env) {
     const res = await fetch(`${evoUrl}/message/sendText/${evoInstance}`, {
       method: 'POST',
       headers: { 'apikey': evoKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number: to, textMessage: { text: message || 'Test from Website Hub ✅' } }),
+      body: JSON.stringify({ number: to, text: message || 'Test from Website Hub ✅' }),
     });
     const data = await res.json().catch(() => ({}));
     return jsonResponse({ status: res.status, ok: res.ok, data, evoUrl, evoInstance, keyHint });
