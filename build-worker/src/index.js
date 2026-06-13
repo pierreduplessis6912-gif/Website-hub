@@ -1588,16 +1588,27 @@ async function handleWhatsAppIncoming(request, env) {
       let placeId = null;
       let searchQuery = null;
 
-      // Extract from google maps URL formats
-      const placeMatch = text.match(/place\/([^\/]+)\/([^\/\?]+)/);
-      const cidMatch = text.match(/[?&]cid=(\d+)/);
-      const queryMatch = text.match(/[?&]q=([^&]+)/);
-      const mapsSearch = text.match(/maps\.google\.com|google\.com\/maps|maps\.app\.goo\.gl/i);
+      // Resolve short URLs first (maps.app.goo.gl, g.page)
+      let resolvedText = text;
+      if (text.includes('goo.gl') || text.includes('g.page')) {
+        try {
+          const resp = await fetch(text.trim(), { method: 'HEAD', redirect: 'follow' });
+          resolvedText = resp.url || text;
+        } catch(e) { resolvedText = text; }
+      }
 
-      if (placeMatch) placeId = placeMatch[2];
+      // Extract from google maps URL formats
+      const placeMatch = resolvedText.match(/place\/([^\/]+)\/([^\/\?]+)/);
+      const cidMatch = resolvedText.match(/[?&]cid=(\d+)/);
+      const queryMatch = resolvedText.match(/[?&]q=([^&]+)/);
+      const dataMatch = resolvedText.match(/!1s([^!]+)!8m/);
+      const mapsSearch = resolvedText.match(/maps\.google\.com|google\.com\/maps/i);
+
+      if (dataMatch) placeId = decodeURIComponent(dataMatch[1]);
+      else if (placeMatch) placeId = placeMatch[2];
       else if (cidMatch) placeId = cidMatch[1];
       else if (queryMatch) searchQuery = decodeURIComponent(queryMatch[1]);
-      else if (mapsSearch) searchQuery = text;
+      else if (mapsSearch) searchQuery = resolvedText;
 
       if (!placeId && !searchQuery && text.length > 5) {
         // Treat as business name search
