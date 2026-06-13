@@ -1688,7 +1688,10 @@ async function handleWhatsAppIncoming(request, env) {
   } catch(e) {
     console.warn('WhatsApp incoming handler error:', e?.message);
   }
-  return new Response('OK', { status: 200 });
+  return new Response(JSON.stringify({ text: 'OK' }), { 
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
 async function handleIntake(request, env) {
