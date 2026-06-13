@@ -1066,6 +1066,22 @@ async function handleServeAuditCard(path, env, ctx) {
   const standardUrl = `https://preview.websitehub.co.za/audit/${token}/go?plan=standard`;
   const premiumUrl  = `https://preview.websitehub.co.za/audit/${token}/go?plan=premium`;
 
+  // Map which plan fixes each gap
+  const STANDARD_FIXES = ['No website linked'];
+  const PREMIUM_FIXES = [
+    'No business description', 'Business hours not set', 'Only 1 category',
+    'Price level not set', 'Service options not specified', 'No booking link added',
+    'Payment methods not listed', 'Accessibility info not added', 'No menu link added'
+  ];
+
+  const getFixTag = (msg) => {
+    if (STANDARD_FIXES.some(f => msg.includes(f.split(' ').slice(0,3).join(' ')))) 
+      return `<span style="font-size:9px;background:rgba(0,240,255,.15);color:#00f0ff;border:1px solid rgba(0,240,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:.5px">STANDARD</span>`;
+    if (PREMIUM_FIXES.some(f => msg.includes(f.split(' ').slice(0,3).join(' ')))) 
+      return `<span style="font-size:9px;background:rgba(184,41,221,.15);color:#b829dd;border:1px solid rgba(184,41,221,.3);padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:.5px">PREMIUM</span>`;
+    return `<span style="font-size:9px;background:rgba(255,255,255,.05);color:rgba(240,237,232,.4);border:1px solid rgba(255,255,255,.1);padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:.5px">YOU</span>`;
+  };
+
   // Group gaps by category
   const categories = {};
   audit.gaps.forEach(g => {
@@ -1079,8 +1095,8 @@ async function handleServeAuditCard(path, env, ctx) {
     ${catGaps.map(g => `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
       <span style="font-size:16px;flex-shrink:0">${g.icon}</span>
-      <div>
-        <div style="font-size:13px;color:#ede9e4;font-weight:500">${g.msg}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;color:#ede9e4;font-weight:500;display:flex;align-items:center;flex-wrap:wrap;gap:4px">${g.msg}${getFixTag(g.msg)}</div>
         <div style="font-size:10px;color:${g.impact==='high'?'#ff3b44':g.impact==='medium'?'#f5a623':'#aaa'};margin-top:2px;text-transform:uppercase;letter-spacing:.5px">${g.impact} impact</div>
       </div>
     </div>`).join('')}
@@ -1153,11 +1169,11 @@ body{background:#0e0c09;color:#ede9e4;font-family:'DM Sans',sans-serif;min-heigh
     <div class="cta-label">Fix everything — starting today</div>
     <a href="${standardUrl}" class="btn-standard">
       🌐 Standard — R699/month<br>
-      <span style="font-size:11px;font-weight:400;color:rgba(0,240,255,.6)">Website + Google profile linked · No setup fee</span>
+      <span style="font-size:11px;font-weight:400;color:rgba(0,240,255,.6)">Website built + linked to Google · No setup fee</span>
     </a>
     <a href="${premiumUrl}" class="btn-premium">
-      🚀 Premium — R999/month
-      <span>Website + Full GBP optimisation + .co.za domain</span>
+      🚀 Premium — R999/month ${audit.score <= 5 ? '<span style="font-size:10px;background:rgba(255,59,68,.2);color:#ff3b44;padding:2px 6px;border-radius:4px;margin-left:4px">RECOMMENDED</span>' : ''}
+      <span>Website + Full GBP optimisation · We fix ${audit.gaps.filter(g => PREMIUM_FIXES.some(f => g.msg.includes(f.split(' ').slice(0,3).join(' ')))).length + 1} of your ${audit.gaps.length} gaps automatically</span>
     </a>
   </div>
 
