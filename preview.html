@@ -835,9 +835,6 @@ function onPreview() {
   el('prevPlanName').textContent = promo ? `Premium — ${promo.label}` : p.label;
   if (el('prevPeriod')) el('prevPeriod').textContent = promo ? `build fee · then R${promo.monthly}/mo` : `build fee · then R${p.monthly}/mo`;
   updatePlanSelectors();
-
-  // Auto-open plan sheet on landing — they see all plans and the value
-  setTimeout(() => openPlanSheet(), 800);
 }
 
 function openInTab() {
