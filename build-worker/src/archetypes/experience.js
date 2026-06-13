@@ -23,7 +23,7 @@ export function generateExperienceHTML(t, heroUrl, client, cards, pkg, gbpData, 
   const accent  = brandBrief?.accent_colour  || '#d4b896';
   const svcs    = t.services || [];
 
-  const reviews     = (gbpData?.reviews || []).slice(0, 3);
+  const reviews     = (gbpData?.reviews || []).filter(r => (r.rating || 5) >= 4).slice(0, 3);
   const rating      = gbpData?.rating || null;
   const reviewCount = gbpData?.reviewCount || 0;
   const hours       = gbpData?.hours || [];
@@ -95,8 +95,30 @@ body{font-family:var(--sans);background:var(--page);color:var(--dark);overflow-x
 .nav-link{color:rgba(255,255,255,.65);font-size:12px;font-weight:400;letter-spacing:1px;text-decoration:none;transition:color .2s;display:none;text-transform:uppercase}
 .nav-link:hover{color:#fff}
 @media(min-width:640px){.nav-link{display:block}}
-.nav-cta{background:var(--primary);color:#fff!important;padding:9px 20px;border-radius:100px;font-weight:500;display:block!important;font-size:12px;letter-spacing:.5px;text-transform:uppercase;transition:opacity .2s}
+.nav-cta{background:var(--primary);color:#fff!important;padding:9px 20px;border-radius:100px;font-weight:500;display:none!important;font-size:12px;letter-spacing:.5px;text-transform:uppercase;transition:opacity .2s}
+@media(min-width:640px){.nav-cta{display:block!important}}
 .nav-cta:hover{opacity:.85}
+
+/* Hamburger */
+.nav-burger{display:flex;flex-direction:column;gap:5px;cursor:pointer;padding:6px;z-index:110}
+@media(min-width:640px){.nav-burger{display:none}}
+.burger-line{width:22px;height:1.5px;background:#fff;transition:all .3s ease;display:block}
+.nav.menu-open .burger-line:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.nav.menu-open .burger-line:nth-child(2){opacity:0;transform:scaleX(0)}
+.nav.menu-open .burger-line:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+
+/* Mobile drawer */
+.nav-drawer{position:fixed;inset:0;background:rgba(15,13,11,.97);z-index:105;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:32px;opacity:0;pointer-events:none;transition:opacity .4s ease}
+.nav-drawer.open{opacity:1;pointer-events:all}
+.drawer-link{font-family:var(--serif);font-size:clamp(28px,8vw,42px);font-weight:300;color:rgba(255,255,255,.8);text-decoration:none;letter-spacing:-.5px;transition:color .2s;transform:translateY(20px);opacity:0;transition:transform .4s ease,opacity .4s ease,color .2s}
+.nav-drawer.open .drawer-link{transform:none;opacity:1}
+.drawer-link:nth-child(1){transition-delay:.05s}
+.drawer-link:nth-child(2){transition-delay:.1s}
+.drawer-link:nth-child(3){transition-delay:.15s}
+.drawer-link:nth-child(4){transition-delay:.2s}
+.drawer-link:hover{color:#fff}
+.drawer-cta{margin-top:12px;background:var(--primary);color:#fff;padding:14px 36px;border-radius:100px;font-size:13px;font-weight:500;letter-spacing:.5px;text-decoration:none;text-transform:uppercase;transform:translateY(20px);opacity:0;transition:transform .4s .25s ease,opacity .4s .25s ease}
+.nav-drawer.open .drawer-cta{transform:none;opacity:1}
 
 /* ── HERO ── */
 .hero{position:relative;height:100svh;min-height:620px;display:flex;flex-direction:column;justify-content:flex-end;padding:0 28px 72px;overflow:hidden}
@@ -239,7 +261,12 @@ ${rating ? `.hero-rating{position:absolute;top:80px;right:20px;background:rgba(2
 /* ── MAP ── */
 .map-frame{width:100%;height:240px;border:none;display:block;filter:grayscale(15%) contrast(1.05)}
 
-/* ── FOOTER ── */
+/* ── SITEMAP FOOTER ── */
+.sitemap{background:var(--dark);border-top:1px solid rgba(255,255,255,.06);padding:64px 28px 0}
+.sitemap-inner{max-width:640px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;padding-bottom:48px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sitemap-col-title{font-size:10px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:20px}
+.sitemap-link{display:block;font-family:var(--serif);font-size:16px;font-weight:300;color:rgba(255,255,255,.6);text-decoration:none;margin-bottom:12px;transition:color .2s;letter-spacing:.2px}
+.sitemap-link:hover{color:#fff}
 .footer{background:var(--dark);padding:56px 28px;text-align:center}
 .footer-brand{font-family:var(--serif);font-size:20px;font-weight:300;color:#fff;margin-bottom:6px;letter-spacing:.3px}
 .footer-domain{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:1px;margin-bottom:28px}
@@ -277,8 +304,22 @@ ${rating ? `.hero-rating{position:absolute;top:80px;right:20px;background:rgba(2
     ${reviews.length ? `<a href="#reviews" class="nav-link">Reviews</a>` : ''}
     <a href="#contact" class="nav-link">Contact</a>
     <a href="${esc(waLink)}" class="nav-link nav-cta">WhatsApp</a>
+    <div class="nav-burger" id="navBurger" onclick="toggleMenu()">
+      <span class="burger-line"></span>
+      <span class="burger-line"></span>
+      <span class="burger-line"></span>
+    </div>
   </div>
 </nav>
+
+<!-- Mobile drawer -->
+<div class="nav-drawer" id="navDrawer">
+  ${!isExp ? `<a href="#about" class="drawer-link" onclick="closeMenu()">About</a>` : ''}
+  <a href="#services" class="drawer-link" onclick="closeMenu()">Services</a>
+  ${reviews.length ? `<a href="#reviews" class="drawer-link" onclick="closeMenu()">Reviews</a>` : ''}
+  <a href="#contact" class="drawer-link" onclick="closeMenu()">Contact</a>
+  <a href="${esc(waLink)}" class="drawer-cta">💬 WhatsApp Us</a>
+</div>
 
 <!-- ═══ HERO ═══ -->
 <section class="hero" id="hero">
@@ -476,16 +517,27 @@ ${client.cross_link_url ? `
   </a>
 </div>` : ''}
 
-<footer class="footer">
-  <div class="footer-brand">${esc(t.short_name || client.business_name)}</div>
-  <div class="footer-domain">${esc(domain)}</div>
-  <div class="footer-links">
-    <a href="${esc(waLink)}" class="footer-link">WhatsApp</a>
-    ${client.instagram ? `<a href="https://instagram.com/${esc((client.instagram||'').replace('@',''))}" class="footer-link" target="_blank">Instagram</a>` : ''}
-    ${client.facebook ? `<a href="https://facebook.com/${esc(client.facebook||'')}" class="footer-link" target="_blank">Facebook</a>` : ''}
-    <a href="https://websitehub.co.za" class="footer-link" target="_blank">Powered by Website Hub</a>
+<footer class="sitemap">
+  <div class="sitemap-inner">
+    <div>
+      <div class="sitemap-col-title">Navigate</div>
+      ${!isExp ? `<a href="#about" class="sitemap-link">About</a>` : ''}
+      <a href="#services" class="sitemap-link">Services</a>
+      ${reviews.length ? `<a href="#reviews" class="sitemap-link">Reviews</a>` : ''}
+      <a href="#contact" class="sitemap-link">Contact</a>
+    </div>
+    <div>
+      <div class="sitemap-col-title">Connect</div>
+      <a href="${esc(waLink)}" class="sitemap-link">WhatsApp</a>
+      ${client.phone ? `<a href="tel:${esc(client.phone)}" class="sitemap-link">${esc(phoneDisplay)}</a>` : ''}
+      ${client.instagram ? `<a href="https://instagram.com/${esc((client.instagram||'').replace('@',''))}" class="sitemap-link" target="_blank">Instagram</a>` : ''}
+      ${client.facebook ? `<a href="https://facebook.com/${esc(client.facebook||'')}" class="sitemap-link" target="_blank">Facebook</a>` : ''}
+    </div>
   </div>
-  <div class="footer-copy">© ${new Date().getFullYear()} ${esc(client.business_name)}</div>
+  <div style="max-width:640px;margin:0 auto;padding:28px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <div style="font-family:var(--serif);font-size:14px;font-weight:300;color:rgba(255,255,255,.3);letter-spacing:.3px">${esc(client.business_name)} · ${esc(domain)}</div>
+    <div style="font-size:10px;color:rgba(255,255,255,.15);letter-spacing:.5px">© ${new Date().getFullYear()} · <a href="https://websitehub.co.za" style="color:inherit;text-decoration:none">Website Hub</a></div>
+  </div>
 </footer>
 
 ${phone ? `
@@ -506,7 +558,19 @@ ${phone ? `
 
 // ── Nav scroll ──
 var nav=document.getElementById('nav');
+var drawer=document.getElementById('navDrawer');
 window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>60)},{passive:true});
+
+function toggleMenu(){
+  nav.classList.toggle('menu-open');
+  drawer.classList.toggle('open');
+  document.body.style.overflow=drawer.classList.contains('open')?'hidden':'';
+}
+function closeMenu(){
+  nav.classList.remove('menu-open');
+  drawer.classList.remove('open');
+  document.body.style.overflow='';
+}
 
 // ── Parallax hero ──
 var heroImg=document.getElementById('heroImg');
