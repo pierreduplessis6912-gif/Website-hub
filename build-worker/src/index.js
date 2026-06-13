@@ -881,44 +881,146 @@ async function runGbpAudit(placeId, env) {
       body: JSON.stringify({
         url: `https://places.googleapis.com/v1/places/${placeId}`,
         method: 'GET',
-        fieldMask: 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,photos,rating,userRatingCount,editorialSummary,types,primaryType,businessStatus',
+        fieldMask: [
+          'id','displayName','formattedAddress','addressComponents','nationalPhoneNumber',
+          'websiteUri','regularOpeningHours','currentOpeningHours','photos',
+          'rating','userRatingCount','reviews','editorialSummary',
+          'types','primaryType','businessStatus','priceLevel',
+          'reservable','delivery','dineIn','takeout','servesBeer','servesWine',
+          'servesBrunch','servesBreakfast','servesLunch','servesDinner','servesCocktails',
+          'menuForChildren','goodForGroups','goodForWatchingSports','outdoorSeating',
+          'liveMusic','allowsDogs','wheelchairAccessibleEntrance','wheelchairAccessibleParking',
+          'paymentOptions','googleMapsLinks','plusCode'
+        ].join(','),
       }),
     });
     const place = await res.json();
     if (!place?.id) return null;
 
-    // Score the profile
     const gaps = [];
     let score = 10;
 
-    if (!place.websiteUri)          { gaps.push({ icon: '🌐', msg: 'No website linked',           impact: 'high'   }); score -= 2; }
-    if (!place.editorialSummary?.text){ gaps.push({ icon: '📝', msg: 'No business description',    impact: 'high'   }); score -= 2; }
-    const photoCount = place.photos?.length || 0;
-    if (photoCount < 5)             { gaps.push({ icon: '📸', msg: `Only ${photoCount} photos (aim for 15+)`, impact: 'medium' }); score -= 1; }
-    if (!place.regularOpeningHours) { gaps.push({ icon: '🕐', msg: 'Business hours not set',       impact: 'medium' }); score -= 1; }
-    if ((place.userRatingCount||0) < 10) { gaps.push({ icon: '⭐', msg: `Only ${place.userRatingCount||0} reviews`, impact: 'medium' }); score -= 1; }
-    if (!place.nationalPhoneNumber) { gaps.push({ icon: '📞', msg: 'No phone number listed',       impact: 'high'   }); score -= 1; }
-    if ((place.types?.length||0) < 2){ gaps.push({ icon: '🏷️', msg: 'Limited categories set',      impact: 'low'    }); score -= 1; }
+    // ── PROFILE COMPLETENESS (3 pts) ────────────────────────────
+    if (!place.websiteUri) {
+      gaps.push({ icon: '🌐', msg: 'No website linked', impact: 'high', category: 'Profile' });
+      score -= 1;
+    }
+    if (!place.editorialSummary?.text) {
+      gaps.push({ icon: '📝', msg: 'No business description', impact: 'high', category: 'Profile' });
+      score -= 1;
+    }
+    if (!place.nationalPhoneNumber) {
+      gaps.push({ icon: '📞', msg: 'No phone number listed', impact: 'high', category: 'Profile' });
+      score -= 0.5;
+    }
+    if (!place.priceLevel) {
+      gaps.push({ icon: '💰', msg: 'Price level not set', impact: 'low', category: 'Profile' });
+      score -= 0.5;
+    }
 
-    score = Math.max(score, 1);
+    // ── VISUAL PRESENCE (2 pts) ──────────────────────────────────
+    const photoCount = place.photos?.length || 0;
+    if (photoCount === 0) {
+      gaps.push({ icon: '📸', msg: 'No photos uploaded', impact: 'high', category: 'Visuals' });
+      score -= 2;
+    } else if (photoCount < 5) {
+      gaps.push({ icon: '📸', msg: `Only ${photoCount} photos — aim for 15+`, impact: 'high', category: 'Visuals' });
+      score -= 1.5;
+    } else if (photoCount < 15) {
+      gaps.push({ icon: '📸', msg: `${photoCount} photos — more photos = more clicks`, impact: 'medium', category: 'Visuals' });
+      score -= 0.5;
+    }
+
+    // ── TRUST SIGNALS (2 pts) ────────────────────────────────────
+    const reviewCount = place.userRatingCount || 0;
+    const rating = place.rating || 0;
+    if (reviewCount === 0) {
+      gaps.push({ icon: '⭐', msg: 'No reviews yet', impact: 'high', category: 'Trust' });
+      score -= 1.5;
+    } else if (reviewCount < 10) {
+      gaps.push({ icon: '⭐', msg: `Only ${reviewCount} reviews — aim for 50+`, impact: 'high', category: 'Trust' });
+      score -= 1;
+    } else if (reviewCount < 50) {
+      gaps.push({ icon: '⭐', msg: `${reviewCount} reviews — keep growing`, impact: 'medium', category: 'Trust' });
+      score -= 0.5;
+    }
+    if (rating > 0 && rating < 4.0) {
+      gaps.push({ icon: '📉', msg: `Rating ${rating} — below 4.0 hurts visibility`, impact: 'high', category: 'Trust' });
+      score -= 0.5;
+    }
+    // Check if owner responds to reviews
+    const reviews = place.reviews || [];
+    const hasResponses = reviews.some(r => r.authorAttribution?.displayName === place.displayName?.text);
+    if (reviewCount > 0 && !hasResponses) {
+      gaps.push({ icon: '💬', msg: 'Not responding to reviews', impact: 'medium', category: 'Trust' });
+      score -= 0.5;
+    }
+
+    // ── OPERATIONAL INFO (1 pt) ──────────────────────────────────
+    if (!place.regularOpeningHours) {
+      gaps.push({ icon: '🕐', msg: 'Business hours not set', impact: 'high', category: 'Operations' });
+      score -= 1;
+    }
+    if (place.businessStatus && place.businessStatus !== 'OPERATIONAL') {
+      gaps.push({ icon: '⚠️', msg: `Business status: ${place.businessStatus.replace(/_/g,' ').toLowerCase()}`, impact: 'high', category: 'Operations' });
+      score -= 1;
+    }
+
+    // ── SERVICE ATTRIBUTES (1 pt) ────────────────────────────────
+    const primaryType = place.primaryType || '';
+    const isRestaurant = /restaurant|cafe|coffee|bakery|bar|food|meal/.test(primaryType);
+    const isSalon = /salon|spa|barber|beauty|hair/.test(primaryType);
+    const isTrade = /plumber|electrician|contractor|builder|repair/.test(primaryType);
+
+    if (isRestaurant) {
+      if (place.delivery === false && place.takeout === false && place.dineIn === false) {
+        gaps.push({ icon: '🍽️', msg: 'Service options not specified (delivery/takeout/dine-in)', impact: 'medium', category: 'Services' });
+        score -= 0.5;
+      }
+      if (!place.googleMapsLinks?.menuUri) {
+        gaps.push({ icon: '📋', msg: 'No menu link added', impact: 'medium', category: 'Services' });
+        score -= 0.5;
+      }
+    }
+    if (isSalon && !place.reservable) {
+      gaps.push({ icon: '📅', msg: 'No booking link added', impact: 'medium', category: 'Services' });
+      score -= 0.5;
+    }
+    if (!place.paymentOptions) {
+      gaps.push({ icon: '💳', msg: 'Payment methods not listed', impact: 'low', category: 'Services' });
+      score -= 0.5;
+    }
+    if (!place.wheelchairAccessibleEntrance) {
+      gaps.push({ icon: '♿', msg: 'Accessibility info not added', impact: 'low', category: 'Services' });
+    }
+
+    // ── CATEGORIES (0.5 pt) ──────────────────────────────────────
+    if ((place.types?.length || 0) < 2) {
+      gaps.push({ icon: '🏷️', msg: 'Only 1 category — add more to rank for more searches', impact: 'medium', category: 'Profile' });
+      score -= 0.5;
+    }
+
+    score = Math.max(Math.round(score * 10) / 10, 1);
 
     // Extract photo reference names for the build pipeline
     const photoRefs = (place.photos || []).slice(0, 6).map(p => p.name).filter(Boolean);
 
     return {
       placeId,
-      name:        place.displayName?.text || '',
-      address:     place.formattedAddress || '',
-      phone:       place.nationalPhoneNumber || '',
-      website:     place.websiteUri || null,
-      rating:      place.rating || 0,
-      reviewCount: place.userRatingCount || 0,
+      name:         place.displayName?.text || '',
+      address:      place.formattedAddress || '',
+      phone:        place.nationalPhoneNumber || '',
+      website:      place.websiteUri || null,
+      rating,
+      reviewCount,
       photoCount,
-      photos:      photoRefs,
-      primaryType: place.primaryType || '',
-      hasHours:    !!place.regularOpeningHours,
-      hasDesc:     !!place.editorialSummary?.text,
-      description: place.editorialSummary?.text || '',
+      photos:       photoRefs,
+      primaryType:  place.primaryType || '',
+      hasHours:     !!place.regularOpeningHours,
+      hasDesc:      !!place.editorialSummary?.text,
+      description:  place.editorialSummary?.text || '',
+      priceLevel:   place.priceLevel || null,
+      businessStatus: place.businessStatus || 'OPERATIONAL',
       score,
       gaps,
     };
@@ -964,14 +1066,25 @@ async function handleServeAuditCard(path, env, ctx) {
   const standardUrl = `https://preview.websitehub.co.za/audit/${token}/go?plan=standard`;
   const premiumUrl  = `https://preview.websitehub.co.za/audit/${token}/go?plan=premium`;
 
-  const gapsHtml = audit.gaps.map(g => `
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">
-      <span style="font-size:18px;flex-shrink:0">${g.icon}</span>
+  // Group gaps by category
+  const categories = {};
+  audit.gaps.forEach(g => {
+    const cat = g.category || 'General';
+    if (!categories[cat]) categories[cat] = [];
+    categories[cat].push(g);
+  });
+
+  const gapsHtml = Object.entries(categories).map(([cat, catGaps]) => `
+    <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(240,237,232,.3);margin:12px 0 6px;font-weight:600">${cat}</div>
+    ${catGaps.map(g => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="font-size:16px;flex-shrink:0">${g.icon}</span>
       <div>
         <div style="font-size:13px;color:#ede9e4;font-weight:500">${g.msg}</div>
-        <div style="font-size:11px;color:${g.impact==='high'?'#ff3b44':g.impact==='medium'?'#f5a623':'#aaa'};margin-top:2px;text-transform:uppercase;letter-spacing:.5px">${g.impact} impact</div>
+        <div style="font-size:10px;color:${g.impact==='high'?'#ff3b44':g.impact==='medium'?'#f5a623':'#aaa'};margin-top:2px;text-transform:uppercase;letter-spacing:.5px">${g.impact} impact</div>
       </div>
-    </div>`).join('');
+    </div>`).join('')}
+  `).join('');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
