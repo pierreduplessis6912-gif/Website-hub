@@ -1601,11 +1601,20 @@ async function handleWhatsAppIncoming(request, env) {
       const placeMatch = resolvedText.match(/place\/([^\/]+)\/([^\/\?]+)/);
       const cidMatch = resolvedText.match(/[?&]cid=(\d+)/);
       const queryMatch = resolvedText.match(/[?&]q=([^&]+)/);
-      const dataMatch = resolvedText.match(/!1s([^!]+)!8m/);
+      const dataMatch = resolvedText.match(/!1s([^!&?]+)/);
       const mapsSearch = resolvedText.match(/maps\.google\.com|google\.com\/maps/i);
 
-      if (dataMatch) placeId = decodeURIComponent(dataMatch[1]);
-      else if (placeMatch) placeId = placeMatch[2];
+      if (dataMatch) {
+        const extracted = dataMatch[1];
+        // CID format (0x...) — need to search by name instead
+        if (extracted.startsWith('0x')) {
+          // Extract place name from URL path
+          const nameMatch = resolvedText.match(/\/place\/([^\/]+)\//);
+          if (nameMatch) searchQuery = decodeURIComponent(nameMatch[1].replace(/\+/g, ' ').split(',')[0]);
+        } else {
+          placeId = extracted;
+        }
+      } else if (placeMatch) placeId = placeMatch[2];
       else if (cidMatch) placeId = cidMatch[1];
       else if (queryMatch) searchQuery = decodeURIComponent(queryMatch[1]);
       else if (mapsSearch) searchQuery = resolvedText;
