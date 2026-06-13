@@ -863,7 +863,7 @@ async function handleAuditGo(url, path, env) {
       `UPDATE clients SET gbp_data=?, gbp_place_id=? WHERE id=?`
     ).bind(JSON.stringify(audit), audit.placeId, id).run();
 
-    await env.BUILD_QUEUE.send({ clientId: id, manage_token });
+    await env.BUILD_QUEUE.send({ type: 'full_build', clientId: id, isOutbound: false });
   } catch(e) {
     console.warn('Audit go error:', e?.message);
   }
