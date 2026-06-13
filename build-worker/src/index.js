@@ -1540,10 +1540,14 @@ async function handleWhatsAppIncoming(request, env) {
       || msg?.message?.imageMessage?.caption
       || '').trim();
 
-    // Extract sender phone
+    // Extract sender phone — handle @s.whatsapp.net, @c.us, @lid formats
+    // v2.3.6+ provides remoteJidAlt with real phone when remoteJid is @lid
     const rawJid = msg?.key?.remoteJid || '';
-    let phone = rawJid.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '').replace(/@lid$/, '');
-    if (rawJid.endsWith('@lid') && env.EVOLUTION_URL && env.EVOLUTION_KEY) {
+    const altJid = msg?.key?.remoteJidAlt || '';
+    let phone = (rawJid.endsWith('@lid') && altJid)
+      ? altJid.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '')
+      : rawJid.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '').replace(/@lid$/, '');
+    if (rawJid.endsWith('@lid') && !altJid && env.EVOLUTION_URL && env.EVOLUTION_KEY) {
       try {
         const res = await fetch(`${env.EVOLUTION_URL}/chat/findContacts/${env.EVOLUTION_INSTANCE}`, {
           method: 'POST',
