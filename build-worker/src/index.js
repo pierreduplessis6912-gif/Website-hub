@@ -881,15 +881,7 @@ async function runGbpAudit(placeId, env) {
       body: JSON.stringify({
         url: `https://places.googleapis.com/v1/places/${placeId}`,
         method: 'GET',
-        fieldMask: [
-          'id','displayName','formattedAddress','nationalPhoneNumber',
-          'websiteUri','regularOpeningHours','photos',
-          'rating','userRatingCount','editorialSummary',
-          'types','primaryType','businessStatus','priceLevel',
-          'reservable','delivery','dineIn','takeout',
-          'menuForChildren','goodForGroups','outdoorSeating',
-          'wheelchairAccessibleEntrance','paymentOptions','googleMapsLinks'
-        ].join(','),
+        fieldMask: 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,regularOpeningHours,photos,rating,userRatingCount,editorialSummary,types,primaryType,businessStatus,priceLevel',
       }),
     });
     const place = await res.json();
@@ -958,32 +950,10 @@ async function runGbpAudit(placeId, env) {
       score -= 1;
     }
 
-    // ── SERVICE ATTRIBUTES (1 pt) ────────────────────────────────
-    const primaryType = place.primaryType || '';
-    const isRestaurant = /restaurant|cafe|coffee|bakery|bar|food|meal/.test(primaryType);
-    const isSalon = /salon|spa|barber|beauty|hair/.test(primaryType);
-    const isTrade = /plumber|electrician|contractor|builder|repair/.test(primaryType);
-
-    if (isRestaurant) {
-      if (place.delivery === false && place.takeout === false && place.dineIn === false) {
-        gaps.push({ icon: '🍽️', msg: 'Service options not specified (delivery/takeout/dine-in)', impact: 'medium', category: 'Services' });
-        score -= 0.5;
-      }
-      if (!place.googleMapsLinks?.menuUri) {
-        gaps.push({ icon: '📋', msg: 'No menu link added', impact: 'medium', category: 'Services' });
-        score -= 0.5;
-      }
-    }
-    if (isSalon && !place.reservable) {
-      gaps.push({ icon: '📅', msg: 'No booking link added', impact: 'medium', category: 'Services' });
+    // ── SERVICE ATTRIBUTES (0.5 pt) ─────────────────────────────
+    if (!place.priceLevel) {
+      gaps.push({ icon: '💰', msg: 'Price level not set', impact: 'low', category: 'Profile' });
       score -= 0.5;
-    }
-    if (!place.paymentOptions) {
-      gaps.push({ icon: '💳', msg: 'Payment methods not listed', impact: 'low', category: 'Services' });
-      score -= 0.5;
-    }
-    if (!place.wheelchairAccessibleEntrance) {
-      gaps.push({ icon: '♿', msg: 'Accessibility info not added', impact: 'low', category: 'Services' });
     }
 
     // ── CATEGORIES (0.5 pt) ──────────────────────────────────────
