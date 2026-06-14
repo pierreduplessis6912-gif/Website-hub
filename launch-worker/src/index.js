@@ -756,6 +756,36 @@ async function handleGoLivePayment(clientId, paymentId, amount, customStr2, env,
   await sendWhatsApp(env.WH_PHONE, saleMsg, env, { skipTestRedirect: true }).catch(() => {});
   await sendWhatsApp('27798916569', saleMsg, env, { skipTestRedirect: true }).catch(() => {});
 
+  // ── PARTNER CREDIT ────────────────────────────────────────────
+  if (client.referred_by) {
+    try {
+      const partner = await env.DB.prepare(
+        `SELECT * FROM partners WHERE slug=? AND status='active' LIMIT 1`
+      ).bind(client.referred_by).first().catch(() => null);
+
+      if (partner) {
+        const COMMISSION = 100;
+        await env.DB.prepare(
+          `UPDATE partners SET balance=balance+?, total_earned=total_earned+?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+        ).bind(COMMISSION, COMMISSION, partner.id).run();
+
+        const newBalance = (partner.balance || 0) + COMMISSION;
+
+        await sendWhatsApp(partner.phone,
+          `🎉 ${client.business_name} just went live!\n\n*R${COMMISSION} credited to your account.*\nYour balance: R${newBalance}\n\n_Keep sharing your link to earn more 💰_\nhttps://websitehub.co.za/partner/${partner.slug}`,
+          env
+        ).catch(() => {});
+
+        await sendWhatsApp(env.WH_PHONE,
+          `🤝 Partner credit: R${COMMISSION} to ${partner.name} for ${client.business_name}`,
+          env, { skipTestRedirect: true }
+        ).catch(() => {});
+      }
+    } catch(e) {
+      console.warn('Partner credit error:', e?.message);
+    }
+  }
+
   ctx.waitUntil(handleGoLiveInternal(clientId, client, env)
     .catch(async err => {
       console.error('Go-live after payment failed:', err);
