@@ -284,6 +284,7 @@ export default {
       }
       if (path === '/admin/test-registerdomain') return handleTestRegisterDomain(request, env);
       if (path === '/admin/send-partner-invite'  && method === 'POST') return handleSendPartnerInvite(request, env);
+      } // end admin block
 
       // ── PARTNER PORTAL ────────────────────────────────────────────────────
       if (path.startsWith('/partner/')) {
@@ -4697,4 +4698,3 @@ function siteNotFound(slug) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not Found</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0ede8;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}.box{max-width:400px}h1{font-size:22px;margin-bottom:12px}p{color:rgba(240,237,232,0.55);line-height:1.6}a{color:#25D366;font-weight:700;text-decoration:none}</style></head><body><div class="box"><h1>Site not found</h1><p>The site <strong>${slug}</strong> doesn't exist yet.<br><br><a href="https://websitehub.co.za">Visit Website Hub →</a></p></div></body></html>`;
 }
 
-// partner trigger Sun Jun 14 19:01:00 SAST 2026
