@@ -175,6 +175,7 @@ export const KV_KEYS = {
     'dpa':              'app:dpa',
     'cancellation':     'app:cancellation',
     'referral-terms':   'app:referral-terms',
+    'partner':          'app:partner',
   },
 
   // ── Built site content ─────────────────────────────────────────────────────
