@@ -284,6 +284,21 @@ export default {
       }
       if (path === '/admin/test-registerdomain') return handleTestRegisterDomain(request, env);
       if (path === '/admin/send-partner-invite'  && method === 'POST') return handleSendPartnerInvite(request, env);
+
+      // ── PARTNER PORTAL ────────────────────────────────────────────────────
+      if (path.startsWith('/partner/')) {
+        const parts = path.split('/').filter(Boolean);
+        const partnerSlug = parts[1];
+        const action = parts[2];
+        if (!partnerSlug) return new Response('Not found', { status: 404 });
+        if (action === 'data') return handlePartnerData(partnerSlug, env);
+        if (action === 'banking' && method === 'POST') return handlePartnerBanking(partnerSlug, request, env);
+        if (action === 'payout' && method === 'POST') return handlePartnerPayout(partnerSlug, env);
+        // Serve dashboard SPA
+        const partnerHtml = await env.SITES.get('app:partner').catch(() => null);
+        if (partnerHtml) return new Response(partnerHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+        return new Response('Partner dashboard not found', { status: 404 });
+      }
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
@@ -847,8 +862,8 @@ async function handleAuditGo(url, path, env) {
 
   try {
     await env.DB.prepare(`
-      INSERT INTO clients (id, business_name, slug, phone, industry, area, vibe, manage_token, referral_slug, promo_code, status, source, package, retainer)
-      VALUES (?, ?, ?, ?, ?, ?, 'professional', ?, ?, ?, 'lead', 'audit_inbound', ?, ?)
+      INSERT INTO clients (id, business_name, slug, phone, industry, area, vibe, manage_token, referral_slug, promo_code, status, source, package, retainer, referred_by)
+      VALUES (?, ?, ?, ?, ?, ?, 'professional', ?, ?, ?, 'lead', 'audit_inbound', ?, ?, ?)
     `).bind(
       id, audit.name || 'Business', slug,
       normaliseSaPhone(phone),
@@ -856,7 +871,8 @@ async function handleAuditGo(url, path, env) {
       audit.address?.split(',')[0] || '',
       manage_token, referral_slug, promo,
       pkg,
-      plan === 'premium' ? 999 : 699
+      plan === 'premium' ? 999 : 699,
+      audit.refCode || null
     ).run();
 
     await env.DB.prepare(
@@ -1145,6 +1161,49 @@ body{background:#0e0c09;color:#ede9e4;font-family:'DM Sans',sans-serif;min-heigh
 </html>`;
 
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store' } });
+}
+
+// ── PARTNER HANDLERS ─────────────────────────────────────────────────────────
+
+async function handlePartnerData(slug, env) {
+  const partner = await env.DB.prepare(
+    `SELECT id, name, phone, slug, balance, total_earned, bank_name, bank_account, bank_holder FROM partners WHERE slug=? AND status='active' LIMIT 1`
+  ).bind(slug).first().catch(() => null);
+  if (!partner) return jsonResponse({ error: 'Partner not found' }, 404);
+
+  const leads = await env.DB.prepare(
+    `SELECT business_name, area, status, created_at FROM clients WHERE referred_by=? ORDER BY created_at DESC LIMIT 50`
+  ).bind(slug).all().catch(() => ({ results: [] }));
+
+  return jsonResponse({ ...partner, leads: leads.results || [] });
+}
+
+async function handlePartnerBanking(slug, request, env) {
+  const body = await request.json().catch(() => ({}));
+  const { bank_name, bank_account, bank_holder } = body;
+  if (!bank_name || !bank_account || !bank_holder) return jsonResponse({ error: 'All fields required' }, 400);
+
+  await env.DB.prepare(
+    `UPDATE partners SET bank_name=?, bank_account=?, bank_holder=?, updated_at=CURRENT_TIMESTAMP WHERE slug=?`
+  ).bind(bank_name, bank_account, bank_holder, slug).run();
+
+  return jsonResponse({ success: true });
+}
+
+async function handlePartnerPayout(slug, env) {
+  const partner = await env.DB.prepare(
+    `SELECT * FROM partners WHERE slug=? AND status='active' LIMIT 1`
+  ).bind(slug).first().catch(() => null);
+  if (!partner) return jsonResponse({ error: 'Partner not found' }, 404);
+  if ((partner.balance || 0) < 100) return jsonResponse({ error: 'Minimum payout is R100' }, 400);
+  if (!partner.bank_name || !partner.bank_account) return jsonResponse({ error: 'Please save banking details first' }, 400);
+
+  await sendWhatsApp(env.WH_PHONE,
+    `💸 PAYOUT REQUEST\n\nPartner: ${partner.name}\nAmount: R${partner.balance}\nBank: ${partner.bank_name}\nAccount: ${partner.bank_account}\nHolder: ${partner.bank_holder}\n\nPlease process EFT and confirm.`,
+    env, { skipTestRedirect: true }
+  ).catch(() => {});
+
+  return jsonResponse({ success: true });
 }
 
 // ── PARTNER INVITE ────────────────────────────────────────────────────────────
@@ -1742,15 +1801,90 @@ async function handleWhatsAppIncoming(request, env, ctx) {
       return ['start','statr','sater','satrt','strat','strta','tart','stat','star'].some(v => k.includes(v)) || k.startsWith('st');
     };
 
+    const isPartnerTrigger = (t) => {
+      const k = t.toLowerCase().replace(/[^a-z]/g, '');
+      return k.includes('partner') || k.includes('partnar') || k.includes('parner') || k === 'join';
+    };
+
+    // Extract REF code from START REF CODE format
+    const refMatch = text.match(/(?:start|START)\s+(?:REF|ref)\s+([a-zA-Z0-9_-]+)/i);
+    const refCode = refMatch ? refMatch[1].toLowerCase() : null;
+
+    // ── PARTNER onboarding trigger ─────────────────────────────────────────
+    if (!state && isPartnerTrigger(text)) {
+      await env.SITES.put(stateKey, JSON.stringify({ step: 'partner_name', pushName }), { expirationTtl: 3600 });
+      const name = pushName ? pushName.split(' ')[0] : 'there';
+      await sendWhatsApp(phone,
+        `Hi ${name}! 👋 Welcome to the Website Hub Partner Programme.\n\nYou'll earn *R100 for every business* that signs up through your link.\n\nFirst — what's your full name?`,
+        env
+      ).catch(() => {});
+      return new Response(JSON.stringify({ text: 'OK' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // ── PARTNER: Waiting for name ─────────────────────────────────────────
+    if (state?.step === 'partner_name') {
+      await env.SITES.put(stateKey, JSON.stringify({ step: 'partner_type', partnerName: text.trim() }), { expirationTtl: 3600 });
+      await sendWhatsApp(phone,
+        `Great ${text.trim().split(' ')[0]}! 👍\n\nWhat type of business are you in?\n_(e.g. Accountant, Business Consultant, CIPC Agent, Insurance Broker, etc.)_`,
+        env
+      ).catch(() => {});
+      return new Response(JSON.stringify({ text: 'OK' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // ── PARTNER: Waiting for business type ───────────────────────────────
+    if (state?.step === 'partner_type') {
+      const partnerName = state.partnerName || pushName || 'Partner';
+      const businessType = text.trim();
+
+      // Generate slug from name
+      const partnerSlug = partnerName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) +
+        '-' + Math.random().toString(36).slice(2, 6);
+
+      // Create partner record
+      const partnerId = crypto.randomUUID();
+      try {
+        await env.DB.prepare(`
+          INSERT INTO partners (id, name, phone, slug, status, balance, total_earned)
+          VALUES (?, ?, ?, ?, 'active', 0, 0)
+        `).bind(partnerId, partnerName, normaliseSaPhone(phone), partnerSlug).run();
+
+        // Store partner token in KV for dashboard auth
+        await env.SITES.put(`partner:${partnerSlug}`, JSON.stringify({ id: partnerId, phone: normaliseSaPhone(phone) }), { expirationTtl: 86400 * 365 });
+
+        // Clear conversation state
+        await env.SITES.delete(stateKey).catch(() => {});
+
+        const dashboardUrl = `https://websitehub.co.za/partner/${partnerSlug}`;
+        const referralLink = `https://wa.me/${env.WH_PHONE || '27840142017'}?text=START+REF+${partnerSlug}`;
+
+        await sendWhatsApp(phone,
+          `✅ You're in, ${partnerName.split(' ')[0]}!\n\n*Your partner dashboard:*\n${dashboardUrl}\n\n*Your referral link:*\n${referralLink}\n\nShare that link with any business owner. When they sign up — you earn R100. 💰\n\n_Bookmark your dashboard to track your leads and earnings._`,
+          env
+        ).catch(() => {});
+
+        // Notify you
+        await sendWhatsApp(env.WH_PHONE,
+          `🤝 New partner: ${partnerName} (${businessType}) — ${partnerSlug}`,
+          env,
+          { skipTestRedirect: true }
+        ).catch(() => {});
+
+      } catch(e) {
+        console.warn('Partner creation error:', e?.message);
+        await sendWhatsApp(phone, `Something went wrong 😕 Try again in a moment.`, env).catch(() => {});
+      }
+      return new Response(JSON.stringify({ text: 'OK' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+
     if (!state && isStartTrigger(text)) {
-      // Save state — waiting for GBP link
-      await env.SITES.put(stateKey, JSON.stringify({ step: 'awaiting_gbp', name: pushName }), { expirationTtl: 3600 });
+      // Save state — waiting for GBP link, with optional referral
+      await env.SITES.put(stateKey, JSON.stringify({ step: 'awaiting_gbp', name: pushName, refCode }), { expirationTtl: 3600 });
       const name = pushName ? pushName.split(' ')[0] : 'there';
       await sendWhatsApp(phone,
         `Hi ${name}! 👋\n\nLet's get your business found on Google.\n\nPaste your *Google Business Profile link* here and we'll run a free audit 👇\n\n_(Find it by searching your business name on Google Maps and copying the link)_`,
         env
       ).catch(() => {});
-      return new Response('OK', { status: 200 });
+      return new Response(JSON.stringify({ text: 'OK' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
     // ── STEP 2: Waiting for GBP link ─────────────────────────────────────
@@ -1850,8 +1984,8 @@ async function handleWhatsAppIncoming(request, env, ctx) {
 
       // Store audit + advance state
       const auditToken = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
-      await env.SITES.put(`audit:${auditToken}`, JSON.stringify({ ...audit, phone, placeId }), { expirationTtl: 86400 });
-      await env.SITES.put(stateKey, JSON.stringify({ step: 'audit_sent', placeId, auditToken, name: pushName }), { expirationTtl: 86400 });
+      await env.SITES.put(`audit:${auditToken}`, JSON.stringify({ ...audit, phone, placeId, refCode: state?.refCode || null }), { expirationTtl: 86400 });
+      await env.SITES.put(stateKey, JSON.stringify({ step: 'audit_sent', placeId, auditToken, name: pushName, refCode: state?.refCode || null }), { expirationTtl: 86400 });
 
       // Send audit card link
       const auditUrl = `https://preview.websitehub.co.za/audit/${auditToken}`;
