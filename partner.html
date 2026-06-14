@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Partner Dashboard — Website Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0e0c09;color:#ede9e4;font-family:'DM Sans',sans-serif;min-height:100vh;padding:0 0 80px}
+.topbar{background:rgba(14,12,9,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.brand{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;letter-spacing:.5px;color:#ede9e4}
+.brand span{color:#00f0ff}
+.partner-badge{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(240,237,232,.4);font-family:'DM Mono',monospace}
+.page{max-width:480px;margin:0 auto;padding:24px 16px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.stat-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px}
+.stat-card.highlight{background:rgba(0,240,255,.06);border-color:rgba(0,240,255,.2)}
+.stat-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;line-height:1;margin-bottom:4px}
+.stat-val.cyan{color:#00f0ff}
+.stat-lbl{font-size:11px;color:rgba(240,237,232,.4);letter-spacing:.5px;text-transform:uppercase}
+.link-card,.payout-card,.leads-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;margin-bottom:16px}
+.section-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(240,237,232,.4);font-family:'DM Mono',monospace;margin-bottom:12px}
+.link-box{background:#0a0908;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;font-family:'DM Mono',monospace;font-size:12px;color:#00f0ff;word-break:break-all;margin-bottom:12px;line-height:1.5}
+.btn-row{display:flex;gap:8px}
+.btn{flex:1;padding:12px;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:opacity .2s;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-cyan{background:rgba(0,240,255,.15);border:1px solid rgba(0,240,255,.3);color:#00f0ff}
+.btn-wa{background:#25D366;color:#fff}
+.btn:hover{opacity:.8}
+.input-group{margin-bottom:12px}
+.input-label{font-size:11px;color:rgba(240,237,232,.5);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;display:block;font-family:'DM Mono',monospace}
+.input{width:100%;background:#0a0908;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;color:#ede9e4;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s}
+.input:focus{border-color:rgba(0,240,255,.4)}
+select.input{appearance:none;cursor:pointer}
+.btn-payout{width:100%;padding:14px;background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(184,41,221,.15));border:1px solid rgba(0,240,255,.25);border-radius:12px;color:#ede9e4;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:opacity .2s;margin-top:4px}
+.btn-payout:disabled{opacity:.4;cursor:not-allowed}
+.btn-payout:hover:not(:disabled){opacity:.8}
+.saved-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#00c97a;margin-top:8px}
+.lead-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.lead-row:last-child{border-bottom:none;padding-bottom:0}
+.lead-info{flex:1;min-width:0}
+.lead-name{font-size:14px;font-weight:500;color:#ede9e4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lead-area{font-size:11px;color:rgba(240,237,232,.4);margin-top:2px}
+.lead-status{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.5px;padding:4px 10px;border-radius:20px;flex-shrink:0;text-transform:uppercase}
+.status-lead{background:rgba(245,166,35,.1);color:#f5a623;border:1px solid rgba(245,166,35,.2)}
+.status-building{background:rgba(0,240,255,.08);color:#00f0ff;border:1px solid rgba(0,240,255,.15)}
+.status-preview_ready{background:rgba(184,41,221,.1);color:#b829dd;border:1px solid rgba(184,41,221,.2)}
+.status-live{background:rgba(0,201,122,.1);color:#00c97a;border:1px solid rgba(0,201,122,.2)}
+.empty-state{text-align:center;padding:40px 0;color:rgba(240,237,232,.3);font-size:13px;line-height:1.8}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#00c97a;color:#000;padding:12px 24px;border-radius:100px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">Website<span>Hub</span></div>
+  <div class="partner-badge" id="partnerName">Partner</div>
+</div>
+<div class="page">
+  <div class="stats-grid">
+    <div class="stat-card highlight">
+      <div class="stat-val cyan" id="statBalance">—</div>
+      <div class="stat-lbl">Balance</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statEarned">—</div>
+      <div class="stat-lbl">Total Earned</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statLeads">—</div>
+      <div class="stat-lbl">Leads</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statConverted">—</div>
+      <div class="stat-lbl">Converted</div>
+    </div>
+  </div>
+  <div class="link-card">
+    <div class="section-label">Your Referral Link</div>
+    <div class="link-box" id="refLink">Loading...</div>
+    <div class="btn-row">
+      <button class="btn btn-cyan" onclick="copyLink()">📋 Copy</button>
+      <a class="btn btn-wa" id="shareBtn" href="#">💬 Share</a>
+    </div>
+  </div>
+  <div class="payout-card">
+    <div class="section-label">Payout Details</div>
+    <div class="input-group">
+      <label class="input-label">Bank</label>
+      <select class="input" id="bankName">
+        <option value="">Select your bank</option>
+        <option>Capitec</option><option>FNB</option><option>Standard Bank</option>
+        <option>Nedbank</option><option>Absa</option><option>TymeBank</option>
+        <option>African Bank</option><option>Discovery Bank</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Account Number</label>
+      <input class="input" id="bankAccount" type="tel" placeholder="1234567890">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Account Holder Name</label>
+      <input class="input" id="bankHolder" type="text" placeholder="Your full name">
+    </div>
+    <button class="btn-payout" id="saveBtn" onclick="saveBanking()">Save Banking Details</button>
+    <button class="btn-payout" id="payoutBtn" onclick="requestPayout()" style="display:none;margin-top:8px;background:linear-gradient(135deg,rgba(0,201,122,.15),rgba(0,240,255,.1));border-color:rgba(0,201,122,.3)">💸 Request Payout</button>
+    <div class="saved-tag" id="savedTag" style="display:none">✅ Banking details saved</div>
+  </div>
+  <div class="leads-card">
+    <div class="section-label" style="margin-bottom:16px">Your Leads</div>
+    <div id="leadsList"><div class="empty-state">No leads yet.<br>Share your referral link to get started.</div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var slug=location.pathname.split('/partner/')[1]?.split('/')[0]||'';
+var WA='27840142017';
+var partnerData=null;
+function showToast(msg,color){var t=document.getElementById('toast');t.textContent=msg;t.style.background=color||'#00c97a';t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2500)}
+function copyLink(){var l=document.getElementById('refLink').textContent.trim();navigator.clipboard.writeText(l).then(function(){showToast('Link copied!')}).catch(function(){showToast('Tap and hold to copy','#f5a623')})}
+async function loadDashboard(){
+  if(!slug)return;
+  try{
+    var res=await fetch('/partner/'+slug+'/data');
+    var d=await res.json();
+    if(!d||d.error){showToast('Could not load','#ff3b44');return}
+    partnerData=d;
+    document.getElementById('partnerName').textContent=d.name||'Partner';
+    document.getElementById('statBalance').textContent='R'+(d.balance||0);
+    document.getElementById('statEarned').textContent='R'+(d.total_earned||0);
+    document.getElementById('statLeads').textContent=(d.leads||[]).length;
+    document.getElementById('statConverted').textContent=(d.leads||[]).filter(function(l){return l.status==='live'}).length;
+    var link='https://wa.me/'+WA+'?text=START+REF+'+slug;
+    document.getElementById('refLink').textContent=link;
+    document.getElementById('shareBtn').href=link;
+    if(d.bank_name){
+      document.getElementById('bankName').value=d.bank_name;
+      document.getElementById('bankAccount').value=d.bank_account||'';
+      document.getElementById('bankHolder').value=d.bank_holder||'';
+      document.getElementById('savedTag').style.display='flex';
+      if((d.balance||0)>=100)document.getElementById('payoutBtn').style.display='block';
+    }
+    var leads=d.leads||[];
+    if(leads.length>0){
+      document.getElementById('leadsList').innerHTML=leads.map(function(l){
+        var sc='status-'+(l.status||'lead');
+        var sl=l.status==='live'?'✅ Live':l.status==='preview_ready'?'Preview':l.status||'Lead';
+        return '<div class="lead-row"><div class="lead-info"><div class="lead-name">'+(l.business_name||'—')+'</div><div class="lead-area">'+(l.area||'')+'</div></div><div class="lead-status '+sc+'">'+sl+'</div></div>';
+      }).join('');
+    }
+  }catch(e){showToast('Error loading','#ff3b44')}
+}
+async function saveBanking(){
+  var bank=document.getElementById('bankName').value;
+  var acc=document.getElementById('bankAccount').value.trim();
+  var holder=document.getElementById('bankHolder').value.trim();
+  if(!bank||!acc||!holder){showToast('Fill in all fields','#f5a623');return}
+  var btn=document.getElementById('saveBtn');btn.textContent='Saving...';btn.disabled=true;
+  try{
+    var res=await fetch('/partner/'+slug+'/banking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bank_name:bank,bank_account:acc,bank_holder:holder})});
+    var d=await res.json();
+    if(d.success){showToast('✅ Saved!');document.getElementById('savedTag').style.display='flex';if((partnerData?.balance||0)>=100)document.getElementById('payoutBtn').style.display='block';}
+    else showToast('Save failed','#ff3b44');
+  }catch(e){showToast('Error','#ff3b44')}
+  btn.textContent='Save Banking Details';btn.disabled=false;
+}
+async function requestPayout(){
+  var btn=document.getElementById('payoutBtn');btn.textContent='Requesting...';btn.disabled=true;
+  try{
+    var res=await fetch('/partner/'+slug+'/payout',{method:'POST'});
+    var d=await res.json();
+    if(d.success)showToast('Payout requested!');
+    else showToast(d.error||'Failed','#ff3b44');
+  }catch(e){showToast('Error','#ff3b44')}
+  btn.textContent='Request Payout';btn.disabled=false;
+}
+loadDashboard();
+</script>
+</body>
+</html>
