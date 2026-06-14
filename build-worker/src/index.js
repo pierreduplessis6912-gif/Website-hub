@@ -284,21 +284,6 @@ export default {
       }
       if (path === '/admin/test-registerdomain') return handleTestRegisterDomain(request, env);
       if (path === '/admin/send-partner-invite'  && method === 'POST') return handleSendPartnerInvite(request, env);
-
-      // ── PARTNER PORTAL ────────────────────────────────────────────────────
-      if (path.startsWith('/partner/')) {
-        const parts = path.split('/').filter(Boolean);
-        const partnerSlug = parts[1];
-        const action = parts[2];
-        if (!partnerSlug) return new Response('Not found', { status: 404 });
-        if (action === 'data') return handlePartnerData(partnerSlug, env);
-        if (action === 'banking' && method === 'POST') return handlePartnerBanking(partnerSlug, request, env);
-        if (action === 'payout' && method === 'POST') return handlePartnerPayout(partnerSlug, env);
-        // Serve dashboard SPA
-        const partnerHtml = await env.SITES.get('app:partner').catch(() => null);
-        if (partnerHtml) return new Response(partnerHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
-        return new Response('Partner dashboard not found', { status: 404 });
-      }
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
@@ -342,6 +327,20 @@ export default {
         proxy_secret:        env.DOMAIN_PROXY_SECRET ? env.DOMAIN_PROXY_SECRET.slice(0,6) + '...' : 'NOT SET',
       });
       return jsonResponse({ error: 'Unknown admin route' }, 404);
+      }
+
+      // ── PARTNER PORTAL ────────────────────────────────────────────────────
+      if (path.startsWith('/partner/')) {
+        const parts = path.split('/').filter(Boolean);
+        const partnerSlug = parts[1];
+        const action = parts[2];
+        if (!partnerSlug) return new Response('Not found', { status: 404 });
+        if (action === 'data') return handlePartnerData(partnerSlug, env);
+        if (action === 'banking' && method === 'POST') return handlePartnerBanking(partnerSlug, request, env);
+        if (action === 'payout' && method === 'POST') return handlePartnerPayout(partnerSlug, env);
+        const partnerHtml = await env.SITES.get('app:partner').catch(() => null);
+        if (partnerHtml) return new Response(partnerHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+        return new Response('Partner dashboard not found', { status: 404 });
       }
 
       // ── DOMAIN CHECK ─────────────────────────────────────────
