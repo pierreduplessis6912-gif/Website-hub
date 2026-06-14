@@ -94,7 +94,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Bootstrap all HTML pages to KV
         run: |
-          for page in landing start preview blast admin; do
+          for page in landing start preview blast admin partner referral-terms; do
             FILE="${page}.html"
             if [ -f "$FILE" ]; then
               STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
