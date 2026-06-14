@@ -284,7 +284,6 @@ export default {
       }
       if (path === '/admin/test-registerdomain') return handleTestRegisterDomain(request, env);
       if (path === '/admin/send-partner-invite'  && method === 'POST') return handleSendPartnerInvite(request, env);
-      } // end admin block
 
       // ── PARTNER PORTAL ────────────────────────────────────────────────────
       if (path.startsWith('/partner/')) {
