@@ -756,33 +756,41 @@ async function triggerOutboundBuild(prospect, env) {
 }
 
 
-// ── GOOGLE AUTH — one-time refresh token setup ───────────────────────────────
+// ── GOOGLE AUTH — client GBP connection ─────────────────────────────────────
 async function handleGoogleAuth(url, env) {
-  const code        = url.searchParams.get('code');
-  const redirectUri = `https://${url.host}/google-auth`;
+  const code         = url.searchParams.get('code');
+  const manageToken  = url.searchParams.get('token') || url.searchParams.get('state')?.split('|')[1];
+  const stateRaw     = url.searchParams.get('state') || '';
+  const redirectUri  = `https://${url.host}/google-auth`;
 
+  // ── Step 1: Redirect to Google consent ──────────────────────────────────
   if (!code) {
-    const scopes  = [
+    const clientToken = url.searchParams.get('token') || '';
+    const scopes = [
       'https://www.googleapis.com/auth/business.manage',
       'https://www.googleapis.com/auth/places',
     ].join(' ');
+    const state   = `setup|${clientToken}`;
     const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
       `client_id=${encodeURIComponent(env.GOOGLE_CLIENT_ID)}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&response_type=code` +
       `&scope=${encodeURIComponent(scopes)}` +
       `&access_type=offline` +
-      `&prompt=consent`;
+      `&prompt=consent` +
+      `&state=${encodeURIComponent(state)}`;
 
-    return new Response(`<!DOCTYPE html><html><body style="font-family:Arial;padding:40px;max-width:600px;background:#0a0a0f;color:#e8e8f0">
-      <h2 style="color:#00f0ff">Google Auth Setup</h2>
-      <p>Click to authorise Website Hub to access Google Business and Places:</p>
-      <a href="${authUrl}" style="display:inline-block;margin:16px 0;padding:14px 28px;background:linear-gradient(135deg,#00f0ff,#b829dd);color:#000;font-weight:700;border-radius:10px;text-decoration:none">Sign in with Google →</a>
-      <p style="color:#8888aa;font-size:12px;margin-top:24px">Redirect URI registered in Google Console:<br>
-      <code style="background:#161616;padding:4px 8px;border-radius:4px;color:#00f0ff">${redirectUri}</code></p>
+    return new Response(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"></head>
+    <body style="font-family:'DM Sans',sans-serif;padding:40px 20px;max-width:480px;margin:0 auto;background:#0e0c09;color:#ede9e4;min-height:100vh">
+      <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:.5px;color:#00f0ff;margin-bottom:32px">Website<span style="color:#ede9e4">Hub</span></div>
+      <h2 style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-bottom:12px;line-height:1.1">Connect your Google profile</h2>
+      <p style="color:rgba(240,237,232,.6);font-weight:300;line-height:1.7;margin-bottom:32px">Authorise Website Hub to link your website to your Google Business Profile. This lets us update your profile automatically.</p>
+      <a href="${authUrl}" style="display:block;padding:16px 24px;background:linear-gradient(135deg,#00f0ff,#b829dd);color:#000;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;border-radius:14px;text-decoration:none;text-align:center;letter-spacing:.3px">Connect with Google →</a>
+      <p style="color:rgba(240,237,232,.25);font-size:11px;margin-top:20px;text-align:center">You can revoke access at any time from your Google Account settings</p>
     </body></html>`, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
   }
 
+  // ── Step 2: Exchange code for tokens ────────────────────────────────────
   try {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method:  'POST',
@@ -796,7 +804,92 @@ async function handleGoogleAuth(url, env) {
       }),
     });
     const tokenData = await tokenRes.json();
+    const clientToken = stateRaw.split('|')[1] || '';
 
+    if (!tokenData.refresh_token && !tokenData.access_token) {
+      return new Response(`<pre style="padding:40px;color:red">${JSON.stringify(tokenData, null, 2)}</pre>`,
+        { status: 400, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+    }
+
+    // ── Step 3: If client token provided — update their GBP ─────────────
+    if (clientToken) {
+      const client = await env.DB.prepare(
+        `SELECT id, business_name, slug, domain, package FROM clients WHERE manage_token=? LIMIT 1`
+      ).bind(clientToken).first().catch(() => null);
+
+      if (client && tokenData.access_token) {
+        const websiteUrl = client.domain
+          ? `https://${client.domain}`
+          : `https://${client.slug}.websitehub.co.za`;
+
+        // Find their GBP account and update website URL
+        try {
+          // Get accounts
+          const accountsRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts', {
+            headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+          });
+          const accounts = await accountsRes.json();
+          const account = accounts?.accounts?.[0];
+
+          if (account) {
+            // Get locations
+            const locsRes = await fetch(
+              `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=name,title,websiteUri`,
+              { headers: { 'Authorization': `Bearer ${tokenData.access_token}` } }
+            );
+            const locs = await locsRes.json();
+            const location = locs?.locations?.[0];
+
+            if (location) {
+              // Update website URL
+              await fetch(
+                `https://mybusinessbusinessinformation.googleapis.com/v1/${location.name}?updateMask=websiteUri`,
+                {
+                  method: 'PATCH',
+                  headers: {
+                    'Authorization': `Bearer ${tokenData.access_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ websiteUri: websiteUrl }),
+                }
+              );
+
+              // Store refresh token on client
+              if (tokenData.refresh_token) {
+                await env.DB.prepare(
+                  `UPDATE clients SET gbp_status='connected', updated_at=CURRENT_TIMESTAMP WHERE id=?`
+                ).bind(client.id).run();
+              }
+
+              // Send success WhatsApp
+              await sendWhatsApp(client.phone || env.WH_PHONE,
+                `✅ Your Google Business Profile has been updated!\n\nYour website is now linked: ${websiteUrl}\n\nCustomers searching for ${client.business_name} on Google will now see your website link.`,
+                env
+              ).catch(() => {});
+            }
+          }
+        } catch(e) {
+          console.warn('GBP update error:', e?.message);
+        }
+
+        // Store refresh token if we got one (for future use)
+        if (tokenData.refresh_token) {
+          await env.SITES.put(`gbp_token:${client.id}`, tokenData.refresh_token, { expirationTtl: 86400 * 365 }).catch(() => {});
+        }
+
+        return new Response(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"></head>
+        <body style="font-family:'DM Sans',sans-serif;padding:40px 20px;max-width:480px;margin:0 auto;background:#0e0c09;color:#ede9e4;min-height:100vh;display:flex;flex-direction:column;justify-content:center">
+          <div style="text-align:center">
+            <div style="font-size:64px;margin-bottom:24px">✅</div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-bottom:12px">Google profile connected!</h2>
+            <p style="color:rgba(240,237,232,.6);font-weight:300;line-height:1.7;margin-bottom:32px">Your website has been linked to your Google Business Profile. Customers searching for <strong>${client.business_name}</strong> on Google will now see your website.</p>
+            <a href="https://${client.domain || client.slug+'.websitehub.co.za'}" style="display:block;padding:16px 24px;background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.3);color:#00f0ff;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;border-radius:14px;text-decoration:none;text-align:center">View your website →</a>
+          </div>
+        </body></html>`, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+      }
+    }
+
+    // ── Admin/setup flow — show refresh token ────────────────────────────
     if (tokenData.refresh_token) {
       return new Response(`<!DOCTYPE html><html><body style="font-family:Arial;padding:40px;max-width:600px;background:#0a0a0f;color:#e8e8f0">
         <h2 style="color:#00ff88">✅ Authorised! Copy your refresh token:</h2>
