@@ -241,6 +241,7 @@ export default {
             path === '/internal-golive' || path === '/go-live-link' || path === '/activate-free' ||
             path === '/manage-panel' || path === '/client-status' || path === '/payfast-webhook' ||
             path === '/whatsapp-incoming' || path === '/address-suggest' || path === '/showcase' ||
+            path === '/google-auth' ||
             path.startsWith('/site/') || path.startsWith('/partner/')) {
           // Fall through to main routing
         } else {
