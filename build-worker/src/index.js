@@ -175,6 +175,21 @@ export default {
     // ── CLIENT SITE SERVING — *.websitehub.co.za ────────────────
     // Any subdomain that isn't a system subdomain gets served from KV
     // IMPORTANT: preview.websitehub.co.za must fall through to platform routing
+    // ── EXTERNAL CUSTOM DOMAINS — classictouchsalon.co.za etc ──
+    if (!hostname.endsWith('.websitehub.co.za') && hostname !== 'websitehub.co.za' && hostname !== 'www.websitehub.co.za') {
+      try {
+        if (path === '/health') return new Response(JSON.stringify({ status: 'ok', hostname }), { headers: { 'Content-Type': 'application/json' } });
+        const page    = path.replace(/^\//, '').replace(/\/$/, '') || 'index';
+        const pageKey = `live:${hostname}:${page}`;
+        const rootKey = `live:${hostname}`;
+        let html = await env.SITES.get(pageKey);
+        if (!html) html = await env.SITES.get(rootKey);
+        if (html) return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600' } });
+      } catch(e) {
+        console.error('Custom domain serving error:', e?.message);
+      }
+    }
+
     if (hostname.endsWith('.websitehub.co.za') && hostname !== 'preview.websitehub.co.za' && hostname !== 'websitehub.co.za' && hostname !== 'www.websitehub.co.za') {
       const subdomain = hostname.split('.')[0];
       // System subdomains — pass through to their own origin
