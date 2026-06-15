@@ -769,7 +769,6 @@ async function handleGoogleAuth(url, env) {
     const clientToken = url.searchParams.get('token') || '';
     const scopes = [
       'https://www.googleapis.com/auth/business.manage',
-      'https://www.googleapis.com/auth/places',
     ].join(' ');
     const state   = `setup|${clientToken}`;
     const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
