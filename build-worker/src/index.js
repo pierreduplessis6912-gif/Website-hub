@@ -4681,8 +4681,28 @@ async function handleCron(env) {
 
   if ((pendingCount?.total || 0) < SCRAPE_THRESHOLD) {
     try {
-      const industry  = industries[Math.floor(Math.random() * industries.length)];
-      const province  = provinces[Math.floor(Math.random() * provinces.length)];
+      // Bias towards high-density combos — more businesses, more prospects
+      const highDensity = [
+        { industry: 'salon', province: 'KZN' },
+        { industry: 'salon', province: 'GP' },
+        { industry: 'salon', province: 'WC' },
+        { industry: 'restaurant', province: 'KZN' },
+        { industry: 'restaurant', province: 'GP' },
+        { industry: 'restaurant', province: 'WC' },
+        { industry: 'cleaning', province: 'GP' },
+        { industry: 'cleaning', province: 'KZN' },
+        { industry: 'plumber', province: 'KZN' },
+        { industry: 'plumber', province: 'GP' },
+        { industry: 'electrician', province: 'GP' },
+        { industry: 'electrician', province: 'KZN' },
+        { industry: 'guest_house', province: 'WC' },
+        { industry: 'guest_house', province: 'KZN' },
+        { industry: 'coffee', province: 'WC' },
+        { industry: 'coffee', province: 'GP' },
+      ];
+      const combo = highDensity[Math.floor(Math.random() * highDensity.length)];
+      const industry = combo.industry;
+      const province = combo.province;
       const query     = `${industry} in ${province} South Africa`;
       const proxyUrl  = 'https://classictouchsalon.co.za/places-proxy.php';
 
