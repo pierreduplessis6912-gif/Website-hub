@@ -4650,6 +4650,14 @@ async function handleCron(env) {
     return;
   }
 
+  // ── TIME WINDOW CHECK — 08:00 to 20:00 SAST (UTC+2) ─────────────────────
+  const nowUtc  = new Date();
+  const sastHour = (nowUtc.getUTCHours() + 2) % 24;
+  if (sastHour < 8 || sastHour >= 20) {
+    await logEvent(env, null, 'build', 'cron_skipped', 'info', { metadata: { reason: `outside send window (SAST hour: ${sastHour})` } });
+    return;
+  }
+
   // Get config
   const scrapeLimitRow   = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_scrape_limit' LIMIT 1`).first().catch(() => null);
   const sendLimitRow     = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_send_limit' LIMIT 1`).first().catch(() => null);
@@ -4662,57 +4670,65 @@ async function handleCron(env) {
   const industries   = JSON.parse(industriesRow?.value || '["salon","restaurant","cleaning"]');
   const provinces    = JSON.parse(provincesRow?.value || '["KZN","GP","WC"]');
 
-  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled', batchSize, scrapeLimit } });
+  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled', batchSize, sastHour } });
 
-  // ── AUTO SCRAPE — find new prospects ─────────────────────────────────────
-  try {
-    const industry  = industries[Math.floor(Math.random() * industries.length)];
-    const province  = provinces[Math.floor(Math.random() * provinces.length)];
-    const query     = `${industry} in ${province} South Africa`;
-    const proxyUrl  = 'https://classictouchsalon.co.za/places-proxy.php';
+  // ── SMART SCRAPE — only scrape when pool is running low ──────────────────
+  const pendingCount = await env.DB.prepare(
+    `SELECT COUNT(*) as total FROM prospects WHERE status='pending' AND phone IS NOT NULL AND contacted_at IS NULL`
+  ).first().catch(() => ({ total: 0 }));
 
-    const res = await fetch(proxyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-proxy-secret': env.DOMAIN_PROXY_SECRET || 'mysecretkey123' },
-      body: JSON.stringify({
-        url: 'https://places.googleapis.com/v1/places:searchText',
+  const SCRAPE_THRESHOLD = batchSize * 3; // keep at least 3x batch size in pool
+
+  if ((pendingCount?.total || 0) < SCRAPE_THRESHOLD) {
+    try {
+      const industry  = industries[Math.floor(Math.random() * industries.length)];
+      const province  = provinces[Math.floor(Math.random() * provinces.length)];
+      const query     = `${industry} in ${province} South Africa`;
+      const proxyUrl  = 'https://classictouchsalon.co.za/places-proxy.php';
+
+      const res = await fetch(proxyUrl, {
         method: 'POST',
-        fieldMask: 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.shortFormattedAddress',
-        postBody: { textQuery: query, maxResultCount: scrapeLimit, regionCode: 'ZA', languageCode: 'en' },
-      }),
-    });
+        headers: { 'Content-Type': 'application/json', 'x-proxy-secret': env.DOMAIN_PROXY_SECRET || 'mysecretkey123' },
+        body: JSON.stringify({
+          url: 'https://places.googleapis.com/v1/places:searchText',
+          method: 'POST',
+          fieldMask: 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.shortFormattedAddress',
+          postBody: { textQuery: query, maxResultCount: scrapeLimit, regionCode: 'ZA', languageCode: 'en' },
+        }),
+      });
 
-    if (res.ok) {
-      const data   = await res.json();
-      const places = (data.places || []).filter(p => !p.websiteUri);
-      let inserted = 0;
+      if (res.ok) {
+        const data   = await res.json();
+        const places = (data.places || []).filter(p => !p.websiteUri);
+        let inserted = 0;
 
-      for (const p of places.slice(0, scrapeLimit)) {
-        const phone = normaliseSaPhone((p.nationalPhoneNumber || '').replace(/\D/g, ''));
-        if (!phone || phone.length < 10) continue;
-        const thirdDigit = parseInt(phone[2]);
-        if (thirdDigit < 6) continue; // skip landlines
+        for (const p of places.slice(0, scrapeLimit)) {
+          const phone = normaliseSaPhone((p.nationalPhoneNumber || '').replace(/\D/g, ''));
+          if (!phone || phone.length < 10) continue;
+          const thirdDigit = parseInt(phone[2]);
+          if (thirdDigit < 6) continue;
 
-        const existing = await env.DB.prepare(
-          `SELECT id FROM prospects WHERE phone=? OR google_place_id=? LIMIT 1`
-        ).bind(phone, p.id).first().catch(() => null);
-        if (existing) continue;
+          const existing = await env.DB.prepare(
+            `SELECT id FROM prospects WHERE phone=? OR google_place_id=? LIMIT 1`
+          ).bind(phone, p.id).first().catch(() => null);
+          if (existing) continue;
 
-        await env.DB.prepare(`
-          INSERT INTO prospects (business_name, phone, industry, area, google_place_id, gbp_place_id, province_scraped, status, scrape_date)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', date('now'))
-        `).bind(
-          p.displayName?.text || 'Business',
-          phone, industry,
-          p.shortFormattedAddress || province,
-          p.id, p.id, province
-        ).run().catch(() => {});
-        inserted++;
+          await env.DB.prepare(`
+            INSERT INTO prospects (business_name, phone, industry, area, google_place_id, gbp_place_id, province_scraped, status, scrape_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', date('now'))
+          `).bind(
+            p.displayName?.text || 'Business',
+            phone, industry,
+            p.shortFormattedAddress || province,
+            p.id, p.id, province
+          ).run().catch(() => {});
+          inserted++;
+        }
+        await logEvent(env, null, 'build', 'cron_scrape', 'success', { metadata: { query, inserted, poolBefore: pendingCount?.total || 0 } });
       }
-      await logEvent(env, null, 'build', 'cron_scrape', 'success', { metadata: { query, inserted } });
+    } catch(e) {
+      console.warn('Cron scrape error:', e?.message);
     }
-  } catch(e) {
-    console.warn('Cron scrape error:', e?.message);
   }
 
   // Get pending prospects not yet contacted
