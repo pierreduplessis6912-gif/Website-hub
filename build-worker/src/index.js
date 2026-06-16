@@ -1984,9 +1984,46 @@ async function handleWhatsAppIncoming(request, env, ctx) {
     }
 
     if (!state && isStartTrigger(text)) {
-      // Save state — waiting for GBP link, with optional referral
-      await env.SITES.put(stateKey, JSON.stringify({ step: 'awaiting_gbp', name: pushName, refCode }), { expirationTtl: 3600 });
       const name = pushName ? pushName.split(' ')[0] : 'there';
+
+      // ── Check if this is an outbound prospect — we already have their GBP data ──
+      const prospect = await env.DB.prepare(
+        `SELECT * FROM prospects WHERE phone=? OR phone=? LIMIT 1`
+      ).bind(normaliseSaPhone(phone), phone).first().catch(() => null);
+
+      if (prospect?.gbp_place_id || prospect?.place_id) {
+        const placeId = prospect.gbp_place_id || prospect.place_id;
+
+        await sendWhatsApp(phone,
+          `Hi ${name}! 👋 Running your audit for *${prospect.business_name}*... ⏳`,
+          env
+        ).catch(() => {});
+
+        // Save state and run audit in background
+        await env.SITES.put(stateKey, JSON.stringify({ step: 'audit_sent', name: pushName, refCode }), { expirationTtl: 86400 });
+
+        ctx.waitUntil((async () => {
+          const audit = await runGbpAudit(placeId, env);
+          if (!audit) {
+            await sendWhatsApp(phone, `Something went wrong pulling your profile 😕 Try again in a moment.`, env).catch(() => {});
+            return;
+          }
+          const auditToken = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+          await env.SITES.put(`audit:${auditToken}`, JSON.stringify({ ...audit, phone, placeId, refCode }), { expirationTtl: 86400 });
+          const auditUrl = `https://preview.websitehub.co.za/audit/${auditToken}`;
+          await sendWhatsApp(phone,
+            `✅ Audit complete for *${audit.name || prospect.business_name}*!\n\nHere's what we found 👇\n${auditUrl}`,
+            env
+          ).catch(() => {});
+          // Mark prospect as responded
+          await env.DB.prepare(`UPDATE prospects SET status='responded' WHERE id=?`).bind(prospect.id).run().catch(() => {});
+        })());
+
+        return new Response(JSON.stringify({ text: 'OK' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+
+      // ── No existing prospect — Facebook inbound flow, ask for GBP link ──
+      await env.SITES.put(stateKey, JSON.stringify({ step: 'awaiting_gbp', name: pushName, refCode }), { expirationTtl: 3600 });
       await sendWhatsApp(phone,
         `Hi ${name}! 👋\n\nLet's get your business found on Google.\n\nPaste your *Google Business Profile link* here and we'll run a free audit 👇\n\n_(Find it by searching your business name on Google Maps and copying the link)_`,
         env
