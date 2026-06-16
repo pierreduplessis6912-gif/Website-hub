@@ -4643,45 +4643,28 @@ async function fetchHeroPhoto(brief, brandBrief, env) {
 async function handleCron(env) {
   if (isTestMode(env)) return;
 
-  // Respect master outbound toggle
   const outboundEnabled = await env.DB.prepare(`SELECT value FROM config WHERE key='outbound_enabled' LIMIT 1`).first().catch(() => null);
   if (!outboundEnabled || outboundEnabled.value !== 'true') {
     await logEvent(env, null, 'build', 'cron_skipped', 'info', { metadata: { reason: 'outbound_enabled is false' } });
     return;
   }
 
-  // ── TIME WINDOW CHECK — 08:00 to 20:00 SAST (UTC+2) ─────────────────────
-  const nowUtc  = new Date();
-  const sastHour = (nowUtc.getUTCHours() + 2) % 24;
-  if (sastHour < 8 || sastHour >= 20) {
-    await logEvent(env, null, 'build', 'cron_skipped', 'info', { metadata: { reason: `outside send window (SAST hour: ${sastHour})` } });
-    return;
-  }
+  const scrapeLimitRow = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_scrape_limit' LIMIT 1`).first().catch(() => null);
+  const sendLimitRow   = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_send_limit' LIMIT 1`).first().catch(() => null);
+  const scrapeLimit    = parseInt(scrapeLimitRow?.value || '18');
+  const hourlyLimit    = Math.ceil((parseInt(sendLimitRow?.value || '44') / 24));
+  const batchSize      = Math.min(hourlyLimit, 10);
+  const MAX_POOL       = 100;
+  const TOP_UP_AT      = 30;
 
-  // Get config
-  const scrapeLimitRow   = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_scrape_limit' LIMIT 1`).first().catch(() => null);
-  const sendLimitRow     = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_send_limit' LIMIT 1`).first().catch(() => null);
-  const industriesRow    = await env.DB.prepare(`SELECT value FROM config WHERE key='target_industries' LIMIT 1`).first().catch(() => null);
-  const provincesRow     = await env.DB.prepare(`SELECT value FROM config WHERE key='target_provinces' LIMIT 1`).first().catch(() => null);
-
-  const scrapeLimit  = parseInt(scrapeLimitRow?.value || '18');
-  const hourlyLimit  = Math.ceil((parseInt(sendLimitRow?.value || '44') / 24));
-  const batchSize    = Math.min(hourlyLimit, 10);
-  const industries   = JSON.parse(industriesRow?.value || '["salon","restaurant","cleaning"]');
-  const provinces    = JSON.parse(provincesRow?.value || '["KZN","GP","WC"]');
-
-  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled', batchSize, sastHour } });
-
-  // ── SMART SCRAPE — only scrape when pool is running low ──────────────────
+  // ── SCRAPE — runs 24/7, fills pool up to MAX_POOL ────────────────────────
   const pendingCount = await env.DB.prepare(
     `SELECT COUNT(*) as total FROM prospects WHERE status='pending' AND phone IS NOT NULL AND contacted_at IS NULL`
   ).first().catch(() => ({ total: 0 }));
+  const poolSize = pendingCount?.total || 0;
 
-  const SCRAPE_THRESHOLD = batchSize * 3; // keep at least 3x batch size in pool
-
-  if ((pendingCount?.total || 0) < SCRAPE_THRESHOLD) {
+  if (poolSize < TOP_UP_AT) {
     try {
-      // Bias towards high-density combos — more businesses, more prospects
       const highDensity = [
         { industry: 'salon', province: 'KZN' },
         { industry: 'salon', province: 'GP' },
@@ -4699,21 +4682,25 @@ async function handleCron(env) {
         { industry: 'guest_house', province: 'KZN' },
         { industry: 'coffee', province: 'WC' },
         { industry: 'coffee', province: 'GP' },
+        { industry: 'barber', province: 'GP' },
+        { industry: 'barber', province: 'KZN' },
+        { industry: 'landscaping', province: 'GP' },
+        { industry: 'mechanic', province: 'KZN' },
       ];
-      const combo = highDensity[Math.floor(Math.random() * highDensity.length)];
+      const combo    = highDensity[Math.floor(Math.random() * highDensity.length)];
       const industry = combo.industry;
       const province = combo.province;
-      const query     = `${industry} in ${province} South Africa`;
-      const proxyUrl  = 'https://classictouchsalon.co.za/places-proxy.php';
+      const query    = `${industry} in ${province} South Africa`;
+      const needed   = Math.min(MAX_POOL - poolSize, scrapeLimit);
 
-      const res = await fetch(proxyUrl, {
+      const res = await fetch('https://classictouchsalon.co.za/places-proxy.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-proxy-secret': env.DOMAIN_PROXY_SECRET || 'mysecretkey123' },
         body: JSON.stringify({
           url: 'https://places.googleapis.com/v1/places:searchText',
           method: 'POST',
-          fieldMask: 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.shortFormattedAddress',
-          postBody: { textQuery: query, maxResultCount: scrapeLimit, regionCode: 'ZA', languageCode: 'en' },
+          fieldMask: 'places.id,places.displayName,places.nationalPhoneNumber,places.websiteUri,places.shortFormattedAddress',
+          postBody: { textQuery: query, maxResultCount: Math.min(needed + 5, 20), regionCode: 'ZA', languageCode: 'en' },
         }),
       });
 
@@ -4722,52 +4709,52 @@ async function handleCron(env) {
         const places = (data.places || []).filter(p => !p.websiteUri);
         let inserted = 0;
 
-        for (const p of places.slice(0, scrapeLimit)) {
-          const phone = normaliseSaPhone((p.nationalPhoneNumber || '').replace(/\D/g, ''));
+        for (const p of places) {
+          if (inserted >= needed) break;
+          const rawPhone = (p.nationalPhoneNumber || '').replace(/\D/g, '');
+          if (!rawPhone) continue;
+          const phone = normaliseSaPhone(rawPhone);
           if (!phone || phone.length < 10) continue;
-          const thirdDigit = parseInt(phone[2]);
-          if (thirdDigit < 6) continue;
+          if (parseInt(phone[2]) < 6) continue;
 
           const existing = await env.DB.prepare(
             `SELECT id FROM prospects WHERE phone=? OR google_place_id=? LIMIT 1`
           ).bind(phone, p.id).first().catch(() => null);
           if (existing) continue;
 
-          await env.DB.prepare(`
-            INSERT INTO prospects (business_name, phone, industry, area, google_place_id, province_scraped, status, scrape_date)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending', date('now'))
-          `).bind(
-            p.displayName?.text || 'Business',
-            phone, industry,
-            p.shortFormattedAddress || province,
-            p.id, province
-          ).run().catch(() => {});
-          inserted++;
+          const clientExists = await env.DB.prepare(
+            `SELECT id FROM clients WHERE phone=? LIMIT 1`
+          ).bind(phone).first().catch(() => null);
+          if (clientExists) continue;
+
+          try {
+            await env.DB.prepare(`
+              INSERT INTO prospects (business_name, phone, industry, area, google_place_id, province_scraped, status, scrape_date)
+              VALUES (?, ?, ?, ?, ?, ?, 'pending', date('now'))
+            `).bind(p.displayName?.text || 'Business', phone, industry, p.shortFormattedAddress || province, p.id, province).run();
+            inserted++;
+          } catch(e) { /* duplicate or constraint */ }
         }
-        await logEvent(env, null, 'build', 'cron_scrape', 'success', { metadata: { query, inserted, poolBefore: pendingCount?.total || 0 } });
+        await logEvent(env, null, 'build', 'cron_scrape', 'success', { metadata: { query, inserted, poolBefore: poolSize } });
       }
-    } catch(e) {
-      console.warn('Cron scrape error:', e?.message);
-    }
+    } catch(e) { console.warn('Cron scrape error:', e?.message); }
   }
 
-  // Get pending prospects not yet contacted
+  // ── SEND — only 08:00-20:00 SAST ─────────────────────────────────────────
+  const nowUtc   = new Date();
+  const sastHour = (nowUtc.getUTCHours() + 2) % 24;
+  if (sastHour < 8 || sastHour >= 20) return;
+
+  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled', batchSize, sastHour, poolSize } });
+
   const prospects = await env.DB.prepare(
-    `SELECT * FROM prospects
-     WHERE status = 'pending'
-       AND phone IS NOT NULL
-       AND phone != ''
-       AND contacted_at IS NULL
-     ORDER BY created_at ASC
-     LIMIT ?`
+    `SELECT * FROM prospects WHERE status='pending' AND phone IS NOT NULL AND contacted_at IS NULL ORDER BY created_at ASC LIMIT ?`
   ).bind(batchSize).all();
 
   let sent = 0;
   for (const p of (prospects.results || [])) {
     try {
       const name = p.business_name || 'there';
-
-      // Rotate message variations — avoid spam detection
       const variations = [
         `Hi ${name}! 👋\n\nQuick question — are you happy with how your business appears online?\n\nReply *START* and I'll show you something interesting 🔍`,
         `Hey ${name} 👋\n\nI came across your business and noticed something. Reply *START* and I'll show you what I mean.`,
@@ -4779,29 +4766,19 @@ async function handleCron(env) {
         `Hi ${name}! 👋\n\nI found your business online and noticed a few things that could help you get more customers. Reply *START* if you're curious.`,
       ];
       const msg = variations[Math.floor(Math.random() * variations.length)];
-
       await sendWhatsApp(p.phone, msg, env);
-
-      await env.DB.prepare(
-        `UPDATE prospects SET status='contacted', contacted_at=CURRENT_TIMESTAMP WHERE id=?`
-      ).bind(p.id).run();
-
+      await env.DB.prepare(`UPDATE prospects SET status='contacted', contacted_at=CURRENT_TIMESTAMP WHERE id=?`).bind(p.id).run();
       sent++;
-
-      // Small delay between sends — be human
       await new Promise(r => setTimeout(r, 2000));
-
-    } catch (err) {
-      console.error(`Cron: failed for prospect ${p.id}:`, err.message);
-      await env.DB.prepare(`UPDATE prospects SET cooldown_until=datetime('now','+1 day') WHERE id=?`)
-        .bind(p.id).run().catch(() => {});
+    } catch(err) {
+      console.error(`Cron send failed for ${p.id}:`, err.message);
+      await env.DB.prepare(`UPDATE prospects SET cooldown_until=datetime('now','+1 day') WHERE id=?`).bind(p.id).run().catch(() => {});
     }
   }
 
-  await logEvent(env, null, 'build', 'cron_complete', 'success', {
-    metadata: { sent, processed: prospects.results?.length || 0 }
-  });
+  await logEvent(env, null, 'build', 'cron_complete', 'success', { metadata: { sent, processed: prospects.results?.length || 0 } });
 }
+
 
 // ── D1 HELPERS ────────────────────────────────────────────────
 
