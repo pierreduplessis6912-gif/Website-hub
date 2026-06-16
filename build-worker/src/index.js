@@ -4613,48 +4613,53 @@ async function handleCron(env) {
     return;
   }
 
-  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled' } });
+  // Get send limit from config
+  const sendLimitRow = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_send_limit' LIMIT 1`).first().catch(() => null);
+  const hourlyLimit  = Math.ceil((parseInt(sendLimitRow?.value || '44') / 24));
+  const batchSize    = Math.min(hourlyLimit, 10);
 
-  // Get approved prospects not yet contacted and not on cooldown
+  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled', batchSize } });
+
+  // Get pending prospects not yet contacted
   const prospects = await env.DB.prepare(
     `SELECT * FROM prospects
-     WHERE status = 'approved'
-       AND (cooldown_until IS NULL OR cooldown_until < CURRENT_TIMESTAMP)
+     WHERE status = 'pending'
+       AND phone IS NOT NULL
+       AND phone != ''
        AND contacted_at IS NULL
-     LIMIT 10`
-  ).all();
+     ORDER BY created_at ASC
+     LIMIT ?`
+  ).bind(batchSize).all();
 
+  let sent = 0;
   for (const p of (prospects.results || [])) {
     try {
-      // Create client record from prospect
-      const id           = generateUUID();
-      const slug         = await uniqueSlug(p.business_name, env);
-      const manage_token = generateUUID();
-      const referral_slug = slug.slice(0, 8) + '-' + Math.random().toString(36).slice(2, 6);
+      const name = p.business_name || 'there';
+      const area = p.area ? p.area.split(',')[0].trim() : '';
 
-      await env.DB.prepare(`
-        INSERT INTO clients
-          (id, business_name, slug, phone, industry, area, vibe, manage_token,
-           referral_slug, promo_code, status, source, package, retainer)
-        VALUES (?,?,?,?,?,?,?,?,?,'LAUNCH2026','lead','outbound','hub',?)
-      `).bind(id, p.business_name, slug, p.phone || '', p.industry || '', p.area || '',
-          'professional', manage_token, referral_slug, PRICING.promo?.retainer || 599).run();
+      // Simple conversational message — no links, no offers, just curiosity
+      const msg = `Hi ${name}! 👋\n\nQuick question — are you happy with how your business appears online?\n\nReply *START* and I'll show you something interesting 🔍`;
 
-      await env.DB.prepare(`UPDATE prospects SET status='built', client_id=?, contacted_at=CURRENT_TIMESTAMP WHERE id=?`)
-        .bind(id, p.id).run();
+      await sendWhatsApp(p.phone, msg, env);
 
-      // Queue outbound pre-build (with watermark)
-      await env.BUILD_QUEUE.send({ type: 'full_build', clientId: id, isOutbound: true });
+      await env.DB.prepare(
+        `UPDATE prospects SET status='contacted', contacted_at=CURRENT_TIMESTAMP WHERE id=?`
+      ).bind(p.id).run();
+
+      sent++;
+
+      // Small delay between sends — be human
+      await new Promise(r => setTimeout(r, 2000));
 
     } catch (err) {
       console.error(`Cron: failed for prospect ${p.id}:`, err.message);
-      await env.DB.prepare(`UPDATE prospects SET cooldown_until=datetime('now','+7 days') WHERE id=?`)
+      await env.DB.prepare(`UPDATE prospects SET cooldown_until=datetime('now','+1 day') WHERE id=?`)
         .bind(p.id).run().catch(() => {});
     }
   }
 
   await logEvent(env, null, 'build', 'cron_complete', 'success', {
-    metadata: { processed: prospects.results?.length || 0 }
+    metadata: { sent, processed: prospects.results?.length || 0 }
   });
 }
 
