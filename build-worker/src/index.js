@@ -4650,12 +4650,70 @@ async function handleCron(env) {
     return;
   }
 
-  // Get send limit from config
-  const sendLimitRow = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_send_limit' LIMIT 1`).first().catch(() => null);
+  // Get config
+  const scrapeLimitRow   = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_scrape_limit' LIMIT 1`).first().catch(() => null);
+  const sendLimitRow     = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_send_limit' LIMIT 1`).first().catch(() => null);
+  const industriesRow    = await env.DB.prepare(`SELECT value FROM config WHERE key='target_industries' LIMIT 1`).first().catch(() => null);
+  const provincesRow     = await env.DB.prepare(`SELECT value FROM config WHERE key='target_provinces' LIMIT 1`).first().catch(() => null);
+
+  const scrapeLimit  = parseInt(scrapeLimitRow?.value || '18');
   const hourlyLimit  = Math.ceil((parseInt(sendLimitRow?.value || '44') / 24));
   const batchSize    = Math.min(hourlyLimit, 10);
+  const industries   = JSON.parse(industriesRow?.value || '["salon","restaurant","cleaning"]');
+  const provinces    = JSON.parse(provincesRow?.value || '["KZN","GP","WC"]');
 
-  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled', batchSize } });
+  await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled', batchSize, scrapeLimit } });
+
+  // ── AUTO SCRAPE — find new prospects ─────────────────────────────────────
+  try {
+    const industry  = industries[Math.floor(Math.random() * industries.length)];
+    const province  = provinces[Math.floor(Math.random() * provinces.length)];
+    const query     = `${industry} in ${province} South Africa`;
+    const proxyUrl  = 'https://classictouchsalon.co.za/places-proxy.php';
+
+    const res = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-proxy-secret': env.DOMAIN_PROXY_SECRET || 'mysecretkey123' },
+      body: JSON.stringify({
+        url: 'https://places.googleapis.com/v1/places:searchText',
+        method: 'POST',
+        fieldMask: 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.shortFormattedAddress',
+        postBody: { textQuery: query, maxResultCount: scrapeLimit, regionCode: 'ZA', languageCode: 'en' },
+      }),
+    });
+
+    if (res.ok) {
+      const data   = await res.json();
+      const places = (data.places || []).filter(p => !p.websiteUri);
+      let inserted = 0;
+
+      for (const p of places.slice(0, scrapeLimit)) {
+        const phone = normaliseSaPhone((p.nationalPhoneNumber || '').replace(/\D/g, ''));
+        if (!phone || phone.length < 10) continue;
+        const thirdDigit = parseInt(phone[2]);
+        if (thirdDigit < 6) continue; // skip landlines
+
+        const existing = await env.DB.prepare(
+          `SELECT id FROM prospects WHERE phone=? OR google_place_id=? LIMIT 1`
+        ).bind(phone, p.id).first().catch(() => null);
+        if (existing) continue;
+
+        await env.DB.prepare(`
+          INSERT INTO prospects (business_name, phone, industry, area, google_place_id, gbp_place_id, province_scraped, status, scrape_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', date('now'))
+        `).bind(
+          p.displayName?.text || 'Business',
+          phone, industry,
+          p.shortFormattedAddress || province,
+          p.id, p.id, province
+        ).run().catch(() => {});
+        inserted++;
+      }
+      await logEvent(env, null, 'build', 'cron_scrape', 'success', { metadata: { query, inserted } });
+    }
+  } catch(e) {
+    console.warn('Cron scrape error:', e?.message);
+  }
 
   // Get pending prospects not yet contacted
   const prospects = await env.DB.prepare(
