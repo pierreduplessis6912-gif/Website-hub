@@ -4672,10 +4672,19 @@ async function handleCron(env) {
   for (const p of (prospects.results || [])) {
     try {
       const name = p.business_name || 'there';
-      const area = p.area ? p.area.split(',')[0].trim() : '';
 
-      // Simple conversational message — no links, no offers, just curiosity
-      const msg = `Hi ${name}! 👋\n\nQuick question — are you happy with how your business appears online?\n\nReply *START* and I'll show you something interesting 🔍`;
+      // Rotate message variations — avoid spam detection
+      const variations = [
+        `Hi ${name}! 👋\n\nQuick question — are you happy with how your business appears online?\n\nReply *START* and I'll show you something interesting 🔍`,
+        `Hey ${name} 👋\n\nI came across your business and noticed something. Reply *START* and I'll show you what I mean.`,
+        `Hi there 👋\n\nDoes ${name} have a website? If not — reply *START* and see what we can do in 60 seconds.`,
+        `Hi ${name}! 😊\n\nAre customers finding your business easily online? Reply *START* — I think you'll want to see this.`,
+        `Hey ${name} 👋\n\nI built something that might interest you. Reply *START* to take a look — no commitment.`,
+        `Hi ${name}! 🙂\n\nQuick one — how does your business look on Google right now? Reply *START* and I'll run a free check.`,
+        `Hey there 👋\n\nI was looking at businesses in ${p.area?.split(',')[0] || 'your area'} and thought you might find this useful. Reply *START* to see.`,
+        `Hi ${name}! 👋\n\nI found your business online and noticed a few things that could help you get more customers. Reply *START* if you're curious.`,
+      ];
+      const msg = variations[Math.floor(Math.random() * variations.length)];
 
       await sendWhatsApp(p.phone, msg, env);
 
