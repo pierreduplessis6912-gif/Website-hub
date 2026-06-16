@@ -4714,13 +4714,13 @@ async function handleCron(env) {
           if (existing) continue;
 
           await env.DB.prepare(`
-            INSERT INTO prospects (business_name, phone, industry, area, google_place_id, gbp_place_id, province_scraped, status, scrape_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', date('now'))
+            INSERT INTO prospects (business_name, phone, industry, area, google_place_id, province_scraped, status, scrape_date)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', date('now'))
           `).bind(
             p.displayName?.text || 'Business',
             phone, industry,
             p.shortFormattedAddress || province,
-            p.id, p.id, province
+            p.id, province
           ).run().catch(() => {});
           inserted++;
         }
