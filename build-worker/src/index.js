@@ -4785,11 +4785,13 @@ async function handleCron(env) {
 
       let variations;
       if (isBeauty) {
+        const area2 = p.area?.split(',')[0]?.trim() || 'your area';
         variations = [
-          `Hi ${name}! 👋\n\nYou might already be on Instagram or Fresha — but are customers finding you on *Google*?\n\nMost people search Google first. Reply *START* and I'll show you what they see. 🔍`,
-          `Hey ${name} 👋\n\nBooking platforms are great — but Google is where new customers look first. Is ${name} showing up there?\n\nReply *START* for a free check.`,
-          `Hi ${name}! 💅\n\nQuick question — when someone searches "nail bar near me" or "salon in [area]" on Google, does ${name} come up?\n\nReply *START* and I'll check for you.`,
-          `Hey ${name} 👋\n\nInstagram gets you followers. Google gets you customers who are *ready to book*. Is ${name} visible on Google?\n\nReply *START* — free check, no strings.`,
+          `Hi ${name}! 👋\n\nWe just searched *${p.industry || 'salon'} in ${area2}* on Google. You didn't come up — but 3 of your competitors did.\n\nReply *START* and I'll show you exactly what customers see.`,
+          `Hey ${name} 👋\n\nInstagram gets you followers. Google gets you customers who are *ready to book today*. Is ${name} showing up on Google?\n\nReply *START* — free check.`,
+          `Hi ${name}! 💅\n\nYou might be on Fresha or Instagram — but when someone in ${area2} Googles "${p.industry || 'salon'} near me", does ${name} appear?\n\nReply *START* and I'll check for you.`,
+          `Hey ${name} 👋\n\nEvery day people in ${area2} search for a ${p.industry || 'salon'} on Google and book with whoever comes up first. Is that you?\n\nReply *START* to find out.`,
+          `Hi ${name}! 👋\n\nWe searched Google for a ${p.industry || 'salon'} in ${area2}. Your competitors came up. You didn't.\n\nReply *START* — takes 30 seconds to fix.`,
         ];
       } else if (isFood) {
         variations = [
@@ -4798,10 +4800,13 @@ async function handleCron(env) {
           `Hi ${name}! 🍽️\n\nQuick one — are you getting as many walk-ins and bookings as you'd like? Google visibility makes a big difference.\n\nReply *START* for a free audit.`,
         ];
       } else if (isTrade) {
+        const area2 = p.area?.split(',')[0]?.trim() || 'your area';
         variations = [
-          `Hi ${name}! 👋\n\nWhen someone in your area needs your services urgently — can they find you on Google?\n\nReply *START* and I'll check your online visibility for free 🔍`,
-          `Hey ${name} 👋\n\nMost trade jobs come from Google searches. Is ${name} showing up when customers need you?\n\nReply *START* — free check.`,
-          `Hi ${name}! 🔧\n\nQuick question — do you have a website that shows up on Google? It could be bringing you more jobs every day.\n\nReply *START* to see.`,
+          `Hi ${name} 👋\n\nWe just Googled *${p.industry || 'your trade'} in ${area2}* — found 5 results. You weren't one of them.\n\nReply *START* and let's fix that.`,
+          `Hey ${name} 👋\n\nSomeone in ${area2} searched for a ${p.industry || 'tradesperson'} just now. They found your competitors. Not you.\n\nReply *START* and I'll show you what they see.`,
+          `Hi ${name}! 🔧\n\nWe searched *${p.industry || 'your trade'} in ${area2}* on Google. Your business didn't come up.\n\nEvery day someone searches and calls your competitor instead. Reply *START*.`,
+          `Hey ${name} 👋\n\nHow many jobs are you losing because customers can't find you on Google?\n\nWe searched ${area2} — you're not showing up. Reply *START* and I'll show you the gap.`,
+          `Hi ${name}! 👋\n\nYour competitors in ${area2} are getting calls from Google right now. Are you?\n\nReply *START* — free check, takes 30 seconds.`,
         ];
       } else if (isLodge) {
         variations = [
