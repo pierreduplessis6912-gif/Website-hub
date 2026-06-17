@@ -4712,10 +4712,7 @@ async function handleCron(env) {
 
       const industry = INDUSTRIES[Math.floor(Math.random() * INDUSTRIES.length)];
       const area     = AREAS[Math.floor(Math.random() * AREAS.length)];
-      const combo    = highDensity[Math.floor(Math.random() * highDensity.length)];
-      const industry = combo.industry;
-      const province = combo.province;
-      const query    = `${industry} in ${province} South Africa`;
+      const query    = `${industry} in ${area} South Africa`;
       const needed   = Math.min(MAX_POOL - poolSize, scrapeLimit);
 
       const res = await fetch('https://classictouchsalon.co.za/places-proxy.php', {
