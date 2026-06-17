@@ -4777,16 +4777,46 @@ async function handleCron(env) {
   for (const p of (prospects.results || [])) {
     try {
       const name = p.business_name || 'there';
-      const variations = [
-        `Hi ${name}! 👋\n\nQuick question — are you happy with how your business appears online?\n\nReply *START* and I'll show you something interesting 🔍`,
-        `Hey ${name} 👋\n\nI came across your business and noticed something. Reply *START* and I'll show you what I mean.`,
-        `Hi there 👋\n\nDoes ${name} have a website? If not — reply *START* and see what we can do in 60 seconds.`,
-        `Hi ${name}! 😊\n\nAre customers finding your business easily online? Reply *START* — I think you'll want to see this.`,
-        `Hey ${name} 👋\n\nI built something that might interest you. Reply *START* to take a look — no commitment.`,
-        `Hi ${name}! 🙂\n\nQuick one — how does your business look on Google right now? Reply *START* and I'll run a free check.`,
-        `Hey there 👋\n\nI was looking at businesses in ${p.area?.split(',')[0] || 'your area'} and thought you might find this useful. Reply *START* to see.`,
-        `Hi ${name}! 👋\n\nI found your business online and noticed a few things that could help you get more customers. Reply *START* if you're curious.`,
-      ];
+      const ind  = (p.industry || '').toLowerCase();
+      const isBeauty = /salon|hair|nail|lash|barber|beauty|wax|brow|spa|massage/.test(ind);
+      const isFood   = /restaurant|takeaway|coffee|bakery|catering|food|cafe/.test(ind);
+      const isTrade  = /plumb|electr|mechanic|panel|landscap|clean|garden/.test(ind);
+      const isLodge  = /guest|lodge|bnb|b&b|airbnb|bed|breakfast/.test(ind);
+
+      let variations;
+      if (isBeauty) {
+        variations = [
+          `Hi ${name}! 👋\n\nYou might already be on Instagram or Fresha — but are customers finding you on *Google*?\n\nMost people search Google first. Reply *START* and I'll show you what they see. 🔍`,
+          `Hey ${name} 👋\n\nBooking platforms are great — but Google is where new customers look first. Is ${name} showing up there?\n\nReply *START* for a free check.`,
+          `Hi ${name}! 💅\n\nQuick question — when someone searches "nail bar near me" or "salon in [area]" on Google, does ${name} come up?\n\nReply *START* and I'll check for you.`,
+          `Hey ${name} 👋\n\nInstagram gets you followers. Google gets you customers who are *ready to book*. Is ${name} visible on Google?\n\nReply *START* — free check, no strings.`,
+        ];
+      } else if (isFood) {
+        variations = [
+          `Hi ${name}! 👋\n\nWhen someone searches "restaurant near me" right now — does ${name} come up with a website?\n\nReply *START* and I'll run a free check 🔍`,
+          `Hey ${name} 👋\n\nHungry customers Google restaurants before they decide. Is ${name} showing up with a proper website?\n\nReply *START* to see what they find.`,
+          `Hi ${name}! 🍽️\n\nQuick one — are you getting as many walk-ins and bookings as you'd like? Google visibility makes a big difference.\n\nReply *START* for a free audit.`,
+        ];
+      } else if (isTrade) {
+        variations = [
+          `Hi ${name}! 👋\n\nWhen someone in your area needs your services urgently — can they find you on Google?\n\nReply *START* and I'll check your online visibility for free 🔍`,
+          `Hey ${name} 👋\n\nMost trade jobs come from Google searches. Is ${name} showing up when customers need you?\n\nReply *START* — free check.`,
+          `Hi ${name}! 🔧\n\nQuick question — do you have a website that shows up on Google? It could be bringing you more jobs every day.\n\nReply *START* to see.`,
+        ];
+      } else if (isLodge) {
+        variations = [
+          `Hi ${name}! 👋\n\nWhen travellers search for accommodation in your area — is ${name} coming up on Google with a website?\n\nReply *START* for a free check 🔍`,
+          `Hey ${name} 👋\n\nBooking.com and Airbnb are great but Google is where guests start. Is ${name} visible there?\n\nReply *START* — takes 30 seconds.`,
+        ];
+      } else {
+        variations = [
+          `Hi ${name}! 👋\n\nQuick question — are customers finding your business easily on Google?\n\nReply *START* and I'll run a free check 🔍`,
+          `Hey ${name} 👋\n\nI came across your business and noticed something. Reply *START* and I'll show you what I mean.`,
+          `Hi ${name}! 😊\n\nAre new customers finding you online? Reply *START* — I think you'll want to see this.`,
+          `Hey ${name} 👋\n\nI was looking at businesses in ${p.area?.split(',')[0] || 'your area'} and thought you might find this useful. Reply *START* to see.`,
+          `Hi ${name}! 👋\n\nI found your business on Google and noticed a few things that could help you get more customers. Reply *START* if you're curious.`,
+        ];
+      }
       const msg = variations[Math.floor(Math.random() * variations.length)];
       await sendWhatsApp(p.phone, msg, env);
       await env.DB.prepare(`UPDATE prospects SET status='contacted', contacted_at=CURRENT_TIMESTAMP WHERE id=?`).bind(p.id).run();
