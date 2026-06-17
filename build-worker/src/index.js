@@ -4671,48 +4671,47 @@ async function handleCron(env) {
 
   if (poolSize < TOP_UP_AT) {
     try {
-      const highDensity = [
-        { industry: 'salon', province: 'Durban' },
-        { industry: 'salon', province: 'Johannesburg' },
-        { industry: 'salon', province: 'Cape Town' },
-        { industry: 'salon', province: 'Pretoria' },
-        { industry: 'salon', province: 'Richards Bay' },
-        { industry: 'salon', province: 'Pietermaritzburg' },
-        { industry: 'salon', province: 'Bloemfontein' },
-        { industry: 'salon', province: 'Port Elizabeth' },
-        { industry: 'restaurant', province: 'Durban' },
-        { industry: 'restaurant', province: 'Johannesburg' },
-        { industry: 'restaurant', province: 'Cape Town' },
-        { industry: 'restaurant', province: 'Pretoria' },
-        { industry: 'restaurant', province: 'Stellenbosch' },
-        { industry: 'restaurant', province: 'Knysna' },
-        { industry: 'cleaning', province: 'Johannesburg' },
-        { industry: 'cleaning', province: 'Durban' },
-        { industry: 'cleaning', province: 'Cape Town' },
-        { industry: 'plumber', province: 'Johannesburg' },
-        { industry: 'plumber', province: 'Durban' },
-        { industry: 'plumber', province: 'Cape Town' },
-        { industry: 'electrician', province: 'Johannesburg' },
-        { industry: 'electrician', province: 'Durban' },
-        { industry: 'electrician', province: 'Pretoria' },
-        { industry: 'guest_house', province: 'Cape Town' },
-        { industry: 'guest_house', province: 'Durban' },
-        { industry: 'guest_house', province: 'Drakensberg' },
-        { industry: 'guest_house', province: 'Knysna' },
-        { industry: 'coffee', province: 'Cape Town' },
-        { industry: 'coffee', province: 'Johannesburg' },
-        { industry: 'coffee', province: 'Durban' },
-        { industry: 'barber', province: 'Johannesburg' },
-        { industry: 'barber', province: 'Durban' },
-        { industry: 'barber', province: 'Cape Town' },
-        { industry: 'landscaping', province: 'Johannesburg' },
-        { industry: 'landscaping', province: 'Cape Town' },
-        { industry: 'mechanic', province: 'Durban' },
-        { industry: 'mechanic', province: 'Johannesburg' },
-        { industry: 'nails', province: 'Johannesburg' },
-        { industry: 'nails', province: 'Cape Town' },
-        { industry: 'nails', province: 'Durban' },
+      // Suburb-level queries — maximum variety, avoids repeat top-20 results
+      const INDUSTRIES = [
+        'salon', 'hair salon', 'beauty salon', 'barber', 'nails', 'lashes',
+        'restaurant', 'takeaway', 'coffee shop', 'bakery', 'catering',
+        'cleaning', 'cleaning service', 'domestic cleaning',
+        'plumber', 'plumbing', 'electrician', 'electrical contractor',
+        'landscaping', 'garden service', 'mechanic', 'panel beater',
+        'guest house', 'bed and breakfast', 'lodge', 'guesthouse',
+        'physiotherapy', 'dentist', 'optometrist', 'veterinary',
+        'estate agent', 'attorney', 'accounting',
       ];
+
+      const AREAS = [
+        // Johannesburg
+        'Sandton', 'Randburg', 'Roodepoort', 'Soweto', 'Midrand', 'Fourways',
+        'Boksburg', 'Benoni', 'Germiston', 'Alberton', 'Krugersdorp', 'Centurion',
+        'Edenvale', 'Bedfordview', 'Bryanston', 'Rosebank', 'Melville', 'Northcliff',
+        'Kempton Park', 'Tembisa', 'Alexandra', 'Diepsloot', 'Soweto', 'Orange Farm',
+        // Pretoria
+        'Pretoria North', 'Pretoria East', 'Pretoria West', 'Hatfield', 'Lynnwood',
+        'Menlyn', 'Sunnyside', 'Arcadia', 'Moot', 'Silverton', 'Atteridgeville',
+        // Cape Town
+        'Bellville', 'Parow', 'Mitchells Plain', 'Khayelitsha', 'Gugulethu',
+        'Wynberg', 'Claremont', 'Newlands', 'Observatory', 'Woodstock',
+        'Bloubergstrand', 'Brackenfell', 'Kuils River', 'Somerset West', 'Strand',
+        'Paarl', 'Stellenbosch', 'Wellington', 'Franschhoek', 'George', 'Knysna',
+        'Mossel Bay', 'Oudtshoorn', 'Worcester',
+        // Durban
+        'Pinetown', 'Chatsworth', 'Phoenix', 'Umlazi', 'Inanda', 'KwaMashu',
+        'Westville', 'Hillcrest', 'Ballito', 'Richards Bay', 'Empangeni',
+        'Pietermaritzburg', 'Ladysmith', 'Newcastle', 'Amanzimtoti',
+        'Umhlanga', 'La Lucia', 'Musgrave', 'Glenwood', 'Berea',
+        // Other cities
+        'Bloemfontein', 'Welkom', 'Kimberley', 'Upington', 'Port Elizabeth',
+        'East London', 'Mthatha', 'Queenstown', 'Polokwane', 'Tzaneen',
+        'Nelspruit', 'Witbank', 'Middelburg', 'Rustenburg', 'Potchefstroom',
+        'Klerksdorp', 'Mahikeng', 'Vereeniging', 'Vanderbijlpark', 'Sasolburg',
+      ];
+
+      const industry = INDUSTRIES[Math.floor(Math.random() * INDUSTRIES.length)];
+      const area     = AREAS[Math.floor(Math.random() * AREAS.length)];
       const combo    = highDensity[Math.floor(Math.random() * highDensity.length)];
       const industry = combo.industry;
       const province = combo.province;
@@ -4952,4 +4951,3 @@ function siteNotFound(slug) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not Found</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#0a0a0a;color:#f0ede8;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}.box{max-width:400px}h1{font-size:22px;margin-bottom:12px}p{color:rgba(240,237,232,0.55);line-height:1.6}a{color:#25D366;font-weight:700;text-decoration:none}</style></head><body><div class="box"><h1>Site not found</h1><p>The site <strong>${slug}</strong> doesn't exist yet.<br><br><a href="https://websitehub.co.za">Visit Website Hub →</a></p></div></body></html>`;
 }
 
-// cron schedule update Wed Jun 17 11:02:54 SAST 2026
