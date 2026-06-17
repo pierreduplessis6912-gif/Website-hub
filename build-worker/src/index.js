@@ -4753,7 +4753,7 @@ async function handleCron(env) {
             await env.DB.prepare(`
               INSERT INTO prospects (business_name, phone, industry, area, google_place_id, province_scraped, status, scrape_date)
               VALUES (?, ?, ?, ?, ?, ?, 'pending', date('now'))
-            `).bind(p.displayName?.text || 'Business', phone, industry, p.shortFormattedAddress || province, p.id, province).run();
+            `).bind(p.displayName?.text || 'Business', phone, industry, p.shortFormattedAddress || area, p.id, area).run();
             inserted++;
           } catch(e) { /* duplicate or constraint */ }
         }
