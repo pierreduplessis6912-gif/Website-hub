@@ -1151,41 +1151,17 @@ async function handleServeAuditCard(path, env, ctx) {
   const standardUrl = `https://preview.websitehub.co.za/audit/${token}/go?plan=standard`;
   const premiumUrl  = `https://preview.websitehub.co.za/audit/${token}/go?plan=premium`;
 
-  // Map which plan fixes each gap
-  const STANDARD_FIXES = ['No website linked'];
-  const PREMIUM_FIXES = [
-    'No business description', 'Business hours not set', 'Only 1 category',
-    'Price level not set', 'Service options not specified', 'No booking link added',
-    'Payment methods not listed', 'Accessibility info not added', 'No menu link added'
-  ];
-
-  const getFixTag = (msg) => {
-    if (STANDARD_FIXES.some(f => msg.includes(f.split(' ').slice(0,3).join(' ')))) 
-      return `<span style="font-size:9px;background:rgba(0,240,255,.15);color:#00f0ff;border:1px solid rgba(0,240,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:.5px">STANDARD</span>`;
-    if (PREMIUM_FIXES.some(f => msg.includes(f.split(' ').slice(0,3).join(' ')))) 
-      return `<span style="font-size:9px;background:rgba(184,41,221,.15);color:#b829dd;border:1px solid rgba(184,41,221,.3);padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:.5px">PREMIUM</span>`;
-    return `<span style="font-size:9px;background:rgba(255,255,255,.05);color:rgba(240,237,232,.4);border:1px solid rgba(255,255,255,.1);padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:.5px">YOU</span>`;
-  };
-
-  // Group gaps by category
-  const categories = {};
-  audit.gaps.forEach(g => {
-    const cat = g.category || 'General';
-    if (!categories[cat]) categories[cat] = [];
-    categories[cat].push(g);
-  });
-
-  const gapsHtml = Object.entries(categories).map(([cat, catGaps]) => `
-    <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(240,237,232,.3);margin:12px 0 6px;font-weight:600">${cat}</div>
-    ${catGaps.map(g => `
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+  // Gap list — no fix tags, just problems
+  const gapsHtml = (audit.gaps || []).map(g => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)">
       <span style="font-size:16px;flex-shrink:0">${g.icon}</span>
       <div style="flex:1">
-        <div style="font-size:13px;color:#ede9e4;font-weight:500;display:flex;align-items:center;flex-wrap:wrap;gap:4px">${g.msg}${getFixTag(g.msg)}</div>
+        <div style="font-size:13px;color:#ede9e4;font-weight:500">${g.msg}</div>
         <div style="font-size:10px;color:${g.impact==='high'?'#ff3b44':g.impact==='medium'?'#f5a623':'#aaa'};margin-top:2px;text-transform:uppercase;letter-spacing:.5px">${g.impact} impact</div>
       </div>
-    </div>`).join('')}
-  `).join('');
+    </div>`).join('');
+
+  const scoreLabel = audit.score >= 7 ? 'Good — room to improve' : audit.score >= 4 ? 'Needs attention' : 'Critical gaps found';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1210,25 +1186,37 @@ body{background:#0e0c09;color:#ede9e4;font-family:'DM Sans',sans-serif;min-heigh
 .stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
 .stat-lbl{font-size:10px;color:rgba(240,237,232,.4);margin-top:2px;letter-spacing:.5px;text-transform:uppercase}
 .gaps-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(240,237,232,.4);margin-bottom:8px}
-.gaps{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;margin-bottom:24px}
+.gaps{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;margin-bottom:16px}
+.tip-tease{background:rgba(0,240,255,.05);border:1px solid rgba(0,240,255,.15);border-radius:14px;padding:16px;margin-bottom:24px;text-align:center}
+.tip-tease-icon{font-size:28px;margin-bottom:8px}
+.tip-tease-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#00f0ff;margin-bottom:6px}
+.tip-tease-body{font-size:12px;color:rgba(240,237,232,.6);line-height:1.6}
 .cta-section{margin-top:8px}
 .cta-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(240,237,232,.4);margin-bottom:12px;text-align:center}
-.btn-standard{display:block;background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.3);color:#00f0ff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:16px 20px;border-radius:14px;margin-bottom:10px;text-align:center;letter-spacing:.3px}
-.btn-premium{display:block;background:linear-gradient(135deg,rgba(184,41,221,.2),rgba(0,240,255,.1));border:1px solid rgba(184,41,221,.4);color:#ede9e4;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:16px 20px;border-radius:14px;text-align:center;letter-spacing:.3px}
-.btn-premium span{font-size:11px;color:rgba(240,237,232,.5);display:block;font-weight:400;margin-top:2px}
+.plan-card{border-radius:14px;padding:16px 20px;margin-bottom:10px;text-decoration:none;display:block}
+.plan-standard{background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.2)}
+.plan-premium{background:linear-gradient(135deg,rgba(184,41,221,.1),rgba(0,240,255,.06));border:1px solid rgba(184,41,221,.3)}
+.plan-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#ede9e4;margin-bottom:4px}
+.plan-price{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#00f0ff;margin-bottom:8px}
+.plan-price span{font-size:12px;font-weight:400;color:rgba(240,237,232,.4)}
+.plan-feature{font-size:12px;color:rgba(240,237,232,.6);padding:3px 0;display:flex;align-items:center;gap:6px}
+.plan-feature::before{content:'✓';color:#00c97a;font-weight:700;flex-shrink:0}
+.plan-cta{display:block;text-align:center;margin-top:12px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;padding:12px;border-radius:10px;background:rgba(255,255,255,.08);color:#ede9e4}
+.plan-standard .plan-cta{background:rgba(0,240,255,.15);color:#00f0ff}
+.plan-premium .plan-cta{background:rgba(184,41,221,.2);color:#b829dd}
 .footer{text-align:center;font-size:11px;color:rgba(240,237,232,.25);margin-top:24px}
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="brand">Website Hub · GBP Audit</div>
+  <div class="brand">Website Hub · Free Audit</div>
   <div class="biz-name">${audit.name}</div>
   <div class="biz-addr">${audit.address}</div>
 
   <div class="score-wrap">
     <div class="score-label">Profile Score</div>
     <div class="score-num">${audit.score}<span style="font-size:24px;color:rgba(240,237,232,.3)">/10</span></div>
-    <div class="score-sub">${audit.gaps.length} issues found that are costing you customers</div>
+    <div class="score-sub">${scoreLabel} · ${audit.gaps.length} gaps found</div>
   </div>
 
   <div class="stats">
@@ -1247,18 +1235,36 @@ body{background:#0e0c09;color:#ede9e4;font-family:'DM Sans',sans-serif;min-heigh
   </div>
 
   ${audit.gaps.length > 0 ? `
-  <div class="gaps-title">Issues Found</div>
-  <div class="gaps">${gapsHtml}</div>` : `<div style="text-align:center;color:#00c97a;padding:16px 0">✅ Your profile looks good!</div>`}
+  <div class="gaps-title">What's holding you back</div>
+  <div class="gaps">${gapsHtml}</div>` : `<div style="text-align:center;color:#00c97a;padding:16px 0;margin-bottom:16px">✅ Your profile looks great!</div>`}
+
+  <div class="tip-tease">
+    <div class="tip-tease-icon">💡</div>
+    <div class="tip-tease-title">Your personalised fix guide is waiting</div>
+    <div class="tip-tease-body">Subscribe and we'll send you a step-by-step guide to fix every single gap above — written specifically for ${audit.name}. Plus your professional website, live today.</div>
+  </div>
 
   <div class="cta-section">
-    <div class="cta-label">Fix everything — starting today</div>
-    <a href="${standardUrl}" class="btn-standard">
-      🌐 Standard — R699/month<br>
-      <span style="font-size:11px;font-weight:400;color:rgba(0,240,255,.6)">Website built + linked to Google · No setup fee</span>
+    <div class="cta-label">Choose your plan</div>
+
+    <a href="${standardUrl}" class="plan-card plan-standard">
+      <div class="plan-name">Standard</div>
+      <div class="plan-price">R699<span>/month</span></div>
+      <div class="plan-feature">Professional website from your Google profile</div>
+      <div class="plan-feature">yourbusiness.websitehub.co.za</div>
+      <div class="plan-feature">Personalised GBP improvement guide</div>
+      <div class="plan-feature">No setup fee · No contract</div>
+      <div class="plan-cta">Get Started →</div>
     </a>
-    <a href="${premiumUrl}" class="btn-premium">
-      🚀 Premium — R999/month ${audit.score <= 5 ? '<span style="font-size:10px;background:rgba(255,59,68,.2);color:#ff3b44;padding:2px 6px;border-radius:4px;margin-left:4px">RECOMMENDED</span>' : ''}
-      <span>Website + Full GBP optimisation · We fix ${audit.gaps.filter(g => PREMIUM_FIXES.some(f => g.msg.includes(f.split(' ').slice(0,3).join(' ')))).length + 1} of your ${audit.gaps.length} gaps automatically</span>
+
+    <a href="${premiumUrl}" class="plan-card plan-premium">
+      <div class="plan-name">Premium ${audit.score <= 5 ? '<span style="font-size:10px;background:rgba(255,59,68,.15);color:#ff3b44;padding:2px 8px;border-radius:20px;margin-left:6px;font-weight:400">RECOMMENDED</span>' : ''}</div>
+      <div class="plan-price" style="color:#b829dd">R999<span>/month</span></div>
+      <div class="plan-feature">Everything in Standard</div>
+      <div class="plan-feature">Your own .co.za domain</div>
+      <div class="plan-feature">Personalised GBP improvement guide</div>
+      <div class="plan-feature">No setup fee · No contract</div>
+      <div class="plan-cta">Get Started →</div>
     </a>
   </div>
 
