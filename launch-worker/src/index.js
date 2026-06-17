@@ -1114,9 +1114,7 @@ async function handleGoLiveInternal(clientId, client, env) {
   let goLiveMsg = `🎉 *${client.business_name}* is live!\n\n`;
   goLiveMsg += `🌐 https://${domain}\n`;
   goLiveMsg += `📱 Manage your site: ${manageUrl}\n\n`;
-  goLiveMsg += `📬 Your business email:\nhello@${domain}\ninfo@${domain}\n(forwards to your inbox)\n\n`;
   goLiveMsg += `💳 Next invoice: R${tier.retainer} due ${nextInvoice}\n`;
-  goLiveMsg += `\n💡 Refer 10 friends → get your own .co.za domain free:\nhttps://websitehub.co.za/r/${slug}\n`;
   goLiveMsg += `\n— Website Hub`;
 
   if (client.phone) {
@@ -1128,6 +1126,41 @@ async function handleGoLiveInternal(clientId, client, env) {
   } else {
     console.warn('No phone number for client — skipping client WhatsApp');
     await logActivity(env, 'go_live_whatsapp_skipped', { clientId, reason: 'no_phone' });
+  }
+
+  // ── 7b. Send personalised GBP tip guide ──────────────────────
+  if (client.phone && client.gbp_data) {
+    try {
+      const gbpData = typeof client.gbp_data === 'string' ? JSON.parse(client.gbp_data) : client.gbp_data;
+      const gaps = gbpData?.gaps || [];
+
+      if (gaps.length > 0) {
+        // Build tip guide from gaps
+        const tipMap = {
+          'No website linked':        `🌐 *Website linked* ✅ Done — your site is now live at https://${domain}`,
+          'No business description':  `📝 *Add a business description*\nGo to Google Maps → Search "${client.business_name}" → Tap "Edit profile" → "Business description". Describe what you do, where you are, and why customers choose you. Aim for 200-300 words.`,
+          'Business hours not set':   `🕐 *Set your opening hours*\nGoogle Maps → Edit profile → "Hours". Accurate hours reduce lost customers. Add special hours for holidays too.`,
+          'Only 1 category':          `📂 *Add more business categories*\nGoogle Maps → Edit profile → "Category". Add secondary categories that describe your services — helps you appear in more searches.`,
+          'No phone number':          `📞 *Add your phone number*\nGoogle Maps → Edit profile → "Phone". Make it easy for customers to call you directly from Google.`,
+          'Low photo count':          `📸 *Add more photos*\nBusinesses with 10+ photos get 35% more clicks. Add photos of your work, your space, your team. Update them regularly.`,
+          'No reviews yet':           `⭐ *Get your first reviews*\nAsk your best customers to leave a Google review. Send them this link: https://g.page/r/${gbpData.placeId || ''}/review`,
+          'Price level not set':      `💰 *Set your price level*\nGoogle Maps → Edit profile → "Price level". Helps customers know what to expect before they contact you.`,
+        };
+
+        const tips = gaps.slice(0, 6).map((g, i) => {
+          const key = Object.keys(tipMap).find(k => g.msg?.includes(k.split(' ').slice(0,3).join(' ')));
+          const tip = key ? tipMap[key] : `💡 *${g.msg}*\nUpdate this in your Google Business Profile under "Edit profile".`;
+          return `${i + 1}. ${tip}`;
+        }).join('\n\n');
+
+        const guideMsg = `💡 *Your Google Profile Improvement Guide*\n\nHere's how to fix the gaps we found in your profile:\n\n${tips}\n\n_These changes will help more customers find you on Google. Most take less than 5 minutes._\n\n— Website Hub`;
+
+        await new Promise(r => setTimeout(r, 3000));
+        await sendWhatsApp(client.phone, guideMsg, env).catch(() => {});
+      }
+    } catch(e) {
+      console.warn('Tip guide error:', e?.message);
+    }
   }
 
   // ── 8. Post go-live touch schedule ──────────────────────────
