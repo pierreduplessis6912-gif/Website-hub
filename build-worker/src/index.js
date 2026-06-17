@@ -4661,7 +4661,7 @@ async function handleCron(env) {
   const hourlyLimit    = Math.ceil((parseInt(sendLimitRow?.value || '44') / 24));
   const batchSize      = Math.min(hourlyLimit, 3); // 3 per 15min = 12/hour staggered
   const MAX_POOL       = 100;
-  const TOP_UP_AT      = 30;
+  const TOP_UP_AT      = 50;
 
   // ── SCRAPE — runs 24/7, fills pool up to MAX_POOL ────────────────────────
   const pendingCount = await env.DB.prepare(
