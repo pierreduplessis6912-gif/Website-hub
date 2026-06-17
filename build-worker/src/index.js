@@ -4653,7 +4653,7 @@ async function handleCron(env) {
   const sendLimitRow   = await env.DB.prepare(`SELECT value FROM config WHERE key='daily_send_limit' LIMIT 1`).first().catch(() => null);
   const scrapeLimit    = parseInt(scrapeLimitRow?.value || '18');
   const hourlyLimit    = Math.ceil((parseInt(sendLimitRow?.value || '44') / 24));
-  const batchSize      = Math.min(hourlyLimit, 10);
+  const batchSize      = Math.min(hourlyLimit, 3); // 3 per 15min = 12/hour staggered
   const MAX_POOL       = 100;
   const TOP_UP_AT      = 30;
 
@@ -4789,7 +4789,7 @@ async function handleCron(env) {
       await sendWhatsApp(p.phone, msg, env);
       await env.DB.prepare(`UPDATE prospects SET status='contacted', contacted_at=CURRENT_TIMESTAMP WHERE id=?`).bind(p.id).run();
       sent++;
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 3000));
     } catch(err) {
       console.error(`Cron send failed for ${p.id}:`, err.message);
       await env.DB.prepare(`UPDATE prospects SET cooldown_until=datetime('now','+1 day') WHERE id=?`).bind(p.id).run().catch(() => {});
