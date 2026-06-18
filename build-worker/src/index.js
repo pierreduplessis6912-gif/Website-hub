@@ -213,7 +213,12 @@ export default {
 
     try {
       // ── MAIN DOMAIN — websitehub.co.za ──────────────────────
-      if (hostname === 'websitehub.co.za' || hostname === 'www.websitehub.co.za') {
+      // ── TENDER LOGIX ─────────────────────────────────────────
+    if (hostname === 'tenderlogix.co.za' || hostname === 'www.tenderlogix.co.za') {
+      return handleTenderLogix(request, env);
+    }
+
+    if (hostname === 'websitehub.co.za' || hostname === 'www.websitehub.co.za') {
 
         // ── KV page routes (driven by KV_KEYS.ROUTES registry) ──
         if (path === '/' || path === '' || path === '/landing') return servePwa(env, KV_KEYS.APP_LANDING);
