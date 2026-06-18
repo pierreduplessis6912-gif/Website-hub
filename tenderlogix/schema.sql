@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS tl_companies (
   email TEXT,
   address TEXT,
   banking_details TEXT, -- JSON
+  client_name TEXT,
   credits INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
