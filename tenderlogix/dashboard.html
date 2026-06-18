@@ -72,6 +72,15 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
 .btn-submit-tender{background:var(--gold);color:var(--ink);padding:14px 32px;font-family:var(--body);font-size:14px;font-weight:500;border:none;cursor:pointer;letter-spacing:.3px;transition:opacity .2s;width:100%;margin-top:8px}
 .btn-submit-tender:hover{opacity:.85}
 .btn-submit-tender:disabled{opacity:.4;cursor:not-allowed}
+.file-drop{border:2px dashed rgba(255,255,255,.15);background:rgba(255,255,255,.03);padding:32px 16px;text-align:center;cursor:pointer;transition:all .2s}
+.file-drop:hover{border-color:var(--gold);background:rgba(255,107,26,.04)}
+.file-drop.has-file{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.06)}
+.file-drop-icon{font-size:28px;margin-bottom:8px}
+.file-drop-text{font-size:13px;color:var(--dim);font-weight:300}
+.or-divider{display:flex;align-items:center;gap:12px;margin:14px 0;color:var(--dim);font-size:11px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08)}
+.btn-wa{display:block;width:100%;padding:14px;background:rgba(37,211,102,.1);color:#25D366;border:1px solid rgba(37,211,102,.3);text-align:center;text-decoration:none;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.3px;transition:all .2s;text-transform:uppercase}
+.btn-wa:hover{background:rgba(37,211,102,.18)}
 
 /* ── SUBMISSIONS ── */
 .submission-card{background:var(--surface);border-bottom:1px solid rgba(255,255,255,.06);padding:18px 20px;display:flex;align-items:center;gap:16px}
@@ -200,11 +209,17 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
       <input class="input" id="tenderRef" type="text" placeholder="e.g. RFQ-1022-2025">
     </div>
     <div class="field">
-      <label class="label">Paste Tender Document Text *</label>
-      <textarea class="input" id="tenderText" placeholder="Paste the full tender document text here — the more detail the better. Include scope of work, requirements, compliance conditions, and any BOQ line items."></textarea>
-      <div class="field-hint">TIP: Copy all text from the tender PDF and paste here. 500+ words gives the best analysis.</div>
+      <label class="label">Upload Tender Document (PDF) *</label>
+      <div class="file-drop" id="fileDrop" onclick="document.getElementById('pdfFile').click()">
+        <input type="file" id="pdfFile" accept="application/pdf" style="display:none" onchange="handleFileSelect(this)">
+        <div class="file-drop-icon">📄</div>
+        <div class="file-drop-text" id="fileDropText">Tap to select a PDF — up to 32MB</div>
+      </div>
+      <div class="field-hint">We analyse the document directly — no need to copy or retype anything.</div>
     </div>
-    <button class="btn-submit-tender" id="btnAnalyse" onclick="submitTender()">Run Analysis →</button>
+    <button class="btn-submit-tender" id="btnAnalyse" onclick="submitTender()" disabled>Upload a PDF First</button>
+    <div class="or-divider"><span>or</span></div>
+    <a href="#" id="waSubmitBtn" class="btn-wa" target="_blank" rel="noopener">📲 Send via WhatsApp Instead</a>
   </div>
 
   <!-- Stats -->
