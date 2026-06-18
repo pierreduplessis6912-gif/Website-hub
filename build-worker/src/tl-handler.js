@@ -80,24 +80,25 @@ async function handleTlCreateCompany(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
   const { name, reg_number, tax_number, vat_number, csd_maaa, bee_level,
           cidb_grade, cidb_number, industries, provinces, years_experience,
-          annual_turnover, employees, phone, email, address } = body;
+          annual_turnover, employees, phone, email, address, client_name, free_credits } = body;
 
   if (!name || !phone || !email) return tlJson({ error: 'name, phone and email required' }, 400);
 
   const id = crypto.randomUUID();
+  const startingCredits = free_credits ? 3 : 0;
   await env.TL_DB.prepare(`
     INSERT INTO tl_companies (id, name, reg_number, tax_number, vat_number, csd_maaa,
       bee_level, cidb_grade, cidb_number, industries, provinces, years_experience,
-      annual_turnover, employees, phone, email, address, credits)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,10)
+      annual_turnover, employees, phone, email, address, client_name, credits)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).bind(id, name, reg_number||null, tax_number||null, vat_number||null, csd_maaa||null,
     bee_level||null, cidb_grade||null, cidb_number||null,
     JSON.stringify(industries||[]), JSON.stringify(provinces||[]),
     years_experience||0, annual_turnover||0, employees||0,
-    phone, email, address||null
+    phone, email, address||null, client_name||null, startingCredits
   ).run();
 
-  return tlJson({ success: true, company_id: id, credits: 10 });
+  return tlJson({ success: true, company_id: id, credits: startingCredits });
 }
 
 // ── GET COMPANY PROFILE ──────────────────────────────────────────
