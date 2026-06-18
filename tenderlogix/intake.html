@@ -3,57 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Register — Tender Logix</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<title>Register — TenderLogix</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --ink:#0d0d0d;--paper:#f5f3ee;--mid:#e8e4db;
-  --gold:#c8961e;--muted:#7a7060;--err:#c0392b;
-  --display:'Bebas Neue',sans-serif;
-  --body:'DM Sans',sans-serif;
-  --mono:'DM Mono',monospace;
+  --black:#0a0a0a;--black2:#0d0d0e;
+  --gunmetal:#1c1d20;--gunmetal-light:#2a2b2f;--gunmetal-border:rgba(255,255,255,.08);
+  --white:#ffffff;--dim:rgba(255,255,255,.55);--dim2:rgba(255,255,255,.32);
+  --orange:#ff6b1a;--orange-light:#ff8c4a;--orange-dim:rgba(255,107,26,.1);
+  --red:#ff4757;--green:#2ecc71;
+  --display:'Archivo Black',sans-serif;--body:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
 }
 html{-webkit-font-smoothing:antialiased}
-body{font-family:var(--body);background:var(--paper);color:var(--ink);min-height:100vh}
-nav{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(13,13,13,.1)}
-.nav-brand{font-family:var(--display);font-size:22px;letter-spacing:1px;color:var(--ink);text-decoration:none}
-.nav-brand span{color:var(--gold)}
-.nav-back{font-size:13px;color:var(--muted);text-decoration:none;letter-spacing:.3px}
-.nav-back:hover{color:var(--ink)}
-.page{max-width:560px;margin:0 auto;padding:48px 24px 80px}
-.page-eye{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
-.page-title{font-family:var(--display);font-size:clamp(40px,8vw,64px);line-height:1;letter-spacing:.5px;margin-bottom:8px}
-.page-sub{font-size:14px;color:var(--muted);font-weight:300;margin-bottom:40px;line-height:1.6}
-.form-section{margin-bottom:32px}
-.section-label{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(13,13,13,.1)}
+body{font-family:var(--body);background:var(--black);color:var(--white);min-height:100vh}
+nav{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--gunmetal-border);background:rgba(10,10,10,.9);position:sticky;top:0;z-index:10;backdrop-filter:blur(12px)}
+.nav-brand{font-family:var(--display);font-size:16px;letter-spacing:.5px;color:var(--white);text-decoration:none;text-transform:uppercase}
+.nav-brand span{color:var(--orange)}
+.nav-back{font-size:12px;color:var(--dim);text-decoration:none;letter-spacing:.5px;text-transform:uppercase;font-weight:500}
+.nav-back:hover{color:var(--white)}
+.page{max-width:600px;margin:0 auto;padding:48px 24px 80px}
+.page-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:16px}
+.page-title{font-family:var(--display);font-size:clamp(32px,7vw,52px);line-height:1.05;letter-spacing:-.5px;text-transform:uppercase;margin-bottom:12px}
+.page-sub{font-size:14px;color:var(--dim);font-weight:300;margin-bottom:44px;line-height:1.6}
+.form-section{margin-bottom:36px}
+.section-label{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim2);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--gunmetal-border)}
 .field{margin-bottom:20px}
-.label{font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px}
-.label span{font-weight:300;color:var(--muted);font-size:12px;margin-left:6px}
-.input{width:100%;padding:12px 14px;background:#fff;border:1px solid rgba(13,13,13,.2);font-family:var(--body);font-size:14px;color:var(--ink);outline:none;transition:border-color .2s;-webkit-appearance:none;border-radius:0}
-.input:focus{border-color:var(--ink)}
-.input.error{border-color:var(--err)}
-.err-msg{font-size:12px;color:var(--err);margin-top:4px;display:none}
+.label{font-size:12px;font-weight:600;color:var(--white);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+.label span{font-weight:400;color:var(--dim2);font-size:11px;margin-left:6px;text-transform:none;letter-spacing:0}
+.input{width:100%;padding:14px 16px;background:var(--gunmetal);border:1px solid var(--gunmetal-border);font-family:var(--body);font-size:14px;color:var(--white);outline:none;transition:border-color .2s;border-radius:0}
+.input::placeholder{color:var(--dim2)}
+.input:focus{border-color:var(--orange)}
+.input.error{border-color:var(--red)}
+.err-msg{font-size:11px;color:var(--red);margin-top:6px;display:none;font-family:var(--mono);letter-spacing:.3px}
 .err-msg.show{display:block}
-.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7060' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;cursor:pointer}
 .chip-group{display:flex;flex-wrap:wrap;gap:8px}
-.chip{padding:8px 16px;border:1px solid rgba(13,13,13,.2);font-family:var(--body);font-size:13px;font-weight:400;cursor:pointer;transition:all .15s;background:#fff;color:var(--ink);user-select:none}
-.chip.selected{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.chip:hover:not(.selected){border-color:var(--ink)}
-.divider{border:none;border-top:1px solid rgba(13,13,13,.1);margin:32px 0}
-.credits-card{background:var(--gold);padding:24px;margin-bottom:24px}
-.credits-title{font-family:var(--display);font-size:28px;letter-spacing:.5px;margin-bottom:4px}
-.credits-sub{font-size:13px;font-weight:300;color:rgba(13,13,13,.7);margin-bottom:16px}
+.chip{padding:9px 16px;border:1px solid var(--gunmetal-border);font-family:var(--body);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;background:var(--gunmetal);color:var(--dim);user-select:none;text-transform:uppercase;letter-spacing:.3px}
+.chip.selected{background:var(--orange-dim);color:var(--orange);border-color:var(--orange)}
+.chip:hover:not(.selected){border-color:var(--dim2);color:var(--white)}
+.divider{border:none;border-top:1px solid var(--gunmetal-border);margin:36px 0}
+.credits-card{background:var(--gunmetal);border:1px solid var(--orange);padding:28px;margin-bottom:24px}
+.credits-title{font-family:var(--display);font-size:24px;letter-spacing:-.5px;margin-bottom:6px;text-transform:uppercase;color:var(--orange)}
+.credits-sub{font-size:12px;font-weight:300;color:var(--dim);margin-bottom:18px;letter-spacing:.2px}
 .credits-items{list-style:none}
-.credits-items li{font-size:13px;padding:4px 0;display:flex;align-items:center;gap:8px}
-.credits-items li::before{content:'✓';font-weight:700}
-.btn-submit{width:100%;padding:16px;background:var(--ink);color:var(--paper);font-family:var(--body);font-size:15px;font-weight:500;border:none;cursor:pointer;letter-spacing:.5px;transition:opacity .2s;margin-bottom:12px}
-.btn-submit:hover{opacity:.85}
-.btn-submit:disabled{opacity:.5;cursor:not-allowed}
-.btn-free{width:100%;padding:14px;background:transparent;color:var(--muted);font-family:var(--body);font-size:13px;font-weight:400;border:1px solid rgba(13,13,13,.2);cursor:pointer;letter-spacing:.3px;transition:all .2s}
-.btn-free:hover{border-color:var(--ink);color:var(--ink)}
-.fine-print{font-size:11px;color:var(--muted);text-align:center;line-height:1.6;margin-top:16px;font-family:var(--mono);letter-spacing:.3px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:12px 24px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
+.credits-items li{font-size:13px;padding:6px 0;display:flex;align-items:center;gap:10px;color:var(--white);font-weight:300}
+.credits-items li::before{content:'';width:5px;height:5px;background:var(--orange);flex-shrink:0}
+.btn-submit{width:100%;padding:18px;background:var(--orange);color:var(--black);font-family:var(--body);font-size:14px;font-weight:700;border:none;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:background .2s;margin-bottom:12px}
+.btn-submit:hover{background:var(--orange-light)}
+.btn-submit:disabled{opacity:.4;cursor:not-allowed}
+.btn-free{width:100%;padding:16px;background:transparent;color:var(--dim);font-family:var(--body);font-size:12px;font-weight:600;border:1px solid var(--gunmetal-border);cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:all .2s}
+.btn-free:hover{border-color:var(--white);color:var(--white)}
+.fine-print{font-size:10px;color:var(--dim2);text-align:center;line-height:1.7;margin-top:18px;font-family:var(--mono);letter-spacing:.3px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--white);color:var(--black);padding:13px 26px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
 .toast.show{opacity:1}
 </style>
 </head>
@@ -65,52 +66,51 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:18px 2
 </nav>
 
 <div class="page">
-  <div class="page-eye">Free Registration</div>
-  <h1 class="page-title">Let's get you set up.</h1>
-  <p class="page-sub">Takes 2 minutes. You can add more details later from your dashboard.</p>
+  <div class="page-eyebrow">Free Registration</div>
+  <h1 class="page-title">Build Your Profile.</h1>
+  <p class="page-sub">Two minutes. Used on every analysis. Add more detail later from your dashboard.</p>
 
   <div class="form-section">
-    <div class="section-label">Your Company</div>
+    <div class="section-label">Company</div>
     <div class="field">
-      <label class="label" for="company_name">Company Name <span>*</span></label>
+      <label class="label" for="company_name">Company Name <span>required</span></label>
       <input class="input" id="company_name" type="text" placeholder="e.g. Zululand Cleaning Services">
       <div class="err-msg" id="err_company_name">Company name is required</div>
     </div>
     <div class="field">
-      <label class="label" for="reg_number">Registration Number <span>optional — add later</span></label>
+      <label class="label" for="reg_number">Registration Number <span>optional</span></label>
       <input class="input" id="reg_number" type="text" placeholder="e.g. 2019/123456/07">
     </div>
   </div>
 
   <div class="form-section">
-    <div class="section-label">Your Contact Details</div>
+    <div class="section-label">Contact</div>
     <div class="field">
-      <label class="label" for="contact_name">Your Name <span>*</span></label>
+      <label class="label" for="contact_name">Your Name <span>required</span></label>
       <input class="input" id="contact_name" type="text" placeholder="First and last name">
       <div class="err-msg" id="err_contact_name">Your name is required</div>
     </div>
     <div class="field">
-      <label class="label" for="phone">WhatsApp Number <span>*</span></label>
+      <label class="label" for="phone">WhatsApp Number <span>required</span></label>
       <input class="input" id="phone" type="tel" placeholder="e.g. 082 123 4567">
       <div class="err-msg" id="err_phone">Valid phone number required</div>
     </div>
     <div class="field">
-      <label class="label" for="email">Email Address <span>*</span></label>
+      <label class="label" for="email">Email Address <span>required</span></label>
       <input class="input" id="email" type="email" placeholder="you@company.co.za">
       <div class="err-msg" id="err_email">Valid email required</div>
     </div>
   </div>
 
   <div class="form-section">
-    <div class="section-label">Your Industries</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;font-weight:300">Select all that apply — we'll match tenders to these</p>
+    <div class="section-label">Industries</div>
     <div class="chip-group" id="industries">
       <div class="chip" data-val="cleaning">Cleaning</div>
       <div class="chip" data-val="security">Security</div>
       <div class="chip" data-val="catering">Catering</div>
       <div class="chip" data-val="construction">Construction</div>
       <div class="chip" data-val="landscaping">Landscaping</div>
-      <div class="chip" data-val="it">IT & Technology</div>
+      <div class="chip" data-val="it">IT &amp; Technology</div>
       <div class="chip" data-val="transport">Transport</div>
       <div class="chip" data-val="waste">Waste Management</div>
       <div class="chip" data-val="electrical">Electrical</div>
@@ -118,12 +118,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:18px 2
       <div class="chip" data-val="consulting">Consulting</div>
       <div class="chip" data-val="other">Other</div>
     </div>
-    <div class="err-msg show" id="err_industries" style="display:none">Select at least one industry</div>
   </div>
 
   <div class="form-section">
-    <div class="section-label">Your Provinces</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;font-weight:300">Where do you operate?</p>
+    <div class="section-label">Provinces</div>
     <div class="chip-group" id="provinces">
       <div class="chip" data-val="GP">Gauteng</div>
       <div class="chip" data-val="WC">Western Cape</div>
@@ -141,18 +139,18 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:18px 2
 
   <div class="credits-card">
     <div class="credits-title">Starter Pack — R199</div>
-    <p class="credits-sub">Everything you need to get started</p>
+    <p class="credits-sub">EVERYTHING REQUIRED TO START WINNING</p>
     <ul class="credits-items">
       <li>10 Go/No-Go analyses</li>
       <li>Full compliance checklist per tender</li>
       <li>Competitive pricing benchmarks</li>
       <li>Risk flags and recommendations</li>
-      <li>Results on your dashboard + WhatsApp</li>
+      <li>Dashboard + WhatsApp delivery</li>
     </ul>
   </div>
 
-  <button class="btn-submit" id="btnPay" onclick="handleSubmit(true)">Create Account &amp; Pay R199 →</button>
-  <button class="btn-free" id="btnFree" onclick="handleSubmit(false)">Start free with 3 analyses</button>
+  <button class="btn-submit" id="btnPay" onclick="handleSubmit(true)">Create Account &amp; Pay R199</button>
+  <button class="btn-free" id="btnFree" onclick="handleSubmit(false)">Start Free — 3 Analyses</button>
   <p class="fine-print">BY REGISTERING YOU AGREE TO OUR TERMS OF SERVICE AND PRIVACY POLICY · RESULTS ARE AI-ASSISTED AND INDICATIVE ONLY</p>
 </div>
 
@@ -161,11 +159,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:18px 2
 <script>
 var ENDPOINT = 'https://tenderlogix.co.za/tl/company';
 
-// Chip toggle
 document.querySelectorAll('.chip').forEach(function(chip) {
-  chip.addEventListener('click', function() {
-    chip.classList.toggle('selected');
-  });
+  chip.addEventListener('click', function() { chip.classList.toggle('selected'); });
 });
 
 function showToast(msg) {
@@ -187,8 +182,7 @@ function normalisePhone(raw) {
 
 function validate() {
   var ok = true;
-  var fields = ['company_name','contact_name','phone','email'];
-  fields.forEach(function(id) {
+  ['company_name','contact_name','phone','email'].forEach(function(id) {
     var val = document.getElementById(id).value.trim();
     var err = document.getElementById('err_' + id);
     if (!val) { err.classList.add('show'); document.getElementById(id).classList.add('error'); ok = false; }
@@ -199,53 +193,46 @@ function validate() {
 
 async function handleSubmit(pay) {
   if (!validate()) { showToast('Please fill in the required fields'); return; }
-
   var btn = pay ? document.getElementById('btnPay') : document.getElementById('btnFree');
   btn.disabled = true;
-  btn.textContent = 'Creating your account...';
-
-  var industries = getChips('industries');
-  var provinces  = getChips('provinces');
+  btn.textContent = 'Creating Account...';
 
   try {
     var res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name:          document.getElementById('company_name').value.trim(),
-        reg_number:    document.getElementById('reg_number').value.trim() || null,
-        email:         document.getElementById('email').value.trim(),
-        phone:         normalisePhone(document.getElementById('phone').value.trim()),
-        industries:    industries,
-        provinces:     provinces,
-        client_name:   document.getElementById('contact_name').value.trim(),
+        name: document.getElementById('company_name').value.trim(),
+        reg_number: document.getElementById('reg_number').value.trim() || null,
+        email: document.getElementById('email').value.trim(),
+        phone: normalisePhone(document.getElementById('phone').value.trim()),
+        industries: getChips('industries'),
+        provinces: getChips('provinces'),
+        client_name: document.getElementById('contact_name').value.trim(),
+        free_credits: !pay,
       })
     });
     var d = await res.json();
     if (!d.success) throw new Error(d.error || 'Registration failed');
 
-    // Store company_id locally
     localStorage.setItem('tl_company_id', d.company_id);
     localStorage.setItem('tl_company_name', document.getElementById('company_name').value.trim());
 
     if (pay) {
-      // Redirect to PayFast
       var form = document.createElement('form');
       form.method = 'POST';
       form.action = 'https://www.payfast.co.za/eng/process';
       var fields = {
-        merchant_id: '10000100',
-        merchant_key: 'PAYFAST_MERCHANT_KEY',
+        merchant_id: '10000100', merchant_key: 'PAYFAST_MERCHANT_KEY',
         return_url: 'https://tenderlogix.co.za/dashboard/' + d.company_id,
         cancel_url: 'https://tenderlogix.co.za/register',
         notify_url: 'https://tenderlogix.co.za/tl/payfast-webhook',
-        amount: '199.00',
-        item_name: 'Tender Logix Starter Pack — 10 Credits',
+        amount: '199.00', item_name: 'TenderLogix Starter Pack — 10 Credits',
         custom_str1: d.company_id,
       };
       Object.entries(fields).forEach(function(e) {
         var i = document.createElement('input');
-        i.type = 'hidden'; i.name = e[0]; i.value = e[1];
+        i.type='hidden'; i.name=e[0]; i.value=e[1];
         form.appendChild(i);
       });
       document.body.appendChild(form);
@@ -256,7 +243,7 @@ async function handleSubmit(pay) {
   } catch(e) {
     showToast(e.message || 'Something went wrong');
     btn.disabled = false;
-    btn.textContent = pay ? 'Create Account & Pay R199 →' : 'Start free with 3 analyses';
+    btn.textContent = pay ? 'Create Account & Pay R199' : 'Start Free — 3 Analyses';
   }
 }
 </script>
