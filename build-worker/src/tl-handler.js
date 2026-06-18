@@ -60,15 +60,15 @@ export async function handleTenderLogix(request, env) {
 
   // ── Static pages ─────────────────────────────────────────────
   if (path === '/' || path === '') {
-    const landing = await env.TL_META.get('app:tl-landing').catch(() => null);
+    const landing = await env.SITES.get('app:tl-landing').catch(() => null);
     if (landing) return new Response(landing, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
   }
   if (path === '/register') {
-    const intake = await env.TL_META.get('app:tl-intake').catch(() => null);
+    const intake = await env.SITES.get('app:tl-intake').catch(() => null);
     if (intake) return new Response(intake, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
   }
   if (path.startsWith('/dashboard')) {
-    const dashboard = await env.TL_META.get('app:tl-dashboard').catch(() => null);
+    const dashboard = await env.SITES.get('app:tl-dashboard').catch(() => null);
     if (dashboard) return new Response(dashboard, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
   }
 
