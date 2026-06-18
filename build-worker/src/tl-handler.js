@@ -84,8 +84,23 @@ async function handleTlCreateCompany(request, env, tlJson) {
 
   if (!name || !phone || !email) return tlJson({ error: 'name, phone and email required' }, 400);
 
+  const normalisedPhone = (phone || '').replace(/\D/g, '');
+  const normalisedEmail = (email || '').trim().toLowerCase();
+
+  // ── Duplicate prevention — one company per phone/email/reg_number ──────
+  const existing = await env.TL_DB.prepare(
+    `SELECT id, name FROM tl_companies WHERE phone=? OR LOWER(email)=? ${reg_number ? 'OR reg_number=?' : ''} LIMIT 1`
+  ).bind(...(reg_number ? [normalisedPhone, normalisedEmail, reg_number] : [normalisedPhone, normalisedEmail])).first();
+
+  if (existing) {
+    return tlJson({ error: 'An account already exists for this phone, email or registration number.', existing_company_id: existing.id }, 409);
+  }
+
+  // ── Complete-profile gate for free credits — prevents freebie farming ──
+  const hasCompleteProfile = !!(reg_number && industries?.length && provinces?.length);
+  const startingCredits = (free_credits && hasCompleteProfile) ? 3 : 0;
+
   const id = crypto.randomUUID();
-  const startingCredits = free_credits ? 3 : 0;
   await env.TL_DB.prepare(`
     INSERT INTO tl_companies (id, name, reg_number, tax_number, vat_number, csd_maaa,
       bee_level, cidb_grade, cidb_number, industries, provinces, years_experience,
@@ -95,10 +110,14 @@ async function handleTlCreateCompany(request, env, tlJson) {
     bee_level||null, cidb_grade||null, cidb_number||null,
     JSON.stringify(industries||[]), JSON.stringify(provinces||[]),
     years_experience||0, annual_turnover||0, employees||0,
-    phone, email, address||null, client_name||null, startingCredits
+    normalisedPhone, normalisedEmail, address||null, client_name||null, startingCredits
   ).run();
 
-  return tlJson({ success: true, company_id: id, credits: startingCredits });
+  const message = free_credits && !hasCompleteProfile
+    ? 'Account created. Add your registration number and at least one industry + province to unlock 3 free analyses.'
+    : null;
+
+  return tlJson({ success: true, company_id: id, credits: startingCredits, message });
 }
 
 // ── GET COMPANY PROFILE ──────────────────────────────────────────
