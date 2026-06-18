@@ -384,6 +384,8 @@ async function loadDashboard() {
     try { industries = JSON.parse(d.industries || '[]'); } catch(e) {}
     document.getElementById('pIndustries').textContent = industries.length ? industries.join(', ') : '—';
     localStorage.setItem('tl_company_id', companyId);
+    var waMsg = encodeURIComponent('TENDER ' + companyId);
+    document.getElementById('waSubmitBtn').href = 'https://wa.me/27840142017?text=' + waMsg;
     await loadSubmissions();
   } catch(e) {
     showToast('Could not load dashboard', '#c0392b');
@@ -491,23 +493,44 @@ function toggleSubmitForm() {
   if (f.classList.contains('open')) f.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
+var selectedFile = null;
+
+function handleFileSelect(input) {
+  var file = input.files[0];
+  var drop = document.getElementById('fileDrop');
+  var text = document.getElementById('fileDropText');
+  var btn = document.getElementById('btnAnalyse');
+  if (!file) return;
+  if (file.type !== 'application/pdf') { showToast('Please select a PDF file', '#c0392b'); return; }
+  if (file.size > 32 * 1024 * 1024) { showToast('PDF must be under 32MB', '#c0392b'); return; }
+  selectedFile = file;
+  drop.classList.add('has-file');
+  text.textContent = '✓ ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + 'MB)';
+  btn.disabled = false;
+  btn.textContent = 'Run Analysis →';
+}
+
 async function submitTender() {
-  var text = document.getElementById('tenderText').value.trim();
   var ref = document.getElementById('tenderRef').value.trim();
-  if (!text || text.length < 100) { showToast('Please paste more tender text (at least 100 characters)', '#d4820a'); return; }
+  if (!selectedFile) { showToast('Please upload a PDF tender document', '#d4820a'); return; }
   if (!companyData || companyData.credits < 1) { openCreditsModal(); return; }
   var btn = document.getElementById('btnAnalyse');
   btn.disabled = true; btn.textContent = 'Analysing... this takes 30-60 seconds';
   try {
-    var res = await fetch('/tl/analyse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company_id: companyId, doc_text: text, tender_ref: ref || null })
-    });
+    var formData = new FormData();
+    formData.append('company_id', companyId);
+    formData.append('file', selectedFile);
+    if (ref) formData.append('tender_ref', ref);
+
+    var res = await fetch('/tl/upload', { method: 'POST', body: formData });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
-    document.getElementById('tenderText').value = '';
+
     document.getElementById('tenderRef').value = '';
+    document.getElementById('pdfFile').value = '';
+    document.getElementById('fileDrop').classList.remove('has-file');
+    document.getElementById('fileDropText').textContent = 'Tap to select a PDF — up to 32MB';
+    selectedFile = null;
     document.getElementById('submitForm').classList.remove('open');
     showToast('✅ Analysis complete!');
     companyData.credits = (companyData.credits || 1) - 1;
@@ -518,7 +541,7 @@ async function submitTender() {
   } catch(e) {
     showToast(e.message || 'Analysis failed', '#c0392b');
   }
-  btn.disabled = false; btn.textContent = 'Run Analysis →';
+  btn.disabled = !selectedFile; btn.textContent = selectedFile ? 'Run Analysis →' : 'Upload a PDF First';
 }
 
 function selectCredit(el) {
