@@ -3,108 +3,141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tender Logix — Know Before You Bid</title>
-<meta name="description" content="Stop losing tenders on paperwork. Get instant Go/No-Go verdicts, compliance checks, and bid packs for South African government tenders.">
+<title>TenderLogix — Win More Tenders With Data, Not Guesswork</title>
+<meta name="description" content="Transform tendering from guesswork into a data-driven competitive advantage. Analyze opportunities, assess competition, decide with confidence.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --ink:#0d0d0d;
-  --paper:#f5f3ee;
-  --mid:#e8e4db;
-  --gold:#c8961e;
-  --gold-light:#f0c84a;
-  --muted:#7a7060;
-  --display:'Bebas Neue',sans-serif;
-  --body:'DM Sans',sans-serif;
-  --mono:'DM Mono',monospace;
+  --black:#0a0a0a;
+  --black2:#0d0d0e;
+  --gunmetal:#1c1d20;
+  --gunmetal-light:#2a2b2f;
+  --gunmetal-border:rgba(255,255,255,.08);
+  --white:#ffffff;
+  --dim:rgba(255,255,255,.55);
+  --dim2:rgba(255,255,255,.32);
+  --orange:#ff6b1a;
+  --orange-light:#ff8c4a;
+  --orange-dim:rgba(255,107,26,.12);
+  --green:#2ecc71;
+  --display:'Archivo Black',sans-serif;
+  --body:'Inter',sans-serif;
+  --mono:'JetBrains Mono',monospace;
 }
-html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
-body{font-family:var(--body);background:var(--paper);color:var(--ink);overflow-x:hidden}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--black);color:var(--white);overflow-x:hidden}
 
 /* ── NAV ── */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:rgba(245,243,238,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(13,13,13,.08)}
-.nav-brand{font-family:var(--display);font-size:22px;letter-spacing:1px;color:var(--ink);text-decoration:none}
-.nav-brand span{color:var(--gold)}
-.nav-cta{background:var(--ink);color:var(--paper);padding:9px 22px;font-family:var(--body);font-size:13px;font-weight:500;text-decoration:none;letter-spacing:.3px;transition:opacity .2s}
-.nav-cta:hover{opacity:.8}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:20px 32px;background:rgba(10,10,10,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--gunmetal-border)}
+.nav-brand{font-family:var(--display);font-size:18px;letter-spacing:.5px;color:var(--white);text-decoration:none;text-transform:uppercase}
+.nav-brand span{color:var(--orange)}
+.nav-cta{background:var(--orange);color:var(--black);padding:11px 24px;font-family:var(--body);font-size:13px;font-weight:700;text-decoration:none;letter-spacing:.3px;text-transform:uppercase;transition:background .2s}
+.nav-cta:hover{background:var(--orange-light)}
 
 /* ── HERO ── */
-.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:100px 24px 80px;max-width:800px;margin:0 auto}
-.hero-stamp{display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--ink);font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:2px;padding:6px 14px;margin-bottom:32px;text-transform:uppercase}
-.hero-stamp::before{content:'';width:8px;height:8px;background:var(--ink);border-radius:50%;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-h1{font-family:var(--display);font-size:clamp(64px,14vw,120px);line-height:.95;letter-spacing:1px;color:var(--ink);margin-bottom:32px}
-h1 em{font-style:normal;color:var(--gold);display:block}
-.hero-sub{font-size:clamp(16px,3vw,20px);font-weight:300;color:var(--muted);line-height:1.7;max-width:520px;margin-bottom:48px}
-.hero-sub strong{color:var(--ink);font-weight:500}
-.cta-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.btn-primary{background:var(--ink);color:var(--paper);padding:16px 36px;font-family:var(--body);font-size:14px;font-weight:500;text-decoration:none;letter-spacing:.5px;transition:transform .2s,opacity .2s;display:inline-block}
-.btn-primary:hover{transform:translateY(-2px);opacity:.85}
-.btn-ghost{font-size:13px;color:var(--muted);text-decoration:none;letter-spacing:.3px;border-bottom:1px solid var(--muted);padding-bottom:2px;transition:color .2s}
-.btn-ghost:hover{color:var(--ink);border-color:var(--ink)}
-.hero-note{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:24px}
+.hero{min-height:100svh;display:grid;grid-template-columns:1fr;padding-top:80px}
+.hero-left{padding:60px 32px 60px;display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--gunmetal-border)}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:28px}
+.hero-eyebrow::before{content:'';width:6px;height:6px;background:var(--orange);border-radius:50%}
+h1{font-family:var(--display);font-size:clamp(36px,8vw,64px);line-height:1.02;letter-spacing:-.5px;text-transform:uppercase;margin-bottom:24px}
+h1 .accent{color:var(--orange)}
+.hero-sub{font-size:16px;font-weight:300;color:var(--dim);line-height:1.7;max-width:480px;margin-bottom:36px}
+.hero-sub strong{color:var(--white);font-weight:600}
+.cta-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:32px}
+.btn-primary{background:var(--orange);color:var(--black);padding:16px 32px;font-family:var(--body);font-size:13px;font-weight:700;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;transition:background .2s;display:inline-block}
+.btn-primary:hover{background:var(--orange-light)}
+.btn-ghost{font-size:13px;color:var(--dim);text-decoration:none;letter-spacing:.3px;border-bottom:1px solid var(--dim2);padding-bottom:3px;transition:all .2s;font-weight:500;text-transform:uppercase}
+.btn-ghost:hover{color:var(--white);border-color:var(--white)}
+.trust-row{display:flex;gap:24px;flex-wrap:wrap}
+.trust-item{font-family:var(--mono);font-size:11px;color:var(--dim2);letter-spacing:.5px}
+.trust-item strong{color:var(--white);font-weight:700}
+
+/* ── HERO RIGHT — DATA PANEL (signature element) ── */
+.hero-right{background:var(--black2);padding:40px 24px;display:flex;flex-direction:column;justify-content:center;position:relative}
+.term-window{background:var(--gunmetal);border:1px solid var(--gunmetal-border);max-width:440px;margin:0 auto;width:100%}
+.term-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--gunmetal-border)}
+.term-title{font-family:var(--mono);font-size:10px;color:var(--dim2);letter-spacing:1.5px;text-transform:uppercase}
+.term-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.term-body{padding:20px 16px}
+.score-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--gunmetal-border)}
+.score-label{font-family:var(--mono);font-size:11px;color:var(--dim2);letter-spacing:1px;text-transform:uppercase}
+.score-num{font-family:var(--display);font-size:42px;color:var(--orange);letter-spacing:-1px}
+.score-num span{font-size:18px;color:var(--dim2);font-family:var(--mono)}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--gunmetal-border);margin-bottom:20px}
+.kpi{background:var(--gunmetal);padding:14px 10px;text-align:center}
+.kpi-val{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--white)}
+.kpi-val.go{color:var(--green)}
+.kpi-lbl{font-size:8px;color:var(--dim2);letter-spacing:1px;text-transform:uppercase;margin-top:3px;font-family:var(--mono)}
+.bar-chart{display:flex;align-items:flex-end;gap:4px;height:60px;margin-bottom:16px}
+.bar{flex:1;background:linear-gradient(180deg,var(--orange),rgba(255,107,26,.3));border-radius:1px 1px 0 0}
+.term-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--gunmetal-border);font-family:var(--mono);font-size:11px}
+.term-row-label{color:var(--dim)}
+.term-row-val{color:var(--white);font-weight:500}
+.term-row-val.risk-high{color:#ff4757}
+.term-row-val.risk-med{color:var(--orange)}
+.term-row-val.risk-low{color:var(--green)}
 
 /* ── DIVIDER ── */
-.rule{border:none;border-top:1px solid rgba(13,13,13,.12);margin:0 24px}
+.rule{border:none;border-top:1px solid var(--gunmetal-border)}
 
-/* ── PAIN SECTION ── */
-.pain{padding:80px 24px;max-width:800px;margin:0 auto}
-.section-eye{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:24px}
-.pain-headline{font-family:var(--display);font-size:clamp(36px,7vw,64px);line-height:1;letter-spacing:.5px;margin-bottom:48px;color:var(--ink)}
-.pain-grid{display:grid;grid-template-columns:1fr;gap:1px;background:rgba(13,13,13,.1)}
-.pain-item{background:var(--paper);padding:28px 24px;display:grid;grid-template-columns:40px 1fr;gap:16px;align-items:start}
-.pain-num{font-family:var(--display);font-size:36px;color:var(--gold);line-height:1}
-.pain-title{font-size:16px;font-weight:500;margin-bottom:6px;color:var(--ink)}
-.pain-body{font-size:14px;font-weight:300;color:var(--muted);line-height:1.7}
+/* ── PROBLEM SECTION ── */
+.section{padding:80px 32px;max-width:1100px;margin:0 auto}
+.section-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:16px}
+.section-title{font-family:var(--display);font-size:clamp(28px,5vw,48px);text-transform:uppercase;letter-spacing:-.5px;line-height:1.05;margin-bottom:48px;max-width:700px}
+.problem-grid{display:grid;grid-template-columns:1fr;gap:1px;background:var(--gunmetal-border)}
+.problem-card{background:var(--black);padding:32px 28px}
+.problem-stat{font-family:var(--display);font-size:48px;color:var(--orange);line-height:1;margin-bottom:16px;letter-spacing:-1px}
+.problem-title{font-size:16px;font-weight:700;color:var(--white);margin-bottom:10px;text-transform:uppercase;letter-spacing:.3px}
+.problem-body{font-size:14px;font-weight:300;color:var(--dim);line-height:1.7}
 
-/* ── HOW IT WORKS ── */
-.how{padding:80px 24px;background:var(--ink);color:var(--paper)}
-.how-inner{max-width:800px;margin:0 auto}
-.how .section-eye{color:var(--gold)}
-.how-headline{font-family:var(--display);font-size:clamp(36px,7vw,64px);line-height:1;letter-spacing:.5px;margin-bottom:48px}
-.steps{display:grid;grid-template-columns:1fr;gap:0}
-.step{padding:28px 0;border-bottom:1px solid rgba(245,243,238,.08);display:grid;grid-template-columns:60px 1fr;gap:20px;align-items:start}
-.step:last-child{border-bottom:none}
-.step-num{font-family:var(--display);font-size:48px;color:var(--gold);line-height:1}
-.step-title{font-size:16px;font-weight:500;color:var(--paper);margin-bottom:6px}
-.step-body{font-size:14px;font-weight:300;color:rgba(245,243,238,.55);line-height:1.7}
+/* ── PROCESS ── */
+.process{background:var(--gunmetal);padding:80px 32px}
+.process-inner{max-width:1100px;margin:0 auto}
+.process-grid{display:grid;grid-template-columns:1fr;gap:0}
+.process-step{padding:28px 0;border-bottom:1px solid var(--gunmetal-border);display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:flex-start}
+.process-step:last-child{border-bottom:none}
+.process-icon{width:48px;height:48px;border:1px solid var(--orange);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.process-icon svg{width:22px;height:22px;stroke:var(--orange)}
+.process-step-title{font-size:16px;font-weight:700;color:var(--white);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+.process-step-body{font-size:14px;font-weight:300;color:var(--dim);line-height:1.7;max-width:560px}
 
 /* ── PRODUCTS ── */
-.products{padding:80px 24px;max-width:800px;margin:0 auto}
-.products .section-eye{color:var(--gold)}
-.products-headline{font-family:var(--display);font-size:clamp(36px,7vw,64px);line-height:1;letter-spacing:.5px;margin-bottom:48px}
-.product-grid{display:grid;grid-template-columns:1fr;gap:1px;background:rgba(13,13,13,.1)}
-.product-card{background:var(--paper);padding:24px;display:flex;align-items:flex-start;gap:16px}
-.product-icon{font-size:24px;flex-shrink:0;margin-top:2px}
-.product-name{font-size:15px;font-weight:500;margin-bottom:4px}
-.product-desc{font-size:13px;font-weight:300;color:var(--muted);line-height:1.6;margin-bottom:8px}
-.product-tag{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--gold);text-transform:uppercase}
+.products-grid{display:grid;grid-template-columns:1fr;gap:1px;background:var(--gunmetal-border)}
+.product-card{background:var(--black);padding:28px;display:flex;flex-direction:column}
+.product-icon{width:40px;height:40px;margin-bottom:18px}
+.product-icon svg{width:100%;height:100%;stroke:var(--orange);fill:none;stroke-width:1.5}
+.product-name{font-size:15px;font-weight:700;color:var(--white);margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px}
+.product-desc{font-size:13px;font-weight:300;color:var(--dim);line-height:1.6;margin-bottom:16px;flex:1}
+.product-tag{font-family:var(--mono);font-size:11px;letter-spacing:.5px;color:var(--orange);padding-top:12px;border-top:1px solid var(--gunmetal-border)}
 
 /* ── CTA BAND ── */
-.cta-band{background:var(--gold);padding:80px 24px;text-align:center}
+.cta-band{background:var(--orange);padding:90px 32px;text-align:center}
 .cta-band-inner{max-width:600px;margin:0 auto}
-.cta-band h2{font-family:var(--display);font-size:clamp(40px,8vw,72px);color:var(--ink);line-height:1;letter-spacing:.5px;margin-bottom:16px}
-.cta-band p{font-size:16px;color:rgba(13,13,13,.7);margin-bottom:36px;font-weight:300}
-.btn-dark{background:var(--ink);color:var(--paper);padding:16px 40px;font-family:var(--body);font-size:14px;font-weight:500;text-decoration:none;letter-spacing:.5px;display:inline-block;transition:opacity .2s}
+.cta-band h2{font-family:var(--display);font-size:clamp(32px,6vw,56px);color:var(--black);line-height:1.05;letter-spacing:-.5px;text-transform:uppercase;margin-bottom:18px}
+.cta-band p{font-size:15px;color:rgba(10,10,10,.75);margin-bottom:36px;font-weight:500}
+.btn-dark{background:var(--black);color:var(--white);padding:17px 40px;font-family:var(--body);font-size:13px;font-weight:700;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;display:inline-block;transition:opacity .2s}
 .btn-dark:hover{opacity:.8}
-.cta-note{font-family:var(--mono);font-size:11px;color:rgba(13,13,13,.5);margin-top:16px;letter-spacing:1px}
+.cta-note{font-family:var(--mono);font-size:10px;color:rgba(10,10,10,.6);margin-top:18px;letter-spacing:1px}
 
 /* ── FOOTER ── */
-footer{background:var(--ink);padding:40px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
-.footer-brand{font-family:var(--display);font-size:18px;color:var(--paper);letter-spacing:1px}
-.footer-brand span{color:var(--gold)}
+footer{background:var(--black);padding:40px 32px;border-top:1px solid var(--gunmetal-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-brand{font-family:var(--display);font-size:15px;color:var(--white);letter-spacing:.5px;text-transform:uppercase}
+.footer-brand span{color:var(--orange)}
 .footer-links{display:flex;gap:24px}
-.footer-link{font-size:12px;color:rgba(245,243,238,.4);text-decoration:none;letter-spacing:.5px;transition:color .2s}
-.footer-link:hover{color:var(--paper)}
-.footer-copy{font-size:11px;color:rgba(245,243,238,.2);letter-spacing:.5px;width:100%}
+.footer-link{font-size:11px;color:var(--dim2);text-decoration:none;letter-spacing:.5px;text-transform:uppercase;transition:color .2s}
+.footer-link:hover{color:var(--white)}
+.footer-copy{font-size:10px;color:rgba(255,255,255,.18);letter-spacing:.3px;width:100%;font-family:var(--mono)}
 
-@media(min-width:640px){
-  .pain-grid,.product-grid{grid-template-columns:1fr 1fr}
-  .steps{grid-template-columns:1fr 1fr 1fr;gap:0}
-  .step{border-bottom:none;border-right:1px solid rgba(245,243,238,.08);padding:28px 24px}
-  .step:last-child{border-right:none}
+@media(min-width:900px){
+  .hero{grid-template-columns:1fr 1fr}
+  .hero-left{border-bottom:none;border-right:1px solid var(--gunmetal-border);padding:80px 56px 80px 64px}
+  .hero-right{padding:60px 56px}
+  .problem-grid{grid-template-columns:1fr 1fr}
+  .products-grid{grid-template-columns:1fr 1fr 1fr}
+  .process-step{padding:32px 0}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -113,86 +146,112 @@ footer{background:var(--ink);padding:40px 24px;display:flex;align-items:center;j
 
 <nav>
   <a href="/" class="nav-brand">Tender<span>Logix</span></a>
-  <a href="/register" class="nav-cta">Get Started Free</a>
+  <a href="/register" class="nav-cta">Book Your Demo</a>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-stamp">Live — South Africa</div>
-  <h1>Know before<em>you bid.</em></h1>
-  <p class="hero-sub">Every year, small businesses lose government tenders not because their price was wrong — but because of a <strong>missing document, an expired certificate, or a compliance gap</strong> nobody told them about.</p>
-  <div class="cta-row">
-    <a href="/register" class="btn-primary">Get Started Free →</a>
-    <a href="#how" class="btn-ghost">See how it works</a>
-  </div>
-  <p class="hero-note">FREE TO REGISTER · NO CREDIT CARD · RESULTS IN MINUTES</p>
-</section>
-
-<hr class="rule">
-
-<!-- PAIN -->
-<section class="pain">
-  <div class="section-eye">The Problem</div>
-  <h2 class="pain-headline">Three reasons you keep losing</h2>
-  <div class="pain-grid">
-    <div class="pain-item">
-      <div class="pain-num">01</div>
-      <div>
-        <div class="pain-title">Disqualified before evaluation</div>
-        <p class="pain-body">Your bid never gets to price evaluation. An expired COIDA letter, a missing reference, or a PLI below the threshold — and you're out. The client never even saw your price.</p>
-      </div>
+  <div class="hero-left">
+    <div class="hero-eyebrow">South Africa · Bid Intelligence</div>
+    <h1>Find. Analyze.<br><span class="accent">Win.</span></h1>
+    <p class="hero-sub">Most companies guess. <strong>TenderLogix knows.</strong> Transform tendering from guesswork into a data-driven competitive advantage.</p>
+    <div class="cta-row">
+      <a href="/register" class="btn-primary">Analyze Your Opportunities</a>
+      <a href="#process" class="btn-ghost">How It Works</a>
     </div>
-    <div class="pain-item">
-      <div class="pain-num">02</div>
-      <div>
-        <div class="pain-title">You didn't qualify to begin with</div>
-        <p class="pain-body">The tender required 3 years of healthcare experience and a CIDB Grade 3. You have neither. You spent two weeks preparing a bid you were never going to win.</p>
-      </div>
-    </div>
-    <div class="pain-item">
-      <div class="pain-num">03</div>
-      <div>
-        <div class="pain-title">You priced yourself out</div>
-        <p class="pain-body">You didn't know what competitors charge. You didn't know the NMWA minimum. You guessed — and either lost on price or won a contract you can't deliver profitably.</p>
-      </div>
-    </div>
-    <div class="pain-item">
-      <div class="pain-num">04</div>
-      <div>
-        <div class="pain-title">You missed it entirely</div>
-        <p class="pain-body">The tender closed last Friday. You found it on Monday. It was perfect for your business. There are hundreds more you'll never know about unless someone tells you.</p>
-      </div>
+    <div class="trust-row">
+      <div class="trust-item"><strong>R0</strong> Setup Cost</div>
+      <div class="trust-item"><strong>&lt;60s</strong> Analysis Time</div>
+      <div class="trust-item"><strong>National Treasury</strong> Data Source</div>
     </div>
   </div>
+  <div class="hero-right">
+    <div class="term-window">
+      <div class="term-bar">
+        <div class="term-title"><span class="term-dot"></span>LIVE ANALYSIS</div>
+        <div class="term-title">TL-2026</div>
+      </div>
+      <div class="term-body">
+        <div class="score-row">
+          <div class="score-label">Opportunity Score</div>
+          <div class="score-num">8.4<span>/10</span></div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-val go">GO</div><div class="kpi-lbl">Verdict</div></div>
+          <div class="kpi"><div class="kpi-val">94%</div><div class="kpi-lbl">Eligible</div></div>
+          <div class="kpi"><div class="kpi-val">R1.2M</div><div class="kpi-lbl">Est. Value</div></div>
+        </div>
+        <div class="bar-chart">
+          <div class="bar" style="height:40%"></div>
+          <div class="bar" style="height:65%"></div>
+          <div class="bar" style="height:35%"></div>
+          <div class="bar" style="height:80%"></div>
+          <div class="bar" style="height:55%"></div>
+          <div class="bar" style="height:90%"></div>
+          <div class="bar" style="height:45%"></div>
+          <div class="bar" style="height:70%"></div>
+        </div>
+        <div class="term-row"><div class="term-row-label">Compliance Risk</div><div class="term-row-val risk-low">LOW</div></div>
+        <div class="term-row"><div class="term-row-label">Pricing Confidence</div><div class="term-row-val risk-med">MEDIUM</div></div>
+        <div class="term-row"><div class="term-row-label">Competitor Count</div><div class="term-row-val">4 BIDDERS</div></div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<hr class="rule">
+<!-- PROBLEM -->
+<section class="section">
+  <div class="section-eyebrow">The Cost Of Guessing</div>
+  <h2 class="section-title">Every tender you lose on paperwork is revenue your competitor takes instead.</h2>
+  <div class="problem-grid">
+    <div class="problem-card">
+      <div class="problem-stat">73%</div>
+      <div class="problem-title">Disqualified Pre-Evaluation</div>
+      <p class="problem-body">Bids eliminated before price is even considered — an expired certificate, a missing reference, a compliance gap nobody flagged in time.</p>
+    </div>
+    <div class="problem-card">
+      <div class="problem-stat">0</div>
+      <div class="problem-title">Visibility Into Competitors</div>
+      <p class="problem-body">Bidding blind on price with no data on what similar contracts were awarded for, or who you're actually up against.</p>
+    </div>
+    <div class="problem-card">
+      <div class="problem-stat">2-3</div>
+      <div class="problem-title">Weeks Wasted Per Bid</div>
+      <p class="problem-body">Hours spent preparing a submission for a tender you were never eligible for in the first place.</p>
+    </div>
+    <div class="problem-card">
+      <div class="problem-stat">∞</div>
+      <div class="problem-title">Opportunities Missed</div>
+      <p class="problem-body">No system tracking which tenders match your business — relevant contracts close before you ever see them.</p>
+    </div>
+  </div>
+</section>
 
-<!-- HOW -->
-<section class="how" id="how">
-  <div class="how-inner">
-    <div class="section-eye">How It Works</div>
-    <h2 class="how-headline">Three steps to a smarter bid</h2>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
+<!-- PROCESS -->
+<section class="process" id="process">
+  <div class="process-inner">
+    <div class="section-eyebrow">The Process</div>
+    <h2 class="section-title" style="margin-bottom:48px">Decide with confidence in three steps.</h2>
+    <div class="process-grid">
+      <div class="process-step">
+        <div class="process-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
         <div>
-          <div class="step-title">Build your profile once</div>
-          <p class="step-body">Enter your company details — CSD number, B-BBEE level, CIDB grade, experience, references. Takes 5 minutes. We use it on every analysis.</p>
+          <div class="process-step-title">Profile Your Business</div>
+          <p class="process-step-body">CIDB grade, B-BBEE level, CSD registration, industry focus, operating provinces. Built once, applied to every analysis.</p>
         </div>
       </div>
-      <div class="step">
-        <div class="step-num">2</div>
+      <div class="process-step">
+        <div class="process-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
         <div>
-          <div class="step-title">Upload any tender document</div>
-          <p class="step-body">Paste the text or upload the PDF. We read it, extract requirements, and match them against your profile within minutes.</p>
+          <div class="process-step-title">Submit Any Tender</div>
+          <p class="process-step-body">Upload the document. Our engine extracts every requirement and cross-references it against your eligibility in seconds.</p>
         </div>
       </div>
-      <div class="step">
-        <div class="step-num">3</div>
+      <div class="process-step">
+        <div class="process-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
         <div>
-          <div class="step-title">Get your verdict</div>
-          <p class="step-body">Go, No-Go, or Conditional Go — with full reasoning, compliance gaps, competitive pricing, and risk flags. Delivered to your dashboard and WhatsApp.</p>
+          <div class="process-step-title">Receive Your Verdict</div>
+          <p class="process-step-body">GO, NO-GO, or CONDITIONAL — with compliance gaps, competitive pricing benchmarks, and risk flags. Decide in minutes, not days.</p>
         </div>
       </div>
     </div>
@@ -200,57 +259,45 @@ footer{background:var(--ink);padding:40px 24px;display:flex;align-items:center;j
 </section>
 
 <!-- PRODUCTS -->
-<section class="products">
-  <div class="section-eye">What We Offer</div>
-  <h2 class="products-headline">Everything you need to win</h2>
-  <div class="product-grid">
+<section class="section">
+  <div class="section-eyebrow">Intelligence Suite</div>
+  <h2 class="section-title">Every tool required to bid smarter.</h2>
+  <div class="products-grid">
     <div class="product-card">
-      <div class="product-icon">🎯</div>
-      <div>
-        <div class="product-name">Go/No-Go Analysis</div>
-        <p class="product-desc">Upload a tender. Get a verdict. Know if you qualify, what's missing, and whether it's worth your time.</p>
-        <div class="product-tag">From R20 per analysis</div>
-      </div>
+      <div class="product-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <div class="product-name">Go/No-Go Analysis</div>
+      <p class="product-desc">Instant eligibility verdict with full reasoning, compliance gaps, and risk assessment for any tender.</p>
+      <div class="product-tag">FROM R20 PER ANALYSIS</div>
     </div>
     <div class="product-card">
-      <div class="product-icon">🔔</div>
-      <div>
-        <div class="product-name">Tender Alerts</div>
-        <p class="product-desc">New government tenders in your categories and provinces — delivered to your dashboard every morning.</p>
-        <div class="product-tag">R299/month</div>
-      </div>
+      <div class="product-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+      <div class="product-name">Compliance Audit</div>
+      <p class="product-desc">Full review of your company documentation against tender requirements before you commit resources.</p>
+      <div class="product-tag">R750 ONCE-OFF</div>
     </div>
     <div class="product-card">
-      <div class="product-icon">✅</div>
-      <div>
-        <div class="product-name">Compliance Audit</div>
-        <p class="product-desc">Upload your company documents. We tell you exactly what's expired, missing, or wrong before you bid.</p>
-        <div class="product-tag">R750 once-off</div>
-      </div>
+      <div class="product-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+      <div class="product-name">Full Bid Pack</div>
+      <p class="product-desc">Complete submission document with priced BOQ, compliance checklist, and competitive benchmarks.</p>
+      <div class="product-tag">R2,500 ONCE-OFF</div>
     </div>
     <div class="product-card">
-      <div class="product-icon">📄</div>
-      <div>
-        <div class="product-name">Full Bid Pack</div>
-        <p class="product-desc">Complete submission document with BOQ pricing, compliance checklist, cover letter, and competitive benchmarks.</p>
-        <div class="product-tag">R2,500 once-off</div>
-      </div>
+      <div class="product-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div>
+      <div class="product-name">Competitor Intelligence</div>
+      <p class="product-desc">Historical award data by category and province — know who wins, at what price, and how often.</p>
+      <div class="product-tag">R750 ONCE-OFF</div>
     </div>
     <div class="product-card">
-      <div class="product-icon">📊</div>
-      <div>
-        <div class="product-name">Competitor Intelligence</div>
-        <p class="product-desc">See who wins tenders in your category and province, at what price, and how often. Know your competition.</p>
-        <div class="product-tag">R750 once-off</div>
-      </div>
+      <div class="product-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+      <div class="product-name">Tender Alerts</div>
+      <p class="product-desc">Daily monitoring matched to your industry and province profile, delivered to your dashboard.</p>
+      <div class="product-tag">R299/MONTH</div>
     </div>
     <div class="product-card">
-      <div class="product-icon">🌐</div>
-      <div>
-        <div class="product-name">Business Website</div>
-        <p class="product-desc">A professional website built from your Google Business Profile. Required for many tender submissions.</p>
-        <div class="product-tag">From R699/month</div>
-      </div>
+      <div class="product-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      <div class="product-name">Business Website</div>
+      <p class="product-desc">Professional web presence built from your Google profile — required documentation for many tenders.</p>
+      <div class="product-tag">FROM R699/MONTH</div>
     </div>
   </div>
 </section>
@@ -258,10 +305,10 @@ footer{background:var(--ink);padding:40px 24px;display:flex;align-items:center;j
 <!-- CTA BAND -->
 <section class="cta-band">
   <div class="cta-band-inner">
-    <h2>Stop guessing. Start winning.</h2>
-    <p>Register free. No credit card. Your first 10 analyses are on us.</p>
-    <a href="/register" class="btn-dark">Create Your Free Account →</a>
-    <p class="cta-note">FREE TO START · CANCEL ANYTIME · RESULTS IN MINUTES</p>
+    <h2>Stop Guessing.<br>Start Winning.</h2>
+    <p>Three free analyses on registration. No setup fee. No card required.</p>
+    <a href="/register" class="btn-dark">Gain Your Competitive Advantage</a>
+    <p class="cta-note">REGISTER FREE · CANCEL ANYTIME · RESULTS IN MINUTES</p>
   </div>
 </section>
 
@@ -272,7 +319,7 @@ footer{background:var(--ink);padding:40px 24px;display:flex;align-items:center;j
     <a href="/privacy" class="footer-link">Privacy</a>
     <a href="/pricing" class="footer-link">Pricing</a>
   </div>
-  <div class="footer-copy">© 2026 Tender Logix · Powered by Website Hub · Pricing is indicative. All analyses are AI-assisted and should be verified before submission.</div>
+  <div class="footer-copy">© 2026 TENDERLOGIX · ANALYSIS IS AI-ASSISTED AND INDICATIVE · VERIFY ALL PRICING BEFORE SUBMISSION</div>
 </footer>
 
 </body>
