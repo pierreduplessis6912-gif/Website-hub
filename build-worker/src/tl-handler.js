@@ -374,3 +374,53 @@ async function handleTlAnalyse(request, env, tlJson) {
 
   return tlJson({ submission_id: id, ...sub });
 }
+
+// ── PDF UPLOAD ENDPOINT — native Claude PDF analysis ──────────────
+async function handleTlUpload(request, env, tlJson) {
+  const contentType = request.headers.get('content-type') || '';
+  if (!contentType.includes('multipart/form-data')) {
+    return tlJson({ error: 'multipart/form-data required' }, 400);
+  }
+
+  const form = await request.formData();
+  const company_id = form.get('company_id');
+  const tender_ref  = form.get('tender_ref') || null;
+  const file        = form.get('file');
+
+  if (!company_id || !file) return tlJson({ error: 'company_id and file required' }, 400);
+  if (file.type !== 'application/pdf') return tlJson({ error: 'Only PDF files are supported' }, 400);
+  if (file.size > 32 * 1024 * 1024) return tlJson({ error: 'PDF must be under 32MB' }, 400);
+
+  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  if (!company) return tlJson({ error: 'Company not found' }, 404);
+  if ((company.credits || 0) < 1) return tlJson({ error: 'Insufficient credits. Please top up.' }, 402);
+
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  const pdfBase64 = btoa(binary);
+
+  const id = crypto.randomUUID();
+  const docKey = `submissions/${company_id}/${id}/tender.pdf`;
+  await env.TL_DOCS.put(docKey, arrayBuffer, { httpMetadata: { contentType: 'application/pdf' } });
+
+  await env.TL_DB.prepare(`
+    INSERT INTO tl_submissions (id, company_id, tender_ref, doc_r2_key, status, credits_used)
+    VALUES (?,?,?,?,'processing',1)
+  `).bind(id, company_id, tender_ref, docKey).run();
+
+  await env.TL_DB.prepare('UPDATE tl_companies SET credits=credits-1 WHERE id=?').bind(company_id).run();
+  await env.TL_DB.prepare(`INSERT INTO tl_credits (id, company_id, amount, type, submission_id) VALUES (?,?,?,'used',?)`)
+    .bind(crypto.randomUUID(), company_id, -1, id).run();
+
+  await runTlAnalysis(id, company, null, env, pdfBase64);
+
+  const sub = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(id).first();
+  if (sub?.report_json) sub.report = JSON.parse(sub.report_json);
+
+  return tlJson({ success: true, submission_id: id, ...sub });
+}
