@@ -176,6 +176,9 @@ export const KV_KEYS = {
     'cancellation':     'app:cancellation',
     'referral-terms':   'app:referral-terms',
     'partner':          'app:partner',
+    'tl-landing':       'app:tl-landing',
+    'tl-intake':        'app:tl-intake',
+    'tl-dashboard':     'app:tl-dashboard',
   },
 
   // ── Built site content ─────────────────────────────────────────────────────
