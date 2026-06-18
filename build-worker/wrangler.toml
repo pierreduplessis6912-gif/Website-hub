@@ -42,6 +42,10 @@ migrations_dir = "../migrations"
 [triggers]
 crons = ["0,15,30,45 * * * *"]
 
+[[queues.producers]]
+binding = "BUILD_QUEUE"
+queue = "wh-build-queue"
+
 # ── TENDER LOGIX ─────────────────────────────────────────────
 [[kv_namespaces]]
 binding = "TL_RATES"
