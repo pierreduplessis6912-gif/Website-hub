@@ -78,8 +78,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
       <div class="err-msg" id="err_company_name">Company name is required</div>
     </div>
     <div class="field">
-      <label class="label" for="reg_number">Registration Number <span>optional</span></label>
+      <label class="label" for="reg_number">Registration Number <span>required for free trial</span></label>
       <input class="input" id="reg_number" type="text" placeholder="e.g. 2019/123456/07">
+      <div class="err-msg" id="err_reg_number">Registration number required to unlock free trial</div>
     </div>
   </div>
 
@@ -180,7 +181,7 @@ function normalisePhone(raw) {
   return digits.replace(/^0/, '27');
 }
 
-function validate() {
+function validate(requireFullProfile) {
   var ok = true;
   ['company_name','contact_name','phone','email'].forEach(function(id) {
     var val = document.getElementById(id).value.trim();
@@ -188,11 +189,19 @@ function validate() {
     if (!val) { err.classList.add('show'); document.getElementById(id).classList.add('error'); ok = false; }
     else { err.classList.remove('show'); document.getElementById(id).classList.remove('error'); }
   });
+  if (requireFullProfile) {
+    var reg = document.getElementById('reg_number').value.trim();
+    var errReg = document.getElementById('err_reg_number');
+    if (!reg) { errReg.classList.add('show'); document.getElementById('reg_number').classList.add('error'); ok = false; }
+    else { errReg.classList.remove('show'); document.getElementById('reg_number').classList.remove('error'); }
+    if (!getChips('industries').length) { showToast('Select at least one industry for the free trial'); ok = false; }
+    if (!getChips('provinces').length) { showToast('Select at least one province for the free trial'); ok = false; }
+  }
   return ok;
 }
 
 async function handleSubmit(pay) {
-  if (!validate()) { showToast('Please fill in the required fields'); return; }
+  if (!validate(!pay)) { showToast('Please fill in the required fields'); return; }
   var btn = pay ? document.getElementById('btnPay') : document.getElementById('btnFree');
   btn.disabled = true;
   btn.textContent = 'Creating Account...';
@@ -213,7 +222,13 @@ async function handleSubmit(pay) {
       })
     });
     var d = await res.json();
+    if (res.status === 409) {
+      showToast(d.error || 'Account already exists for this phone/email');
+      btn.disabled = false; btn.textContent = pay ? 'Create Account & Pay R199' : 'Start Free — 3 Analyses';
+      return;
+    }
     if (!d.success) throw new Error(d.error || 'Registration failed');
+    if (d.message) showToast(d.message);
 
     localStorage.setItem('tl_company_id', d.company_id);
     localStorage.setItem('tl_company_name', document.getElementById('company_name').value.trim());
