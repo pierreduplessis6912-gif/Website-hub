@@ -471,6 +471,18 @@ async function viewReport(submissionId) {
       });
       html += '</div>';
     }
+    // Edge recommendations — how to tip a close call
+    if (r.edge_recommendations?.length) {
+      html += '<div class="report-section"><div class="report-section-title">How To Gain An Edge</div>';
+      r.edge_recommendations.forEach(function(e) {
+        html += '<div class="check-item"><div class="check-icon">🎯</div><div><div class="check-text">'+e.action+'</div><div class="check-notes">'+e.impact+(e.timeframe?' · '+e.timeframe:'')+'</div></div></div>';
+      });
+      html += '</div>';
+    }
+    // Future readiness — path forward on a NO_GO
+    if (r.future_readiness) {
+      html += '<div class="report-section"><div class="report-section-title">Path To Future Tenders</div><p style="font-size:14px;color:var(--dim);font-weight:300;line-height:1.8">'+r.future_readiness+'</p></div>';
+    }
     // Disclaimer
     html += '<div class="disclaimer">'+(r.pricing_disclaimer||'All pricing is indicative and AI-assisted. Verify with your suppliers before submission.')+'</div>';
     document.getElementById('reportBody').innerHTML = html;
