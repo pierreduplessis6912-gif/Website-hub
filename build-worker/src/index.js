@@ -307,6 +307,7 @@ export default {
       if (path === '/admin/send-partner-invite'  && method === 'POST') return handleSendPartnerInvite(request, env);
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
+      if (path === '/admin/tl-query'        && method === 'POST') return handleAdminTlQuery(request, env);
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
       if (path === '/admin/trigger-rebuild'    && method === 'POST') return handleAdminTriggerRebuild(request, env);
       if (path === '/admin/promo-blast'        && method === 'POST') return handlePromoBlast(request, env);
@@ -1279,6 +1280,17 @@ body{background:#0e0c09;color:#ede9e4;font-family:'DM Sans',sans-serif;min-heigh
 </html>`;
 
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store' } });
+}
+
+// ── TENDER LOGIX ADMIN QUERY ──────────────────────────────────
+async function handleAdminTlQuery(request, env) {
+  const { sql, params } = await request.json().catch(() => ({}));
+  if (!sql) return jsonResponse({ error: 'sql required' }, 400);
+  try {
+    const stmt = env.TL_DB.prepare(sql);
+    const result = params?.length ? await stmt.bind(...params).all() : await stmt.all();
+    return jsonResponse({ results: result.results || [] });
+  } catch(e) { return jsonResponse({ error: e.message }, 400); }
 }
 
 // ── PARTNER HANDLERS ─────────────────────────────────────────────────────────
