@@ -49,6 +49,9 @@ export async function handleTenderLogix(request, env) {
   if (path === '/tl/analyse' && method === 'POST') {
     return handleTlAnalyse(request, env, tlJson);
   }
+  if (path === '/tl/upload' && method === 'POST') {
+    return handleTlUpload(request, env, tlJson);
+  }
 
   // ── Credits ─────────────────────────────────────────────────
   if (path === '/tl/credits' && method === 'GET') {
@@ -168,7 +171,7 @@ async function handleTlSubmit(request, env, tlJson) {
 }
 
 // ── ANALYSIS PIPELINE ────────────────────────────────────────────
-async function runTlAnalysis(submission_id, company, doc_text, env) {
+async function runTlAnalysis(submission_id, company, doc_text, env, pdfBase64) {
   try {
     const companyContext = `
 Company: ${company.name}
@@ -206,17 +209,16 @@ CSD MAAA: ${company.csd_maaa ? 'Registered' : 'Not confirmed'}
       } catch(e) { /* OCDS optional */ }
     }
 
-    // Run Claude analysis
-    const prompt = `You are a South African tender bid intelligence analyst. Analyse this tender document and produce a structured bid intelligence report.
+    // Run Claude analysis — supports either pasted text or a native PDF document
+    const promptHeader = `You are a South African tender bid intelligence analyst. Analyse this tender document and produce a structured bid intelligence report.
 
 COMPANY PROFILE:
 ${companyContext}
 
 RECENT MARKET DATA (National Treasury OCDS):${ocdsContext || ' Not available for this category'}
+`;
 
-TENDER DOCUMENT:
-${doc_text.slice(0, 50000)}
-
+    const promptFooter = `
 Produce a JSON report with this exact structure:
 {
   "verdict": "GO" | "NO_GO" | "CONDITIONAL_GO",
@@ -246,6 +248,15 @@ Produce a JSON report with this exact structure:
 
 Return ONLY valid JSON. No markdown. No explanation.`;
 
+    const fullPrompt = promptHeader + (pdfBase64 ? '\nTENDER DOCUMENT: attached as PDF below.\n' : `\nTENDER DOCUMENT:\n${(doc_text||'').slice(0, 50000)}\n`) + promptFooter;
+
+    const userContent = pdfBase64
+      ? [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+          { type: 'text', text: fullPrompt },
+        ]
+      : fullPrompt;
+
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -256,7 +267,7 @@ Return ONLY valid JSON. No markdown. No explanation.`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 4096,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role: 'user', content: userContent }],
       }),
     });
 
