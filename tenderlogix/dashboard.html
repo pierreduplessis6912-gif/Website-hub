@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard — Tender Logix</title>
-<meta name="theme-color" content="#0d0d0d">
+<title>Dashboard — TenderLogix</title>
+<meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Tender Logix">
+<meta name="apple-mobile-web-app-title" content="TenderLogix">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --ink:#0d0d0d;--paper:#ffffff;--mid:#e8e4db;
+  --ink:#0a0a0a;--paper:#ffffff;
   --dark:#0a0a0a;--surface:#1c1d20;--surface2:#2a2b2f;
   --gold:#ff6b1a;--gold-light:#ff8c4a;
   --muted:rgba(255,255,255,.55);--dim:rgba(255,255,255,.32);
@@ -24,29 +24,27 @@ html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
 body{font-family:var(--body);background:var(--dark);color:var(--paper);min-height:100vh}
 
 /* ── NAV ── */
-.nav{position:sticky;top:0;z-index:100;background:rgba(17,16,8,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.nav-brand{font-family:var(--display);font-size:20px;letter-spacing:1px;color:var(--paper);text-decoration:none;flex-shrink:0}
+.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.nav-brand{font-family:var(--display);font-size:18px;letter-spacing:.5px;color:var(--paper);text-decoration:none;flex-shrink:0;text-transform:uppercase}
 .nav-brand span{color:var(--gold)}
 .nav-right{display:flex;align-items:center;gap:12px}
-.credits-pill{background:rgba(200,150,30,.12);border:1px solid rgba(200,150,30,.25);padding:6px 14px;font-family:var(--mono);font-size:12px;color:var(--gold);letter-spacing:.5px;cursor:pointer;transition:all .2s}
-.credits-pill:hover{background:rgba(200,150,30,.2)}
-.company-name{font-size:13px;color:var(--dim);font-weight:300;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.balance-pill{background:rgba(255,107,26,.12);border:1px solid rgba(255,107,26,.3);padding:7px 14px;font-family:var(--mono);font-size:12px;color:var(--gold);letter-spacing:.5px;cursor:pointer;transition:all .2s;font-weight:700}
+.balance-pill:hover{background:rgba(255,107,26,.2)}
+.company-name{font-size:12px;color:var(--dim);font-weight:300;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── HERO STRIP ── */
 .hero-strip{background:var(--surface);border-bottom:1px solid rgba(255,255,255,.06);padding:28px 20px}
 .hero-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.hero-greeting{font-family:var(--display);font-size:clamp(28px,6vw,44px);letter-spacing:-.5px;line-height:1;text-transform:uppercase}
+.hero-greeting{font-family:var(--display);font-size:clamp(26px,6vw,40px);letter-spacing:-.5px;line-height:1;text-transform:uppercase}
 .hero-greeting span{color:var(--gold)}
 .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
-.btn-gold{background:var(--gold);color:var(--ink);padding:12px 24px;font-family:var(--body);font-size:12px;font-weight:700;border:none;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:background .2s;text-decoration:none;display:inline-block}
+.btn-gold{background:var(--gold);color:var(--ink);padding:12px 22px;font-family:var(--body);font-size:12px;font-weight:700;border:none;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:background .2s;text-decoration:none;display:inline-block}
 .btn-gold:hover{background:var(--gold-light)}
-.btn-outline{background:transparent;color:var(--paper);padding:12px 24px;font-family:var(--body);font-size:13px;font-weight:400;border:1px solid rgba(255,255,255,.2);cursor:pointer;letter-spacing:.3px;transition:all .2s;text-decoration:none;display:inline-block}
+.btn-outline{background:transparent;color:var(--paper);padding:12px 22px;font-family:var(--body);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.2);cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:all .2s;text-decoration:none;display:inline-block}
 .btn-outline:hover{border-color:var(--paper)}
 
 /* ── LAYOUT ── */
 .page{max-width:720px;margin:0 auto;padding:24px 20px 80px}
-
-/* ── SECTION ── */
 .section{margin-bottom:40px}
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .section-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dim)}
@@ -56,107 +54,121 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
 /* ── STATS ROW ── */
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);margin-bottom:24px}
 .stat{background:var(--surface);padding:20px 16px;text-align:center}
-.stat-val{font-family:var(--display);font-size:36px;letter-spacing:.5px;color:var(--gold);line-height:1;margin-bottom:4px}
-.stat-lbl{font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;font-family:var(--mono)}
+.stat-val{font-family:var(--display);font-size:32px;letter-spacing:-.5px;color:var(--gold);line-height:1;margin-bottom:4px}
+.stat-lbl{font-size:9px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;font-family:var(--mono)}
+
+/* ── PRICING LADDER (info strip) ── */
+.ladder{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.06);margin-bottom:24px}
+.ladder-step{background:var(--surface);padding:14px 10px;text-align:center}
+.ladder-price{font-family:var(--display);font-size:18px;color:var(--gold);letter-spacing:-.3px}
+.ladder-label{font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;font-family:var(--mono);margin-top:3px}
 
 /* ── SUBMIT TENDER FORM ── */
 .submit-form{background:var(--surface);border:1px solid rgba(255,255,255,.06);padding:24px;margin-bottom:24px;display:none}
 .submit-form.open{display:block}
-.form-title{font-family:var(--display);font-size:24px;letter-spacing:-.5px;margin-bottom:20px;text-transform:uppercase}
+.form-title{font-family:var(--display);font-size:22px;letter-spacing:-.5px;margin-bottom:6px;text-transform:uppercase}
+.form-sub{font-size:12px;color:var(--dim);font-weight:300;margin-bottom:20px}
 .field{margin-bottom:16px}
-.label{font-size:12px;font-weight:500;color:var(--dim);display:block;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono)}
+.label{font-size:11px;font-weight:600;color:var(--dim);display:block;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono)}
 .input{width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);font-family:var(--body);font-size:14px;color:var(--paper);outline:none;transition:border-color .2s;border-radius:0}
 .input:focus{border-color:var(--gold)}
-textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
 .field-hint{font-size:11px;color:var(--dim);margin-top:4px;font-family:var(--mono);letter-spacing:.3px}
-.btn-submit-tender{background:var(--gold);color:var(--ink);padding:14px 32px;font-family:var(--body);font-size:14px;font-weight:500;border:none;cursor:pointer;letter-spacing:.3px;transition:opacity .2s;width:100%;margin-top:8px}
-.btn-submit-tender:hover{opacity:.85}
+.btn-submit-tender{background:var(--gold);color:var(--ink);padding:14px 32px;font-family:var(--body);font-size:13px;font-weight:700;border:none;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:background .2s;width:100%;margin-top:8px}
+.btn-submit-tender:hover{background:var(--gold-light)}
 .btn-submit-tender:disabled{opacity:.4;cursor:not-allowed}
 .file-drop{border:2px dashed rgba(255,255,255,.15);background:rgba(255,255,255,.03);padding:32px 16px;text-align:center;cursor:pointer;transition:all .2s}
 .file-drop:hover{border-color:var(--gold);background:rgba(255,107,26,.04)}
 .file-drop.has-file{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.06)}
-.file-drop-icon{font-size:28px;margin-bottom:8px}
+.file-drop-icon{font-size:26px;margin-bottom:8px}
 .file-drop-text{font-size:13px;color:var(--dim);font-weight:300}
-.or-divider{display:flex;align-items:center;gap:12px;margin:14px 0;color:var(--dim);font-size:11px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase}
+.or-divider{display:flex;align-items:center;gap:12px;margin:14px 0;color:var(--dim);font-size:10px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase}
 .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08)}
-.btn-wa{display:block;width:100%;padding:14px;background:rgba(37,211,102,.1);color:#25D366;border:1px solid rgba(37,211,102,.3);text-align:center;text-decoration:none;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.3px;transition:all .2s;text-transform:uppercase}
+.btn-wa{display:block;width:100%;padding:13px;background:rgba(37,211,102,.1);color:#25D366;border:1px solid rgba(37,211,102,.3);text-align:center;text-decoration:none;font-family:var(--body);font-size:12px;font-weight:700;letter-spacing:.5px;transition:all .2s;text-transform:uppercase}
 .btn-wa:hover{background:rgba(37,211,102,.18)}
 
 /* ── SUBMISSIONS ── */
-.submission-card{background:var(--surface);border-bottom:1px solid rgba(255,255,255,.06);padding:18px 20px;display:flex;align-items:center;gap:16px}
+.submission-card{background:var(--surface);border-bottom:1px solid rgba(255,255,255,.06);padding:18px 20px}
 .submission-card:first-child{border-top:1px solid rgba(255,255,255,.06)}
-.sub-icon{font-size:20px;flex-shrink:0}
+.sub-top{display:flex;align-items:center;gap:14px}
+.sub-icon{font-size:18px;flex-shrink:0}
 .sub-info{flex:1;min-width:0}
 .sub-title{font-size:14px;font-weight:500;color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
-.sub-meta{font-size:11px;color:var(--dim);font-family:var(--mono);letter-spacing:.3px}
+.sub-meta{font-size:10px;color:var(--dim);font-family:var(--mono);letter-spacing:.3px}
 .sub-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
-.badge{font-size:9px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;padding:3px 10px;border-radius:0}
-.badge-go{background:rgba(45,158,95,.15);color:#2d9e5f;border:1px solid rgba(45,158,95,.25)}
-.badge-nogo{background:rgba(192,57,43,.15);color:#e74c3c;border:1px solid rgba(192,57,43,.25)}
-.badge-cond{background:rgba(212,130,10,.15);color:#d4820a;border:1px solid rgba(212,130,10,.25)}
-.badge-proc{background:rgba(200,150,30,.1);color:var(--gold);border:1px solid rgba(200,150,30,.2)}
+.badge{font-size:9px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;padding:3px 10px}
+.badge-go{background:rgba(46,204,113,.15);color:#2ecc71;border:1px solid rgba(46,204,113,.25)}
+.badge-nogo{background:rgba(255,71,87,.15);color:#ff4757;border:1px solid rgba(255,71,87,.25)}
+.badge-cond{background:rgba(255,107,26,.15);color:#ff6b1a;border:1px solid rgba(255,107,26,.25)}
+.badge-proc{background:rgba(255,107,26,.1);color:var(--gold);border:1px solid rgba(255,107,26,.2)}
 .badge-pend{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid rgba(255,255,255,.1)}
+.tier-badge{font-size:9px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;padding:2px 8px;background:rgba(255,255,255,.06);color:var(--dim);display:inline-block;margin-top:6px}
+.tier-badge.tier-pricing{color:var(--gold);background:rgba(255,107,26,.08)}
+.tier-badge.tier-bidpack{color:#2ecc71;background:rgba(46,204,113,.08)}
 .view-link{font-size:11px;color:var(--gold);text-decoration:none;letter-spacing:.3px;font-family:var(--mono)}
 .view-link:hover{opacity:.75}
+.sub-upsell{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sub-upsell-text{font-size:11px;color:var(--dim);font-weight:300;line-height:1.5;flex:1;min-width:160px}
+.btn-upgrade{background:transparent;border:1px solid var(--gold);color:var(--gold);padding:8px 16px;font-family:var(--body);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.4px;text-transform:uppercase;transition:all .2s;white-space:nowrap}
+.btn-upgrade:hover{background:rgba(255,107,26,.1)}
 .empty-state{background:var(--surface);padding:48px 20px;text-align:center;border:1px solid rgba(255,255,255,.06)}
-.empty-icon{font-size:36px;margin-bottom:12px}
-.empty-title{font-size:15px;font-weight:500;color:var(--paper);margin-bottom:6px}
+.empty-icon{font-size:32px;margin-bottom:12px}
+.empty-title{font-size:15px;font-weight:600;color:var(--paper);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
 .empty-sub{font-size:13px;color:var(--dim);font-weight:300;line-height:1.6}
 
 /* ── PRODUCTS ── */
 .products-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.06)}
 .product-card{background:var(--surface);padding:20px;cursor:pointer;transition:background .15s}
 .product-card:hover{background:var(--surface2)}
-.product-card.featured{background:rgba(200,150,30,.08);border:1px solid rgba(200,150,30,.15)}
-.product-icon{font-size:22px;margin-bottom:10px}
-.product-name{font-size:14px;font-weight:500;color:var(--paper);margin-bottom:4px}
+.product-card.featured{background:rgba(255,107,26,.08);border:1px solid rgba(255,107,26,.2)}
+.product-icon{font-size:20px;margin-bottom:10px}
+.product-name{font-size:13px;font-weight:600;color:var(--paper);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
 .product-desc{font-size:12px;color:var(--dim);font-weight:300;line-height:1.5;margin-bottom:10px}
 .product-price{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.5px}
 
 /* ── PROFILE ── */
 .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.06)}
 .profile-item{background:var(--surface);padding:16px 18px}
-.profile-label{font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;font-family:var(--mono);margin-bottom:4px}
+.profile-label{font-size:9px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;font-family:var(--mono);margin-bottom:4px}
 .profile-val{font-size:14px;color:var(--paper);font-weight:300}
-.profile-val.missing{color:rgba(192,57,43,.8);font-style:italic;font-size:12px}
+.profile-val.missing{color:rgba(255,71,87,.85);font-style:italic;font-size:12px}
 
-/* ── CREDITS MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:flex-end;justify-content:center}
+/* ── BALANCE MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .modal-overlay.open{display:flex}
 .modal{background:var(--surface);width:100%;max-width:480px;padding:32px 24px;border-top:2px solid var(--gold)}
-.modal-title{font-family:var(--display);font-size:24px;letter-spacing:-.5px;margin-bottom:6px;text-transform:uppercase}
-.modal-sub{font-size:13px;color:var(--dim);margin-bottom:24px;font-weight:300}
-.credit-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
-.credit-opt{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);padding:16px 8px;text-align:center;cursor:pointer;transition:all .2s}
-.credit-opt:hover,.credit-opt.selected{background:rgba(200,150,30,.1);border-color:var(--gold)}
-.credit-opt-amount{font-family:var(--display);font-size:28px;color:var(--gold);line-height:1;margin-bottom:4px}
-.credit-opt-price{font-size:12px;color:var(--dim);font-family:var(--mono)}
-.credit-opt-label{font-size:10px;color:var(--paper);margin-top:4px;font-family:var(--mono);letter-spacing:.5px}
-.btn-buy{background:var(--gold);color:var(--ink);padding:14px;font-family:var(--body);font-size:14px;font-weight:500;border:none;cursor:pointer;width:100%;letter-spacing:.3px;transition:opacity .2s;margin-bottom:10px}
-.btn-buy:hover{opacity:.85}
-.btn-close{background:transparent;color:var(--dim);padding:12px;font-family:var(--body);font-size:13px;border:1px solid rgba(255,255,255,.1);cursor:pointer;width:100%;letter-spacing:.3px;transition:all .2s}
+.modal-title{font-family:var(--display);font-size:22px;letter-spacing:-.5px;margin-bottom:6px;text-transform:uppercase}
+.modal-sub{font-size:13px;color:var(--dim);margin-bottom:22px;font-weight:300}
+.amount-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.amount-opt{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);padding:14px 8px;text-align:center;cursor:pointer;transition:all .2s}
+.amount-opt:hover,.amount-opt.selected{background:rgba(255,107,26,.1);border-color:var(--gold)}
+.amount-opt-val{font-family:var(--display);font-size:20px;color:var(--gold);line-height:1}
+.custom-amount{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.custom-amount .input{flex:1}
+.btn-buy{background:var(--gold);color:var(--ink);padding:14px;font-family:var(--body);font-size:13px;font-weight:700;border:none;cursor:pointer;width:100%;letter-spacing:.5px;text-transform:uppercase;transition:background .2s;margin-bottom:10px}
+.btn-buy:hover{background:var(--gold-light)}
+.btn-close{background:transparent;color:var(--dim);padding:12px;font-family:var(--body);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1);cursor:pointer;width:100%;letter-spacing:.5px;text-transform:uppercase;transition:all .2s}
 .btn-close:hover{color:var(--paper);border-color:rgba(255,255,255,.3)}
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:12px 24px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999;font-family:var(--mono);letter-spacing:.3px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:12px 24px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999;font-family:var(--mono);letter-spacing:.3px;max-width:90vw;text-overflow:ellipsis;overflow:hidden}
 .toast.show{opacity:1}
 
 /* ── REPORT VIEWER ── */
 .report-overlay{position:fixed;inset:0;background:var(--dark);z-index:300;overflow-y:auto;display:none}
 .report-overlay.open{display:block}
-.report-nav{position:sticky;top:0;background:rgba(17,16,8,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px;display:flex;align-items:center;gap:16px}
-.report-back{font-size:13px;color:var(--gold);cursor:pointer;background:none;border:none;font-family:var(--body);letter-spacing:.3px}
+.report-nav{position:sticky;top:0;background:rgba(10,10,10,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px;display:flex;align-items:center;gap:16px}
+.report-back{font-size:13px;color:var(--gold);cursor:pointer;background:none;border:none;font-family:var(--body);letter-spacing:.3px;font-weight:600}
 .report-title{font-size:14px;font-weight:500;color:var(--paper)}
 .report-body{max-width:720px;margin:0 auto;padding:32px 20px 80px}
 .verdict-banner{padding:24px;margin-bottom:28px;text-align:center}
-.verdict-banner.go{background:rgba(45,158,95,.1);border:1px solid rgba(45,158,95,.2)}
-.verdict-banner.no_go{background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.2)}
-.verdict-banner.conditional_go{background:rgba(212,130,10,.1);border:1px solid rgba(212,130,10,.2)}
-.verdict-label{font-family:var(--display);font-size:48px;letter-spacing:-.5px;margin-bottom:8px;text-transform:uppercase}
-.verdict-label.go{color:#2d9e5f}
-.verdict-label.no_go{color:#e74c3c}
-.verdict-label.conditional_go{color:#d4820a}
-.verdict-summary{font-size:15px;color:var(--dim);font-weight:300;line-height:1.7}
+.verdict-banner.go{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.25)}
+.verdict-banner.no_go{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.25)}
+.verdict-banner.conditional_go{background:rgba(255,107,26,.1);border:1px solid rgba(255,107,26,.25)}
+.verdict-label{font-family:var(--display);font-size:42px;letter-spacing:-.5px;margin-bottom:8px;text-transform:uppercase}
+.verdict-label.go{color:#2ecc71}
+.verdict-label.no_go{color:#ff4757}
+.verdict-label.conditional_go{color:#ff6b1a}
+.verdict-summary{font-size:14px;color:var(--dim);font-weight:300;line-height:1.7}
 .report-section{margin-bottom:32px}
 .report-section-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
 .check-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
@@ -164,15 +176,20 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
 .check-icon{font-size:14px;flex-shrink:0;margin-top:2px}
 .check-text{font-size:13px;color:var(--paper);font-weight:400;flex:1}
 .check-notes{font-size:11px;color:var(--dim);margin-top:3px;font-weight:300;line-height:1.5}
-.risk-high{color:#e74c3c}
-.risk-medium{color:#d4820a}
-.risk-low{color:#2d9e5f}
+.risk-high{color:#ff4757}
+.risk-medium{color:#ff6b1a}
+.risk-low{color:#2ecc71}
 .boq-table{width:100%;border-collapse:collapse}
 .boq-table th{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08)}
 .boq-table td{font-size:12px;color:var(--paper);padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)}
 .boq-table tr:last-child td{border-bottom:none}
-.boq-total{background:rgba(200,150,30,.08);font-weight:500}
+.boq-total{background:rgba(255,107,26,.08);font-weight:600}
 .disclaimer{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:16px;font-size:11px;color:var(--dim);line-height:1.7;font-family:var(--mono);letter-spacing:.2px;margin-top:24px}
+.locked-section{background:rgba(255,107,26,.06);border:1px dashed rgba(255,107,26,.3);padding:24px;text-align:center;margin-bottom:32px}
+.locked-icon{font-size:28px;margin-bottom:10px}
+.locked-title{font-family:var(--display);font-size:18px;color:var(--gold);text-transform:uppercase;letter-spacing:-.3px;margin-bottom:8px}
+.locked-body{font-size:13px;color:var(--dim);font-weight:300;line-height:1.7;margin-bottom:18px;max-width:440px;margin-left:auto;margin-right:auto}
+.submission-doc{background:var(--surface);border:1px solid rgba(255,255,255,.08);padding:24px;font-size:13px;line-height:1.8;color:var(--paper);white-space:pre-wrap;font-family:var(--body)}
 
 @media(min-width:480px){
   .stats-row{grid-template-columns:repeat(3,1fr)}
@@ -185,14 +202,14 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
 <nav class="nav">
   <a href="/" class="nav-brand">Tender<span>Logix</span></a>
   <div class="nav-right">
-    <div class="credits-pill" onclick="openCreditsModal()" id="creditsPill">⚡ — credits</div>
+    <div class="balance-pill" onclick="openBalanceModal()" id="balancePill">R— balance</div>
     <div class="company-name" id="navCompany">Loading...</div>
   </div>
 </nav>
 
 <div class="hero-strip">
   <div class="hero-inner">
-    <div class="hero-greeting">Good day, <span id="heroName">—</span></div>
+    <div class="hero-greeting">Welcome, <span id="heroName">—</span></div>
     <div class="hero-actions">
       <button class="btn-gold" onclick="toggleSubmitForm()">+ Analyse Tender</button>
       <a href="/register" class="btn-outline">Edit Profile</a>
@@ -200,12 +217,20 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
   </div>
 </div>
 
-<!-- Submit Tender Form -->
 <div class="page">
+  <!-- Pricing ladder -->
+  <div class="ladder">
+    <div class="ladder-step"><div class="ladder-price">R20</div><div class="ladder-label">Go / No-Go</div></div>
+    <div class="ladder-step"><div class="ladder-price">R750</div><div class="ladder-label">Full Pricing</div></div>
+    <div class="ladder-step"><div class="ladder-price">R2,500</div><div class="ladder-label">Bid Pack</div></div>
+  </div>
+
+  <!-- Submit Tender Form -->
   <div class="submit-form" id="submitForm">
     <div class="form-title">Analyse a Tender</div>
+    <p class="form-sub">R20 — verdict, eligibility, compliance &amp; risk flags. Upgrade any result later for full pricing or a submission-ready pack.</p>
     <div class="field">
-      <label class="label">Tender Reference <span style="color:var(--dim);text-transform:none;letter-spacing:0;font-size:11px">optional</span></label>
+      <label class="label">Tender Reference <span style="text-transform:none;letter-spacing:0">optional</span></label>
       <input class="input" id="tenderRef" type="text" placeholder="e.g. RFQ-1022-2025">
     </div>
     <div class="field">
@@ -215,7 +240,7 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
         <div class="file-drop-icon">📄</div>
         <div class="file-drop-text" id="fileDropText">Tap to select a PDF — up to 32MB</div>
       </div>
-      <div class="field-hint">We analyse the document directly — no need to copy or retype anything.</div>
+      <div class="field-hint">We analyse the document directly — no need to retype anything.</div>
     </div>
     <button class="btn-submit-tender" id="btnAnalyse" onclick="submitTender()" disabled>Upload a PDF First</button>
     <div class="or-divider"><span>or</span></div>
@@ -225,7 +250,7 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
   <!-- Stats -->
   <div class="section">
     <div class="stats-row" id="statsRow">
-      <div class="stat"><div class="stat-val" id="statCredits">—</div><div class="stat-lbl">Credits</div></div>
+      <div class="stat"><div class="stat-val" id="statBalance">—</div><div class="stat-lbl">Balance</div></div>
       <div class="stat"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Analyses</div></div>
       <div class="stat"><div class="stat-val" id="statWins">—</div><div class="stat-lbl">GO Verdicts</div></div>
     </div>
@@ -240,8 +265,8 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
     <div id="submissionsList">
       <div class="empty-state">
         <div class="empty-icon">🎯</div>
-        <div class="empty-title">No analyses yet</div>
-        <p class="empty-sub">Tap "Analyse Tender" to submit your first tender document and get an instant Go/No-Go verdict.</p>
+        <div class="empty-title">No Analyses Yet</div>
+        <p class="empty-sub">Tap "Analyse Tender" to submit your first tender document and get an instant Go/No-Go verdict for R20.</p>
       </div>
     </div>
   </div>
@@ -252,40 +277,34 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
       <div class="section-title">Available Services</div>
     </div>
     <div class="products-grid">
-      <div class="product-card featured" onclick="openCreditsModal()">
+      <div class="product-card featured" onclick="openBalanceModal()">
         <div class="product-icon">⚡</div>
-        <div class="product-name">Top Up Credits</div>
-        <p class="product-desc">Each credit = one Go/No-Go analysis with full compliance check and pricing.</p>
-        <div class="product-price">FROM R199 · 10 CREDITS</div>
+        <div class="product-name">Top Up Balance</div>
+        <p class="product-desc">Add funds to your account. Spend exactly what each analysis costs — no fixed packages.</p>
+        <div class="product-price">PAY ONLY FOR WHAT YOU USE</div>
       </div>
-      <div class="product-card" onclick="showToast('Coming soon — Compliance Audit')">
-        <div class="product-icon">✅</div>
-        <div class="product-name">Compliance Audit</div>
-        <p class="product-desc">Upload your company docs — we tell you what's missing before you bid.</p>
-        <div class="product-price">R750 ONCE-OFF</div>
+      <div class="product-card" onclick="toggleSubmitForm()">
+        <div class="product-icon">🎯</div>
+        <div class="product-name">Go / No-Go</div>
+        <p class="product-desc">Verdict, eligibility, compliance checklist and risk flags for any tender.</p>
+        <div class="product-price">R20 PER ANALYSIS</div>
       </div>
-      <div class="product-card" onclick="showToast('Coming soon — Full Bid Pack')">
+      <div class="product-card" onclick="showToast('Upgrade any existing analysis from its card below')">
+        <div class="product-icon">📊</div>
+        <div class="product-name">Full Pricing Pack</div>
+        <p class="product-desc">Priced BOQ, named competitor awards, and the complete action list to gain an edge.</p>
+        <div class="product-price">R750 — UPGRADE ANY ANALYSIS</div>
+      </div>
+      <div class="product-card" onclick="showToast('Upgrade any existing analysis from its card below')">
         <div class="product-icon">📄</div>
         <div class="product-name">Full Bid Pack</div>
-        <p class="product-desc">Complete submission document with BOQ, cover letter and compliance checklist.</p>
-        <div class="product-price">R2,500 ONCE-OFF</div>
-      </div>
-      <div class="product-card" onclick="showToast('Coming soon — Tender Alerts')">
-        <div class="product-icon">🔔</div>
-        <div class="product-name">Tender Alerts</div>
-        <p class="product-desc">Daily alerts for new tenders matching your industries and provinces.</p>
-        <div class="product-price">R299/MONTH</div>
-      </div>
-      <div class="product-card" onclick="showToast('Coming soon — Competitor Intel')">
-        <div class="product-icon">📊</div>
-        <div class="product-name">Competitor Intel</div>
-        <p class="product-desc">See who wins in your category, at what price, and how often.</p>
-        <div class="product-price">R750 ONCE-OFF</div>
+        <p class="product-desc">Everything in Pricing, plus a formatted, submission-ready document.</p>
+        <div class="product-price">R2,500 — UPGRADE ANY ANALYSIS</div>
       </div>
       <div class="product-card" onclick="window.open('https://websitehub.co.za','_blank')">
         <div class="product-icon">🌐</div>
         <div class="product-name">Business Website</div>
-        <p class="product-desc">Professional website built from your Google profile. Required for many tenders.</p>
+        <p class="product-desc">Professional web presence built from your Google profile — often required documentation.</p>
         <div class="product-price">FROM R699/MONTH</div>
       </div>
     </div>
@@ -308,30 +327,27 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
   </div>
 </div>
 
-<!-- Credits Modal -->
-<div class="modal-overlay" id="creditsModal" onclick="closeCreditsModal(event)">
+<!-- Balance Modal -->
+<div class="modal-overlay" id="balanceModal" onclick="closeBalanceModal(event)">
   <div class="modal">
-    <div class="modal-title">Top Up Credits</div>
-    <p class="modal-sub">Each credit = one full Go/No-Go analysis with compliance check and pricing benchmarks.</p>
-    <div class="credit-options">
-      <div class="credit-opt selected" data-credits="10" data-amount="199" onclick="selectCredit(this)">
-        <div class="credit-opt-amount">10</div>
-        <div class="credit-opt-price">R199</div>
-        <div class="credit-opt-label">STARTER</div>
+    <div class="modal-title">Top Up Balance</div>
+    <p class="modal-sub">Add funds to your account. R20 per Go/No-Go, R750 for full pricing, R2,500 for a complete bid pack — spend exactly what you need.</p>
+    <div class="amount-options">
+      <div class="amount-opt selected" data-amount="100" onclick="selectAmount(this)">
+        <div class="amount-opt-val">R100</div>
       </div>
-      <div class="credit-opt" data-credits="30" data-amount="499" onclick="selectCredit(this)">
-        <div class="credit-opt-amount">30</div>
-        <div class="credit-opt-price">R499</div>
-        <div class="credit-opt-label">GROWTH</div>
+      <div class="amount-opt" data-amount="500" onclick="selectAmount(this)">
+        <div class="amount-opt-val">R500</div>
       </div>
-      <div class="credit-opt" data-credits="75" data-amount="999" onclick="selectCredit(this)">
-        <div class="credit-opt-amount">75</div>
-        <div class="credit-opt-price">R999</div>
-        <div class="credit-opt-label">SERIOUS</div>
+      <div class="amount-opt" data-amount="2000" onclick="selectAmount(this)">
+        <div class="amount-opt-val">R2,000</div>
       </div>
     </div>
-    <button class="btn-buy" id="btnBuy" onclick="buyCredits()">Pay R199 →</button>
-    <button class="btn-close" onclick="closeCreditsModal()">Cancel</button>
+    <div class="custom-amount">
+      <input class="input" id="customAmount" type="number" placeholder="Or enter a custom amount" min="20" step="10" oninput="customAmountChanged(this)">
+    </div>
+    <button class="btn-buy" id="btnBuy" onclick="buyBalance()">Pay R100 →</button>
+    <button class="btn-close" onclick="closeBalanceModal()">Cancel</button>
   </div>
 </div>
 
@@ -349,32 +365,30 @@ textarea.input{min-height:160px;resize:vertical;font-size:13px;line-height:1.6}
 <script>
 var companyId = location.pathname.split('/dashboard/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
 var companyData = null;
-var selectedCredit = { credits: 10, amount: 199 };
+var selectedAmount = 100;
+var currentReportSubmissionId = null;
 
 function showToast(msg, color) {
   var t = document.getElementById('toast');
   t.textContent = msg;
-  t.style.background = color || 'var(--paper)';
-  t.style.color = color ? '#fff' : 'var(--ink)';
+  t.style.background = color || '#ffffff';
+  t.style.color = color ? '#fff' : '#0a0a0a';
   t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 3000);
+  setTimeout(function() { t.classList.remove('show'); }, 3500);
 }
 
 async function loadDashboard() {
-  if (!companyId) {
-    window.location.href = '/register';
-    return;
-  }
+  if (!companyId) { window.location.href = '/register'; return; }
   try {
     var res = await fetch('/tl/company?id=' + companyId);
     var d = await res.json();
-    if (d.error) { showToast('Session expired — please register again', '#c0392b'); setTimeout(function(){window.location.href='/register'},2000); return; }
+    if (d.error) { showToast('Session expired — please register again', '#ff4757'); setTimeout(function(){window.location.href='/register'},2000); return; }
     companyData = d;
     var firstName = (d.client_name || d.name || '').split(' ')[0];
     document.getElementById('heroName').textContent = firstName || d.name;
     document.getElementById('navCompany').textContent = d.name;
-    document.getElementById('creditsPill').textContent = '⚡ ' + (d.credits || 0) + ' credits';
-    document.getElementById('statCredits').textContent = d.credits || 0;
+    document.getElementById('balancePill').textContent = 'R' + (d.balance || 0) + ' balance';
+    document.getElementById('statBalance').textContent = 'R' + (d.balance || 0);
     document.getElementById('pCompany').textContent = d.name || '—';
     document.getElementById('pReg').innerHTML = d.reg_number || '<span class="missing">Not added</span>';
     document.getElementById('pBee').innerHTML = d.bee_level ? 'Level ' + d.bee_level : '<span class="missing">Not added</span>';
@@ -388,8 +402,14 @@ async function loadDashboard() {
     document.getElementById('waSubmitBtn').href = 'https://wa.me/27840142017?text=' + waMsg;
     await loadSubmissions();
   } catch(e) {
-    showToast('Could not load dashboard', '#c0392b');
+    showToast('Could not load dashboard', '#ff4757');
   }
+}
+
+function tierLabel(tier) {
+  if (tier === 'bidpack') return 'BID PACK';
+  if (tier === 'pricing') return 'FULL PRICING';
+  return 'GO/NO-GO';
 }
 
 async function loadSubmissions() {
@@ -401,19 +421,90 @@ async function loadSubmissions() {
     document.getElementById('statWins').textContent = subs.filter(function(s){return s.verdict==='GO'}).length;
     if (!subs.length) return;
     document.getElementById('submissionsList').innerHTML = subs.map(function(s) {
-      var badge = '';
-      var icon = '📋';
+      var badge = '', icon = '📋';
       if (s.verdict==='GO') { badge='<span class="badge badge-go">GO</span>'; icon='✅'; }
       else if (s.verdict==='NO_GO') { badge='<span class="badge badge-nogo">NO GO</span>'; icon='❌'; }
       else if (s.verdict==='CONDITIONAL_GO') { badge='<span class="badge badge-cond">CONDITIONAL</span>'; icon='⚠️'; }
       else if (s.status==='processing') { badge='<span class="badge badge-proc">ANALYSING...</span>'; icon='⏳'; }
       else { badge='<span class="badge badge-pend">PENDING</span>'; icon='📋'; }
+
+      var tier = s.tier || 'gonogo';
+      var tierCls = tier === 'bidpack' ? 'tier-bidpack' : tier === 'pricing' ? 'tier-pricing' : '';
+      var tierHtml = '<span class="tier-badge ' + tierCls + '">' + tierLabel(tier) + ' · R' + (s.amount_paid||20) + '</span>';
+
       var title = s.tender_title || s.tender_ref || 'Untitled Tender';
       var date = new Date(s.created_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
       var viewLink = s.status==='complete' ? '<a href="#" class="view-link" onclick="viewReport(\''+s.id+'\');return false">View Report →</a>' : '';
-      return '<div class="submission-card"><div class="sub-icon">'+icon+'</div><div class="sub-info"><div class="sub-title">'+title+'</div><div class="sub-meta">'+date+'</div></div><div class="sub-right">'+badge+viewLink+'</div></div>';
+
+      var upsell = '';
+      if (s.status === 'complete' && tier === 'gonogo') {
+        upsell = '<div class="sub-upsell"><div class="sub-upsell-text">Unlock full priced BOQ &amp; competitor data for this tender</div><button class="btn-upgrade" onclick="upgradeSubmission(\''+s.id+'\',\'pricing\')">Upgrade · R750</button></div>';
+      } else if (s.status === 'complete' && tier === 'pricing') {
+        upsell = '<div class="sub-upsell"><div class="sub-upsell-text">Get a submission-ready Bid Pack for this tender</div><button class="btn-upgrade" onclick="upgradeSubmission(\''+s.id+'\',\'bidpack\')">Upgrade · R' + (2500-(s.amount_paid||750)) + '</button></div>';
+      }
+
+      return '<div class="submission-card"><div class="sub-top"><div class="sub-icon">'+icon+'</div><div class="sub-info"><div class="sub-title">'+title+'</div><div class="sub-meta">'+date+'</div>'+tierHtml+'</div><div class="sub-right">'+badge+viewLink+'</div></div>'+upsell+'</div>';
     }).join('');
   } catch(e) { console.warn('Submissions load error:', e); }
+}
+
+async function upgradeSubmission(submissionId, tier) {
+  showToast('Upgrading to ' + tierLabel(tier) + '... this takes 30-60 seconds');
+  try {
+    var res = await fetch('/tl/upgrade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submission_id: submissionId, tier: tier })
+    });
+    var d = await res.json();
+    if (res.status === 402) {
+      showToast(d.error, '#ff6b1a');
+      openBalanceModal();
+      if (d.shortfall) {
+        document.getElementById('customAmount').value = d.shortfall;
+        customAmountChanged(document.getElementById('customAmount'));
+      }
+      return;
+    }
+    if (d.error) throw new Error(d.error);
+    showToast('✅ Upgraded to ' + tierLabel(tier) + '!');
+    await loadDashboard();
+    if (d.report) setTimeout(function(){ viewReport(submissionId); }, 400);
+  } catch(e) {
+    showToast(e.message || 'Upgrade failed', '#ff4757');
+  }
+}
+
+function renderEligibility(items) {
+  if (!items?.length) return '';
+  var html = '<div class="report-section"><div class="report-section-title">Eligibility Requirements</div>';
+  items.forEach(function(e) {
+    var icon = e.status==='MET'?'✅':e.status==='UNMET'?'❌':'❓';
+    html += '<div class="check-item"><div class="check-icon">'+icon+'</div><div><div class="check-text">'+e.requirement+'</div><div class="check-notes">'+e.detail+(e.notes?'<br>'+e.notes:'')+'</div></div></div>';
+  });
+  return html + '</div>';
+}
+
+function renderCompliance(items) {
+  if (!items?.length) return '';
+  var html = '<div class="report-section"><div class="report-section-title">Compliance Checklist</div>';
+  items.forEach(function(c) {
+    var cls = 'risk-'+(c.risk_level||'low').toLowerCase();
+    var icon = c.risk_level==='HIGH'?'🔴':c.risk_level==='MEDIUM'?'🟡':'🟢';
+    html += '<div class="check-item"><div class="check-icon">'+icon+'</div><div><div class="check-text">'+c.item+'</div><div class="check-notes '+cls+'">'+c.risk_level+' RISK'+(c.notes?' · '+c.notes:'')+'</div></div></div>';
+  });
+  return html + '</div>';
+}
+
+function renderRiskFlags(items) {
+  if (!items?.length) return '';
+  var html = '<div class="report-section"><div class="report-section-title">Risk Flags</div>';
+  items.forEach(function(f) {
+    var cls = 'risk-'+(f.severity||'low').toLowerCase();
+    var icon = f.severity==='HIGH'?'🔴':f.severity==='MEDIUM'?'🟡':'🟢';
+    html += '<div class="check-item"><div class="check-icon">'+icon+'</div><div><div class="check-text '+cls+'">'+f.flag+'</div><div class="check-notes">'+f.mitigation+'</div></div></div>';
+  });
+  return html + '</div>';
 }
 
 async function viewReport(submissionId) {
@@ -423,74 +514,72 @@ async function viewReport(submissionId) {
     var d = await res.json();
     if (!d.report) { showToast('Report not ready yet'); return; }
     var r = d.report;
+    var tier = d.tier || 'gonogo';
+    currentReportSubmissionId = submissionId;
     var html = '';
-    // Verdict banner
-    var cls = (r.verdict||'').toLowerCase().replace('_go','_go');
-    html += '<div class="verdict-banner '+cls+'"><div class="verdict-label '+cls+'">'+(r.verdict||'').replace('_',' ')+'</div><p class="verdict-summary">'+(r.verdict_summary||'')+'</p></div>';
-    // Eligibility
-    if (r.eligibility?.length) {
-      html += '<div class="report-section"><div class="report-section-title">Eligibility Requirements</div>';
-      r.eligibility.forEach(function(e) {
-        var icon = e.status==='MET'?'✅':e.status==='UNMET'?'❌':'❓';
-        html += '<div class="check-item"><div class="check-icon">'+icon+'</div><div><div class="check-text">'+e.requirement+'</div><div class="check-notes">'+e.detail+(e.notes?'<br>'+e.notes:'')+'</div></div></div>';
-      });
-      html += '</div>';
+
+    var cls = (r.verdict||'').toLowerCase();
+    html += '<div class="verdict-banner '+cls+'"><div class="verdict-label '+cls+'">'+(r.verdict||'').replace(/_/g,' ')+'</div><p class="verdict-summary">'+(r.verdict_summary||'')+'</p></div>';
+
+    html += renderEligibility(r.eligibility);
+    html += renderCompliance(r.compliance_checklist);
+
+    // Competitive landscape — summary at gonogo tier, full at pricing/bidpack
+    if (tier === 'gonogo' && r.competitive_landscape_summary) {
+      html += '<div class="report-section"><div class="report-section-title">Competitive Landscape</div><p style="font-size:13px;color:var(--dim);font-weight:300;line-height:1.7">'+r.competitive_landscape_summary+'</p></div>';
+    } else if (r.competitive_landscape) {
+      html += '<div class="report-section"><div class="report-section-title">Competitive Landscape</div><p style="font-size:14px;color:var(--dim);font-weight:300;line-height:1.8">'+r.competitive_landscape+'</p></div>';
     }
-    // Compliance
-    if (r.compliance_checklist?.length) {
-      html += '<div class="report-section"><div class="report-section-title">Compliance Checklist</div>';
-      r.compliance_checklist.forEach(function(c) {
-        var cls = 'risk-'+(c.risk_level||'low').toLowerCase();
-        var icon = c.risk_level==='HIGH'?'🔴':c.risk_level==='MEDIUM'?'🟡':'🟢';
-        html += '<div class="check-item"><div class="check-icon">'+icon+'</div><div><div class="check-text">'+c.item+'</div><div class="check-notes '+cls+'">'+c.risk_level+' RISK'+(c.notes?' · '+c.notes:'')+'</div></div></div>';
-      });
-      html += '</div>';
-    }
-    // BOQ
+
+    // BOQ — only present at pricing/bidpack tier
     if (r.boq?.length) {
-      html += '<div class="report-section"><div class="report-section-title">Bill of Quantities (Indicative)</div><table class="boq-table"><thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th>Conf.</th></tr></thead><tbody>';
+      html += '<div class="report-section"><div class="report-section-title">Bill Of Quantities (Indicative)</div><table class="boq-table"><thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th>Conf.</th></tr></thead><tbody>';
       r.boq.forEach(function(b) {
         html += '<tr><td>'+b.line_item+'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';
       });
       if (r.boq_totals) {
-        html += '<tr class="boq-total"><td colspan="4">Recommended Bid (30% margin)</td><td>R'+r.boq_totals.recommended_bid?.toLocaleString()+'</td><td>—</td></tr>';
+        html += '<tr class="boq-total"><td colspan="4">Recommended Bid (30% margin)</td><td colspan="2">R'+(r.boq_totals.recommended_bid||0).toLocaleString()+'</td></tr>';
       }
       html += '</tbody></table></div>';
+    } else if (tier === 'gonogo') {
+      // Locked BOQ teaser
+      html += '<div class="locked-section"><div class="locked-icon">🔒</div><div class="locked-title">Pricing Locked</div><p class="locked-body">'+(r.upsell_note || 'Unlock the full priced BOQ, named competitor awards and complete action list for this tender.')+'</p><button class="btn-upgrade" style="padding:12px 28px" onclick="upgradeSubmission(\''+submissionId+'\',\'pricing\')">Unlock Full Pricing · R750</button></div>';
     }
-    // Competitive landscape
-    if (r.competitive_landscape) {
-      html += '<div class="report-section"><div class="report-section-title">Competitive Landscape</div><p style="font-size:14px;color:var(--dim);font-weight:300;line-height:1.8">'+r.competitive_landscape+'</p></div>';
-    }
-    // Risk flags
-    if (r.risk_flags?.length) {
-      html += '<div class="report-section"><div class="report-section-title">Risk Flags</div>';
-      r.risk_flags.forEach(function(f) {
-        var cls = 'risk-'+(f.severity||'low').toLowerCase();
-        var icon = f.severity==='HIGH'?'🔴':f.severity==='MEDIUM'?'🟡':'🟢';
-        html += '<div class="check-item"><div class="check-icon">'+icon+'</div><div><div class="check-text '+cls+'">'+f.flag+'</div><div class="check-notes">'+f.mitigation+'</div></div></div>';
-      });
-      html += '</div>';
-    }
-    // Edge recommendations — how to tip a close call
+
+    html += renderRiskFlags(r.risk_flags);
+
+    // Edge recommendations — full list at pricing/bidpack, single headline at gonogo
     if (r.edge_recommendations?.length) {
       html += '<div class="report-section"><div class="report-section-title">How To Gain An Edge</div>';
       r.edge_recommendations.forEach(function(e) {
         html += '<div class="check-item"><div class="check-icon">🎯</div><div><div class="check-text">'+e.action+'</div><div class="check-notes">'+e.impact+(e.timeframe?' · '+e.timeframe:'')+'</div></div></div>';
       });
       html += '</div>';
+    } else if (r.edge_headline_tip) {
+      html += '<div class="report-section"><div class="report-section-title">Headline Tip</div><div class="check-item"><div class="check-icon">🎯</div><div class="check-text">'+r.edge_headline_tip+'</div></div></div>';
     }
-    // Future readiness — path forward on a NO_GO
+
     if (r.future_readiness) {
       html += '<div class="report-section"><div class="report-section-title">Path To Future Tenders</div><p style="font-size:14px;color:var(--dim);font-weight:300;line-height:1.8">'+r.future_readiness+'</p></div>';
     }
-    // Disclaimer
-    html += '<div class="disclaimer">'+(r.pricing_disclaimer||'All pricing is indicative and AI-assisted. Verify with your suppliers before submission.')+'</div>';
+
+    // Submission document — bidpack tier only
+    if (r.submission_document) {
+      html += '<div class="report-section"><div class="report-section-title">Submission-Ready Document</div><div class="submission-doc">'+r.submission_document+'</div></div>';
+    } else if (tier === 'pricing' && r.verdict !== 'NO_GO') {
+      html += '<div class="locked-section"><div class="locked-icon">🔒</div><div class="locked-title">Bid Pack Locked</div><p class="locked-body">Get a formatted, submission-ready document for this tender — cover letter and compliance summary, written and ready to attach.</p><button class="btn-upgrade" style="padding:12px 28px" onclick="upgradeSubmission(\''+submissionId+'\',\'bidpack\')">Unlock Bid Pack · R'+(2500-(d.amount_paid||750))+'</button></div>';
+    }
+
+    if (r.pricing_disclaimer) {
+      html += '<div class="disclaimer">'+r.pricing_disclaimer+'</div>';
+    }
+
     document.getElementById('reportBody').innerHTML = html;
     document.getElementById('reportTitle').textContent = d.tender_title || d.tender_ref || 'Analysis Report';
     document.getElementById('reportOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
   } catch(e) {
-    showToast('Could not load report', '#c0392b');
+    showToast('Could not load report', '#ff4757');
   }
 }
 
@@ -513,19 +602,19 @@ function handleFileSelect(input) {
   var text = document.getElementById('fileDropText');
   var btn = document.getElementById('btnAnalyse');
   if (!file) return;
-  if (file.type !== 'application/pdf') { showToast('Please select a PDF file', '#c0392b'); return; }
-  if (file.size > 32 * 1024 * 1024) { showToast('PDF must be under 32MB', '#c0392b'); return; }
+  if (file.type !== 'application/pdf') { showToast('Please select a PDF file', '#ff4757'); return; }
+  if (file.size > 32 * 1024 * 1024) { showToast('PDF must be under 32MB', '#ff4757'); return; }
   selectedFile = file;
   drop.classList.add('has-file');
   text.textContent = '✓ ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + 'MB)';
   btn.disabled = false;
-  btn.textContent = 'Run Analysis →';
+  btn.textContent = 'Run Analysis · R20 →';
 }
 
 async function submitTender() {
   var ref = document.getElementById('tenderRef').value.trim();
-  if (!selectedFile) { showToast('Please upload a PDF tender document', '#d4820a'); return; }
-  if (!companyData || companyData.credits < 1) { openCreditsModal(); return; }
+  if (!selectedFile) { showToast('Please upload a PDF tender document', '#ff6b1a'); return; }
+  if (!companyData || (companyData.balance || 0) < 20) { openBalanceModal(); return; }
   var btn = document.getElementById('btnAnalyse');
   btn.disabled = true; btn.textContent = 'Analysing... this takes 30-60 seconds';
   try {
@@ -536,6 +625,12 @@ async function submitTender() {
 
     var res = await fetch('/tl/upload', { method: 'POST', body: formData });
     var d = await res.json();
+    if (res.status === 402) {
+      showToast(d.error, '#ff6b1a');
+      openBalanceModal();
+      btn.disabled = false; btn.textContent = 'Run Analysis · R20 →';
+      return;
+    }
     if (d.error) throw new Error(d.error);
 
     document.getElementById('tenderRef').value = '';
@@ -545,36 +640,42 @@ async function submitTender() {
     selectedFile = null;
     document.getElementById('submitForm').classList.remove('open');
     showToast('✅ Analysis complete!');
-    companyData.credits = (companyData.credits || 1) - 1;
-    document.getElementById('creditsPill').textContent = '⚡ ' + companyData.credits + ' credits';
-    document.getElementById('statCredits').textContent = companyData.credits;
-    await loadSubmissions();
+    await loadDashboard();
     if (d.report) setTimeout(function(){ viewReport(d.id || d.submission_id); }, 500);
   } catch(e) {
-    showToast(e.message || 'Analysis failed', '#c0392b');
+    showToast(e.message || 'Analysis failed', '#ff4757');
   }
-  btn.disabled = !selectedFile; btn.textContent = selectedFile ? 'Run Analysis →' : 'Upload a PDF First';
+  btn.disabled = !selectedFile; btn.textContent = selectedFile ? 'Run Analysis · R20 →' : 'Upload a PDF First';
 }
 
-function selectCredit(el) {
-  document.querySelectorAll('.credit-opt').forEach(function(o){o.classList.remove('selected')});
+function selectAmount(el) {
+  document.querySelectorAll('.amount-opt').forEach(function(o){o.classList.remove('selected')});
   el.classList.add('selected');
-  selectedCredit = { credits: parseInt(el.dataset.credits), amount: parseInt(el.dataset.amount) };
-  document.getElementById('btnBuy').textContent = 'Pay R' + selectedCredit.amount + ' →';
+  selectedAmount = parseInt(el.dataset.amount);
+  document.getElementById('customAmount').value = '';
+  document.getElementById('btnBuy').textContent = 'Pay R' + selectedAmount + ' →';
 }
 
-function buyCredits() {
+function customAmountChanged(input) {
+  var val = parseInt(input.value);
+  if (val && val >= 20) {
+    document.querySelectorAll('.amount-opt').forEach(function(o){o.classList.remove('selected')});
+    selectedAmount = val;
+    document.getElementById('btnBuy').textContent = 'Pay R' + val + ' →';
+  }
+}
+
+function buyBalance() {
   var form = document.createElement('form');
   form.method = 'POST';
   form.action = 'https://www.payfast.co.za/eng/process';
   var fields = {
-    merchant_id: '10000100',
-    merchant_key: 'PAYFAST_MERCHANT_KEY',
+    merchant_id: '10000100', merchant_key: 'PAYFAST_MERCHANT_KEY',
     return_url: 'https://tenderlogix.co.za/dashboard/' + companyId,
     cancel_url: 'https://tenderlogix.co.za/dashboard/' + companyId,
     notify_url: 'https://tenderlogix.co.za/tl/payfast-webhook',
-    amount: (selectedCredit.amount).toFixed(2),
-    item_name: 'Tender Logix — ' + selectedCredit.credits + ' Credits',
+    amount: selectedAmount.toFixed(2),
+    item_name: 'TenderLogix — Account Top Up',
     custom_str1: companyId,
   };
   Object.entries(fields).forEach(function(e) {
@@ -586,14 +687,13 @@ function buyCredits() {
   form.submit();
 }
 
-function openCreditsModal() { document.getElementById('creditsModal').classList.add('open'); }
-function closeCreditsModal(e) {
-  if (!e || e.target === document.getElementById('creditsModal')) {
-    document.getElementById('creditsModal').classList.remove('open');
+function openBalanceModal() { document.getElementById('balanceModal').classList.add('open'); }
+function closeBalanceModal(e) {
+  if (!e || e.target === document.getElementById('balanceModal')) {
+    document.getElementById('balanceModal').classList.remove('open');
   }
 }
 
-// Auto-refresh pending submissions
 setInterval(function() {
   var pending = document.querySelectorAll('.badge-proc');
   if (pending.length) loadSubmissions();
