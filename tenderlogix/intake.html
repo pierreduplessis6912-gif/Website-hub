@@ -80,7 +80,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
     <div class="field">
       <label class="label" for="reg_number">Registration Number <span>required for free trial</span></label>
       <input class="input" id="reg_number" type="text" placeholder="e.g. 2019/123456/07">
-      <div class="err-msg" id="err_reg_number">Registration number required to unlock free trial</div>
+      <div class="err-msg" id="err_reg_number">Registration number required to unlock R100 free balance</div>
     </div>
   </div>
 
@@ -142,7 +142,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
     <div class="credits-title">Starter Pack — R199</div>
     <p class="credits-sub">EVERYTHING REQUIRED TO START WINNING</p>
     <ul class="credits-items">
-      <li>10 Go/No-Go analyses</li>
+      <li>R199 account balance to spend as you go</li>
       <li>Full compliance checklist per tender</li>
       <li>Competitive pricing benchmarks</li>
       <li>Risk flags and recommendations</li>
@@ -151,7 +151,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
   </div>
 
   <button class="btn-submit" id="btnPay" onclick="handleSubmit(true)">Create Account &amp; Pay R199</button>
-  <button class="btn-free" id="btnFree" onclick="handleSubmit(false)">Start Free — 3 Analyses</button>
+  <button class="btn-free" id="btnFree" onclick="handleSubmit(false)">Start Free — R100 Balance</button>
   <p class="fine-print">BY REGISTERING YOU AGREE TO OUR TERMS OF SERVICE AND PRIVACY POLICY · RESULTS ARE AI-ASSISTED AND INDICATIVE ONLY</p>
 </div>
 
@@ -224,7 +224,7 @@ async function handleSubmit(pay) {
     var d = await res.json();
     if (res.status === 409) {
       showToast(d.error || 'Account already exists for this phone/email');
-      btn.disabled = false; btn.textContent = pay ? 'Create Account & Pay R199' : 'Start Free — 3 Analyses';
+      btn.disabled = false; btn.textContent = pay ? 'Create Account & Pay R199' : 'Start Free — R100 Balance';
       return;
     }
     if (!d.success) throw new Error(d.error || 'Registration failed');
@@ -258,7 +258,7 @@ async function handleSubmit(pay) {
   } catch(e) {
     showToast(e.message || 'Something went wrong');
     btn.disabled = false;
-    btn.textContent = pay ? 'Create Account & Pay R199' : 'Start Free — 3 Analyses';
+    btn.textContent = pay ? 'Create Account & Pay R199' : 'Start Free — R100 Balance';
   }
 }
 </script>
