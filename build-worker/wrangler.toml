@@ -50,21 +50,3 @@ max_batch_timeout = 30
 
 [triggers]
 crons = ["0,15,30,45 * * * *"]
-
-# ── TENDER LOGIX ─────────────────────────────────────────────
-[[kv_namespaces]]
-binding = "TL_RATES"
-id = "49228ac267de47c89ff7a0d3e434bab5"
-
-[[kv_namespaces]]
-binding = "TL_META"
-id = "51eef7b814f04445b2d2d76564be7a7f"
-
-[[d1_databases]]
-binding = "TL_DB"
-database_name = "tenderlogix-db"
-database_id = "d8c0a442-eb4b-48a5-995a-9ccfad07f726"
-
-[[r2_buckets]]
-binding = "TL_DOCS"
-bucket_name = "tenderlogix-docs"
