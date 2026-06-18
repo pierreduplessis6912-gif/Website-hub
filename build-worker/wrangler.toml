@@ -39,13 +39,6 @@ database_id = "9c422081-af06-4c1b-b59e-f40e0d08fefa"
 migrations_dir = "../migrations"
 
 # Queue — build pipeline
-[[queues.producers]]
-binding = "BUILD_QUEUE"
-queue = "wh-build-queue"
-
-max_batch_size = 1
-max_batch_timeout = 30
-
 [triggers]
 crons = ["0,15,30,45 * * * *"]
 
