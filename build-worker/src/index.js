@@ -4667,9 +4667,12 @@ async function fetchHeroPhoto(brief, brandBrief, env) {
 async function handleCron(env) {
   if (isTestMode(env)) return;
 
+  const scrapeEnabled = await env.DB.prepare(`SELECT value FROM config WHERE key='scrape_enabled' LIMIT 1`).first().catch(() => null);
   const outboundEnabled = await env.DB.prepare(`SELECT value FROM config WHERE key='outbound_enabled' LIMIT 1`).first().catch(() => null);
-  if (!outboundEnabled || outboundEnabled.value !== 'true') {
-    await logEvent(env, null, 'build', 'cron_skipped', 'info', { metadata: { reason: 'outbound_enabled is false' } });
+  const scrapeOn = !scrapeEnabled || scrapeEnabled.value !== 'false';
+  const sendOn = outboundEnabled?.value === 'true';
+  if (!scrapeOn && !sendOn) {
+    await logEvent(env, null, 'build', 'cron_skipped', 'info', { metadata: { reason: 'both scrape and outbound disabled' } });
     return;
   }
 
@@ -4678,8 +4681,7 @@ async function handleCron(env) {
   const scrapeLimit    = parseInt(scrapeLimitRow?.value || '18');
   const hourlyLimit    = Math.ceil((parseInt(sendLimitRow?.value || '44') / 24));
   const batchSize      = Math.min(hourlyLimit, 3); // 3 per 15min = 12/hour staggered
-  const MAX_POOL       = 100;
-  const TOP_UP_AT      = 50;
+  // No pool limit — scrape continuously
 
   // ── SCRAPE — runs 24/7, fills pool up to MAX_POOL ────────────────────────
   const pendingCount = await env.DB.prepare(
@@ -4687,7 +4689,7 @@ async function handleCron(env) {
   ).first().catch(() => ({ total: 0 }));
   const poolSize = pendingCount?.total || 0;
 
-  if (poolSize < TOP_UP_AT) {
+  if (scrapeOn) {
     try {
       // Suburb-level queries — maximum variety, avoids repeat top-20 results
       const INDUSTRIES = [
@@ -4731,7 +4733,7 @@ async function handleCron(env) {
       const industry = INDUSTRIES[Math.floor(Math.random() * INDUSTRIES.length)];
       const area     = AREAS[Math.floor(Math.random() * AREAS.length)];
       const query    = `${industry} in ${area} South Africa`;
-      const needed   = Math.min(MAX_POOL - poolSize, scrapeLimit);
+      const needed   = scrapeLimit;
 
       const res = await fetch('https://classictouchsalon.co.za/places-proxy.php', {
         method: 'POST',
@@ -4780,10 +4782,10 @@ async function handleCron(env) {
     } catch(e) { console.warn('Cron scrape error:', e?.message); }
   }
 
-  // ── SEND — only 08:00-20:00 SAST ─────────────────────────────────────────
+  // ── SEND — only 08:00-20:00 SAST and outbound enabled ────────────────────
   const nowUtc   = new Date();
   const sastHour = (nowUtc.getUTCHours() + 2) % 24;
-  if (sastHour < 8 || sastHour >= 20) return;
+  if (!sendOn || sastHour < 8 || sastHour >= 20) return;
 
   await logEvent(env, null, 'build', 'cron_run', 'success', { metadata: { trigger: 'scheduled', batchSize, sastHour, poolSize } });
 
