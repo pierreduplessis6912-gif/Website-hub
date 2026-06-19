@@ -959,6 +959,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
   ];
 
   let extraction;
+  let rawAiResponseForDebug = null;
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -966,10 +967,25 @@ Return ONLY valid JSON, no markdown, no explanation.`;
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: userContent }] }),
     });
     const aiData = await aiRes.json();
+    rawAiResponseForDebug = aiData;
+
+    if (!aiRes.ok) {
+      // Anthropic API itself returned an error (e.g. unsupported media_type like image/heic,
+      // file too large for the API, auth issue) — this is NOT Claude making a judgment call,
+      // this is the request never reaching Claude's actual analysis at all.
+      console.error('TL compliance upload — Anthropic API error:', aiRes.status, 'company:', company_id, 'doc_type:', doc_type_id, 'file_type:', file.type, 'file_name:', file.name, 'response:', JSON.stringify(aiData));
+      throw new Error(`Anthropic API returned ${aiRes.status}: ${JSON.stringify(aiData).slice(0,200)}`);
+    }
+
     const rawText = aiData.content?.[0]?.text || '{}';
     extraction = JSON.parse(rawText.replace(/```json|```/g, '').trim());
   } catch(e) {
-    extraction = { is_correct_doc_type: null, extracted_value: null, expiry_date: null, confidence: 'low', notes: 'Automatic extraction failed — please re-upload or contact support.' };
+    console.error('TL compliance upload — extraction failed:', e.message, 'company:', company_id, 'doc_type:', doc_type_id, 'file_type:', file.type, 'file_name:', file.name, 'raw response snippet:', JSON.stringify(rawAiResponseForDebug)?.slice(0,500));
+
+    // IMPORTANT: a failed extraction must be treated with AT LEAST as much caution as a
+    // confirmed-wrong document, not less. Explicitly false (not null) so the status logic
+    // below correctly routes this to red, not a default amber.
+    extraction = { is_correct_doc_type: false, extracted_value: null, expiry_date: null, confidence: 'low', notes: 'We could not verify this document automatically — please re-upload, or try a clearer photo/PDF. If this keeps happening, contact support.' };
   }
 
   // ── Compute status from extracted expiry date ──
