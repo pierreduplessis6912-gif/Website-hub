@@ -39,10 +39,22 @@ export async function handleTenderLogix(request, env) {
   if (path === '/tl/submission'  && method === 'GET')  return handleTlGetSubmission(url, env, tlJson);
   if (path === '/tl/submissions' && method === 'GET')  return handleTlListSubmissions(url, env, tlJson);
 
-  if (path === '/tl/analyse' && method === 'POST') return handleTlAnalyse(request, env, tlJson);
-  if (path === '/tl/upload'  && method === 'POST') return handleTlUpload(request, env, tlJson);
-  if (path === '/tl/upgrade' && method === 'POST') return handleTlUpgrade(request, env, tlJson);
-  if (path === '/tl/add-documents' && method === 'POST') return handleTlAddDocuments(request, env, tlJson);
+  if (path === '/tl/analyse' && method === 'POST') {
+    try { return await handleTlAnalyse(request, env, tlJson); }
+    catch(e) { console.error('UNCAUGHT in handleTlAnalyse:', e.message, e.stack?.slice(0,500)); return tlJson({ error: `Unexpected error: ${e.message}. You have NOT been charged.`, retry_safe: true }, 500); }
+  }
+  if (path === '/tl/upload'  && method === 'POST') {
+    try { return await handleTlUpload(request, env, tlJson); }
+    catch(e) { console.error('UNCAUGHT in handleTlUpload:', e.message, e.stack?.slice(0,500)); return tlJson({ error: `Unexpected error: ${e.message}. You have NOT been charged.`, retry_safe: true }, 500); }
+  }
+  if (path === '/tl/upgrade' && method === 'POST') {
+    try { return await handleTlUpgrade(request, env, tlJson); }
+    catch(e) { console.error('UNCAUGHT in handleTlUpgrade:', e.message, e.stack?.slice(0,500)); return tlJson({ error: `Unexpected error: ${e.message}. You have NOT been charged for this upgrade.`, retry_safe: true }, 500); }
+  }
+  if (path === '/tl/add-documents' && method === 'POST') {
+    try { return await handleTlAddDocuments(request, env, tlJson); }
+    catch(e) { console.error('UNCAUGHT in handleTlAddDocuments:', e.message, e.stack?.slice(0,500)); return tlJson({ error: `Unexpected error: ${e.message}. You have NOT been charged.`, retry_safe: true }, 500); }
+  }
 
   // ── Compliance documents ──────────────────────────────────────
   if (path === '/tl/compliance/requirements' && method === 'GET')  return handleTlComplianceRequirements(url, env, tlJson);
