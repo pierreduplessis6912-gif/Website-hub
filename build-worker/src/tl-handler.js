@@ -43,6 +43,11 @@ export async function handleTenderLogix(request, env) {
   if (path === '/tl/upgrade' && method === 'POST') return handleTlUpgrade(request, env, tlJson);
   if (path === '/tl/add-documents' && method === 'POST') return handleTlAddDocuments(request, env, tlJson);
 
+  // ── Compliance documents ──────────────────────────────────────
+  if (path === '/tl/compliance/requirements' && method === 'GET')  return handleTlComplianceRequirements(url, env, tlJson);
+  if (path === '/tl/compliance/upload'       && method === 'POST') return handleTlComplianceUpload(request, env, tlJson);
+  if (path === '/tl/compliance/flag-missing' && method === 'POST') return handleTlComplianceFlagMissing(request, env, tlJson);
+
   if (path === '/tl/balance' && method === 'GET')  return handleTlGetBalance(url, env, tlJson);
   if (path === '/tl/payfast-webhook' && method === 'POST') return handleTlPayfast(request, env, tlJson);
 
@@ -496,6 +501,29 @@ async function runTlAnalysis(submission_id, company, doc_text, env, pdfDocs, tie
   // pdfDocs: array of { base64, filename } OR null. Kept as array internally;
   // single-PDF callers pass a 1-element array for consistency.
   try {
+    // ── Pull VERIFIED compliance documents — these override self-reported profile fields ──
+    const verifiedDocs = await env.TL_DB.prepare(`
+      SELECT cd.*, dt.name as doc_name FROM tl_compliance_documents cd
+      JOIN tl_doc_types dt ON cd.doc_type_id = dt.id
+      WHERE cd.company_id = ?
+    `).bind(company.id).all();
+
+    const verifiedByType = {};
+    (verifiedDocs.results || []).forEach(d => { verifiedByType[d.doc_type_id] = d; });
+
+    function complianceLine(typeId, label, selfReportedValue) {
+      const v = verifiedByType[typeId];
+      if (v && v.status !== 'red') {
+        const expiryNote = v.expiry_date ? `, valid until ${v.expiry_date}` : '';
+        return `${label}: ${v.extracted_value || 'Confirmed'} — VERIFIED via uploaded certificate${expiryNote} [status: ${v.status.toUpperCase()}]`;
+      }
+      if (v && v.status === 'red') {
+        const expiredNote = v.expiry_date ? ` (expired ${v.expiry_date})` : '';
+        return `${label}: EXPIRED${expiredNote} — uploaded certificate is no longer valid. This requirement should be treated as UNMET until renewed.`;
+      }
+      return `${label}: ${selfReportedValue || 'Not specified'} — SELF-REPORTED, NOT VERIFIED (no certificate uploaded). Treat with appropriate caution in eligibility assessment.`;
+    }
+
     const companyContext = `
 Company: ${company.name}
 Industries: ${company.industries}
@@ -503,9 +531,14 @@ Provinces: ${company.provinces}
 Years experience: ${company.years_experience}
 Annual turnover: R${(company.annual_turnover||0).toLocaleString()}
 Employees: ${company.employees}
-CIDB Grade: ${company.cidb_grade || 'Not specified'}
-B-BBEE Level: ${company.bee_level || 'Not specified'}
-CSD MAAA: ${company.csd_maaa ? 'Registered' : 'Not confirmed'}
+${complianceLine('cidb', 'CIDB Grade', company.cidb_grade)}
+${complianceLine('bee', 'B-BBEE Level', company.bee_level ? `Level ${company.bee_level}` : null)}
+${complianceLine('csd', 'CSD Registration', company.csd_maaa ? 'Registered' : null)}
+${complianceLine('tax', 'Tax Clearance', null)}
+${complianceLine('coida', 'COIDA Letter of Good Standing', null)}
+${complianceLine('pli', 'Public Liability Insurance', null)}
+
+IMPORTANT: Lines marked VERIFIED come from an actual uploaded certificate that was read and confirmed — treat these as fact. Lines marked SELF-REPORTED or NOT VERIFIED have not been confirmed by any document — apply principle 4 (mark status as UNKNOWN, don't assume compliance) for these specifically. Lines marked EXPIRED should be treated as a current compliance gap, not a future risk.
 `;
 
     // Fetch OCDS competitive intelligence — only worth the call for pricing/bidpack tiers
@@ -692,4 +725,270 @@ async function handleTlPayfast(request, env, tlJson) {
     .bind(crypto.randomUUID(), company_id, amount, params.get('pf_payment_id')||null).run();
 
   return tlJson({ ok: true });
+}
+
+// ── COMPLIANCE DOCUMENT SYSTEM ───────────────────────────────────────────
+// Self-extending: the first time an industry is encountered with no existing
+// requirements mapping, we ask Claude what's typically required and persist
+// the answer permanently — every future company in that industry then gets
+// a free, instant DB read instead of a repeat Claude call.
+
+// Normalise an industry string for consistent table lookups
+function normaliseIndustry(industry) {
+  return (industry || '').trim().toLowerCase();
+}
+
+// ── Ensure requirements exist for a given industry — triggers Claude suggestion if new ──
+async function ensureIndustryRequirements(industry, env) {
+  const norm = normaliseIndustry(industry);
+  if (!norm) return;
+
+  const existing = await env.TL_DB.prepare(
+    'SELECT COUNT(*) as cnt FROM tl_industry_doc_requirements WHERE industry=?'
+  ).bind(norm).first();
+  if ((existing?.cnt || 0) > 0) return; // already have requirements for this industry
+
+  // First time seeing this industry — ask Claude what's typically required,
+  // beyond the universal set (CIDB/B-BBEE/Tax/COIDA/CSD/PLI).
+  try {
+    const universalTypes = await env.TL_DB.prepare('SELECT id, name FROM tl_doc_types WHERE is_universal=1').all();
+    const universalList = (universalTypes.results || []).map(t => t.name).join(', ');
+
+    const prompt = `For a South African company operating in the industry "${industry}", what compliance documents, registrations, or licences are commonly required for government tender eligibility — BEYOND the universal set every bidder typically needs (${universalList})?
+
+Examples of industry-specific requirements: cleaning companies often need Bargaining Council membership; security companies need PSIRA registration; electrical contractors need ECASA/ECB registration; transport companies need an operating licence.
+
+Return ONLY this JSON:
+{
+  "requirements": [
+    { "id": "short_lowercase_slug", "name": "Display Name", "description": "one sentence explaining what it is and why it matters", "has_expiry": true, "confidence": "high" | "medium" | "low" }
+  ]
+}
+
+If this industry genuinely has no additional requirements beyond the universal set, return { "requirements": [] }. Return ONLY valid JSON, no markdown, no explanation.`;
+
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+    });
+    const aiData = await aiRes.json();
+    const rawText = aiData.content?.[0]?.text || '{}';
+    const result = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+
+    for (const req of (result.requirements || [])) {
+      // Insert the doc type if it doesn't already exist (it might, if another
+      // industry already suggested the same requirement e.g. two trades both need PSIRA)
+      await env.TL_DB.prepare(`
+        INSERT OR IGNORE INTO tl_doc_types (id, name, description, is_universal, has_expiry)
+        VALUES (?,?,?,0,?)
+      `).bind(req.id, req.name, req.description || null, req.has_expiry ? 1 : 0).run();
+
+      await env.TL_DB.prepare(`
+        INSERT INTO tl_industry_doc_requirements (id, industry, doc_type_id, source, confidence)
+        VALUES (?,?,?,'claude',?)
+      `).bind(crypto.randomUUID(), norm, req.id, req.confidence || 'medium').run();
+    }
+  } catch(e) {
+    console.warn('Industry requirement suggestion failed:', e.message);
+    // Fail silently — the company just won't see industry-specific requirements
+    // until this succeeds on a later attempt (e.g. next profile view).
+  }
+}
+
+// ── GET — compliance requirements + status for a company's dashboard strip ──
+async function handleTlComplianceRequirements(url, env, tlJson) {
+  const company_id = url.searchParams.get('company_id');
+  if (!company_id) return tlJson({ error: 'company_id required' }, 400);
+
+  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  if (!company) return tlJson({ error: 'Company not found' }, 404);
+
+  let industries = [];
+  try { industries = JSON.parse(company.industries || '[]'); } catch(e) {}
+
+  // Ensure requirements exist for every industry this company has — fires
+  // the Claude suggestion call for any genuinely new industry, no-ops otherwise.
+  for (const ind of industries) {
+    await ensureIndustryRequirements(ind, env);
+  }
+
+  // Universal doc types + industry-specific ones for this company's industries, deduped
+  const normIndustries = industries.map(normaliseIndustry);
+  const placeholders = normIndustries.map(() => '?').join(',');
+
+  const requiredTypes = normIndustries.length
+    ? await env.TL_DB.prepare(`
+        SELECT DISTINCT dt.* FROM tl_doc_types dt
+        WHERE dt.is_universal=1
+        OR dt.id IN (SELECT doc_type_id FROM tl_industry_doc_requirements WHERE industry IN (${placeholders}))
+      `).bind(...normIndustries).all()
+    : await env.TL_DB.prepare('SELECT * FROM tl_doc_types WHERE is_universal=1').all();
+
+  // Left-join against what's actually uploaded for this company
+  const uploaded = await env.TL_DB.prepare(
+    'SELECT * FROM tl_compliance_documents WHERE company_id=?'
+  ).bind(company_id).all();
+  const uploadedByType = {};
+  (uploaded.results || []).forEach(d => { uploadedByType[d.doc_type_id] = d; });
+
+  const strip = (requiredTypes.results || []).map(dt => {
+    const doc = uploadedByType[dt.id];
+    return {
+      doc_type_id: dt.id,
+      name: dt.name,
+      description: dt.description,
+      has_expiry: !!dt.has_expiry,
+      is_universal: !!dt.is_universal,
+      status: doc ? doc.status : 'missing',
+      extracted_value: doc?.extracted_value || null,
+      expiry_date: doc?.expiry_date || null,
+      uploaded_at: doc?.uploaded_at || null,
+      extraction_notes: doc?.extraction_notes || null,
+    };
+  });
+
+  return tlJson({ company_id, requirements: strip });
+}
+
+// ── POST — upload + verify a compliance certificate ──────────────────────
+async function handleTlComplianceUpload(request, env, tlJson) {
+  const contentType = request.headers.get('content-type') || '';
+  if (!contentType.includes('multipart/form-data')) {
+    return tlJson({ error: 'multipart/form-data required' }, 400);
+  }
+
+  const form = await request.formData();
+  const company_id  = form.get('company_id');
+  const doc_type_id = form.get('doc_type_id');
+  const file         = form.get('file');
+
+  if (!company_id || !doc_type_id || !file) return tlJson({ error: 'company_id, doc_type_id and file required' }, 400);
+  if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) {
+    return tlJson({ error: 'Only PDF or image files are supported' }, 400);
+  }
+  if (file.size > 20 * 1024 * 1024) return tlJson({ error: 'File must be under 20MB' }, 400);
+
+  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  if (!company) return tlJson({ error: 'Company not found' }, 404);
+
+  const docType = await env.TL_DB.prepare('SELECT * FROM tl_doc_types WHERE id=? LIMIT 1').bind(doc_type_id).first();
+  if (!docType) return tlJson({ error: 'Unknown document type' }, 404);
+
+  const buf = await file.arrayBuffer();
+  const base64 = arrayBufferToBase64(buf);
+  const isPdf = file.type === 'application/pdf';
+
+  // Tenant-namespaced R2 path — not guessable/enumerable across companies
+  const r2Key = `compliance/${company_id}/${doc_type_id}-${Date.now()}.${isPdf ? 'pdf' : 'jpg'}`;
+  await env.TL_DOCS.put(r2Key, buf, { httpMetadata: { contentType: file.type } });
+
+  // ── Claude reads the actual certificate — extraction, not trust ──
+  const prompt = `You are verifying a South African compliance certificate. The document type expected is: "${docType.name}" (${docType.description || ''}).
+
+Read the attached document and extract:
+1. Does this document genuinely appear to be a "${docType.name}" certificate/registration? (yes/no — if it's clearly the wrong document type, say so)
+2. The company/entity name on the certificate (to help confirm it matches "${company.name}")
+3. The grade, level, or status shown (e.g. "Grade 3GB", "Level 2", "Active", "Registered")
+4. The expiry or validity end date, if one is printed on the document (format YYYY-MM-DD). If the document has no expiry concept, return null.
+5. Any concerns — illegible sections, name mismatch, document looks altered, anything that should be flagged for human review
+
+Return ONLY this JSON:
+{
+  "is_correct_doc_type": true | false,
+  "entity_name_on_document": "string or null",
+  "name_matches_company": true | false | "uncertain",
+  "extracted_value": "string — the grade/level/status found",
+  "expiry_date": "YYYY-MM-DD or null",
+  "confidence": "high" | "medium" | "low",
+  "notes": "string or null — any concerns worth flagging"
+}
+
+Return ONLY valid JSON, no markdown, no explanation.`;
+
+  const userContent = [
+    { type: 'document', source: { type: 'base64', media_type: file.type, data: base64 } },
+    { type: 'text', text: prompt },
+  ];
+
+  let extraction;
+  try {
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: userContent }] }),
+    });
+    const aiData = await aiRes.json();
+    const rawText = aiData.content?.[0]?.text || '{}';
+    extraction = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+  } catch(e) {
+    extraction = { is_correct_doc_type: null, extracted_value: null, expiry_date: null, confidence: 'low', notes: 'Automatic extraction failed — please re-upload or contact support.' };
+  }
+
+  // ── Compute status from extracted expiry date ──
+  let status = 'pending';
+  if (extraction.is_correct_doc_type === false) {
+    status = 'red';
+  } else if (docType.has_expiry && extraction.expiry_date) {
+    const expiry = new Date(extraction.expiry_date);
+    const today = new Date();
+    const daysUntilExpiry = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
+    if (daysUntilExpiry < 0) status = 'red';
+    else if (daysUntilExpiry <= 60) status = 'amber';
+    else status = 'green';
+  } else if (!docType.has_expiry && extraction.extracted_value) {
+    status = 'green'; // binary type, something was extracted — treat as confirmed
+  } else {
+    status = 'amber'; // uploaded but couldn't confirm details — needs review, not a hard fail
+  }
+
+  const id = crypto.randomUUID();
+  // Replace any existing document of this type for this company (re-upload on renewal)
+  await env.TL_DB.prepare('DELETE FROM tl_compliance_documents WHERE company_id=? AND doc_type_id=?')
+    .bind(company_id, doc_type_id).run();
+
+  await env.TL_DB.prepare(`
+    INSERT INTO tl_compliance_documents (id, company_id, doc_type_id, r2_key, extracted_value, expiry_date, status, extraction_confidence, extraction_notes, verified_at)
+    VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+  `).bind(id, company_id, doc_type_id, r2Key, extraction.extracted_value || null, extraction.expiry_date || null, status, extraction.confidence || 'low', extraction.notes || null).run();
+
+  return tlJson({
+    success: true,
+    doc_type_id,
+    status,
+    extracted_value: extraction.extracted_value || null,
+    expiry_date: extraction.expiry_date || null,
+    is_correct_doc_type: extraction.is_correct_doc_type,
+    name_matches_company: extraction.name_matches_company,
+    notes: extraction.notes || null,
+  });
+}
+
+// ── POST — client flags a missing document type for their industry ───────
+async function handleTlComplianceFlagMissing(request, env, tlJson) {
+  const body = await request.json().catch(() => ({}));
+  const { company_id, name, description } = body;
+  if (!company_id || !name) return tlJson({ error: 'company_id and name required' }, 400);
+
+  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  if (!company) return tlJson({ error: 'Company not found' }, 404);
+
+  let industries = [];
+  try { industries = JSON.parse(company.industries || '[]'); } catch(e) {}
+
+  const docTypeId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 40);
+
+  await env.TL_DB.prepare(`
+    INSERT OR IGNORE INTO tl_doc_types (id, name, description, is_universal, has_expiry)
+    VALUES (?,?,?,0,1)
+  `).bind(docTypeId, name, description || null).run();
+
+  for (const ind of industries) {
+    await env.TL_DB.prepare(`
+      INSERT INTO tl_industry_doc_requirements (id, industry, doc_type_id, source, confidence)
+      VALUES (?,?,?,'user','medium')
+    `).bind(crypto.randomUUID(), normaliseIndustry(ind), docTypeId).run();
+  }
+
+  return tlJson({ success: true, doc_type_id: docTypeId });
 }
