@@ -113,7 +113,6 @@ export const INDUSTRY_PERSONALITY = {
   it_support:'technical_expertise', social_media:'technical_expertise',
   graphic_design:'technical_expertise', security:'technical_expertise',
   courier:'technical_expertise', printing:'technical_expertise',
-  signage:'technical_expertise', driving_school:'technical_expertise',
 
   // Retail Utility
   spaza:'retail_utility', hardware:'retail_utility', bottle_store:'retail_utility',

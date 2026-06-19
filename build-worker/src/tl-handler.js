@@ -497,7 +497,7 @@ async function handleTlAddDocuments(request, env, tlJson) {
     const gateResult = await checkReferenceGate(newDocs, sub.tender_ref, env);
     if (!gateResult.passed) {
       return tlJson({
-        error: 'New documents do not appear to match this submission\\'s tender reference.',
+        error: 'New documents do not appear to match this submission\'s tender reference.',
         gate_failed: true,
         mismatched_files: gateResult.mismatched.map(m => m.filename),
         gate_message: gateResult.mismatched.map(m => `"${m.filename}" — ${m.reason}`).join('; '),
