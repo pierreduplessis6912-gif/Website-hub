@@ -452,9 +452,79 @@ async function loadSubmissions() {
         upsell = '<div class="sub-upsell"><div class="sub-upsell-text">Get a submission-ready Bid Pack for this tender</div><button class="btn-upgrade" onclick="upgradeSubmission(\''+s.id+'\',\'bidpack\')">Upgrade · R' + (2500-(s.amount_paid||750)) + '</button></div>';
       }
 
-      return '<div class="submission-card"><div class="sub-top"><div class="sub-icon">'+icon+'</div><div class="sub-info"><div class="sub-title">'+title+'</div><div class="sub-meta">'+date+'</div>'+tierHtml+'</div><div class="sub-right">'+badge+viewLink+'</div></div>'+upsell+'</div>';
+      var addDocsBtn = '';
+      if (s.status === 'complete') {
+        addDocsBtn = '<div class="sub-upsell" style="border-top:'+(upsell?'none':'1px solid rgba(255,255,255,.06)')+';padding-top:'+(upsell?'0':'12px')+'"><div class="sub-upsell-text">Missed a document? Add more to this submission — R20 each</div><button class="btn-upgrade" onclick="triggerAddDocuments(\''+s.id+'\')" style="border-color:rgba(255,255,255,.2);color:var(--paper)">+ Add Documents</button></div>';
+      }
+
+      return '<div class="submission-card"><div class="sub-top"><div class="sub-icon">'+icon+'</div><div class="sub-info"><div class="sub-title">'+title+'</div><div class="sub-meta">'+date+'</div>'+tierHtml+'</div><div class="sub-right">'+badge+viewLink+'</div></div>'+upsell+addDocsBtn+'</div>';
     }).join('');
   } catch(e) { console.warn('Submissions load error:', e); }
+}
+
+var addDocsTargetSubmissionId = null;
+
+function triggerAddDocuments(submissionId) {
+  addDocsTargetSubmissionId = submissionId;
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/pdf';
+  input.multiple = true;
+  input.onchange = function() { handleAddDocumentsSelected(input.files); };
+  input.click();
+}
+
+async function handleAddDocumentsSelected(fileList) {
+  var files = Array.from(fileList || []);
+  if (!files.length) return;
+  for (var i = 0; i < files.length; i++) {
+    if (files[i].type !== 'application/pdf') { showToast('Only PDF files are supported', '#ff4757'); return; }
+    if (files[i].size > 32 * 1024 * 1024) { showToast('Each file must be under 32MB', '#ff4757'); return; }
+  }
+  var price = files.length * 20;
+  if (!companyData || (companyData.balance || 0) < price) {
+    showToast('Adding ' + files.length + ' document' + (files.length>1?'s':'') + ' costs R' + price + ' — top up to continue', '#ff6b1a');
+    openBalanceModal();
+    return;
+  }
+  await submitAddDocuments(files, false);
+}
+
+async function submitAddDocuments(files, overrideGate) {
+  showToast('Adding document' + (files.length>1?'s':'') + '... this takes 30-90 seconds');
+  try {
+    var formData = new FormData();
+    formData.append('submission_id', addDocsTargetSubmissionId);
+    files.forEach(function(f) { formData.append('files', f); });
+    if (overrideGate) formData.append('override_gate', 'true');
+
+    var res = await fetch('/tl/add-documents', { method: 'POST', body: formData });
+    var d = await res.json();
+
+    if (res.status === 409 && d.gate_failed) {
+      var failedNames = (d.mismatched_files || []).join(', ');
+      var proceed = confirm(
+        'These new documents don\'t appear to match this tender: ' + failedNames + '.\n\n' +
+        (d.gate_message || '') + '\n\n' +
+        'Tap OK to add them anyway, or Cancel to review.'
+      );
+      if (proceed) { await submitAddDocuments(files, true); return; }
+      return;
+    }
+
+    if (res.status === 402) {
+      showToast(d.error, '#ff6b1a');
+      openBalanceModal();
+      return;
+    }
+    if (d.error) throw new Error(d.error);
+
+    showToast('✅ Added ' + d.documents_added + ' document' + (d.documents_added>1?'s':'') + ' · R' + d.charged + ' charged');
+    await loadDashboard();
+    if (d.report) setTimeout(function(){ viewReport(addDocsTargetSubmissionId); }, 400);
+  } catch(e) {
+    showToast(e.message || 'Failed to add documents', '#ff4757');
+  }
 }
 
 async function upgradeSubmission(submissionId, tier) {
