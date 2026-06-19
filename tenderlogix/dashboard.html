@@ -244,7 +244,7 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
     <div class="hero-greeting">Welcome, <span id="heroName">—</span></div>
     <div class="hero-actions">
       <button class="btn-gold" onclick="toggleSubmitForm()">+ Analyse Tender</button>
-      <a href="/register" class="btn-outline">Edit Profile</a>
+      <a href="#" id="editProfileBtn" class="btn-outline">Edit Profile</a>
     </div>
   </div>
 </div>
@@ -358,7 +358,7 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
   <div class="section">
     <div class="section-head">
       <div class="section-title">Company Profile</div>
-      <a href="/register" class="section-action">Edit →</a>
+      <a href="#" id="editProfileBtn2" class="section-action">Edit →</a>
     </div>
     <div class="profile-grid" id="profileGrid">
       <div class="profile-item"><div class="profile-label">Company</div><div class="profile-val" id="pCompany">—</div></div>
@@ -480,6 +480,9 @@ async function loadDashboard() {
     localStorage.setItem('tl_company_id', companyId);
     var waMsg = encodeURIComponent('TENDER ' + companyId);
     document.getElementById('waSubmitBtn').href = 'https://wa.me/27840142017?text=' + waMsg;
+    var editUrl = '/register?edit=' + companyId;
+    document.getElementById('editProfileBtn').href = editUrl;
+    document.getElementById('editProfileBtn2').href = editUrl;
     await loadCompliance();
     await loadSubmissions();
   } catch(e) {
