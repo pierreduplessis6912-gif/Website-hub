@@ -95,7 +95,7 @@ export const INDUSTRY_PERSONALITY = {
   // Community Local
   childcare:'community_local', tutoring:'community_local',
   cleaning:'community_local', laundry:'community_local',
-  optometrist:'medical_health', vet:'medical_health', driving_school:'community_local',
+  optometrist:'medical_health', driving_school:'community_local',
   tattoo:'beauty_wellness', tiling:'trade_authority', glazier:'trade_authority',
   furniture:'trade_authority', butchery:'food_beverage',
 
