@@ -81,6 +81,13 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
 .file-drop.has-file{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.06)}
 .file-drop-icon{font-size:26px;margin-bottom:8px}
 .file-drop-text{font-size:13px;color:var(--dim);font-weight:300}
+.file-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);margin-bottom:6px;font-size:12px}
+.file-item-name{color:var(--paper);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.file-item-remove{color:var(--red);background:none;border:none;cursor:pointer;font-size:14px;padding:0 4px;flex-shrink:0}
+.file-item-warn{border-color:rgba(255,107,26,.4);background:rgba(255,107,26,.06)}
+.file-item-warn-text{font-size:10px;color:var(--gold);font-family:var(--mono);margin-top:2px}
+.price-summary{font-size:12px;color:var(--dim);font-family:var(--mono);text-align:center;margin-top:10px;letter-spacing:.3px}
+.price-summary strong{color:var(--gold)}
 .or-divider{display:flex;align-items:center;gap:12px;margin:14px 0;color:var(--dim);font-size:10px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase}
 .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08)}
 .btn-wa{display:block;width:100%;padding:13px;background:rgba(37,211,102,.1);color:#25D366;border:1px solid rgba(37,211,102,.3);text-align:center;text-decoration:none;font-family:var(--body);font-size:12px;font-weight:700;letter-spacing:.5px;transition:all .2s;text-transform:uppercase}
@@ -228,21 +235,23 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
   <!-- Submit Tender Form -->
   <div class="submit-form" id="submitForm">
     <div class="form-title">Analyse a Tender</div>
-    <p class="form-sub">R20 — verdict, eligibility, compliance &amp; risk flags. Upgrade any result later for full pricing or a submission-ready pack.</p>
+    <p class="form-sub">R20 per document — verdict, eligibility, compliance &amp; risk flags. Upgrade any result later for full pricing or a submission-ready pack.</p>
     <div class="field">
-      <label class="label">Tender Reference <span style="text-transform:none;letter-spacing:0">optional</span></label>
+      <label class="label" id="refLabel">Tender Reference <span style="text-transform:none;letter-spacing:0" id="refOptionalTag">optional</span></label>
       <input class="input" id="tenderRef" type="text" placeholder="e.g. RFQ-1022-2025">
+      <div class="field-hint" id="refHint">Required when uploading more than one document — we check every document against it before charging you.</div>
     </div>
     <div class="field">
-      <label class="label">Upload Tender Document (PDF) *</label>
+      <label class="label">Upload Tender Documents (PDF) *</label>
       <div class="file-drop" id="fileDrop" onclick="document.getElementById('pdfFile').click()">
-        <input type="file" id="pdfFile" accept="application/pdf" style="display:none" onchange="handleFileSelect(this)">
+        <input type="file" id="pdfFile" accept="application/pdf" multiple style="display:none" onchange="handleFileSelect(this)">
         <div class="file-drop-icon">📄</div>
-        <div class="file-drop-text" id="fileDropText">Tap to select a PDF — up to 32MB</div>
+        <div class="file-drop-text" id="fileDropText">Tap to select one or more PDFs — up to 32MB each</div>
       </div>
-      <div class="field-hint">We analyse the document directly — no need to retype anything.</div>
+      <div class="field-hint">Add the main tender document. If your pack includes additional files (SBD forms, BOQ, annexures), add those too — each document is R20. Only upload documents from <strong style="color:var(--paper)">one tender</strong> per submission.</div>
+      <div id="fileList" style="margin-top:10px"></div>
     </div>
-    <button class="btn-submit-tender" id="btnAnalyse" onclick="submitTender()" disabled>Upload a PDF First</button>
+    <button class="btn-submit-tender" id="btnAnalyse" onclick="submitTender()" disabled>Upload A PDF First</button>
     <div class="or-divider"><span>or</span></div>
     <a href="#" id="waSubmitBtn" class="btn-wa" target="_blank" rel="noopener">📲 Send via WhatsApp Instead</a>
   </div>
@@ -594,58 +603,128 @@ function toggleSubmitForm() {
   if (f.classList.contains('open')) f.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-var selectedFile = null;
+var selectedFiles = [];
 
-function handleFileSelect(input) {
-  var file = input.files[0];
+function renderFileList() {
   var drop = document.getElementById('fileDrop');
   var text = document.getElementById('fileDropText');
+  var listEl = document.getElementById('fileList');
   var btn = document.getElementById('btnAnalyse');
-  if (!file) return;
-  if (file.type !== 'application/pdf') { showToast('Please select a PDF file', '#ff4757'); return; }
-  if (file.size > 32 * 1024 * 1024) { showToast('PDF must be under 32MB', '#ff4757'); return; }
-  selectedFile = file;
+  var refHint = document.getElementById('refHint');
+  var refOptTag = document.getElementById('refOptionalTag');
+
+  if (!selectedFiles.length) {
+    drop.classList.remove('has-file');
+    text.textContent = 'Tap to select one or more PDFs — up to 32MB each';
+    listEl.innerHTML = '';
+    btn.disabled = true;
+    btn.textContent = 'Upload A PDF First';
+    refOptTag.textContent = 'optional';
+    return;
+  }
+
   drop.classList.add('has-file');
-  text.textContent = '✓ ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + 'MB)';
+  text.textContent = '✓ ' + selectedFiles.length + ' document' + (selectedFiles.length > 1 ? 's' : '') + ' selected — tap to add more';
+
+  listEl.innerHTML = selectedFiles.map(function(f, i) {
+    return '<div class="file-item"><span class="file-item-name">📄 ' + f.name + ' (' + (f.size/1024/1024).toFixed(1) + 'MB)</span><button class="file-item-remove" onclick="removeFile(' + i + ')">✕</button></div>';
+  }).join('');
+
+  var total = selectedFiles.length * 20;
+  listEl.innerHTML += '<div class="price-summary">' + selectedFiles.length + ' document' + (selectedFiles.length > 1 ? 's' : '') + ' × R20 = <strong>R' + total + '</strong></div>';
+
+  if (selectedFiles.length > 1) {
+    refOptTag.textContent = 'required for multiple documents';
+    refHint.style.color = 'var(--gold)';
+  } else {
+    refOptTag.textContent = 'optional';
+    refHint.style.color = '';
+  }
+
   btn.disabled = false;
-  btn.textContent = 'Run Analysis · R20 →';
+  btn.textContent = 'Run Analysis · R' + total + ' →';
+}
+
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  renderFileList();
+}
+
+function handleFileSelect(input) {
+  var newFiles = Array.from(input.files || []);
+  for (var i = 0; i < newFiles.length; i++) {
+    var file = newFiles[i];
+    if (file.type !== 'application/pdf') { showToast('Skipped "' + file.name + '" — only PDF files are supported', '#ff4757'); continue; }
+    if (file.size > 32 * 1024 * 1024) { showToast('Skipped "' + file.name + '" — must be under 32MB', '#ff4757'); continue; }
+    if (selectedFiles.some(function(f){return f.name === file.name && f.size === file.size})) continue; // dedupe
+    selectedFiles.push(file);
+  }
+  input.value = '';
+  renderFileList();
 }
 
 async function submitTender() {
   var ref = document.getElementById('tenderRef').value.trim();
-  if (!selectedFile) { showToast('Please upload a PDF tender document', '#ff6b1a'); return; }
-  if (!companyData || (companyData.balance || 0) < 20) { openBalanceModal(); return; }
+  if (!selectedFiles.length) { showToast('Please upload at least one PDF tender document', '#ff6b1a'); return; }
+  if (selectedFiles.length > 1 && !ref) {
+    showToast('Please enter a tender reference — required when uploading more than one document', '#ff6b1a');
+    document.getElementById('tenderRef').focus();
+    return;
+  }
+  var totalPrice = selectedFiles.length * 20;
+  if (!companyData || (companyData.balance || 0) < totalPrice) { openBalanceModal(); return; }
+
   var btn = document.getElementById('btnAnalyse');
-  btn.disabled = true; btn.textContent = 'Analysing... this takes 30-60 seconds';
+  btn.disabled = true; btn.textContent = 'Checking documents...';
   try {
     var formData = new FormData();
     formData.append('company_id', companyId);
-    formData.append('file', selectedFile);
+    selectedFiles.forEach(function(f) { formData.append('files', f); });
     if (ref) formData.append('tender_ref', ref);
 
     var res = await fetch('/tl/upload', { method: 'POST', body: formData });
     var d = await res.json();
+
+    // Gate check failed — documents don't appear to belong to the same tender
+    if (res.status === 409 && d.gate_failed) {
+      var failedNames = (d.mismatched_files || []).join(', ');
+      var proceed = confirm(
+        'We could not confirm reference "' + ref + '" in: ' + failedNames + '.\n\n' +
+        (d.gate_message || 'These documents may belong to a different tender.') + '\n\n' +
+        'Tap OK to proceed anyway (you confirm these belong to the same tender), or Cancel to review your files.'
+      );
+      if (proceed) {
+        btn.textContent = 'Analysing... this takes 30-90 seconds';
+        formData.append('override_gate', 'true');
+        res = await fetch('/tl/upload', { method: 'POST', body: formData });
+        d = await res.json();
+      } else {
+        btn.disabled = false; btn.textContent = 'Run Analysis · R' + totalPrice + ' →';
+        return;
+      }
+    }
+
     if (res.status === 402) {
       showToast(d.error, '#ff6b1a');
       openBalanceModal();
-      btn.disabled = false; btn.textContent = 'Run Analysis · R20 →';
+      btn.disabled = false; btn.textContent = 'Run Analysis · R' + totalPrice + ' →';
       return;
     }
     if (d.error) throw new Error(d.error);
 
     document.getElementById('tenderRef').value = '';
-    document.getElementById('pdfFile').value = '';
-    document.getElementById('fileDrop').classList.remove('has-file');
-    document.getElementById('fileDropText').textContent = 'Tap to select a PDF — up to 32MB';
-    selectedFile = null;
+    selectedFiles = [];
+    renderFileList();
     document.getElementById('submitForm').classList.remove('open');
     showToast('✅ Analysis complete!');
     await loadDashboard();
     if (d.report) setTimeout(function(){ viewReport(d.id || d.submission_id); }, 500);
   } catch(e) {
     showToast(e.message || 'Analysis failed', '#ff4757');
+    btn.disabled = false; btn.textContent = 'Run Analysis · R' + totalPrice + ' →';
+    return;
   }
-  btn.disabled = !selectedFile; btn.textContent = selectedFile ? 'Run Analysis · R20 →' : 'Upload a PDF First';
+  renderFileList();
 }
 
 function selectAmount(el) {
