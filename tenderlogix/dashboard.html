@@ -536,7 +536,7 @@ async function loadCompliance() {
       } else if (r.status === 'pending') {
         detail = 'Processing...';
       }
-      return '<div class="compliance-card" onclick="openComplianceModal(' + JSON.stringify(r.doc_type_id) + ')">' +
+      return '<div class="compliance-card" onclick="openComplianceModal(&quot;' + r.doc_type_id + '&quot;)">' +
         '<div class="compliance-light">' + statusLight(r.status) + '</div>' +
         '<div class="compliance-name">' + r.name + '</div>' +
         '<div class="compliance-detail ' + detailCls + '">' + detail + '</div>' +
