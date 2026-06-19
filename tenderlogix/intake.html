@@ -66,9 +66,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 </nav>
 
 <div class="page">
-  <div class="page-eyebrow">Free Registration</div>
-  <h1 class="page-title">Build Your Profile.</h1>
-  <p class="page-sub">Two minutes. Used on every analysis. Add more detail later from your dashboard.</p>
+  <div class="page-eyebrow" id="pageEyebrow">Free Registration</div>
+  <h1 class="page-title" id="pageTitle">Build Your Profile.</h1>
+  <p class="page-sub" id="pageSub">Two minutes. Used on every analysis. Add more detail later from your dashboard.</p>
 
   <div class="form-section">
     <div class="section-label">Company</div>
@@ -138,20 +138,25 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 
   <hr class="divider">
 
-  <div class="credits-card">
-    <div class="credits-title">Starter Pack — R199</div>
-    <p class="credits-sub">EVERYTHING REQUIRED TO START WINNING</p>
-    <ul class="credits-items">
-      <li>R199 account balance to spend as you go</li>
-      <li>Full compliance checklist per tender</li>
-      <li>Competitive pricing benchmarks</li>
-      <li>Risk flags and recommendations</li>
-      <li>Dashboard + WhatsApp delivery</li>
-    </ul>
+  <div id="signupOnlySection">
+    <div class="credits-card">
+      <div class="credits-title">Starter Pack — R199</div>
+      <p class="credits-sub">EVERYTHING REQUIRED TO START WINNING</p>
+      <ul class="credits-items">
+        <li>R199 account balance to spend as you go</li>
+        <li>Full compliance checklist per tender</li>
+        <li>Competitive pricing benchmarks</li>
+        <li>Risk flags and recommendations</li>
+        <li>Dashboard + WhatsApp delivery</li>
+      </ul>
+    </div>
+
+    <button class="btn-submit" id="btnPay" onclick="handleSubmit(true)">Create Account &amp; Pay R199</button>
+    <button class="btn-free" id="btnFree" onclick="handleSubmit(false)">Start Free — R100 Balance</button>
   </div>
 
-  <button class="btn-submit" id="btnPay" onclick="handleSubmit(true)">Create Account &amp; Pay R199</button>
-  <button class="btn-free" id="btnFree" onclick="handleSubmit(false)">Start Free — R100 Balance</button>
+  <button class="btn-submit" id="btnSave" onclick="handleUpdate()" style="display:none">Save Changes</button>
+
   <p class="fine-print">BY REGISTERING YOU AGREE TO OUR TERMS OF SERVICE AND PRIVACY POLICY · RESULTS ARE AI-ASSISTED AND INDICATIVE ONLY</p>
 </div>
 
@@ -159,6 +164,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 
 <script>
 var ENDPOINT = 'https://tenderlogix.co.za/tl/company';
+var UPDATE_ENDPOINT = 'https://tenderlogix.co.za/tl/company/update';
+var urlParams = new URLSearchParams(window.location.search);
+var editCompanyId = urlParams.get('edit');
 
 document.querySelectorAll('.chip').forEach(function(chip) {
   chip.addEventListener('click', function() { chip.classList.toggle('selected'); });
@@ -175,10 +183,90 @@ function getChips(groupId) {
   return Array.from(document.querySelectorAll('#' + groupId + ' .chip.selected')).map(function(c) { return c.dataset.val; });
 }
 
+function setChips(groupId, values) {
+  values = values || [];
+  document.querySelectorAll('#' + groupId + ' .chip').forEach(function(c) {
+    if (values.indexOf(c.dataset.val) !== -1) c.classList.add('selected');
+    else c.classList.remove('selected');
+  });
+}
+
 function normalisePhone(raw) {
   var digits = raw.replace(/\D/g, '');
   if (digits.startsWith('27')) return digits;
   return digits.replace(/^0/, '27');
+}
+
+// ── EDIT MODE — pre-fill the form from an existing company ──────────────
+async function loadEditMode() {
+  document.getElementById('pageEyebrow').textContent = 'Edit Profile';
+  document.getElementById('pageTitle').textContent = 'Update Your Profile.';
+  document.getElementById('pageSub').textContent = 'Changes apply immediately and are used on your next analysis.';
+  document.getElementById('signupOnlySection').style.display = 'none';
+  document.getElementById('btnSave').style.display = 'block';
+  document.querySelector('.fine-print').style.display = 'none';
+
+  // Reg number is only "required for free trial" during signup — not editing
+  var regSpan = document.querySelector('label[for="reg_number"] span');
+  if (regSpan) regSpan.textContent = 'optional';
+
+  try {
+    var res = await fetch('https://tenderlogix.co.za/tl/company?id=' + editCompanyId);
+    var d = await res.json();
+    if (d.error) { showToast('Could not load profile — please try again'); return; }
+
+    document.getElementById('company_name').value = d.name || '';
+    document.getElementById('reg_number').value = d.reg_number || '';
+    document.getElementById('contact_name').value = d.client_name || '';
+    document.getElementById('phone').value = d.phone || '';
+    document.getElementById('email').value = d.email || '';
+
+    var industries = [], provinces = [];
+    try { industries = JSON.parse(d.industries || '[]'); } catch(e) {}
+    try { provinces = JSON.parse(d.provinces || '[]'); } catch(e) {}
+    setChips('industries', industries);
+    setChips('provinces', provinces);
+  } catch(e) {
+    showToast('Could not load profile — please try again');
+  }
+}
+
+async function handleUpdate() {
+  var ok = true;
+  ['company_name','contact_name','phone','email'].forEach(function(id) {
+    var val = document.getElementById(id).value.trim();
+    var err = document.getElementById('err_' + id);
+    if (!val) { err.classList.add('show'); document.getElementById(id).classList.add('error'); ok = false; }
+    else { err.classList.remove('show'); document.getElementById(id).classList.remove('error'); }
+  });
+  if (!ok) { showToast('Please fill in the required fields'); return; }
+
+  var btn = document.getElementById('btnSave');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  try {
+    var res = await fetch(UPDATE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        company_id: editCompanyId,
+        name: document.getElementById('company_name').value.trim(),
+        reg_number: document.getElementById('reg_number').value.trim() || null,
+        email: document.getElementById('email').value.trim(),
+        phone: normalisePhone(document.getElementById('phone').value.trim()),
+        industries: getChips('industries'),
+        provinces: getChips('provinces'),
+        client_name: document.getElementById('contact_name').value.trim(),
+      })
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+    showToast('✅ Profile updated');
+    setTimeout(function() { window.location.href = '/dashboard/' + editCompanyId; }, 800);
+  } catch(e) {
+    showToast(e.message || 'Update failed');
+    btn.disabled = false; btn.textContent = 'Save Changes';
+  }
 }
 
 function validate(requireFullProfile) {
@@ -261,6 +349,8 @@ async function handleSubmit(pay) {
     btn.textContent = pay ? 'Create Account & Pay R199' : 'Start Free — R100 Balance';
   }
 }
+
+if (editCompanyId) { loadEditMode(); }
 </script>
 </body>
 </html>
