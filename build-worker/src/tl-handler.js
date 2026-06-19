@@ -41,6 +41,7 @@ export async function handleTenderLogix(request, env) {
   if (path === '/tl/analyse' && method === 'POST') return handleTlAnalyse(request, env, tlJson);
   if (path === '/tl/upload'  && method === 'POST') return handleTlUpload(request, env, tlJson);
   if (path === '/tl/upgrade' && method === 'POST') return handleTlUpgrade(request, env, tlJson);
+  if (path === '/tl/add-documents' && method === 'POST') return handleTlAddDocuments(request, env, tlJson);
 
   if (path === '/tl/balance' && method === 'GET')  return handleTlGetBalance(url, env, tlJson);
   if (path === '/tl/payfast-webhook' && method === 'POST') return handleTlPayfast(request, env, tlJson);
@@ -390,6 +391,103 @@ async function handleTlUpgrade(request, env, tlJson) {
   if (updated?.report_json) updated.report = JSON.parse(updated.report_json);
 
   return tlJson({ success: true, submission_id, ...updated });
+}
+
+// ── ADD DOCUMENTS — attach more PDFs to an EXISTING submission, at ANY tier ──
+// R20 per document regardless of tier, charged immediately (separate from tier upgrade
+// pricing). Runs the same reference gate check as initial upload. Re-runs analysis at
+// the submission's CURRENT tier — does not force a tier upgrade just because documents
+// were added; client must call /tl/upgrade separately for that.
+async function handleTlAddDocuments(request, env, tlJson) {
+  const contentType = request.headers.get('content-type') || '';
+  if (!contentType.includes('multipart/form-data')) {
+    return tlJson({ error: 'multipart/form-data required' }, 400);
+  }
+
+  const form = await request.formData();
+  const submission_id = form.get('submission_id');
+  const overrideGate   = form.get('override_gate') === 'true';
+  const files          = form.getAll('files');
+
+  if (!submission_id || !files.length) return tlJson({ error: 'submission_id and at least one file required' }, 400);
+
+  for (const f of files) {
+    if (f.type !== 'application/pdf') return tlJson({ error: `"${f.name}" is not a PDF. Only PDF files are supported.` }, 400);
+    if (f.size > 32 * 1024 * 1024) return tlJson({ error: `"${f.name}" is over 32MB.` }, 400);
+  }
+
+  const sub = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(submission_id).first();
+  if (!sub) return tlJson({ error: 'Submission not found' }, 404);
+
+  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(sub.company_id).first();
+  if (!company) return tlJson({ error: 'Company not found' }, 404);
+
+  const addPrice = TIER_PRICES.gonogo * files.length; // R20 per new document, regardless of submission's current tier
+  if ((company.balance || 0) < addPrice) {
+    const shortfall = addPrice - (company.balance || 0);
+    return tlJson({ error: `Adding ${files.length} document${files.length>1?'s':''} costs R${addPrice} — you have R${company.balance||0}. Top up R${shortfall} to continue.`, shortfall }, 402);
+  }
+
+  // Read existing docs from R2 (needed for the gate check — new docs must match the SAME tender)
+  let existingKeys = [];
+  try { existingKeys = sub.doc_r2_keys ? JSON.parse(sub.doc_r2_keys) : (sub.doc_r2_key ? [sub.doc_r2_key] : []); }
+  catch(e) { existingKeys = sub.doc_r2_key ? [sub.doc_r2_key] : []; }
+
+  // Read new files into base64
+  const newDocs = [];
+  for (const f of files) {
+    const buf = await f.arrayBuffer();
+    newDocs.push({ base64: arrayBufferToBase64(buf), filename: f.name, buffer: buf });
+  }
+
+  // ── Reference gate check on the NEW documents only ──
+  if (!overrideGate && sub.tender_ref) {
+    const gateResult = await checkReferenceGate(newDocs, sub.tender_ref, env);
+    if (!gateResult.passed) {
+      return tlJson({
+        error: 'New documents do not appear to match this submission\\'s tender reference.',
+        gate_failed: true,
+        mismatched_files: gateResult.mismatched.map(m => m.filename),
+        gate_message: gateResult.mismatched.map(m => `"${m.filename}" — ${m.reason}`).join('; '),
+      }, 409);
+    }
+  }
+
+  // ── Gate passed — charge and proceed ──
+  const { shortfall } = await spendFromBalance(env, sub.company_id, addPrice);
+  if (shortfall > 0) {
+    return tlJson({ error: `Insufficient balance. Adding these documents costs R${addPrice}. Top up R${shortfall} to continue.`, shortfall }, 402);
+  }
+
+  const newKeys = [];
+  for (let i = 0; i < newDocs.length; i++) {
+    const docKey = `submissions/${sub.company_id}/${submission_id}/doc-extra-${Date.now()}-${i}-${newDocs[i].filename.replace(/[^a-zA-Z0-9.\\-]/g, '_')}`;
+    await env.TL_DOCS.put(docKey, newDocs[i].buffer, { httpMetadata: { contentType: 'application/pdf' } });
+    newKeys.push(docKey);
+  }
+
+  const allKeys = [...existingKeys, ...newKeys];
+  const newAmountPaid = (sub.amount_paid || 0) + addPrice;
+
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET doc_r2_keys=?, amount_paid=?, status='processing' WHERE id=?`)
+    .bind(JSON.stringify(allKeys), newAmountPaid, submission_id).run();
+
+  // Re-read ALL documents (existing + new) and re-run analysis at the CURRENT tier
+  const allPdfDocs = [];
+  for (const key of allKeys) {
+    const obj = await env.TL_DOCS.get(key);
+    if (obj) {
+      const buf = await obj.arrayBuffer();
+      allPdfDocs.push({ base64: arrayBufferToBase64(buf), filename: key.split('/').pop() });
+    }
+  }
+
+  await runTlAnalysis(submission_id, company, null, env, allPdfDocs, sub.tier || 'gonogo');
+
+  const updated = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(submission_id).first();
+  if (updated?.report_json) updated.report = JSON.parse(updated.report_json);
+
+  return tlJson({ success: true, submission_id, documents_added: files.length, charged: addPrice, ...updated });
 }
 
 // ── ANALYSIS PIPELINE ────────────────────────────────────────────
