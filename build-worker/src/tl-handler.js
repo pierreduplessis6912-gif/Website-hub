@@ -167,6 +167,80 @@ async function handleTlAnalyse(request, env, tlJson) {
 }
 
 // ── PDF UPLOAD ENDPOINT (native Claude PDF — Go/No-Go tier) ──────
+// Helper — convert an ArrayBuffer to base64 in chunks (avoids call-stack overflow on large files)
+function arrayBufferToBase64(arrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+// ── REFERENCE GATE CHECK — confirms multi-document uploads belong to ONE tender ──
+// Cheap, fast Claude call: does the given reference appear in each document?
+// Returns { passed: bool, mismatched: [{filename, reason}] }
+async function checkReferenceGate(pdfDocs, tender_ref, env) {
+  if (pdfDocs.length <= 1 || !tender_ref) {
+    return { passed: true, mismatched: [] }; // gate only applies to multi-doc submissions
+  }
+
+  const prompt = `You are checking whether a set of PDF documents all belong to the same tender, identified by reference "${tender_ref}".
+
+For EACH document attached (in the order given), answer:
+- Does the reference "${tender_ref}" appear anywhere in this document? (yes/no)
+- If no, does the document contain a DIFFERENT tender/RFQ reference number? If so, what is it?
+- If no reference appears at all, does this look like a standard supporting annexure (drawing, photo, spreadsheet export, generic form) where an absent reference is normal and not a concern?
+
+Return ONLY this JSON, one entry per document in the same order they were attached:
+{
+  "documents": [
+    { "filename_guess": "string — your best guess at what this document is, e.g. 'Main RFQ', 'SBD4 form', 'BOQ annexure'", "reference_found": true | false, "different_reference_found": "string or null — only if a DIFFERENT tender reference was found", "likely_annexure": true | false, "concern_level": "NONE" | "LOW" | "HIGH" }
+  ]
+}
+
+concern_level guide:
+- NONE: reference found, or no reference but clearly a normal supporting annexure
+- LOW: no reference found and unclear what the document is — minor concern, allow with a soft warning
+- HIGH: a DIFFERENT tender reference was found — this strongly suggests the wrong document was included
+
+Return ONLY valid JSON, no markdown, no explanation.`;
+
+  const userContent = [
+    ...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })),
+    { type: 'text', text: prompt },
+  ];
+
+  try {
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: userContent }] }),
+    });
+    const aiData = await aiRes.json();
+    const rawText = aiData.content?.[0]?.text || '{}';
+    const result = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+
+    const mismatched = [];
+    (result.documents || []).forEach((doc, i) => {
+      if (doc.concern_level === 'HIGH') {
+        mismatched.push({
+          filename: pdfDocs[i]?.filename || `document ${i+1}`,
+          reason: doc.different_reference_found
+            ? `appears to belong to a different tender (found reference "${doc.different_reference_found}")`
+            : `reference "${tender_ref}" not found`,
+        });
+      }
+    });
+
+    return { passed: mismatched.length === 0, mismatched };
+  } catch(e) {
+    console.warn('Reference gate check failed, allowing through:', e.message);
+    return { passed: true, mismatched: [] }; // fail open — don't block submissions on our own check failing
+  }
+}
+
 async function handleTlUpload(request, env, tlJson) {
   const contentType = request.headers.get('content-type') || '';
   if (!contentType.includes('multipart/form-data')) {
@@ -176,45 +250,81 @@ async function handleTlUpload(request, env, tlJson) {
   const form = await request.formData();
   const company_id = form.get('company_id');
   const tender_ref  = form.get('tender_ref') || null;
-  const file        = form.get('file');
+  const overrideGate = form.get('override_gate') === 'true';
 
-  if (!company_id || !file) return tlJson({ error: 'company_id and file required' }, 400);
-  if (file.type !== 'application/pdf') return tlJson({ error: 'Only PDF files are supported' }, 400);
-  if (file.size > 32 * 1024 * 1024) return tlJson({ error: 'PDF must be under 32MB' }, 400);
+  // Support both 'files' (multi) and legacy 'file' (single) field names
+  let files = form.getAll('files');
+  if (!files.length) {
+    const single = form.get('file');
+    if (single) files = [single];
+  }
+
+  if (!company_id || !files.length) return tlJson({ error: 'company_id and at least one file required' }, 400);
+  if (files.length > 1 && !tender_ref) {
+    return tlJson({ error: 'Tender reference is required when uploading more than one document' }, 400);
+  }
+
+  for (const f of files) {
+    if (f.type !== 'application/pdf') return tlJson({ error: `"${f.name}" is not a PDF. Only PDF files are supported.` }, 400);
+    if (f.size > 32 * 1024 * 1024) return tlJson({ error: `"${f.name}" is over 32MB.` }, 400);
+  }
 
   const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
   if (!company) return tlJson({ error: 'Company not found' }, 404);
 
-  const price = TIER_PRICES.gonogo;
+  const price = TIER_PRICES.gonogo * files.length;
+  // Check balance WITHOUT spending yet — gate check must pass first, and we don't want
+  // to charge for a submission we end up blocking.
+  if ((company.balance || 0) < price) {
+    const shortfall = price - (company.balance || 0);
+    return tlJson({ error: `This costs R${price} (${files.length} document${files.length>1?'s':''} × R20) — you have R${company.balance||0}. Top up R${shortfall} to continue.`, shortfall }, 402);
+  }
+
+  // Read all files into base64 once — reused for both gate check and analysis
+  const pdfDocs = [];
+  for (const f of files) {
+    const buf = await f.arrayBuffer();
+    pdfDocs.push({ base64: arrayBufferToBase64(buf), filename: f.name, buffer: buf });
+  }
+
+  // ── Reference gate check — only runs for multi-document submissions ──
+  if (!overrideGate) {
+    const gateResult = await checkReferenceGate(pdfDocs, tender_ref, env);
+    if (!gateResult.passed) {
+      return tlJson({
+        error: 'Some documents do not appear to match the tender reference provided.',
+        gate_failed: true,
+        mismatched_files: gateResult.mismatched.map(m => m.filename),
+        gate_message: gateResult.mismatched.map(m => `"${m.filename}" — ${m.reason}`).join('; '),
+      }, 409);
+    }
+  }
+
+  // ── Gate passed (or overridden) — now charge and proceed ──
   const { shortfall } = await spendFromBalance(env, company_id, price);
   if (shortfall > 0) {
     return tlJson({ error: `Insufficient balance. This costs R${price} — you have R${company.balance||0}. Top up R${shortfall} to continue.`, shortfall }, 402);
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  let binary = '';
-  const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  const pdfBase64 = btoa(binary);
-
   const id = crypto.randomUUID();
-  const docKey = `submissions/${company_id}/${id}/tender.pdf`;
-  await env.TL_DOCS.put(docKey, arrayBuffer, { httpMetadata: { contentType: 'application/pdf' } });
+  const docKeys = [];
+  for (let i = 0; i < pdfDocs.length; i++) {
+    const docKey = `submissions/${company_id}/${id}/doc-${i}-${pdfDocs[i].filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
+    await env.TL_DOCS.put(docKey, pdfDocs[i].buffer, { httpMetadata: { contentType: 'application/pdf' } });
+    docKeys.push(docKey);
+  }
 
   await env.TL_DB.prepare(`
-    INSERT INTO tl_submissions (id, company_id, tender_ref, doc_r2_key, status, tier, amount_paid)
-    VALUES (?,?,?,?,'processing','gonogo',?)
-  `).bind(id, company_id, tender_ref, docKey, price).run();
+    INSERT INTO tl_submissions (id, company_id, tender_ref, doc_r2_key, doc_r2_keys, status, tier, amount_paid)
+    VALUES (?,?,?,?,?,'processing','gonogo',?)
+  `).bind(id, company_id, tender_ref, docKeys[0], JSON.stringify(docKeys), price).run();
 
-  await runTlAnalysis(id, company, null, env, pdfBase64, 'gonogo');
+  await runTlAnalysis(id, company, null, env, pdfDocs.map(d => ({ base64: d.base64, filename: d.filename })), 'gonogo');
 
   const sub = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(id).first();
   if (sub?.report_json) sub.report = JSON.parse(sub.report_json);
 
-  return tlJson({ success: true, submission_id: id, ...sub });
+  return tlJson({ success: true, submission_id: id, document_count: files.length, ...sub });
 }
 
 // ── UPGRADE ENDPOINT — re-run an existing submission at a richer tier ──
@@ -251,25 +361,30 @@ async function handleTlUpgrade(request, env, tlJson) {
   await env.TL_DB.prepare(`UPDATE tl_submissions SET tier=?, amount_paid=?, status='processing' WHERE id=?`)
     .bind(tier, targetPrice, submission_id).run();
 
-  // Re-run analysis with the richer prompt, reusing the original document
-  let doc_text = null, pdfBase64 = null;
-  if (sub.doc_r2_key) {
-    const obj = await env.TL_DOCS.get(sub.doc_r2_key);
-    if (obj) {
-      if (sub.doc_r2_key.endsWith('.pdf')) {
-        const buf = await obj.arrayBuffer();
-        const bytes = new Uint8Array(buf);
-        let binary = '';
-        const chunkSize = 8192;
-        for (let i = 0; i < bytes.length; i += chunkSize) binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-        pdfBase64 = btoa(binary);
-      } else {
-        doc_text = await obj.text();
+  // Re-run analysis with the richer prompt, reusing the original document(s)
+  let doc_text = null, pdfDocs = null;
+  let docKeys = [];
+  try { docKeys = sub.doc_r2_keys ? JSON.parse(sub.doc_r2_keys) : (sub.doc_r2_key ? [sub.doc_r2_key] : []); }
+  catch(e) { docKeys = sub.doc_r2_key ? [sub.doc_r2_key] : []; }
+
+  if (docKeys.length) {
+    const isPdf = docKeys[0].includes('.pdf') || docKeys[0].includes('/doc-');
+    if (isPdf) {
+      pdfDocs = [];
+      for (const key of docKeys) {
+        const obj = await env.TL_DOCS.get(key);
+        if (obj) {
+          const buf = await obj.arrayBuffer();
+          pdfDocs.push({ base64: arrayBufferToBase64(buf), filename: key.split('/').pop() });
+        }
       }
+    } else {
+      const obj = await env.TL_DOCS.get(docKeys[0]);
+      if (obj) doc_text = await obj.text();
     }
   }
 
-  await runTlAnalysis(submission_id, company, doc_text, env, pdfBase64, tier);
+  await runTlAnalysis(submission_id, company, doc_text, env, pdfDocs, tier);
 
   const updated = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(submission_id).first();
   if (updated?.report_json) updated.report = JSON.parse(updated.report_json);
@@ -279,7 +394,9 @@ async function handleTlUpgrade(request, env, tlJson) {
 
 // ── ANALYSIS PIPELINE ────────────────────────────────────────────
 // tier: 'gonogo' | 'pricing' | 'bidpack' — controls how much of the prompt/schema is unlocked
-async function runTlAnalysis(submission_id, company, doc_text, env, pdfBase64, tier) {
+async function runTlAnalysis(submission_id, company, doc_text, env, pdfDocs, tier) {
+  // pdfDocs: array of { base64, filename } OR null. Kept as array internally;
+  // single-PDF callers pass a 1-element array for consistency.
   try {
     const companyContext = `
 Company: ${company.name}
@@ -390,11 +507,16 @@ ${schemaForTier}
 
 Return ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
 
-    const fullPrompt = promptHeader + (pdfBase64 ? '\nTENDER DOCUMENT: attached as PDF below.\n' : `\nTENDER DOCUMENT:\n${(doc_text||'').slice(0, 50000)}\n`) + promptFooter;
+    const hasPdfs = Array.isArray(pdfDocs) && pdfDocs.length > 0;
+    const docListLabel = hasPdfs
+      ? `\nTENDER DOCUMENTS: ${pdfDocs.length} file(s) attached below — ${pdfDocs.map(d => d.filename).join(', ')}. Treat them as ONE combined tender pack for this analysis.\n`
+      : `\nTENDER DOCUMENT:\n${(doc_text||'').slice(0, 50000)}\n`;
 
-    const userContent = pdfBase64
+    const fullPrompt = promptHeader + docListLabel + promptFooter;
+
+    const userContent = hasPdfs
       ? [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+          ...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })),
           { type: 'text', text: fullPrompt },
         ]
       : fullPrompt;
