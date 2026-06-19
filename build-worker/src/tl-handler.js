@@ -202,16 +202,26 @@ async function handleTlAnalyse(request, env, tlJson) {
   if (!company) return tlJson({ error: 'Company not found' }, 404);
 
   const price = TIER_PRICES.gonogo;
-  const { fromBalance, shortfall } = await spendFromBalance(env, company_id, price);
-  if (shortfall > 0) {
+  if ((company.balance || 0) < price) {
+    const shortfall = price - (company.balance || 0);
     return tlJson({ error: `Insufficient balance. This costs R${price} — you have R${company.balance||0}. Top up R${shortfall} to continue.`, shortfall }, 402);
   }
 
   const id = crypto.randomUUID();
-  await env.TL_DB.prepare(`INSERT INTO tl_submissions (id, company_id, tender_ref, status, tier, amount_paid) VALUES (?,?,?,'processing','gonogo',?)`)
-    .bind(id, company_id, tender_ref||null, price).run();
+  await env.TL_DB.prepare(`INSERT INTO tl_submissions (id, company_id, tender_ref, status, tier, amount_paid) VALUES (?,?,?,'processing','gonogo',0)`)
+    .bind(id, company_id, tender_ref||null).run();
 
-  await runTlAnalysis(id, company, doc_text, env, null, 'gonogo');
+  const result = await runTlAnalysis(id, company, doc_text, env, null, 'gonogo');
+
+  if (!result.success) {
+    return tlJson({ error: `Analysis failed: ${result.reason || 'unknown error'}. You have NOT been charged — please try again.`, retry_safe: true, submission_id: id }, 500);
+  }
+
+  const { shortfall } = await spendFromBalance(env, company_id, price);
+  if (shortfall > 0) {
+    console.error('TL analyse — balance changed during analysis, undercharged. submission:', id, 'price:', price, 'shortfall:', shortfall);
+  }
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(price, id).run();
 
   const sub = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(id).first();
   if (sub?.report_json) sub.report = JSON.parse(sub.report_json);
@@ -353,12 +363,7 @@ async function handleTlUpload(request, env, tlJson) {
     }
   }
 
-  // ── Gate passed (or overridden) — now charge and proceed ──
-  const { shortfall } = await spendFromBalance(env, company_id, price);
-  if (shortfall > 0) {
-    return tlJson({ error: `Insufficient balance. This costs R${price} — you have R${company.balance||0}. Top up R${shortfall} to continue.`, shortfall }, 402);
-  }
-
+  // ── Gate passed (or overridden) — now create the submission record and run analysis FIRST ──
   const id = crypto.randomUUID();
   const docKeys = [];
   for (let i = 0; i < pdfDocs.length; i++) {
@@ -369,10 +374,24 @@ async function handleTlUpload(request, env, tlJson) {
 
   await env.TL_DB.prepare(`
     INSERT INTO tl_submissions (id, company_id, tender_ref, doc_r2_key, doc_r2_keys, status, tier, amount_paid)
-    VALUES (?,?,?,?,?,'processing','gonogo',?)
-  `).bind(id, company_id, tender_ref, docKeys[0], JSON.stringify(docKeys), price).run();
+    VALUES (?,?,?,?,?,'processing','gonogo',0)
+  `).bind(id, company_id, tender_ref, docKeys[0], JSON.stringify(docKeys)).run();
 
-  await runTlAnalysis(id, company, null, env, pdfDocs.map(d => ({ base64: d.base64, filename: d.filename })), 'gonogo');
+  const result = await runTlAnalysis(id, company, null, env, pdfDocs.map(d => ({ base64: d.base64, filename: d.filename })), 'gonogo');
+
+  if (!result.success) {
+    // Analysis failed — do NOT charge. The submission stays in the table marked
+    // 'failed' (set inside runTlAnalysis) so support can investigate if needed,
+    // but the client's balance is untouched.
+    return tlJson({ error: `Analysis failed: ${result.reason || 'unknown error'}. You have NOT been charged — please try again.`, retry_safe: true, submission_id: id }, 500);
+  }
+
+  // ── Analysis genuinely succeeded — NOW charge ──
+  const { shortfall } = await spendFromBalance(env, company_id, price);
+  if (shortfall > 0) {
+    console.error('TL upload — balance changed during analysis, undercharged. submission:', id, 'price:', price, 'shortfall:', shortfall);
+  }
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(price, id).run();
 
   const sub = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(id).first();
   if (sub?.report_json) sub.report = JSON.parse(sub.report_json);
@@ -403,16 +422,18 @@ async function handleTlUpgrade(request, env, tlJson) {
   const alreadyPaid = sub.amount_paid || 0;
   const owed = Math.max(0, targetPrice - alreadyPaid);
 
-  const { shortfall } = await spendFromBalance(env, sub.company_id, owed);
-  if (shortfall > 0) {
+  // Check balance is sufficient WITHOUT spending yet — only deduct once analysis
+  // genuinely succeeds. This is the financial-integrity fix: never charge for a
+  // failed or empty report.
+  if ((company.balance || 0) < owed) {
+    const shortfall = owed - (company.balance || 0);
     return tlJson({
       error: `Upgrading to ${tier} costs R${owed} (R${targetPrice} total, R${alreadyPaid} already paid on this tender). You have R${company.balance||0}. Top up R${shortfall} to continue.`,
       shortfall, owed, target_price: targetPrice, already_paid: alreadyPaid,
     }, 402);
   }
 
-  await env.TL_DB.prepare(`UPDATE tl_submissions SET tier=?, amount_paid=?, status='processing' WHERE id=?`)
-    .bind(tier, targetPrice, submission_id).run();
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET status='processing' WHERE id=?`).bind(submission_id).run();
 
   // Re-run analysis with the richer prompt, reusing the original document(s)
   let doc_text = null, pdfDocs = null;
@@ -437,7 +458,25 @@ async function handleTlUpgrade(request, env, tlJson) {
     }
   }
 
-  await runTlAnalysis(submission_id, company, doc_text, env, pdfDocs, tier);
+  const result = await runTlAnalysis(submission_id, company, doc_text, env, pdfDocs, tier);
+
+  if (!result.success) {
+    // Analysis failed — do NOT charge, do NOT change tier/amount_paid. Restore
+    // the submission's previous tier so the client can see their last good
+    // result rather than being stuck on a broken upgraded-but-empty state.
+    await env.TL_DB.prepare(`UPDATE tl_submissions SET status='complete', tier=? WHERE id=?`).bind(sub.tier || 'gonogo', submission_id).run();
+    return tlJson({ error: `Analysis failed: ${result.reason || 'unknown error'}. You have NOT been charged — please try again.`, retry_safe: true }, 500);
+  }
+
+  // ── Analysis genuinely succeeded — NOW charge, and lock in the new tier ──
+  const { shortfall } = await spendFromBalance(env, sub.company_id, owed);
+  if (shortfall > 0) {
+    // Extremely unlikely race condition (balance changed between check and now) —
+    // but if it happens, do not leave the client with a paid-for report they
+    // didn't actually pay for. Log it for manual reconciliation.
+    console.error('TL upgrade — balance changed during analysis, undercharged. submission:', submission_id, 'owed:', owed, 'shortfall:', shortfall);
+  }
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET tier=?, amount_paid=? WHERE id=?`).bind(tier, targetPrice, submission_id).run();
 
   const updated = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(submission_id).first();
   if (updated?.report_json) updated.report = JSON.parse(updated.report_json);
@@ -505,24 +544,18 @@ async function handleTlAddDocuments(request, env, tlJson) {
     }
   }
 
-  // ── Gate passed — charge and proceed ──
-  const { shortfall } = await spendFromBalance(env, sub.company_id, addPrice);
-  if (shortfall > 0) {
-    return tlJson({ error: `Insufficient balance. Adding these documents costs R${addPrice}. Top up R${shortfall} to continue.`, shortfall }, 402);
-  }
-
+  // ── Gate passed — write the new docs to R2, run analysis FIRST, charge only on success ──
   const newKeys = [];
   for (let i = 0; i < newDocs.length; i++) {
-    const docKey = `submissions/${sub.company_id}/${submission_id}/doc-extra-${Date.now()}-${i}-${newDocs[i].filename.replace(/[^a-zA-Z0-9.\\-]/g, '_')}`;
+    const docKey = `submissions/${sub.company_id}/${submission_id}/doc-extra-${Date.now()}-${i}-${newDocs[i].filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
     await env.TL_DOCS.put(docKey, newDocs[i].buffer, { httpMetadata: { contentType: 'application/pdf' } });
     newKeys.push(docKey);
   }
 
   const allKeys = [...existingKeys, ...newKeys];
-  const newAmountPaid = (sub.amount_paid || 0) + addPrice;
 
-  await env.TL_DB.prepare(`UPDATE tl_submissions SET doc_r2_keys=?, amount_paid=?, status='processing' WHERE id=?`)
-    .bind(JSON.stringify(allKeys), newAmountPaid, submission_id).run();
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET doc_r2_keys=?, status='processing' WHERE id=?`)
+    .bind(JSON.stringify(allKeys), submission_id).run();
 
   // Re-read ALL documents (existing + new) and re-run analysis at the CURRENT tier
   const allPdfDocs = [];
@@ -534,7 +567,24 @@ async function handleTlAddDocuments(request, env, tlJson) {
     }
   }
 
-  await runTlAnalysis(submission_id, company, null, env, allPdfDocs, sub.tier || 'gonogo');
+  const result = await runTlAnalysis(submission_id, company, null, env, allPdfDocs, sub.tier || 'gonogo');
+
+  if (!result.success) {
+    // Analysis failed — roll back the doc_r2_keys to the pre-add state and do NOT
+    // charge. The newly-uploaded files stay in R2 (harmless, just unreferenced)
+    // but the submission itself is unaffected and the client keeps their balance.
+    await env.TL_DB.prepare(`UPDATE tl_submissions SET doc_r2_keys=?, status='complete' WHERE id=?`)
+      .bind(JSON.stringify(existingKeys), submission_id).run();
+    return tlJson({ error: `Analysis failed: ${result.reason || 'unknown error'}. You have NOT been charged — please try again.`, retry_safe: true }, 500);
+  }
+
+  // ── Analysis genuinely succeeded — NOW charge ──
+  const { shortfall } = await spendFromBalance(env, sub.company_id, addPrice);
+  if (shortfall > 0) {
+    console.error('TL add-documents — balance changed during analysis, undercharged. submission:', submission_id, 'addPrice:', addPrice, 'shortfall:', shortfall);
+  }
+  const newAmountPaid = (sub.amount_paid || 0) + addPrice;
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(newAmountPaid, submission_id).run();
 
   const updated = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(submission_id).first();
   if (updated?.report_json) updated.report = JSON.parse(updated.report_json);
@@ -713,14 +763,38 @@ Return ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
       }),
     });
 
+    if (!aiRes.ok) {
+      const errBody = await aiRes.text();
+      console.error('TL analysis — Anthropic API error:', aiRes.status, 'submission:', submission_id, 'tier:', tier, 'response:', errBody.slice(0,500));
+      await env.TL_DB.prepare(`UPDATE tl_submissions SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(submission_id).run();
+      return { success: false, reason: `Anthropic API returned ${aiRes.status}` };
+    }
+
     const aiData = await aiRes.json();
-    const rawText = aiData.content?.[0]?.text || '{}';
+    const rawText = aiData.content?.[0]?.text || '';
+    const stopReason = aiData.stop_reason;
+
+    if (!rawText) {
+      console.error('TL analysis — empty response text. submission:', submission_id, 'tier:', tier, 'stop_reason:', stopReason, 'full response:', JSON.stringify(aiData).slice(0,500));
+      await env.TL_DB.prepare(`UPDATE tl_submissions SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(submission_id).run();
+      return { success: false, reason: 'Empty response from analysis engine' };
+    }
 
     let report;
     try {
       report = JSON.parse(rawText.replace(/```json|```/g, '').trim());
     } catch(e) {
-      report = { verdict: 'ERROR', verdict_summary: 'Analysis failed — please retry', raw: rawText };
+      console.error('TL analysis — JSON parse failed. submission:', submission_id, 'tier:', tier, 'stop_reason:', stopReason, 'raw text (first 800 chars):', rawText.slice(0,800));
+      await env.TL_DB.prepare(`UPDATE tl_submissions SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(submission_id).run();
+      return { success: false, reason: 'Could not parse analysis result' };
+    }
+
+    // A real report must have a verdict — anything else (empty object, missing field)
+    // means the analysis did not genuinely complete, regardless of HTTP success.
+    if (!report.verdict || !['GO','NO_GO','CONDITIONAL_GO'].includes(report.verdict)) {
+      console.error('TL analysis — report missing valid verdict. submission:', submission_id, 'tier:', tier, 'stop_reason:', stopReason, 'parsed report:', JSON.stringify(report).slice(0,500));
+      await env.TL_DB.prepare(`UPDATE tl_submissions SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(submission_id).run();
+      return { success: false, reason: 'Analysis did not produce a valid verdict' };
     }
 
     const reportKey = `submissions/${submission_id}/report-${tier}.json`;
@@ -728,11 +802,14 @@ Return ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
 
     await env.TL_DB.prepare(`
       UPDATE tl_submissions SET status='complete', verdict=?, report_r2_key=?, report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-    `).bind(report.verdict || 'ERROR', reportKey, JSON.stringify(report), submission_id).run();
+    `).bind(report.verdict, reportKey, JSON.stringify(report), submission_id).run();
+
+    return { success: true };
 
   } catch(e) {
-    console.error('TL analysis error:', e.message);
+    console.error('TL analysis error:', e.message, 'submission:', submission_id, 'tier:', tier);
     await env.TL_DB.prepare(`UPDATE tl_submissions SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(submission_id).run();
+    return { success: false, reason: e.message };
   }
 }
 
