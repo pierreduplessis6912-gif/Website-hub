@@ -34,6 +34,7 @@ export async function handleTenderLogix(request, env) {
 
   if (path === '/tl/company' && method === 'POST') return handleTlCreateCompany(request, env, tlJson);
   if (path === '/tl/company' && method === 'GET')  return handleTlGetCompany(url, env, tlJson);
+  if (path === '/tl/company/update' && method === 'POST') return handleTlUpdateCompany(request, env, tlJson);
 
   if (path === '/tl/submission'  && method === 'GET')  return handleTlGetSubmission(url, env, tlJson);
   if (path === '/tl/submissions' && method === 'GET')  return handleTlListSubmissions(url, env, tlJson);
@@ -120,6 +121,52 @@ async function handleTlGetCompany(url, env, tlJson) {
   const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(id).first();
   if (!company) return tlJson({ error: 'Company not found' }, 404);
   return tlJson(company);
+}
+
+// ── UPDATE COMPANY PROFILE ────────────────────────────────────────
+// Distinct from create — no duplicate-prevention check (it's the SAME
+// company being edited), and balance/credits are never touched here.
+async function handleTlUpdateCompany(request, env, tlJson) {
+  const body = await request.json().catch(() => ({}));
+  const { company_id, name, reg_number, tax_number, vat_number, csd_maaa, bee_level,
+          cidb_grade, cidb_number, industries, provinces, years_experience,
+          annual_turnover, employees, phone, email, address, client_name } = body;
+
+  if (!company_id) return tlJson({ error: 'company_id required' }, 400);
+
+  const existing = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  if (!existing) return tlJson({ error: 'Company not found' }, 404);
+
+  const normalisedPhone = phone ? phone.replace(/\D/g, '') : existing.phone;
+  const normalisedEmail = email ? email.trim().toLowerCase() : existing.email;
+
+  // If phone or email is changing, make sure it doesn't collide with a DIFFERENT company
+  if (normalisedPhone !== existing.phone || normalisedEmail !== existing.email) {
+    const conflict = await env.TL_DB.prepare(
+      'SELECT id FROM tl_companies WHERE (phone=? OR LOWER(email)=?) AND id != ? LIMIT 1'
+    ).bind(normalisedPhone, normalisedEmail, company_id).first();
+    if (conflict) return tlJson({ error: 'That phone or email is already used by a different account.' }, 409);
+  }
+
+  await env.TL_DB.prepare(`
+    UPDATE tl_companies SET
+      name=?, reg_number=?, tax_number=?, vat_number=?, csd_maaa=?, bee_level=?,
+      cidb_grade=?, cidb_number=?, industries=?, provinces=?, years_experience=?,
+      annual_turnover=?, employees=?, phone=?, email=?, address=?, client_name=?,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE id=?
+  `).bind(
+    name ?? existing.name, reg_number ?? existing.reg_number, tax_number ?? existing.tax_number,
+    vat_number ?? existing.vat_number, csd_maaa ?? existing.csd_maaa, bee_level ?? existing.bee_level,
+    cidb_grade ?? existing.cidb_grade, cidb_number ?? existing.cidb_number,
+    industries ? JSON.stringify(industries) : existing.industries,
+    provinces ? JSON.stringify(provinces) : existing.provinces,
+    years_experience ?? existing.years_experience, annual_turnover ?? existing.annual_turnover,
+    employees ?? existing.employees, normalisedPhone, normalisedEmail,
+    address ?? existing.address, client_name ?? existing.client_name, company_id
+  ).run();
+
+  return tlJson({ success: true, company_id });
 }
 
 // ── GET BALANCE ──────────────────────────────────────────────────
