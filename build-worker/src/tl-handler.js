@@ -819,11 +819,40 @@ If this industry genuinely has no additional requirements beyond the universal s
       headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
     });
+
+    if (!aiRes.ok) {
+      const errBody = await aiRes.text();
+      console.error('Industry requirement suggestion — Anthropic API error:', aiRes.status, 'industry:', industry, 'response:', errBody.slice(0,300));
+      return; // don't write anything — will retry next time since no rows were inserted
+    }
+
     const aiData = await aiRes.json();
     const rawText = aiData.content?.[0]?.text || '{}';
-    const result = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+    let result;
+    try {
+      result = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+    } catch(parseErr) {
+      console.error('Industry requirement suggestion — JSON parse failed:', parseErr.message, 'industry:', industry, 'raw text:', rawText.slice(0,300));
+      return;
+    }
 
-    for (const req of (result.requirements || [])) {
+    if (!result.requirements || result.requirements.length === 0) {
+      // Claude confirmed there's nothing extra for this industry — write a marker
+      // row so we don't re-run this Claude call on every single dashboard load.
+      // Uses a reserved doc_type_id 'none' which is never rendered as a real card.
+      await env.TL_DB.prepare(`
+        INSERT OR IGNORE INTO tl_doc_types (id, name, description, is_universal, has_expiry)
+        VALUES ('none', 'No additional requirement', 'Internal marker — not a real document type', 0, 0)
+      `).run();
+      await env.TL_DB.prepare(`
+        INSERT INTO tl_industry_doc_requirements (id, industry, doc_type_id, source, confidence)
+        VALUES (?,?,?,'claude','high')
+      `).bind(crypto.randomUUID(), norm, 'none').run();
+      console.log('Industry requirement suggestion — confirmed no extra requirements for:', industry);
+      return;
+    }
+
+    for (const req of result.requirements) {
       // Insert the doc type if it doesn't already exist (it might, if another
       // industry already suggested the same requirement e.g. two trades both need PSIRA)
       await env.TL_DB.prepare(`
@@ -836,10 +865,13 @@ If this industry genuinely has no additional requirements beyond the universal s
         VALUES (?,?,?,'claude',?)
       `).bind(crypto.randomUUID(), norm, req.id, req.confidence || 'medium').run();
     }
+    console.log('Industry requirement suggestion — added', result.requirements.length, 'requirement(s) for:', industry);
   } catch(e) {
-    console.warn('Industry requirement suggestion failed:', e.message);
-    // Fail silently — the company just won't see industry-specific requirements
-    // until this succeeds on a later attempt (e.g. next profile view).
+    console.error('Industry requirement suggestion failed:', e.message, 'industry:', industry);
+    // Fail silently to the user — the company just won't see industry-specific
+    // requirements until this succeeds on a later attempt (e.g. next profile view).
+    // No rows written, so it will correctly retry next time rather than getting
+    // stuck thinking this industry has been "checked" when it errored out.
   }
 }
 
@@ -867,10 +899,11 @@ async function handleTlComplianceRequirements(url, env, tlJson) {
   const requiredTypes = normIndustries.length
     ? await env.TL_DB.prepare(`
         SELECT DISTINCT dt.* FROM tl_doc_types dt
-        WHERE dt.is_universal=1
-        OR dt.id IN (SELECT doc_type_id FROM tl_industry_doc_requirements WHERE industry IN (${placeholders}))
+        WHERE dt.id != 'none'
+        AND (dt.is_universal=1
+        OR dt.id IN (SELECT doc_type_id FROM tl_industry_doc_requirements WHERE industry IN (${placeholders})))
       `).bind(...normIndustries).all()
-    : await env.TL_DB.prepare('SELECT * FROM tl_doc_types WHERE is_universal=1').all();
+    : await env.TL_DB.prepare("SELECT * FROM tl_doc_types WHERE is_universal=1 AND id != 'none'").all();
 
   // Left-join against what's actually uploaded for this company
   const uploaded = await env.TL_DB.prepare(
