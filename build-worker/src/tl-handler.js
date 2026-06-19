@@ -290,7 +290,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: userContent }] }),
     });
     const aiData = await aiRes.json();
@@ -765,7 +765,7 @@ Return ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': env.ANTHROPIC_API_KEY,
+        'x-api-key': env.ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -905,7 +905,7 @@ If this industry genuinely has no additional requirements beyond the universal s
 
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
     });
 
@@ -1095,7 +1095,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: userContent }] }),
     });
     const aiData = await aiRes.json();
