@@ -881,6 +881,15 @@ async function handleTlComplianceRequirements(url, env, tlJson) {
 
   const strip = (requiredTypes.results || []).map(dt => {
     const doc = uploadedByType[dt.id];
+    let redReason = null;
+    let cleanNotes = doc?.extraction_notes || null;
+    if (cleanNotes && cleanNotes.startsWith('[wrong_document]')) {
+      redReason = 'wrong_document';
+      cleanNotes = cleanNotes.replace('[wrong_document] ', '');
+    } else if (cleanNotes && cleanNotes.startsWith('[expired]')) {
+      redReason = 'expired';
+      cleanNotes = cleanNotes.replace('[expired] ', '');
+    }
     return {
       doc_type_id: dt.id,
       name: dt.name,
@@ -888,10 +897,11 @@ async function handleTlComplianceRequirements(url, env, tlJson) {
       has_expiry: !!dt.has_expiry,
       is_universal: !!dt.is_universal,
       status: doc ? doc.status : 'missing',
+      red_reason: redReason,
       extracted_value: doc?.extracted_value || null,
       expiry_date: doc?.expiry_date || null,
       uploaded_at: doc?.uploaded_at || null,
-      extraction_notes: doc?.extraction_notes || null,
+      extraction_notes: cleanNotes,
     };
   });
 
@@ -990,13 +1000,15 @@ Return ONLY valid JSON, no markdown, no explanation.`;
 
   // ── Compute status from extracted expiry date ──
   let status = 'pending';
+  let redReason = null; // 'wrong_document' | 'expired' | null — only meaningful when status='red'
   if (extraction.is_correct_doc_type === false) {
     status = 'red';
+    redReason = 'wrong_document';
   } else if (docType.has_expiry && extraction.expiry_date) {
     const expiry = new Date(extraction.expiry_date);
     const today = new Date();
     const daysUntilExpiry = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
-    if (daysUntilExpiry < 0) status = 'red';
+    if (daysUntilExpiry < 0) { status = 'red'; redReason = 'expired'; }
     else if (daysUntilExpiry <= 60) status = 'amber';
     else status = 'green';
   } else if (!docType.has_expiry && extraction.extracted_value) {
@@ -1010,15 +1022,22 @@ Return ONLY valid JSON, no markdown, no explanation.`;
   await env.TL_DB.prepare('DELETE FROM tl_compliance_documents WHERE company_id=? AND doc_type_id=?')
     .bind(company_id, doc_type_id).run();
 
+  // Store red_reason inside extraction_notes as a structured prefix if notes are empty,
+  // so it survives without needing a schema migration for a new column.
+  const storedNotes = redReason
+    ? `[${redReason}] ${extraction.notes || (redReason === 'wrong_document' ? 'This does not appear to be the correct document type.' : 'This certificate has expired.')}`
+    : (extraction.notes || null);
+
   await env.TL_DB.prepare(`
     INSERT INTO tl_compliance_documents (id, company_id, doc_type_id, r2_key, extracted_value, expiry_date, status, extraction_confidence, extraction_notes, verified_at)
     VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
-  `).bind(id, company_id, doc_type_id, r2Key, extraction.extracted_value || null, extraction.expiry_date || null, status, extraction.confidence || 'low', extraction.notes || null).run();
+  `).bind(id, company_id, doc_type_id, r2Key, extraction.extracted_value || null, extraction.expiry_date || null, status, extraction.confidence || 'low', storedNotes).run();
 
   return tlJson({
     success: true,
     doc_type_id,
     status,
+    red_reason: redReason,
     extracted_value: extraction.extracted_value || null,
     expiry_date: extraction.expiry_date || null,
     is_correct_doc_type: extraction.is_correct_doc_type,
