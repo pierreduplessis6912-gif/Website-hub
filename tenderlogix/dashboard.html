@@ -530,8 +530,12 @@ async function loadCompliance() {
         detail = daysA !== null ? 'Renews in ' + daysA + 'd' : 'Needs review';
         detailCls = 'amber-text';
       } else if (r.status === 'red') {
-        var daysR = daysUntil(r.expiry_date);
-        detail = daysR !== null ? 'Expired ' + Math.abs(daysR) + 'd ago' : 'Expired';
+        if (r.red_reason === 'wrong_document') {
+          detail = 'Wrong document';
+        } else {
+          var daysR = daysUntil(r.expiry_date);
+          detail = daysR !== null ? 'Expired ' + Math.abs(daysR) + 'd ago' : 'Expired';
+        }
         detailCls = 'red-text';
       } else if (r.status === 'pending') {
         detail = 'Processing...';
@@ -559,7 +563,7 @@ function openComplianceModal(docTypeId) {
   var current = document.getElementById('complianceModalCurrent');
   if (r.status !== 'missing') {
     current.style.display = 'block';
-    var statusText = r.status === 'green' ? 'Currently valid' : r.status === 'amber' ? 'Renewal needed soon' : r.status === 'red' ? 'Expired — renewal needed' : 'Uploaded, processing';
+    var statusText = r.status === 'green' ? 'Currently valid' : r.status === 'amber' ? 'Renewal needed soon' : r.status === 'red' ? (r.red_reason === 'wrong_document' ? 'This doesn\'t look like the right document' : 'Expired — renewal needed') : 'Uploaded, processing';
     current.innerHTML = statusLight(r.status) + ' ' + statusText + (r.extracted_value ? ' — ' + r.extracted_value : '') + (r.expiry_date ? ' (valid until ' + r.expiry_date + ')' : '');
   } else {
     current.style.display = 'none';
