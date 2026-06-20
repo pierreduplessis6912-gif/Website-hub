@@ -293,7 +293,11 @@ async function loadTenders() {
     document.getElementById('tendersList').innerHTML = tenders.map(function(t) {
       var title = t.tender_title || 'Tender — ' + new Date(t.created_at).toLocaleDateString('en-ZA');
       var runsByProduct = {};
-      (t.product_runs || []).forEach(function(r) { runsByProduct[r.product] = r; });
+      // product_runs is ordered newest-first (created_at DESC) — only keep
+      // the FIRST occurrence of each product, which is the most recent run.
+      // Without this guard, older failed attempts on the same product would
+      // silently overwrite a later successful one as the loop continues.
+      (t.product_runs || []).forEach(function(r) { if (!runsByProduct[r.product]) runsByProduct[r.product] = r; });
 
       var products = ['gonogo','pricing','bidpack'].map(function(p) {
         var run = runsByProduct[p];
