@@ -442,6 +442,46 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
   }
 }
 
+// ── SIMPLE CALL — plain text in, plain text out. No JSON schema, no
+// forced structure, no parse step that can fail. This is deliberately the
+// "what does a free chat interface do" version — the absolute minimum
+// distance between prompt and answer. Used for bidpack's submission
+// document specifically, since that step has no reason to be structured
+// JSON at all — it's just prose, and prose doesn't need to parse.
+async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
+  const userContent = pdfDocs.length
+    ? [...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })), { type: 'text', text: promptText }]
+    : promptText;
+
+  try {
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content: userContent }] }),
+    });
+
+    if (!aiRes.ok) {
+      const errBody = await aiRes.text();
+      console.error('TL v2 callClaudeSimple — Anthropic API error:', aiRes.status, 'response:', errBody.slice(0,500));
+      return { success: false, reason: `Anthropic API returned ${aiRes.status}` };
+    }
+
+    const aiData = await aiRes.json();
+    const text = aiData.content?.[0]?.text || '';
+
+    if (!text) {
+      console.error('TL v2 callClaudeSimple — empty response. stop_reason:', aiData.stop_reason);
+      return { success: false, reason: 'Empty response from analysis engine' };
+    }
+
+    // No JSON.parse. No schema validation. The text IS the answer.
+    return { success: true, text };
+  } catch(e) {
+    console.error('TL v2 callClaudeSimple — exception:', e.message);
+    return { success: false, reason: e.message };
+  }
+}
+
 // ── ANALYSIS — one focused prompt per product, genuinely distinct ────────
 async function runV2Product(productRunId, company, pdfDocs, product, env) {
   try {
@@ -542,31 +582,36 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
         return { success: false, reason: 'Analysis did not produce pricing data' };
       }
 
-      // Call 2 — submission document, built FROM call 1's already-confirmed
-      // BOQ/checklist data rather than re-deriving everything from scratch.
-      // This is deliberately lighter — text generation only, no re-reading
-      // or re-reasoning about the source PDF's full requirements.
-      const call2Prompt = `You are writing a professional, submission-ready cover letter for a South African government tender bid. The client has ALREADY DECIDED to bid. Write in the company's voice, referencing their specific profile and the pricing/compliance summary below. This is ready to attach to the real bid — do NOT second-guess whether they should bid, do NOT produce a "notice of non-submission" — that is not your role here.
+      // Call 2 — the FULL submission preparation pack, written directly as
+      // plain markdown text, NO JSON wrapper at all. This mirrors what a
+      // direct chat conversation does (ask Claude/Kimi/etc "give me a full
+      // tender-ready submission pack for this PDF" and it just writes the
+      // answer) — every MBD form's fields laid out for transcription, the
+      // category selection table, functionality scoring breakdown,
+      // envelope endorsement wording, submission checklist. Re-attaches the
+      // original PDF so this call has full access to the tender's specific
+      // forms and requirements, not just a summary of call 1's output.
+      const call2Prompt = `Can you do a full tender-ready submission pack for this tender? The client has ALREADY DECIDED to bid.
 
-COMPANY PROFILE:
+Include: a master submission checklist (every document/form required, sourced from the tender), category/registration requirements if applicable, completion templates for every mandatory bid form (MBD1, MBD2, MBD4, MBD6.1, MBD8, MBD9, MBD15, MBD16, or local equivalents — whatever this specific tender requires), the pricing schedule template, functionality evaluation submission requirements (e.g. Form C1 references, CV template), special conditions compliance checklist, and final submission/packaging instructions (envelope endorsement wording, physical submission location, USB requirements, ink requirements).
+
+This is a genuine preparation pack the bidder will use to transcribe onto the official forms and gather supporting documents — be thorough and specific to THIS tender's actual requirements, not generic.
+
+COMPANY PROFILE (reference where relevant, e.g. pre-filling the company name field):
 ${companyContext}
 
-TENDER: ${call1Result.data.tender_title || 'this tender'} (Ref: ${call1Result.data.tender_reference || 'see tender document'})
+ALREADY-CONFIRMED PRICING (reference, do not recalculate): Recommended bid R${call1Result.data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
 
-PRICING SUMMARY (already confirmed — reference but do not recalculate): Recommended bid R${call1Result.data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
+Write this as a complete, well-formatted markdown document — not JSON, just the document itself, ready to read and use.`;
 
-COMPLIANCE ITEMS TO REFERENCE: ${(call1Result.data.compliance_checklist || []).slice(0,6).map(c => c.item).join('; ')}`;
-
-      const call2Schema = `{ "submission_document": "string — full formatted, professional cover letter / submission document in markdown, written and ready to attach" }`;
-
-      const call2Result = await callClaude(env, [], call2Prompt, call2Schema, 3072);
+      const call2Result = await callClaudeSimple(env, pdfDocs, call2Prompt, 6144);
       if (!call2Result.success) {
-        console.error('TL v2 — bidpack call 2 (submission document) failed. run:', productRunId, 'reason:', call2Result.reason);
+        console.error('TL v2 — bidpack call 2 (submission pack) failed. run:', productRunId, 'reason:', call2Result.reason);
         await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
         return { success: false, reason: call2Result.reason };
       }
 
-      report = { ...call1Result.data, submission_document: call2Result.data.submission_document || null };
+      report = { ...call1Result.data, submission_document: call2Result.text || null };
 
     } else {
       const fullPrompt = `${prompt}\n\nReturn ONLY this JSON structure:\n${schema}\n\nReturn ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
