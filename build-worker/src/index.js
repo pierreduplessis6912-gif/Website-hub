@@ -1,4 +1,4 @@
-import { handleTenderLogix } from './tl-handler.js';
+import { handleTenderLogix, processTlQueueMessage } from './tl-handler.js';
 // ============================================================
 // WH-BUILD — Website Hub Build Worker
 // Clean rewrite — Session D10 2026-05-27
@@ -470,6 +470,7 @@ export default {
         if (type === 'pre_build')       await triggerPreBuild(clientId, env, isOutbound);
         if (type === 'substance_build') await triggerSubstanceBuild(clientId, cardPayload, env);
         if (type === 'full_build')      await triggerFullBuild(clientId, env, isOutbound, silent);
+        if (type === 'tl_analyse')      await processTlQueueMessage(msg.body, env);
         msg.ack();
       } catch (err) {
         console.error('Queue message failed:', err);
