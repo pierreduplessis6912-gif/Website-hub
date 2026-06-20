@@ -678,6 +678,7 @@ async function loadSubmissions() {
       else if (s.verdict==='CONDITIONAL_GO') { badge='<span class="badge badge-cond">CONDITIONAL</span>'; icon='⚠️'; }
       else if (s.status==='processing') { badge='<span class="badge badge-proc">ANALYSING...</span>'; icon='⏳'; }
       else if (s.status==='queued') { badge='<span class="badge badge-proc">QUEUED...</span>'; icon='⏳'; }
+      else if (s.status==='failed') { badge='<span class="badge badge-nogo">FAILED · NOT CHARGED</span>'; icon='⚠️'; }
       else { badge='<span class="badge badge-pend">PENDING</span>'; icon='📋'; }
 
       var tier = s.tier || 'gonogo';
