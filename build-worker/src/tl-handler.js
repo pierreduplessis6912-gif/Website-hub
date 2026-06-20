@@ -704,7 +704,7 @@ Return ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: tier === 'gonogo' ? 2048 : 4096,
+        max_tokens: tier === 'gonogo' ? 3072 : 6144, // raised after a real truncation: stop_reason='max_tokens' on a complex multi-disqualifier NO_GO that legitimately needed more room than 2048 allowed
         messages: [{ role: 'user', content: userContent }],
       }),
     });
@@ -732,7 +732,10 @@ Return ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
     } catch(e) {
       console.error('TL analysis — JSON parse failed. submission:', submission_id, 'tier:', tier, 'stop_reason:', stopReason, 'raw text (first 800 chars):', rawText.slice(0,800));
       await env.TL_DB.prepare(`UPDATE tl_submissions SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(submission_id).run();
-      return { success: false, reason: 'Could not parse analysis result' };
+      const reason = stopReason === 'max_tokens'
+        ? 'The analysis was unusually detailed and exceeded the response size limit before completing. Please try again — this is a rare edge case we are tuning for.'
+        : 'Could not parse analysis result';
+      return { success: false, reason };
     }
 
     // A real report must have a verdict — anything else (empty object, missing field)
