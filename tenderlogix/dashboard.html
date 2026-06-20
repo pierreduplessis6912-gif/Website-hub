@@ -192,6 +192,9 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
 .report-title{font-size:14px;font-weight:500;color:var(--paper)}
 .report-body{max-width:720px;margin:0 auto;padding:32px 20px 80px}
 .verdict-banner{padding:24px;margin-bottom:28px;text-align:center}
+.report-heading{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.report-heading h1{font-family:var(--display);font-size:clamp(20px,5vw,28px);letter-spacing:-.3px;text-transform:uppercase;color:var(--paper);line-height:1.15;margin:0}
+.report-heading-ref{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.5px;margin-top:6px}
 .verdict-banner.go{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.25)}
 .verdict-banner.no_go{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.25)}
 .verdict-banner.conditional_go{background:rgba(255,107,26,.1);border:1px solid rgba(255,107,26,.25)}
@@ -862,6 +865,10 @@ async function viewReport(submissionId) {
     var tier = d.tier || 'gonogo';
     currentReportSubmissionId = submissionId;
     var html = '';
+
+    var reportHeading = r.tender_title || d.tender_title || 'Tender Analysis';
+    var reportRef = r.tender_reference || d.tender_ref || null;
+    html += '<div class="report-heading"><h1>'+reportHeading+'</h1>'+(reportRef ? '<div class="report-heading-ref">Ref: '+reportRef+'</div>' : '')+'</div>';
 
     var cls = (r.verdict||'').toLowerCase();
     html += '<div class="verdict-banner '+cls+'"><div class="verdict-label '+cls+'">'+(r.verdict||'').replace(/_/g,' ')+'</div><p class="verdict-summary">'+(r.verdict_summary||'')+'</p></div>';
