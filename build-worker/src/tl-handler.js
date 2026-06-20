@@ -647,7 +647,7 @@ RECENT MARKET DATA (National Treasury OCDS):${ocdsContext || ' Not available for
   ],
   "edge_headline_tip": "ONE single most important action the company could take to improve their odds — a teaser, not the full list. Null if verdict is a clean GO with nothing to add.",
   "future_readiness": "string or null — if this is a NO_GO, what should the company do NOW so they qualify for similar tenders in future. Null if not applicable.",
-  "upsell_note": "A brief, honest one-line note on what the Pricing Pack (R750) would add for this specific tender — e.g. full priced BOQ with X line items, named competitor awards, complete action list. Null if verdict is NO_GO with no realistic path forward."
+  "upsell_note": "A brief, honest one-line note on what the Pricing Pack (R750) would add for this specific tender — e.g. full priced BOQ with X line items, named competitor awards, complete action list. This is ALWAYS useful regardless of the verdict — even on a NO_GO, the priced BOQ and competitive landscape are valuable standalone market intelligence (e.g. for a related entity that may qualify, for future capacity planning, or simply to understand category economics). Never frame this as conditional on winnability — frame it purely as 'what this unlocks', not 'why you'd need it'."
 }`;
 
     const pricingSchemaAddition = `
