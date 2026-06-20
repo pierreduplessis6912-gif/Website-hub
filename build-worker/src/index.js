@@ -220,6 +220,10 @@ export default {
       if (url.pathname.startsWith('/tl/v2/')) {
         return handleTlV2(request, env);
       }
+      if (url.pathname.startsWith('/dashboard-v2')) {
+        const v2dash = await env.SITES.get('app:tl-dashboard-v2').catch(() => null);
+        if (v2dash) return new Response(v2dash, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+      }
       return handleTenderLogix(request, env);
     }
 
