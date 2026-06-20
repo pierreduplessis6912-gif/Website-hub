@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — TenderLogix</title>
+<meta name="theme-color" content="#0a0a0a">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ink:#0a0a0a;--paper:#ffffff;
+  --dark:#0a0a0a;--surface:#1c1d20;--surface2:#2a2b2f;
+  --gold:#ff6b1a;--gold-light:#ff8c4a;
+  --muted:rgba(255,255,255,.55);--dim:rgba(255,255,255,.32);
+  --green:#2ecc71;--red:#ff4757;--amber:#ff6b1a;
+  --display:'Archivo Black',sans-serif;--body:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html{-webkit-font-smoothing:antialiased}
+body{font-family:var(--body);background:var(--dark);color:var(--paper);min-height:100vh}
+.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{font-family:var(--display);font-size:18px;color:var(--paper);text-decoration:none;text-transform:uppercase}
+.nav-brand span{color:var(--gold)}
+.balance-pill{background:rgba(255,107,26,.12);border:1px solid rgba(255,107,26,.3);padding:7px 14px;font-family:var(--mono);font-size:12px;color:var(--gold);font-weight:700}
+.page{max-width:720px;margin:0 auto;padding:24px 20px 80px}
+.hero{margin-bottom:28px}
+.hero h1{font-family:var(--display);font-size:clamp(26px,6vw,38px);text-transform:uppercase;letter-spacing:-.3px}
+.hero h1 span{color:var(--gold)}
+.btn-gold{background:var(--gold);color:var(--ink);padding:13px 24px;font-family:var(--body);font-size:13px;font-weight:700;border:none;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;width:100%;margin-top:14px}
+.btn-gold:disabled{opacity:.4}
+.upload-box{background:var(--surface);border:1px solid rgba(255,255,255,.06);padding:24px;margin-bottom:32px}
+.upload-box-title{font-family:var(--display);font-size:20px;text-transform:uppercase;margin-bottom:6px}
+.upload-box-sub{font-size:12px;color:var(--dim);margin-bottom:16px}
+.file-drop{border:2px dashed rgba(255,255,255,.15);background:rgba(255,255,255,.03);padding:28px 16px;text-align:center;cursor:pointer}
+.file-drop.has-file{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.06)}
+.file-item{display:flex;justify-content:space-between;padding:8px 10px;background:rgba(255,255,255,.04);margin-top:6px;font-size:12px}
+.file-item-remove{color:var(--red);background:none;border:none;cursor:pointer}
+.ref-field{margin-top:14px}
+.ref-field input{width:100%;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--paper);font-family:var(--body);font-size:14px}
+.price-line{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:10px;text-align:center}
+.price-line strong{color:var(--gold)}
+.free-badge{display:inline-block;background:rgba(46,204,113,.15);color:var(--green);font-family:var(--mono);font-size:10px;padding:2px 8px;letter-spacing:.5px;margin-left:6px}
+
+.tender-card{background:var(--surface);border:1px solid rgba(255,255,255,.06);margin-bottom:20px;overflow:hidden}
+.tender-head{padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+.tender-title{font-size:15px;font-weight:600;line-height:1.3;margin-bottom:4px}
+.tender-meta{font-size:11px;color:var(--dim);font-family:var(--mono)}
+.products-row{display:grid;grid-template-columns:1fr;gap:1px;background:rgba(255,255,255,.06)}
+.product-card{background:var(--surface);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:background .15s}
+.product-card:hover{background:var(--surface2)}
+.product-card.done{cursor:default}
+.product-left{flex:1;min-width:0}
+.product-name{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.product-sub{font-size:11px;color:var(--dim);line-height:1.4}
+.product-right{flex-shrink:0;text-align:right}
+.product-price{font-family:var(--mono);font-size:13px;color:var(--gold);font-weight:700}
+.product-price.free{color:var(--green)}
+.product-status{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;margin-top:4px;padding:2px 8px;display:inline-block}
+.status-go{background:rgba(46,204,113,.15);color:var(--green)}
+.status-nogo{background:rgba(255,71,87,.15);color:var(--red)}
+.status-cond{background:rgba(255,107,26,.15);color:var(--gold)}
+.status-proc{background:rgba(255,107,26,.1);color:var(--gold)}
+.status-failed{background:rgba(255,71,87,.1);color:var(--red)}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);width:100%;max-width:480px;padding:28px 24px;border-top:2px solid var(--gold)}
+.modal-title{font-family:var(--display);font-size:22px;text-transform:uppercase;margin-bottom:8px}
+.modal-sub{font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.6}
+.amount-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.amount-opt{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);padding:14px 8px;text-align:center;cursor:pointer}
+.amount-opt.selected{background:rgba(255,107,26,.1);border-color:var(--gold)}
+.amount-opt-val{font-family:var(--display);font-size:18px;color:var(--gold)}
+.btn-buy{background:var(--gold);color:var(--ink);padding:14px;font-family:var(--body);font-size:13px;font-weight:700;border:none;cursor:pointer;width:100%;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
+.btn-close{background:transparent;color:var(--dim);padding:12px;font-family:var(--body);font-size:12px;border:1px solid rgba(255,255,255,.1);cursor:pointer;width:100%;text-transform:uppercase}
+
+.report-overlay{position:fixed;inset:0;background:var(--dark);z-index:300;overflow-y:auto;display:none}
+.report-overlay.open{display:block}
+.report-nav{position:sticky;top:0;background:rgba(10,10,10,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px}
+.report-back{font-size:13px;color:var(--gold);background:none;border:none;font-weight:600;cursor:pointer}
+.report-body{max-width:720px;margin:0 auto;padding:32px 20px 80px}
+.report-heading h1{font-family:var(--display);font-size:24px;text-transform:uppercase;margin-bottom:6px}
+.report-heading-ref{font-family:var(--mono);font-size:11px;color:var(--gold)}
+.verdict-banner{padding:24px;margin:20px 0;text-align:center}
+.verdict-banner.go{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.25)}
+.verdict-banner.no_go{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.25)}
+.verdict-banner.conditional_go{background:rgba(255,107,26,.1);border:1px solid rgba(255,107,26,.25)}
+.verdict-label{font-family:var(--display);font-size:38px;text-transform:uppercase}
+.verdict-label.go{color:var(--green)}
+.verdict-label.no_go{color:var(--red)}
+.verdict-label.conditional_go{color:var(--gold)}
+.verdict-summary{font-size:14px;color:var(--dim);margin-top:8px;line-height:1.7}
+.report-section{margin:28px 0}
+.report-section-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.check-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.check-text{font-size:13px;flex:1}
+.check-notes{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5}
+.boq-table{width:100%;border-collapse:collapse}
+.boq-table th{font-family:var(--mono);font-size:9px;color:var(--dim);padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08)}
+.boq-table td{font-size:12px;padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.boq-total{background:rgba(255,107,26,.08);font-weight:700}
+.submission-doc{background:var(--surface);border:1px solid rgba(255,255,255,.08);padding:24px;font-size:13px;line-height:1.8;white-space:pre-wrap}
+.disclaimer{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:16px;font-size:11px;color:var(--dim);line-height:1.7;font-family:var(--mono);margin-top:24px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:12px 24px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;z-index:999}
+.toast.show{opacity:1}
+.empty-state{background:var(--surface);padding:40px 20px;text-align:center;color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-brand">Tender<span>Logix</span></a>
+  <div class="balance-pill" onclick="openBalanceModal()" id="balancePill">R— balance</div>
+</nav>
+
+<div class="page">
+  <div class="hero">
+    <h1>Upload A <span>Tender.</span></h1>
+  </div>
+
+  <div class="upload-box">
+    <div class="upload-box-title">New Tender</div>
+    <p class="upload-box-sub" id="uploadSub">R20 per document — your first tender (up to 5 documents) is free.</p>
+    <div class="field" style="margin-bottom:14px">
+      <input type="file" id="pdfFile" accept="application/pdf" multiple style="display:none" onchange="handleFileSelect(this)">
+      <div class="file-drop" id="fileDrop" onclick="document.getElementById('pdfFile').click()">
+        <div style="font-size:24px;margin-bottom:6px">📄</div>
+        <div style="font-size:13px;color:var(--dim)" id="fileDropText">Tap to select one or more PDFs</div>
+      </div>
+      <div id="fileList"></div>
+    </div>
+    <div class="ref-field">
+      <input type="text" id="tenderRef" placeholder="Tender reference (required for 2+ documents)">
+    </div>
+    <button class="btn-gold" id="btnUpload" onclick="submitUpload()" disabled>Select PDFs First</button>
+    <div class="price-line" id="uploadPriceLine"></div>
+  </div>
+
+  <div class="hero">
+    <h1>Your <span>Tenders.</span></h1>
+  </div>
+  <div id="tendersList"><div class="empty-state">No tenders uploaded yet.</div></div>
+</div>
+
+<div class="modal-overlay" id="balanceModal" onclick="closeBalanceModal(event)">
+  <div class="modal">
+    <div class="modal-title">Top Up Balance</div>
+    <p class="modal-sub">Add funds to your account.</p>
+    <div class="amount-options">
+      <div class="amount-opt selected" data-amount="100" onclick="selectAmount(this)"><div class="amount-opt-val">R100</div></div>
+      <div class="amount-opt" data-amount="500" onclick="selectAmount(this)"><div class="amount-opt-val">R500</div></div>
+      <div class="amount-opt" data-amount="3000" onclick="selectAmount(this)"><div class="amount-opt-val">R3,000</div></div>
+    </div>
+    <button class="btn-buy" id="btnBuy" onclick="buyBalance()">Pay R100 →</button>
+    <button class="btn-close" onclick="closeBalanceModal()">Cancel</button>
+  </div>
+</div>
+
+<div class="report-overlay" id="reportOverlay">
+  <div class="report-nav"><button class="report-back" onclick="closeReport()">← Back</button></div>
+  <div class="report-body" id="reportBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var companyId = location.pathname.split('/dashboard/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
+var companyData = null;
+var freeTrials = {};
+var selectedFiles = [];
+var selectedAmount = 100;
+
+function showToast(msg, color) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || '#ffffff';
+  t.style.color = color ? '#fff' : '#0a0a0a';
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+
+async function loadDashboard() {
+  if (!companyId) { window.location.href = '/register'; return; }
+  try {
+    var res = await fetch('/tl/company?id=' + companyId);
+    var d = await res.json();
+    if (d.error) { showToast('Session expired'); return; }
+    companyData = d;
+    document.getElementById('balancePill').textContent = 'R' + (d.balance || 0) + ' balance';
+
+    var trialsRes = await fetch('/tl/v2/free-trials?company_id=' + companyId);
+    var trialsData = await trialsRes.json();
+    freeTrials = trialsData.free_trials_available || {};
+
+    var uploadSub = freeTrials.upload
+      ? 'Your first tender (up to 5 documents) is free.'
+      : 'R20 per document.';
+    document.getElementById('uploadSub').textContent = uploadSub;
+
+    await loadTenders();
+  } catch(e) { showToast('Could not load dashboard', '#ff4757'); }
+}
+
+function renderFileList() {
+  var drop = document.getElementById('fileDrop');
+  var text = document.getElementById('fileDropText');
+  var listEl = document.getElementById('fileList');
+  var btn = document.getElementById('btnUpload');
+  var priceLine = document.getElementById('uploadPriceLine');
+
+  if (!selectedFiles.length) {
+    drop.classList.remove('has-file');
+    text.textContent = 'Tap to select one or more PDFs';
+    listEl.innerHTML = '';
+    btn.disabled = true; btn.textContent = 'Select PDFs First';
+    priceLine.textContent = '';
+    return;
+  }
+
+  drop.classList.add('has-file');
+  text.textContent = '✓ ' + selectedFiles.length + ' document' + (selectedFiles.length>1?'s':'') + ' selected';
+  listEl.innerHTML = selectedFiles.map(function(f,i){
+    return '<div class="file-item"><span>📄 '+f.name+'</span><button class="file-item-remove" onclick="removeFile('+i+')">✕</button></div>';
+  }).join('');
+
+  var isFree = freeTrials.upload && selectedFiles.length <= 5;
+  var price = isFree ? 0 : selectedFiles.length * 20;
+  priceLine.innerHTML = isFree
+    ? '<strong>FREE</strong> — first tender trial<span class="free-badge">FREE TRIAL</span>'
+    : selectedFiles.length + ' × R20 = <strong>R' + price + '</strong>';
+  btn.disabled = false;
+  btn.textContent = isFree ? 'Upload Free →' : 'Upload · R' + price + ' →';
+}
+
+function removeFile(i) { selectedFiles.splice(i,1); renderFileList(); }
+
+function handleFileSelect(input) {
+  var newFiles = Array.from(input.files || []);
+  newFiles.forEach(function(f) {
+    if (f.type !== 'application/pdf') { showToast('Skipped "'+f.name+'" — PDF only', '#ff4757'); return; }
+    if (f.size > 32*1024*1024) { showToast('Skipped "'+f.name+'" — over 32MB', '#ff4757'); return; }
+    if (!selectedFiles.some(function(x){return x.name===f.name && x.size===f.size})) selectedFiles.push(f);
+  });
+  input.value = '';
+  renderFileList();
+}
+
+async function submitUpload() {
+  var ref = document.getElementById('tenderRef').value.trim();
+  if (!selectedFiles.length) return;
+  if (selectedFiles.length > 1 && !ref) { showToast('Reference required for multiple documents', '#ff6b1a'); return; }
+
+  var btn = document.getElementById('btnUpload');
+  btn.disabled = true; btn.textContent = 'Uploading...';
+  try {
+    var fd = new FormData();
+    fd.append('company_id', companyId);
+    selectedFiles.forEach(function(f){ fd.append('files', f); });
+    if (ref) fd.append('tender_ref', ref);
+
+    var res = await fetch('/tl/v2/tender/upload', { method:'POST', body: fd });
+    var d = await res.json();
+
+    if (res.status === 409 && d.gate_failed) {
+      var proceed = confirm('Mismatch: ' + (d.gate_message||'') + '\\n\\nProceed anyway?');
+      if (proceed) { fd.append('override_gate','true'); res = await fetch('/tl/v2/tender/upload',{method:'POST',body:fd}); d = await res.json(); }
+      else { btn.disabled=false; renderFileList(); return; }
+    }
+    if (res.status === 402) { showToast(d.error, '#ff6b1a'); openBalanceModal(); btn.disabled=false; renderFileList(); return; }
+    if (d.error) throw new Error(d.error);
+
+    selectedFiles = [];
+    document.getElementById('tenderRef').value = '';
+    renderFileList();
+    showToast(d.was_free_trial ? '✅ Tender uploaded — free trial used!' : '✅ Tender uploaded — R'+d.charged+' charged');
+    await loadDashboard();
+  } catch(e) {
+    showToast(e.message || 'Upload failed', '#ff4757');
+  }
+  btn.disabled = false;
+}
+
+function productLabel(p) { return p==='gonogo' ? 'GO / NO-GO' : p==='pricing' ? 'PRICING' : 'BID PACK'; }
+function productPrice(p) { return p==='gonogo' ? 100 : p==='pricing' ? 750 : 2500; }
+
+async function loadTenders() {
+  try {
+    var res = await fetch('/tl/v2/tenders?company_id=' + companyId);
+    var d = await res.json();
+    var tenders = d.tenders || [];
+    if (!tenders.length) { document.getElementById('tendersList').innerHTML = '<div class="empty-state">No tenders uploaded yet.</div>'; return; }
+
+    document.getElementById('tendersList').innerHTML = tenders.map(function(t) {
+      var title = t.tender_title || 'Tender — ' + new Date(t.created_at).toLocaleDateString('en-ZA');
+      var runsByProduct = {};
+      (t.product_runs || []).forEach(function(r) { runsByProduct[r.product] = r; });
+
+      var products = ['gonogo','pricing','bidpack'].map(function(p) {
+        var run = runsByProduct[p];
+        if (!run) {
+          var isFree = freeTrials[p];
+          return '<div class="product-card" onclick="runProduct(&quot;'+t.id+'&quot;,&quot;'+p+'&quot;)">'+
+            '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">'+productSub(p)+'</div></div>'+
+            '<div class="product-right"><div class="product-price'+(isFree?' free':'')+'">'+(isFree?'FREE':'R'+productPrice(p))+'</div></div></div>';
+        }
+
+        if (run.status === 'complete') {
+          var badgeCls = run.verdict==='GO'?'status-go':run.verdict==='NO_GO'?'status-nogo':run.verdict==='CONDITIONAL_GO'?'status-cond':'';
+          var badgeText = run.verdict ? run.verdict.replace('_',' ') : 'DONE';
+          return '<div class="product-card done" onclick="viewProductReport(&quot;'+run.id+'&quot;)">'+
+            '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">View report →</div></div>'+
+            '<div class="product-right"><span class="product-status '+badgeCls+'">'+badgeText+'</span></div></div>';
+        }
+        if (run.status === 'failed') {
+          return '<div class="product-card" onclick="runProduct(&quot;'+t.id+'&quot;,&quot;'+p+'&quot;)">'+
+            '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">Failed — not charged. Tap to retry.</div></div>'+
+            '<div class="product-right"><span class="product-status status-failed">FAILED</span></div></div>';
+        }
+        return '<div class="product-card done">'+
+          '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">Processing — this can take several minutes</div></div>'+
+          '<div class="product-right"><span class="product-status status-proc">'+run.status.toUpperCase()+'</span></div></div>';
+      }).join('');
+
+      return '<div class="tender-card"><div class="tender-head"><div class="tender-title">'+title+'</div><div class="tender-meta">'+t.document_count+' document'+(t.document_count>1?'s':'')+' · '+new Date(t.created_at).toLocaleDateString('en-ZA')+'</div></div><div class="products-row">'+products+'</div></div>';
+    }).join('');
+
+    // Poll any in-progress runs
+    var anyProcessing = tenders.some(function(t){ return (t.product_runs||[]).some(function(r){ return r.status==='queued'||r.status==='processing'; }); });
+    if (anyProcessing) setTimeout(loadTenders, 5000);
+  } catch(e) { console.warn('loadTenders error:', e); }
+}
+
+function productSub(p) {
+  if (p==='gonogo') return 'Should you bid? Verdict, eligibility, risk flags.';
+  if (p==='pricing') return 'Market pricing. Priced BOQ, no opinions.';
+  return 'Ready to submit. Full kit with cover letter.';
+}
+
+async function runProduct(tenderId, product) {
+  showToast('Queueing ' + productLabel(product) + '...');
+  try {
+    var res = await fetch('/tl/v2/product/run', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tender_id: tenderId, product: product })
+    });
+    var d = await res.json();
+    if (res.status === 402) { showToast(d.error, '#ff6b1a'); openBalanceModal(); return; }
+    if (d.error) throw new Error(d.error);
+    showToast(d.is_free_trial ? 'Queued — free trial!' : 'Queued — R'+d.price+' will be charged on success');
+    await loadDashboard();
+  } catch(e) { showToast(e.message || 'Failed to queue', '#ff4757'); }
+}
+
+async function viewProductReport(runId) {
+  showToast('Loading report...');
+  try {
+    var res = await fetch('/tl/v2/product-run?id=' + runId);
+    var d = await res.json();
+    if (!d.report) { showToast('Report not ready'); return; }
+    var r = d.report;
+    var html = '<div class="report-heading"><h1>'+(r.tender_title||'Tender Analysis')+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
+
+    if (r.verdict) {
+      var cls = r.verdict.toLowerCase();
+      html += '<div class="verdict-banner '+cls+'"><div class="verdict-label '+cls+'">'+r.verdict.replace('_',' ')+'</div><p class="verdict-summary">'+(r.verdict_summary||'')+'</p></div>';
+    }
+    if (r.eligibility) { html += section('Eligibility', r.eligibility.map(function(e){return checkRow(e.status==='MET'?'✅':e.status==='UNMET'?'❌':'❓', e.requirement, e.detail+(e.notes?' '+e.notes:''));})); }
+    if (r.compliance_checklist) { html += section('Compliance', r.compliance_checklist.map(function(c){return checkRow(c.risk_level==='HIGH'?'🔴':c.risk_level==='MEDIUM'?'🟡':'🟢', c.item, c.notes);})); }
+    if (r.competitive_landscape) { html += section('Competitive Landscape', ['<p style="font-size:13px;color:var(--dim);line-height:1.7">'+r.competitive_landscape+'</p>']); }
+    if (r.boq) {
+      var rows = r.boq.map(function(b){return '<tr><td>'+b.line_item+'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
+      var totalRow = r.boq_totals ? '<tr class="boq-total"><td colspan="4">Recommended Bid</td><td colspan="2">R'+(r.boq_totals.recommended_bid||0).toLocaleString()+'</td></tr>' : '';
+      html += '<div class="report-section"><div class="report-section-title">Bill Of Quantities</div><table class="boq-table"><thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th>Conf.</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
+    }
+    if (r.risk_flags) { html += section('Risk Flags', r.risk_flags.map(function(f){return checkRow(f.severity==='HIGH'?'🔴':f.severity==='MEDIUM'?'🟡':'🟢', f.flag, f.mitigation);})); }
+    if (r.edge_recommendations) { html += section('How To Gain An Edge', r.edge_recommendations.map(function(e){return checkRow('🎯', e.action, e.impact+(e.timeframe?' · '+e.timeframe:''));})); }
+    if (r.future_readiness) { html += section('Path To Future Tenders', ['<p style="font-size:13px;color:var(--dim);line-height:1.7">'+r.future_readiness+'</p>']); }
+    if (r.compliance_checklist && d.product==='bidpack') { /* already rendered above */ }
+    if (r.submission_document) { html += '<div class="report-section"><div class="report-section-title">Submission Document</div><div class="submission-doc">'+r.submission_document+'</div></div>'; }
+    if (r.pricing_disclaimer) { html += '<div class="disclaimer">'+r.pricing_disclaimer+'</div>'; }
+
+    document.getElementById('reportBody').innerHTML = html;
+    document.getElementById('reportOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  } catch(e) { showToast('Could not load report', '#ff4757'); }
+}
+
+function section(title, rows) {
+  return '<div class="report-section"><div class="report-section-title">'+title+'</div>'+rows.join('')+'</div>';
+}
+function checkRow(icon, text, notes) {
+  return '<div class="check-item"><div>'+icon+'</div><div><div class="check-text">'+text+'</div>'+(notes?'<div class="check-notes">'+notes+'</div>':'')+'</div></div>';
+}
+
+function closeReport() { document.getElementById('reportOverlay').classList.remove('open'); document.body.style.overflow=''; }
+
+function selectAmount(el) {
+  document.querySelectorAll('.amount-opt').forEach(function(o){o.classList.remove('selected')});
+  el.classList.add('selected');
+  selectedAmount = parseInt(el.dataset.amount);
+  document.getElementById('btnBuy').textContent = 'Pay R'+selectedAmount+' →';
+}
+function openBalanceModal(){ document.getElementById('balanceModal').classList.add('open'); }
+function closeBalanceModal(e){ if(!e||e.target===document.getElementById('balanceModal')) document.getElementById('balanceModal').classList.remove('open'); }
+function buyBalance() {
+  var form=document.createElement('form'); form.method='POST'; form.action='https://www.payfast.co.za/eng/process';
+  var fields={merchant_id:'10000100',merchant_key:'PAYFAST_MERCHANT_KEY',return_url:'https://tenderlogix.co.za/dashboard/'+companyId,cancel_url:'https://tenderlogix.co.za/dashboard/'+companyId,notify_url:'https://tenderlogix.co.za/tl/payfast-webhook',amount:selectedAmount.toFixed(2),item_name:'TenderLogix Top Up',custom_str1:companyId};
+  Object.entries(fields).forEach(function(e){var i=document.createElement('input');i.type='hidden';i.name=e[0];i.value=e[1];form.appendChild(i);});
+  document.body.appendChild(form); form.submit();
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
