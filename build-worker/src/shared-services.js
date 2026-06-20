@@ -179,6 +179,7 @@ export const KV_KEYS = {
     'tl-landing':       'app:tl-landing',
     'tl-intake':        'app:tl-intake',
     'tl-dashboard':     'app:tl-dashboard',
+    'tl-dashboard-v2':  'app:tl-dashboard-v2',
   },
 
   // ── Built site content ─────────────────────────────────────────────────────
