@@ -3,6 +3,14 @@ main = "src/index.js"
 compatibility_date = "2024-01-01"
 account_id = "4c559b9dff9fae56803b9c275b518597"
 
+# Default CPU limit is 30 seconds — TenderLogix bidpack-tier analysis (BOQ +
+# compliance checklist + full submission document, all in one call) was
+# consistently failing at ~2 minutes wall-clock with ZERO log output, the
+# signature of an Error 1102 hard kill (CPU limit exceeded), not a catchable
+# exception. Raised to the maximum available 5 minutes for real headroom.
+[limits]
+cpu_ms = 300000
+
 [vars]
 REGISTERDOMAIN_EMAIL = "loc10@live.co.za"
 TEST_MODE = "false"
