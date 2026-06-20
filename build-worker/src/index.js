@@ -218,7 +218,11 @@ export default {
       // ── TENDER LOGIX ─────────────────────────────────────────
     if (hostname === 'tenderlogix.co.za' || hostname === 'www.tenderlogix.co.za') {
       if (url.pathname.startsWith('/tl/v2/')) {
-        return handleTlV2(request, env);
+        try { return await handleTlV2(request, env); }
+        catch(e) {
+          console.error('UNCAUGHT in handleTlV2:', e.message, e.stack?.slice(0,500), 'path:', url.pathname);
+          return new Response(JSON.stringify({ error: `Unexpected error: ${e.message}. If this was a paid action, you have NOT been charged.`, retry_safe: true }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        }
       }
       if (url.pathname.startsWith('/dashboard-v2')) {
         const v2dash = await env.SITES.get('app:tl-dashboard-v2').catch(() => null);
