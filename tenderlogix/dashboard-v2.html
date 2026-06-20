@@ -356,7 +356,7 @@ async function viewProductReport(runId) {
   try {
     var res = await fetch('/tl/v2/product-run?id=' + runId);
     var d = await res.json();
-    if (!d.report) { showToast('Report not ready — status:' + res.status + ' has_report:' + (!!d.report) + ' keys:' + Object.keys(d).join(',')); return; }
+    if (!d.report) { showToast('Report not ready'); return; }
     var r = d.report;
     var html = '<div class="report-heading"><h1>'+(r.tender_title||'Tender Analysis')+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
 
