@@ -683,18 +683,18 @@ async function loadSubmissions() {
 
       var title = s.tender_title || s.tender_ref || 'Untitled Tender';
       var date = new Date(s.created_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
-      var viewLink = s.status==='complete' ? '<a href="#" class="view-link" onclick="viewReport(\''+s.id+'\');return false">View Report →</a>' : '';
+      var viewLink = s.status==='complete' ? '<a href="#" class="view-link" onclick="viewReport(&quot;'+s.id+'&quot;);return false">View Report →</a>' : '';
 
       var upsell = '';
       if (s.status === 'complete' && tier === 'gonogo') {
-        upsell = '<div class="sub-upsell"><div class="sub-upsell-text">Unlock full priced BOQ &amp; competitor data for this tender</div><button class="btn-upgrade" onclick="upgradeSubmission(\''+s.id+'\',\'pricing\')">Upgrade · R750</button></div>';
+        upsell = '<div class="sub-upsell"><div class="sub-upsell-text">Unlock full priced BOQ &amp; competitor data for this tender</div><button class="btn-upgrade" onclick="upgradeSubmission(&quot;'+s.id+'&quot;,&quot;pricing&quot;)">Upgrade · R750</button></div>';
       } else if (s.status === 'complete' && tier === 'pricing') {
-        upsell = '<div class="sub-upsell"><div class="sub-upsell-text">Get a submission-ready Bid Pack for this tender</div><button class="btn-upgrade" onclick="upgradeSubmission(\''+s.id+'\',\'bidpack\')">Upgrade · R' + (2500-(s.amount_paid||750)) + '</button></div>';
+        upsell = '<div class="sub-upsell"><div class="sub-upsell-text">Get a submission-ready Bid Pack for this tender</div><button class="btn-upgrade" onclick="upgradeSubmission(&quot;'+s.id+'&quot;,&quot;bidpack&quot;)">Upgrade · R' + (2500-(s.amount_paid||750)) + '</button></div>';
       }
 
       var addDocsBtn = '';
       if (s.status === 'complete') {
-        addDocsBtn = '<div class="sub-upsell" style="border-top:'+(upsell?'none':'1px solid rgba(255,255,255,.06)')+';padding-top:'+(upsell?'0':'12px')+'"><div class="sub-upsell-text">Missed a document? Add more to this submission — R20 each</div><button class="btn-upgrade" onclick="triggerAddDocuments(\''+s.id+'\')" style="border-color:rgba(255,255,255,.2);color:var(--paper)">+ Add Documents</button></div>';
+        addDocsBtn = '<div class="sub-upsell" style="border-top:'+(upsell?'none':'1px solid rgba(255,255,255,.06)')+';padding-top:'+(upsell?'0':'12px')+'"><div class="sub-upsell-text">Missed a document? Add more to this submission — R20 each</div><button class="btn-upgrade" onclick="triggerAddDocuments(&quot;'+s.id+'&quot;)" style="border-color:rgba(255,255,255,.2);color:var(--paper)">+ Add Documents</button></div>';
       }
 
       return '<div class="submission-card"><div class="sub-top"><div class="sub-icon">'+icon+'</div><div class="sub-info"><div class="sub-title">'+title+'</div><div class="sub-meta">'+date+'</div>'+tierHtml+'</div><div class="sub-right">'+badge+viewLink+'</div></div>'+upsell+addDocsBtn+'</div>';
@@ -888,7 +888,7 @@ async function viewReport(submissionId) {
       html += '</tbody></table></div>';
     } else if (tier === 'gonogo') {
       // Locked BOQ teaser
-      html += '<div class="locked-section"><div class="locked-icon">🔒</div><div class="locked-title">Pricing Locked</div><p class="locked-body">'+(r.upsell_note || 'Unlock the full priced BOQ, named competitor awards and complete action list for this tender.')+'</p><button class="btn-upgrade" style="padding:12px 28px" onclick="upgradeSubmission(\''+submissionId+'\',\'pricing\')">Unlock Full Pricing · R750</button></div>';
+      html += '<div class="locked-section"><div class="locked-icon">🔒</div><div class="locked-title">Pricing Locked</div><p class="locked-body">'+(r.upsell_note || 'Unlock the full priced BOQ, named competitor awards and complete action list for this tender.')+'</p><button class="btn-upgrade" style="padding:12px 28px" onclick="upgradeSubmission(&quot;'+submissionId+'&quot;,&quot;pricing&quot;)">Unlock Full Pricing · R750</button></div>';
     }
 
     html += renderRiskFlags(r.risk_flags);
@@ -912,7 +912,7 @@ async function viewReport(submissionId) {
     if (r.submission_document) {
       html += '<div class="report-section"><div class="report-section-title">Submission-Ready Document</div><div class="submission-doc">'+r.submission_document+'</div></div>';
     } else if (tier === 'pricing' && r.verdict !== 'NO_GO') {
-      html += '<div class="locked-section"><div class="locked-icon">🔒</div><div class="locked-title">Bid Pack Locked</div><p class="locked-body">Get a formatted, submission-ready document for this tender — cover letter and compliance summary, written and ready to attach.</p><button class="btn-upgrade" style="padding:12px 28px" onclick="upgradeSubmission(\''+submissionId+'\',\'bidpack\')">Unlock Bid Pack · R'+(2500-(d.amount_paid||750))+'</button></div>';
+      html += '<div class="locked-section"><div class="locked-icon">🔒</div><div class="locked-title">Bid Pack Locked</div><p class="locked-body">Get a formatted, submission-ready document for this tender — cover letter and compliance summary, written and ready to attach.</p><button class="btn-upgrade" style="padding:12px 28px" onclick="upgradeSubmission(&quot;'+submissionId+'&quot;,&quot;bidpack&quot;)">Unlock Bid Pack · R'+(2500-(d.amount_paid||750))+'</button></div>';
     }
 
     if (r.pricing_disclaimer) {
