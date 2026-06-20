@@ -220,25 +220,23 @@ async function handleTlAnalyse(request, env, tlJson) {
   }
 
   const id = crypto.randomUUID();
-  await env.TL_DB.prepare(`INSERT INTO tl_submissions (id, company_id, tender_ref, status, tier, amount_paid) VALUES (?,?,?,'processing','gonogo',0)`)
-    .bind(id, company_id, tender_ref||null).run();
+  // Store the pasted text in R2 so the queue consumer can read it the same way
+  // as PDF-based submissions — keeps queue messages small and the read path uniform.
+  const docKey = `submissions/${company_id}/${id}/pasted-text.txt`;
+  await env.TL_DOCS.put(docKey, doc_text);
 
-  const result = await runTlAnalysis(id, company, doc_text, env, null, 'gonogo');
+  await env.TL_DB.prepare(`INSERT INTO tl_submissions (id, company_id, tender_ref, doc_r2_key, status, tier, amount_paid) VALUES (?,?,?,?,'queued','gonogo',0)`)
+    .bind(id, company_id, tender_ref||null, docKey).run();
 
-  if (!result.success) {
-    return tlJson({ error: `Analysis failed: ${result.reason || 'unknown error'}. You have NOT been charged — please try again.`, retry_safe: true, submission_id: id }, 500);
-  }
+  await env.BUILD_QUEUE.send({
+    type: 'tl_analyse',
+    submissionId: id,
+    companyId: company_id,
+    tier: 'gonogo',
+    chargeAmount: price,
+  });
 
-  const { shortfall } = await spendFromBalance(env, company_id, price);
-  if (shortfall > 0) {
-    console.error('TL analyse — balance changed during analysis, undercharged. submission:', id, 'price:', price, 'shortfall:', shortfall);
-  }
-  await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(price, id).run();
-
-  const sub = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(id).first();
-  if (sub?.report_json) sub.report = JSON.parse(sub.report_json);
-
-  return tlJson({ submission_id: id, ...sub });
+  return tlJson({ submission_id: id, status: 'queued' });
 }
 
 // ── PDF UPLOAD ENDPOINT (native Claude PDF — Go/No-Go tier) ──────
@@ -348,21 +346,19 @@ async function handleTlUpload(request, env, tlJson) {
   if (!company) return tlJson({ error: 'Company not found' }, 404);
 
   const price = TIER_PRICES.gonogo * files.length;
-  // Check balance WITHOUT spending yet — gate check must pass first, and we don't want
-  // to charge for a submission we end up blocking.
   if ((company.balance || 0) < price) {
     const shortfall = price - (company.balance || 0);
     return tlJson({ error: `This costs R${price} (${files.length} document${files.length>1?'s':''} × R20) — you have R${company.balance||0}. Top up R${shortfall} to continue.`, shortfall }, 402);
   }
 
-  // Read all files into base64 once — reused for both gate check and analysis
+  // Read all files into base64 once — reused for both gate check and the queued analysis
   const pdfDocs = [];
   for (const f of files) {
     const buf = await f.arrayBuffer();
     pdfDocs.push({ base64: arrayBufferToBase64(buf), filename: f.name, buffer: buf });
   }
 
-  // ── Reference gate check — only runs for multi-document submissions ──
+  // ── Reference gate check — fast, runs synchronously before queueing ──
   if (!overrideGate) {
     const gateResult = await checkReferenceGate(pdfDocs, tender_ref, env);
     if (!gateResult.passed) {
@@ -375,7 +371,7 @@ async function handleTlUpload(request, env, tlJson) {
     }
   }
 
-  // ── Gate passed (or overridden) — now create the submission record and run analysis FIRST ──
+  // ── Gate passed — store documents in R2 (fast), create a QUEUED submission, hand off the actual analysis ──
   const id = crypto.randomUUID();
   const docKeys = [];
   for (let i = 0; i < pdfDocs.length; i++) {
@@ -386,29 +382,22 @@ async function handleTlUpload(request, env, tlJson) {
 
   await env.TL_DB.prepare(`
     INSERT INTO tl_submissions (id, company_id, tender_ref, doc_r2_key, doc_r2_keys, status, tier, amount_paid)
-    VALUES (?,?,?,?,?,'processing','gonogo',0)
+    VALUES (?,?,?,?,?,'queued','gonogo',0)
   `).bind(id, company_id, tender_ref, docKeys[0], JSON.stringify(docKeys)).run();
 
-  const result = await runTlAnalysis(id, company, null, env, pdfDocs.map(d => ({ base64: d.base64, filename: d.filename })), 'gonogo');
+  // Analysis runs in the background queue consumer — NOT in this HTTP request.
+  // This is the fix for large/slow documents hitting Cloudflare's synchronous
+  // execution time limit. The queue consumer has a much more generous allowance
+  // and charging still only happens there once a real verdict is confirmed.
+  await env.BUILD_QUEUE.send({
+    type: 'tl_analyse',
+    submissionId: id,
+    companyId: company_id,
+    tier: 'gonogo',
+    chargeAmount: price,
+  });
 
-  if (!result.success) {
-    // Analysis failed — do NOT charge. The submission stays in the table marked
-    // 'failed' (set inside runTlAnalysis) so support can investigate if needed,
-    // but the client's balance is untouched.
-    return tlJson({ error: `Analysis failed: ${result.reason || 'unknown error'}. You have NOT been charged — please try again.`, retry_safe: true, submission_id: id }, 500);
-  }
-
-  // ── Analysis genuinely succeeded — NOW charge ──
-  const { shortfall } = await spendFromBalance(env, company_id, price);
-  if (shortfall > 0) {
-    console.error('TL upload — balance changed during analysis, undercharged. submission:', id, 'price:', price, 'shortfall:', shortfall);
-  }
-  await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(price, id).run();
-
-  const sub = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(id).first();
-  if (sub?.report_json) sub.report = JSON.parse(sub.report_json);
-
-  return tlJson({ success: true, submission_id: id, document_count: files.length, ...sub });
+  return tlJson({ success: true, submission_id: id, status: 'queued', document_count: files.length });
 }
 
 // ── UPGRADE ENDPOINT — re-run an existing submission at a richer tier ──
@@ -434,9 +423,6 @@ async function handleTlUpgrade(request, env, tlJson) {
   const alreadyPaid = sub.amount_paid || 0;
   const owed = Math.max(0, targetPrice - alreadyPaid);
 
-  // Check balance is sufficient WITHOUT spending yet — only deduct once analysis
-  // genuinely succeeds. This is the financial-integrity fix: never charge for a
-  // failed or empty report.
   if ((company.balance || 0) < owed) {
     const shortfall = owed - (company.balance || 0);
     return tlJson({
@@ -445,55 +431,22 @@ async function handleTlUpgrade(request, env, tlJson) {
     }, 402);
   }
 
-  await env.TL_DB.prepare(`UPDATE tl_submissions SET status='processing' WHERE id=?`).bind(submission_id).run();
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET status='queued' WHERE id=?`).bind(submission_id).run();
 
-  // Re-run analysis with the richer prompt, reusing the original document(s)
-  let doc_text = null, pdfDocs = null;
-  let docKeys = [];
-  try { docKeys = sub.doc_r2_keys ? JSON.parse(sub.doc_r2_keys) : (sub.doc_r2_key ? [sub.doc_r2_key] : []); }
-  catch(e) { docKeys = sub.doc_r2_key ? [sub.doc_r2_key] : []; }
+  // Document re-fetch from R2 and the actual analysis now happen in the queue
+  // consumer — see processTlQueueMessage. This keeps the upgrade request itself
+  // fast and avoids the synchronous execution time limit that bit large documents.
+  await env.BUILD_QUEUE.send({
+    type: 'tl_analyse',
+    submissionId: submission_id,
+    companyId: sub.company_id,
+    tier,
+    chargeAmount: owed,
+    isUpgrade: true,
+    previousTier: sub.tier || 'gonogo',
+  });
 
-  if (docKeys.length) {
-    const isPdf = docKeys[0].includes('.pdf') || docKeys[0].includes('/doc-');
-    if (isPdf) {
-      pdfDocs = [];
-      for (const key of docKeys) {
-        const obj = await env.TL_DOCS.get(key);
-        if (obj) {
-          const buf = await obj.arrayBuffer();
-          pdfDocs.push({ base64: arrayBufferToBase64(buf), filename: key.split('/').pop() });
-        }
-      }
-    } else {
-      const obj = await env.TL_DOCS.get(docKeys[0]);
-      if (obj) doc_text = await obj.text();
-    }
-  }
-
-  const result = await runTlAnalysis(submission_id, company, doc_text, env, pdfDocs, tier);
-
-  if (!result.success) {
-    // Analysis failed — do NOT charge, do NOT change tier/amount_paid. Restore
-    // the submission's previous tier so the client can see their last good
-    // result rather than being stuck on a broken upgraded-but-empty state.
-    await env.TL_DB.prepare(`UPDATE tl_submissions SET status='complete', tier=? WHERE id=?`).bind(sub.tier || 'gonogo', submission_id).run();
-    return tlJson({ error: `Analysis failed: ${result.reason || 'unknown error'}. You have NOT been charged — please try again.`, retry_safe: true }, 500);
-  }
-
-  // ── Analysis genuinely succeeded — NOW charge, and lock in the new tier ──
-  const { shortfall } = await spendFromBalance(env, sub.company_id, owed);
-  if (shortfall > 0) {
-    // Extremely unlikely race condition (balance changed between check and now) —
-    // but if it happens, do not leave the client with a paid-for report they
-    // didn't actually pay for. Log it for manual reconciliation.
-    console.error('TL upgrade — balance changed during analysis, undercharged. submission:', submission_id, 'owed:', owed, 'shortfall:', shortfall);
-  }
-  await env.TL_DB.prepare(`UPDATE tl_submissions SET tier=?, amount_paid=? WHERE id=?`).bind(tier, targetPrice, submission_id).run();
-
-  const updated = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(submission_id).first();
-  if (updated?.report_json) updated.report = JSON.parse(updated.report_json);
-
-  return tlJson({ success: true, submission_id, ...updated });
+  return tlJson({ success: true, submission_id, status: 'queued' });
 }
 
 // ── ADD DOCUMENTS — attach more PDFs to an EXISTING submission, at ANY tier ──
@@ -556,7 +509,7 @@ async function handleTlAddDocuments(request, env, tlJson) {
     }
   }
 
-  // ── Gate passed — write the new docs to R2, run analysis FIRST, charge only on success ──
+  // ── Gate passed — write the new docs to R2, queue the analysis, charge only on success (inside queue consumer) ──
   const newKeys = [];
   for (let i = 0; i < newDocs.length; i++) {
     const docKey = `submissions/${sub.company_id}/${submission_id}/doc-extra-${Date.now()}-${i}-${newDocs[i].filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
@@ -566,42 +519,21 @@ async function handleTlAddDocuments(request, env, tlJson) {
 
   const allKeys = [...existingKeys, ...newKeys];
 
-  await env.TL_DB.prepare(`UPDATE tl_submissions SET doc_r2_keys=?, status='processing' WHERE id=?`)
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET doc_r2_keys=?, status='queued' WHERE id=?`)
     .bind(JSON.stringify(allKeys), submission_id).run();
 
-  // Re-read ALL documents (existing + new) and re-run analysis at the CURRENT tier
-  const allPdfDocs = [];
-  for (const key of allKeys) {
-    const obj = await env.TL_DOCS.get(key);
-    if (obj) {
-      const buf = await obj.arrayBuffer();
-      allPdfDocs.push({ base64: arrayBufferToBase64(buf), filename: key.split('/').pop() });
-    }
-  }
+  await env.BUILD_QUEUE.send({
+    type: 'tl_analyse',
+    submissionId: submission_id,
+    companyId: sub.company_id,
+    tier: sub.tier || 'gonogo',
+    chargeAmount: addPrice,
+    isAddDocuments: true,
+    previousAmountPaid: sub.amount_paid || 0,
+    rollbackDocKeys: existingKeys, // if analysis fails, revert doc_r2_keys to this
+  });
 
-  const result = await runTlAnalysis(submission_id, company, null, env, allPdfDocs, sub.tier || 'gonogo');
-
-  if (!result.success) {
-    // Analysis failed — roll back the doc_r2_keys to the pre-add state and do NOT
-    // charge. The newly-uploaded files stay in R2 (harmless, just unreferenced)
-    // but the submission itself is unaffected and the client keeps their balance.
-    await env.TL_DB.prepare(`UPDATE tl_submissions SET doc_r2_keys=?, status='complete' WHERE id=?`)
-      .bind(JSON.stringify(existingKeys), submission_id).run();
-    return tlJson({ error: `Analysis failed: ${result.reason || 'unknown error'}. You have NOT been charged — please try again.`, retry_safe: true }, 500);
-  }
-
-  // ── Analysis genuinely succeeded — NOW charge ──
-  const { shortfall } = await spendFromBalance(env, sub.company_id, addPrice);
-  if (shortfall > 0) {
-    console.error('TL add-documents — balance changed during analysis, undercharged. submission:', submission_id, 'addPrice:', addPrice, 'shortfall:', shortfall);
-  }
-  const newAmountPaid = (sub.amount_paid || 0) + addPrice;
-  await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(newAmountPaid, submission_id).run();
-
-  const updated = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(submission_id).first();
-  if (updated?.report_json) updated.report = JSON.parse(updated.report_json);
-
-  return tlJson({ success: true, submission_id, documents_added: files.length, charged: addPrice, ...updated });
+  return tlJson({ success: true, submission_id, status: 'queued', documents_added: files.length });
 }
 
 // ── ANALYSIS PIPELINE ────────────────────────────────────────────
@@ -1195,4 +1127,88 @@ async function handleTlComplianceFlagMissing(request, env, tlJson) {
   }
 
   return tlJson({ success: true, doc_type_id: docTypeId });
+}
+
+// ── QUEUE CONSUMER ENTRY POINT ───────────────────────────────────────────
+// Called from the main Worker's queue() handler for messages of type 'tl_analyse'.
+// This is where the actual Claude analysis runs, OUTSIDE the original HTTP
+// request's execution-time limit — the fix for large/slow documents that
+// were hitting Cloudflare's synchronous time ceiling when processed inline.
+//
+// Money only moves here, AFTER runTlAnalysis confirms a genuine, valid verdict.
+// This preserves the financial-integrity guarantee from the original fix,
+// just relocated to where the analysis itself now actually happens.
+export async function processTlQueueMessage(msg, env) {
+  const { submissionId, companyId, tier, chargeAmount, isUpgrade, previousTier, isAddDocuments, previousAmountPaid, rollbackDocKeys } = msg;
+
+  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(companyId).first();
+  if (!company) {
+    console.error('TL queue — company not found:', companyId, 'submission:', submissionId);
+    await env.TL_DB.prepare(`UPDATE tl_submissions SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(submissionId).run();
+    return;
+  }
+
+  const sub = await env.TL_DB.prepare('SELECT * FROM tl_submissions WHERE id=? LIMIT 1').bind(submissionId).first();
+  if (!sub) {
+    console.error('TL queue — submission not found:', submissionId);
+    return;
+  }
+
+  // ── Read the document(s) from R2 — uniform path for text-paste, single PDF, and multi-PDF ──
+  let doc_text = null, pdfDocs = null;
+  let docKeys = [];
+  try { docKeys = sub.doc_r2_keys ? JSON.parse(sub.doc_r2_keys) : (sub.doc_r2_key ? [sub.doc_r2_key] : []); }
+  catch(e) { docKeys = sub.doc_r2_key ? [sub.doc_r2_key] : []; }
+
+  if (docKeys.length) {
+    const isPdf = docKeys[0].endsWith('.pdf') || docKeys[0].includes('/doc-');
+    if (isPdf) {
+      pdfDocs = [];
+      for (const key of docKeys) {
+        const obj = await env.TL_DOCS.get(key);
+        if (obj) {
+          const buf = await obj.arrayBuffer();
+          pdfDocs.push({ base64: arrayBufferToBase64(buf), filename: key.split('/').pop() });
+        }
+      }
+    } else {
+      const obj = await env.TL_DOCS.get(docKeys[0]);
+      if (obj) doc_text = await obj.text();
+    }
+  }
+
+  await env.TL_DB.prepare(`UPDATE tl_submissions SET status='processing' WHERE id=?`).bind(submissionId).run();
+
+  const result = await runTlAnalysis(submissionId, company, doc_text, env, pdfDocs, tier);
+
+  if (!result.success) {
+    console.error('TL queue — analysis failed for submission:', submissionId, 'reason:', result.reason);
+
+    if (isUpgrade) {
+      // Restore previous tier so the client keeps their last good result.
+      await env.TL_DB.prepare(`UPDATE tl_submissions SET status='complete', tier=? WHERE id=?`).bind(previousTier || 'gonogo', submissionId).run();
+    } else if (isAddDocuments) {
+      // Roll back doc_r2_keys to pre-add state — new files stay in R2 (harmless, unreferenced).
+      await env.TL_DB.prepare(`UPDATE tl_submissions SET doc_r2_keys=?, status='complete' WHERE id=?`)
+        .bind(JSON.stringify(rollbackDocKeys || []), submissionId).run();
+    }
+    // For a fresh initial submission, runTlAnalysis already set status='failed' — nothing more to do.
+    // No charge happens in any failure case — balance is untouched by construction.
+    return;
+  }
+
+  // ── Analysis genuinely succeeded — NOW charge ──
+  const { shortfall } = await spendFromBalance(env, companyId, chargeAmount);
+  if (shortfall > 0) {
+    console.error('TL queue — balance changed during analysis, undercharged. submission:', submissionId, 'chargeAmount:', chargeAmount, 'shortfall:', shortfall);
+  }
+
+  if (isUpgrade) {
+    await env.TL_DB.prepare(`UPDATE tl_submissions SET tier=?, amount_paid=? WHERE id=?`).bind(tier, TIER_PRICES[tier], submissionId).run();
+  } else if (isAddDocuments) {
+    const newAmountPaid = (previousAmountPaid || 0) + chargeAmount;
+    await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(newAmountPaid, submissionId).run();
+  } else {
+    await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(chargeAmount, submissionId).run();
+  }
 }
