@@ -390,6 +390,58 @@ export async function processTlV2QueueMessage(msg, env) {
   }
 }
 
+// ── Shared Claude call helper — used by gonogo/pricing directly, and by
+// bidpack's two-call split. Centralises the fetch/parse/validate-shape logic
+// so error handling stays consistent everywhere a Claude call happens.
+async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appendSchemaInstruction) {
+  const fullPrompt = appendSchemaInstruction
+    ? promptText // promptText already has schema appended by caller for single-call products
+    : `${promptText}\n\nReturn ONLY this JSON structure:\n${schemaText}\n\nReturn ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
+
+  const userContent = pdfDocs.length
+    ? [...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })), { type: 'text', text: fullPrompt }]
+    : fullPrompt;
+
+  try {
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content: userContent }] }),
+    });
+
+    if (!aiRes.ok) {
+      const errBody = await aiRes.text();
+      console.error('TL v2 callClaude — Anthropic API error:', aiRes.status, 'response:', errBody.slice(0,500));
+      return { success: false, reason: `Anthropic API returned ${aiRes.status}` };
+    }
+
+    const aiData = await aiRes.json();
+    const rawText = aiData.content?.[0]?.text || '';
+    const stopReason = aiData.stop_reason;
+
+    if (!rawText) {
+      console.error('TL v2 callClaude — empty response. stop_reason:', stopReason);
+      return { success: false, reason: 'Empty response from analysis engine' };
+    }
+
+    let data;
+    try {
+      data = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+    } catch(e) {
+      console.error('TL v2 callClaude — JSON parse failed. stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
+      const reason = stopReason === 'max_tokens'
+        ? 'The analysis exceeded the response size limit before completing. Please try again.'
+        : 'Could not parse analysis result';
+      return { success: false, reason };
+    }
+
+    return { success: true, data };
+  } catch(e) {
+    console.error('TL v2 callClaude — exception:', e.message);
+    return { success: false, reason: e.message };
+  }
+}
+
 // ── ANALYSIS — one focused prompt per product, genuinely distinct ────────
 async function runV2Product(productRunId, company, pdfDocs, product, env) {
   try {
@@ -447,82 +499,95 @@ Produce a priced BOQ. If the tender specifies government-prescribed/gazetted rat
   "pricing_disclaimer": "string — standard disclaimer about indicative pricing, sources used, verify before submission"
 }`;
 
-    } else { // bidpack
-      maxTokens = 6144;
-      prompt = `You are preparing a submission-ready bid pack for a South African government tender. The client has ALREADY DECIDED to bid — your job is to build the strongest possible submission kit. Do NOT second-guess whether they should bid, do NOT produce a "notice of non-submission" or similar — that is not your role. Assume submission intent is final; focus entirely on making that submission as complete and compelling as possible.
+    }
+
+    let report;
+
+    if (product === 'bidpack') {
+      // ── SPLIT INTO TWO LIGHTER CALLS ──────────────────────────────────
+      // Bidpack was consistently failing (~2min, zero logs — likely a hard
+      // platform-level kill on the heaviest single-call payload: full BOQ +
+      // full compliance checklist + full formatted document, all at once).
+      // Splitting into two calls — each individually no heavier than what
+      // pricing already does reliably — closes that gap without losing any
+      // capability.
+
+      // Call 1 — BOQ + compliance checklist (identical shape to pricing's
+      // proven-working call, just without the verdict-free pricing framing).
+      const call1Prompt = `You are preparing the pricing and compliance foundation for a South African government tender bid pack. The client has ALREADY DECIDED to bid. Produce a full priced BOQ (use gazetted rates where specified, flag confidence honestly) and a compliance checklist of everything needed for submission.
 
 COMPANY PROFILE:
 ${companyContext}
 
-TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.
+TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
 
-Produce: a full priced BOQ (same standards as the pricing product — use gazetted rates where specified, flag confidence honestly), a compliance checklist of everything needed for submission, and a formatted, professional cover letter / submission document written in the company's voice, referencing their specific profile, ready to attach to the bid.`;
-
-      schema = `{
-  "tender_title": "string",
+      const call1Schema = `{
+  "tender_title": "string — actual title/name of this tender",
   "tender_reference": "string or null",
   "compliance_checklist": [ { "item": "string", "status": "string", "notes": "string" } ],
   "boq": [ { "line_item": "string", "unit": "string", "quantity": number, "unit_rate": number, "total": number, "confidence": "HIGH" | "MEDIUM" | "LOW", "source": "string" } ],
   "boq_totals": { "subtotal": number, "margin_30pct": number, "recommended_bid": number },
-  "submission_document": "string — full formatted cover letter / submission document in markdown, written and ready to attach",
   "pricing_disclaimer": "string"
 }`;
-    }
 
-    const fullPrompt = `${prompt}\n\nReturn ONLY this JSON structure:\n${schema}\n\nReturn ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
+      const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 4096);
+      if (!call1Result.success) {
+        console.error('TL v2 — bidpack call 1 (BOQ+checklist) failed. run:', productRunId, 'reason:', call1Result.reason);
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        return { success: false, reason: call1Result.reason };
+      }
+      if (!call1Result.data.boq || !Array.isArray(call1Result.data.boq)) {
+        console.error('TL v2 — bidpack call 1 missing BOQ. run:', productRunId, 'parsed:', JSON.stringify(call1Result.data).slice(0,500));
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        return { success: false, reason: 'Analysis did not produce pricing data' };
+      }
 
-    const userContent = [
-      ...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })),
-      { type: 'text', text: fullPrompt },
-    ];
+      // Call 2 — submission document, built FROM call 1's already-confirmed
+      // BOQ/checklist data rather than re-deriving everything from scratch.
+      // This is deliberately lighter — text generation only, no re-reading
+      // or re-reasoning about the source PDF's full requirements.
+      const call2Prompt = `You are writing a professional, submission-ready cover letter for a South African government tender bid. The client has ALREADY DECIDED to bid. Write in the company's voice, referencing their specific profile and the pricing/compliance summary below. This is ready to attach to the real bid — do NOT second-guess whether they should bid, do NOT produce a "notice of non-submission" — that is not your role here.
 
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content: userContent }] }),
-    });
+COMPANY PROFILE:
+${companyContext}
 
-    if (!aiRes.ok) {
-      const errBody = await aiRes.text();
-      console.error('TL v2 — Anthropic API error:', aiRes.status, 'run:', productRunId, 'product:', product, 'response:', errBody.slice(0,500));
-      await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
-      return { success: false, reason: `Anthropic API returned ${aiRes.status}` };
-    }
+TENDER: ${call1Result.data.tender_title || 'this tender'} (Ref: ${call1Result.data.tender_reference || 'see tender document'})
 
-    const aiData = await aiRes.json();
-    const rawText = aiData.content?.[0]?.text || '';
-    const stopReason = aiData.stop_reason;
+PRICING SUMMARY (already confirmed — reference but do not recalculate): Recommended bid R${call1Result.data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
 
-    if (!rawText) {
-      console.error('TL v2 — empty response. run:', productRunId, 'product:', product, 'stop_reason:', stopReason);
-      await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
-      return { success: false, reason: 'Empty response from analysis engine' };
-    }
+COMPLIANCE ITEMS TO REFERENCE: ${(call1Result.data.compliance_checklist || []).slice(0,6).map(c => c.item).join('; ')}`;
 
-    let report;
-    try {
-      report = JSON.parse(rawText.replace(/```json|```/g, '').trim());
-    } catch(e) {
-      console.error('TL v2 — JSON parse failed. run:', productRunId, 'product:', product, 'stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
-      await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
-      const reason = stopReason === 'max_tokens'
-        ? 'The analysis exceeded the response size limit before completing. Please try again.'
-        : 'Could not parse analysis result';
-      return { success: false, reason };
-    }
+      const call2Schema = `{ "submission_document": "string — full formatted, professional cover letter / submission document in markdown, written and ready to attach" }`;
 
-    // Validation differs per product — gonogo MUST have a valid verdict;
-    // pricing/bidpack must NOT have a verdict field at all (proves the
-    // prompt boundary held) and must have boq data.
-    if (product === 'gonogo' && (!report.verdict || !['GO','NO_GO','CONDITIONAL_GO'].includes(report.verdict))) {
-      console.error('TL v2 — gonogo missing valid verdict. run:', productRunId, 'parsed:', JSON.stringify(report).slice(0,500));
-      await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
-      return { success: false, reason: 'Analysis did not produce a valid verdict' };
-    }
-    if ((product === 'pricing' || product === 'bidpack') && (!report.boq || !Array.isArray(report.boq))) {
-      console.error('TL v2 —', product, 'missing BOQ data. run:', productRunId, 'parsed:', JSON.stringify(report).slice(0,500));
-      await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
-      return { success: false, reason: 'Analysis did not produce pricing data' };
+      const call2Result = await callClaude(env, [], call2Prompt, call2Schema, 3072);
+      if (!call2Result.success) {
+        console.error('TL v2 — bidpack call 2 (submission document) failed. run:', productRunId, 'reason:', call2Result.reason);
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        return { success: false, reason: call2Result.reason };
+      }
+
+      report = { ...call1Result.data, submission_document: call2Result.data.submission_document || null };
+
+    } else {
+      const fullPrompt = `${prompt}\n\nReturn ONLY this JSON structure:\n${schema}\n\nReturn ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
+      const singleResult = await callClaude(env, pdfDocs, fullPrompt, schema, maxTokens, true);
+      if (!singleResult.success) {
+        console.error('TL v2 —', product, 'call failed. run:', productRunId, 'reason:', singleResult.reason);
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        return { success: false, reason: singleResult.reason };
+      }
+      report = singleResult.data;
+
+      if (product === 'gonogo' && (!report.verdict || !['GO','NO_GO','CONDITIONAL_GO'].includes(report.verdict))) {
+        console.error('TL v2 — gonogo missing valid verdict. run:', productRunId, 'parsed:', JSON.stringify(report).slice(0,500));
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        return { success: false, reason: 'Analysis did not produce a valid verdict' };
+      }
+      if (product === 'pricing' && (!report.boq || !Array.isArray(report.boq))) {
+        console.error('TL v2 — pricing missing BOQ data. run:', productRunId, 'parsed:', JSON.stringify(report).slice(0,500));
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        return { success: false, reason: 'Analysis did not produce pricing data' };
+      }
     }
 
     const reportKey = `product-runs/${productRunId}/report.json`;
