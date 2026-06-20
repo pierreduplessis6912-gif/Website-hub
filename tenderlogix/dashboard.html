@@ -804,10 +804,14 @@ async function upgradeSubmission(submissionId, tier) {
     }
     if (d.error) throw new Error(d.error);
 
-    showToast('Queued — analysing at ' + tierLabel(tier) + ' tier, this can take a couple of minutes');
+    showToast('Queued — analysing at ' + tierLabel(tier) + ' tier, this can take several minutes for pricing/bid pack tiers');
     await loadDashboard();
 
-    var finalResult = await pollSubmission(submissionId, function() { loadSubmissions(); });
+    // Pricing/bidpack tiers do an OCDS fetch + a much richer generation pass —
+    // genuinely can take 4-6 minutes, confirmed in testing. gonogo stays at the
+    // default ~2 minute window since it's deliberately lean and fast.
+    var maxAttempts = (tier === 'pricing' || tier === 'bidpack') ? 120 : 40; // 120 × 3s = 6 minutes
+    var finalResult = await pollSubmission(submissionId, function() { loadSubmissions(); }, maxAttempts);
 
     if (finalResult.status === 'complete') {
       showToast('✅ Upgraded to ' + tierLabel(tier) + '!');
@@ -817,7 +821,11 @@ async function upgradeSubmission(submissionId, tier) {
       showToast('Upgrade analysis failed — you have not been charged for the upgrade.', '#ff4757');
       await loadDashboard();
     } else {
-      showToast('Still processing — check back shortly.', '#ff6b1a');
+      // Genuinely still running after the extended window — don't dead-end the
+      // user. The backend keeps working regardless; just stop actively polling
+      // and let them check back via the normal Refresh button.
+      showToast('This is taking longer than usual — it\'s still processing in the background. Check back in a few minutes or tap Refresh.', '#ff6b1a');
+      await loadDashboard();
     }
   } catch(e) {
     showToast(e.message || 'Upgrade failed', '#ff4757');
