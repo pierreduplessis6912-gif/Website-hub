@@ -1,4 +1,5 @@
 import { handleTenderLogix, processTlQueueMessage } from './tl-handler.js';
+import { handleTlV2, processTlV2QueueMessage } from './tl-handler-v2.js';
 // ============================================================
 // WH-BUILD — Website Hub Build Worker
 // Clean rewrite — Session D10 2026-05-27
@@ -216,6 +217,9 @@ export default {
       // ── MAIN DOMAIN — websitehub.co.za ──────────────────────
       // ── TENDER LOGIX ─────────────────────────────────────────
     if (hostname === 'tenderlogix.co.za' || hostname === 'www.tenderlogix.co.za') {
+      if (url.pathname.startsWith('/tl/v2/')) {
+        return handleTlV2(request, env);
+      }
       return handleTenderLogix(request, env);
     }
 
@@ -471,6 +475,7 @@ export default {
         if (type === 'substance_build') await triggerSubstanceBuild(clientId, cardPayload, env);
         if (type === 'full_build')      await triggerFullBuild(clientId, env, isOutbound, silent);
         if (type === 'tl_analyse')      await processTlQueueMessage(msg.body, env);
+        if (type === 'tl_v2_run')       await processTlV2QueueMessage(msg.body, env);
         msg.ack();
       } catch (err) {
         console.error('Queue message failed:', err);
