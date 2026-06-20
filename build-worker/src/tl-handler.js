@@ -631,6 +631,8 @@ RECENT MARKET DATA (National Treasury OCDS):${ocdsContext || ' Not available for
 
     // ── Tiered schema — gonogo is deliberately lean, pricing/bidpack unlock more ──
     const baseSchema = `{
+  "tender_title": "string — the actual title/name of this tender as stated in the document, e.g. 'Knysna Hospital Comprehensive Cleaning Services'. If genuinely not stated anywhere, use a short factual description of what's being procured instead, e.g. 'Cleaning services tender'. Never leave this generic like 'Tender Document'.",
+  "tender_reference": "string or null — the official tender/RFQ/RFB reference number if stated in the document, e.g. 'RFQ-1022-2025'. Null if not found.",
   "verdict": "GO" | "NO_GO" | "CONDITIONAL_GO",
   "verdict_summary": "2-3 sentence summary of the recommendation",
   "eligibility": [
@@ -744,9 +746,14 @@ Return ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
     const reportKey = `submissions/${submission_id}/report-${tier}.json`;
     await env.TL_DOCS.put(reportKey, JSON.stringify(report));
 
+    // Only fill tender_ref from Claude's extraction if the client didn't already
+    // provide one — never overwrite a reference the client explicitly typed in.
+    const existingSub = await env.TL_DB.prepare('SELECT tender_ref FROM tl_submissions WHERE id=? LIMIT 1').bind(submission_id).first();
+    const finalTenderRef = existingSub?.tender_ref || report.tender_reference || null;
+
     await env.TL_DB.prepare(`
-      UPDATE tl_submissions SET status='complete', verdict=?, report_r2_key=?, report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-    `).bind(report.verdict, reportKey, JSON.stringify(report), submission_id).run();
+      UPDATE tl_submissions SET status='complete', verdict=?, report_r2_key=?, report_json=?, tender_title=?, tender_ref=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+    `).bind(report.verdict, reportKey, JSON.stringify(report), report.tender_title || null, finalTenderRef, submission_id).run();
 
     return { success: true };
 
