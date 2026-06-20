@@ -674,6 +674,7 @@ async function loadSubmissions() {
       else if (s.verdict==='NO_GO') { badge='<span class="badge badge-nogo">NO GO</span>'; icon='❌'; }
       else if (s.verdict==='CONDITIONAL_GO') { badge='<span class="badge badge-cond">CONDITIONAL</span>'; icon='⚠️'; }
       else if (s.status==='processing') { badge='<span class="badge badge-proc">ANALYSING...</span>'; icon='⏳'; }
+      else if (s.status==='queued') { badge='<span class="badge badge-proc">QUEUED...</span>'; icon='⏳'; }
       else { badge='<span class="badge badge-pend">PENDING</span>'; icon='📋'; }
 
       var tier = s.tier || 'gonogo';
@@ -730,10 +731,11 @@ async function handleAddDocumentsSelected(fileList) {
 }
 
 async function submitAddDocuments(files, overrideGate) {
-  showToast('Adding document' + (files.length>1?'s':'') + '... this takes 30-90 seconds');
+  var targetSubmissionId = addDocsTargetSubmissionId; // capture locally — module var could change before poll resolves
+  showToast('Queueing ' + files.length + ' document' + (files.length>1?'s':'') + '...');
   try {
     var formData = new FormData();
-    formData.append('submission_id', addDocsTargetSubmissionId);
+    formData.append('submission_id', targetSubmissionId);
     files.forEach(function(f) { formData.append('files', f); });
     if (overrideGate) formData.append('override_gate', 'true');
 
@@ -758,16 +760,28 @@ async function submitAddDocuments(files, overrideGate) {
     }
     if (d.error) throw new Error(d.error);
 
-    showToast('✅ Added ' + d.documents_added + ' document' + (d.documents_added>1?'s':'') + ' · R' + d.charged + ' charged');
+    showToast('Queued — re-analysing with ' + d.documents_added + ' new document' + (d.documents_added>1?'s':''));
     await loadDashboard();
-    if (d.report) setTimeout(function(){ viewReport(addDocsTargetSubmissionId); }, 400);
+
+    var finalResult = await pollSubmission(targetSubmissionId, function() { loadSubmissions(); });
+
+    if (finalResult.status === 'complete') {
+      showToast('✅ Documents added and analysis updated!');
+      await loadDashboard();
+      setTimeout(function(){ viewReport(targetSubmissionId); }, 400);
+    } else if (finalResult.status === 'failed') {
+      showToast('Analysis failed — you have not been charged for these documents.', '#ff4757');
+      await loadDashboard();
+    } else {
+      showToast('Still processing — check back shortly.', '#ff6b1a');
+    }
   } catch(e) {
     showToast(e.message || 'Failed to add documents', '#ff4757');
   }
 }
 
 async function upgradeSubmission(submissionId, tier) {
-  showToast('Upgrading to ' + tierLabel(tier) + '... this takes 30-60 seconds');
+  showToast('Queueing ' + tierLabel(tier) + ' upgrade...');
   try {
     var res = await fetch('/tl/upgrade', {
       method: 'POST',
@@ -785,9 +799,22 @@ async function upgradeSubmission(submissionId, tier) {
       return;
     }
     if (d.error) throw new Error(d.error);
-    showToast('✅ Upgraded to ' + tierLabel(tier) + '!');
+
+    showToast('Queued — analysing at ' + tierLabel(tier) + ' tier, this can take a couple of minutes');
     await loadDashboard();
-    if (d.report) setTimeout(function(){ viewReport(submissionId); }, 400);
+
+    var finalResult = await pollSubmission(submissionId, function() { loadSubmissions(); });
+
+    if (finalResult.status === 'complete') {
+      showToast('✅ Upgraded to ' + tierLabel(tier) + '!');
+      await loadDashboard();
+      setTimeout(function(){ viewReport(submissionId); }, 400);
+    } else if (finalResult.status === 'failed') {
+      showToast('Upgrade analysis failed — you have not been charged for the upgrade.', '#ff4757');
+      await loadDashboard();
+    } else {
+      showToast('Still processing — check back shortly.', '#ff6b1a');
+    }
   } catch(e) {
     showToast(e.message || 'Upgrade failed', '#ff4757');
   }
@@ -972,6 +999,24 @@ function handleFileSelect(input) {
   renderFileList();
 }
 
+// ── POLLING — analysis now runs in the background queue, not the original
+// HTTP request. These endpoints return instantly with status:'queued', so we
+// poll /tl/submission until it reports a terminal status (complete/failed).
+async function pollSubmission(submissionId, onUpdate, maxAttempts) {
+  maxAttempts = maxAttempts || 40; // ~2 minutes at 3s intervals
+  for (var i = 0; i < maxAttempts; i++) {
+    await new Promise(function(r) { setTimeout(r, 3000); });
+    try {
+      var res = await fetch('/tl/submission?id=' + submissionId);
+      var d = await res.json();
+      if (d.error) continue;
+      if (onUpdate) onUpdate(d, i);
+      if (d.status === 'complete' || d.status === 'failed') return d;
+    } catch(e) { /* keep polling through transient network errors */ }
+  }
+  return { status: 'timeout' };
+}
+
 async function submitTender() {
   var ref = document.getElementById('tenderRef').value.trim();
   if (!selectedFiles.length) { showToast('Please upload at least one PDF tender document', '#ff6b1a'); return; }
@@ -1003,7 +1048,7 @@ async function submitTender() {
         'Tap OK to proceed anyway (you confirm these belong to the same tender), or Cancel to review your files.'
       );
       if (proceed) {
-        btn.textContent = 'Analysing... this takes 30-90 seconds';
+        btn.textContent = 'Queueing...';
         formData.append('override_gate', 'true');
         res = await fetch('/tl/upload', { method: 'POST', body: formData });
         d = await res.json();
@@ -1025,9 +1070,22 @@ async function submitTender() {
     selectedFiles = [];
     renderFileList();
     document.getElementById('submitForm').classList.remove('open');
-    showToast('✅ Analysis complete!');
+    showToast('Queued — analysing your tender, this can take up to a couple of minutes for larger documents');
     await loadDashboard();
-    if (d.report) setTimeout(function(){ viewReport(d.id || d.submission_id); }, 500);
+
+    var submissionId = d.submission_id;
+    var finalResult = await pollSubmission(submissionId, function() { loadSubmissions(); });
+
+    if (finalResult.status === 'complete') {
+      showToast('✅ Analysis complete!');
+      await loadDashboard();
+      setTimeout(function(){ viewReport(submissionId); }, 400);
+    } else if (finalResult.status === 'failed') {
+      showToast('Analysis failed — you have not been charged. Please try again.', '#ff4757');
+      await loadDashboard();
+    } else {
+      showToast('Still processing — check back shortly, this is taking longer than usual.', '#ff6b1a');
+    }
   } catch(e) {
     showToast(e.message || 'Analysis failed', '#ff4757');
     btn.disabled = false; btn.textContent = 'Run Analysis · R' + totalPrice + ' →';
