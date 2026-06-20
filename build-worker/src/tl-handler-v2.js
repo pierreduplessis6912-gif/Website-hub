@@ -245,7 +245,7 @@ async function handleListTenders(url, env, tlJson) {
   const tenderList = tenders.results || [];
   for (const t of tenderList) {
     const runs = await env.TL_DB.prepare(
-      'SELECT product, status, verdict FROM tl_product_runs WHERE tender_id=? ORDER BY created_at DESC'
+      'SELECT id, product, status, verdict FROM tl_product_runs WHERE tender_id=? ORDER BY created_at DESC'
     ).bind(t.id).all();
     t.product_runs = runs.results || [];
   }
