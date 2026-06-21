@@ -23,6 +23,32 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
 .nav-brand span{color:var(--gold)}
 .balance-pill{background:rgba(255,107,26,.12);border:1px solid rgba(255,107,26,.3);padding:7px 14px;font-family:var(--mono);font-size:12px;color:var(--gold);font-weight:700}
 .vault-pill{padding:7px 12px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.3px}
+
+/* ── VAULT SECTION — distinct, premium visual language ── */
+.vault-section{background:linear-gradient(160deg,#15120a,#0a0a0a);border:1px solid rgba(255,107,26,.25);box-shadow:0 0 0 1px rgba(255,107,26,.05),0 8px 32px rgba(0,0,0,.4);padding:24px;margin-bottom:28px;position:relative;overflow:hidden}
+.vault-section::before{content:'';position:absolute;top:-40%;right:-10%;width:200px;height:200px;background:radial-gradient(circle,rgba(255,107,26,.08),transparent 70%);pointer-events:none}
+.vault-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;position:relative}
+.vault-section-title{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
+.vault-section-title span{color:var(--gold)}
+.vault-badge-exclusive{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--gold);background:rgba(255,107,26,.12);border:1px solid rgba(255,107,26,.3);padding:3px 8px}
+.vault-section-sub{font-size:12px;color:var(--dim);margin-bottom:20px;position:relative}
+.vault-doc-grid{display:grid;grid-template-columns:1fr;gap:1px;background:rgba(255,255,255,.06);position:relative}
+.vault-doc-pill{background:#161616;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s}
+.vault-doc-pill:hover{background:#1d1d1d}
+.vault-doc-light{font-size:16px;flex-shrink:0}
+.vault-doc-info{flex:1;min-width:0}
+.vault-doc-name{font-size:13px;font-weight:600;color:var(--paper);margin-bottom:2px}
+.vault-doc-meta{font-size:10px;color:var(--dim);font-family:var(--mono)}
+.vault-doc-meta.amber{color:var(--gold)}
+.vault-doc-meta.red{color:var(--red)}
+.vault-doc-meta.green{color:var(--green)}
+.vault-doc-actions{display:flex;gap:6px;flex-shrink:0}
+.vault-doc-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--paper);width:30px;height:30px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.vault-doc-btn:hover{background:rgba(255,107,26,.15);border-color:rgba(255,107,26,.4)}
+.vault-locked-overlay{text-align:center;padding:32px 16px;position:relative}
+.vault-locked-icon{font-size:32px;margin-bottom:10px;opacity:.6}
+.vault-locked-text{font-size:13px;color:var(--dim);line-height:1.6;max-width:320px;margin:0 auto 18px}
+.vault-upload-modal-list{font-size:11px;color:var(--dim);margin-bottom:14px}
 .vault-pill.inactive{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--dim)}
 .vault-pill.inactive:hover{background:rgba(255,107,26,.08);border-color:rgba(255,107,26,.3);color:var(--gold)}
 .vault-pill.active{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);color:var(--green)}
@@ -160,6 +186,15 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
     <div class="price-line" id="uploadPriceLine"></div>
   </div>
 
+  <div class="vault-section" id="vaultSection">
+    <div class="vault-section-head">
+      <div class="vault-section-title">📁 The <span>Vault</span></div>
+      <div class="vault-badge-exclusive" id="vaultBadge">LOCKED</div>
+    </div>
+    <p class="vault-section-sub" id="vaultSectionSub">Loading...</p>
+    <div id="vaultDocGrid"></div>
+  </div>
+
   <div class="hero">
     <h1>Your <span>Tenders.</span></h1>
   </div>
@@ -202,6 +237,21 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
 
     <button class="btn-buy" id="btnVaultModal" onclick="subscribeVault()">Subscribe — R99/month</button>
     <button class="btn-close" onclick="closeVaultModal()">Not now</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="vaultUploadModal" onclick="closeVaultUploadModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="vaultUploadTitle">Upload Document</div>
+    <p class="modal-sub" id="vaultUploadDesc">—</p>
+    <div id="vaultUploadCurrent" style="display:none" class="vault-upload-modal-list"></div>
+    <input type="file" id="vaultDocFile" accept="application/pdf,image/*" style="display:none" onchange="handleVaultDocFileSelect(this)">
+    <div class="file-drop" id="vaultFileDrop" onclick="document.getElementById('vaultDocFile').click()">
+      <div style="font-size:24px;margin-bottom:6px">📄</div>
+      <div style="font-size:13px;color:var(--dim)" id="vaultFileDropText">Tap to upload — PDF or photo</div>
+    </div>
+    <button class="btn-buy" id="btnVaultUpload" onclick="submitVaultDocUpload()" disabled style="margin-top:16px">Select A File First</button>
+    <button class="btn-close" onclick="closeVaultUploadModal()">Cancel</button>
   </div>
 </div>
 
@@ -267,7 +317,146 @@ async function loadVaultStatus() {
       pill.className = 'vault-pill inactive';
       pill.textContent = '📁 Vault';
     }
+    await renderVaultSection();
   } catch(e) { console.warn('loadVaultStatus error:', e); }
+}
+
+var vaultRequirements = [];
+
+async function renderVaultSection() {
+  var badge = document.getElementById('vaultBadge');
+  var sub = document.getElementById('vaultSectionSub');
+  var grid = document.getElementById('vaultDocGrid');
+
+  if (!vaultActive) {
+    badge.textContent = 'LOCKED';
+    badge.style.color = '#888';
+    badge.style.borderColor = 'rgba(255,255,255,.15)';
+    badge.style.background = 'rgba(255,255,255,.05)';
+    sub.textContent = 'Securely store, verify, and instantly retrieve your compliance certificates.';
+    grid.innerHTML = '<div class="vault-locked-overlay">' +
+      '<div class="vault-locked-icon">🔒</div>' +
+      '<div class="vault-locked-text">No more digging through email at 11pm. Subscribe to unlock secure storage, automatic expiry reminders, and certificates that attach themselves to every Bid Pack.</div>' +
+      '<button class="btn-gold" style="max-width:240px" onclick="openVaultModal()">Unlock — R99/month</button>' +
+    '</div>';
+    return;
+  }
+
+  badge.textContent = 'EXCLUSIVE';
+  badge.style.color = '';
+  badge.style.borderColor = '';
+  badge.style.background = '';
+
+  try {
+    var res = await fetch('/tl/compliance/requirements?company_id=' + companyId);
+    var d = await res.json();
+    vaultRequirements = d.requirements || [];
+
+    var verified = vaultRequirements.filter(function(r){return r.status==='green'}).length;
+    sub.textContent = verified + ' of ' + vaultRequirements.length + ' documents verified. Tap any to upload, view, or replace.';
+
+    grid.innerHTML = '<div class="vault-doc-grid">' + vaultRequirements.map(function(r) {
+      var light = r.status==='green' ? '🟢' : r.status==='amber' ? '🟡' : r.status==='red' ? '🔴' : '⚪️';
+      var metaCls = r.status==='green' ? 'green' : r.status==='amber' ? 'amber' : r.status==='red' ? 'red' : '';
+      var meta = 'Not uploaded';
+      if (r.status === 'green') meta = (r.extracted_value || 'Verified') + (r.expiry_date ? ' · expires ' + r.expiry_date : '');
+      else if (r.status === 'amber') meta = 'Renewal due soon' + (r.expiry_date ? ' · ' + r.expiry_date : '');
+      else if (r.status === 'red') meta = r.red_reason === 'wrong_document' ? 'Wrong document — re-upload' : 'Expired';
+
+      var actions = '<div class="vault-doc-actions">';
+      if (r.status !== 'missing') {
+        actions += '<button class="vault-doc-btn" onclick="event.stopPropagation();viewVaultDoc(&quot;'+r.doc_type_id+'&quot;)" title="View">👁</button>';
+      }
+      actions += '<button class="vault-doc-btn" onclick="event.stopPropagation();openVaultUploadModal(&quot;'+r.doc_type_id+'&quot;)" title="Upload">⬆</button>';
+      actions += '</div>';
+
+      return '<div class="vault-doc-pill" onclick="openVaultUploadModal(&quot;'+r.doc_type_id+'&quot;)">' +
+        '<div class="vault-doc-light">'+light+'</div>' +
+        '<div class="vault-doc-info"><div class="vault-doc-name">'+r.name+'</div><div class="vault-doc-meta '+metaCls+'">'+meta+'</div></div>' +
+        actions +
+      '</div>';
+    }).join('') + '</div>';
+  } catch(e) { console.warn('renderVaultSection error:', e); }
+}
+
+var vaultUploadTargetType = null;
+
+function openVaultUploadModal(docTypeId) {
+  var req = vaultRequirements.find(function(r){return r.doc_type_id === docTypeId});
+  if (!req) return;
+  vaultUploadTargetType = docTypeId;
+  document.getElementById('vaultUploadTitle').textContent = req.name;
+  document.getElementById('vaultUploadDesc').textContent = req.description || 'Upload your certificate to verify.';
+
+  var current = document.getElementById('vaultUploadCurrent');
+  if (req.status !== 'missing') {
+    current.style.display = 'block';
+    current.textContent = 'Currently on file: ' + (req.extracted_value || req.status) + (req.expiry_date ? ' · expires ' + req.expiry_date : '');
+  } else {
+    current.style.display = 'none';
+  }
+
+  vaultDocSelectedFile = null;
+  document.getElementById('vaultFileDrop').classList.remove('has-file');
+  document.getElementById('vaultFileDropText').textContent = 'Tap to upload — PDF or photo';
+  document.getElementById('btnVaultUpload').disabled = true;
+  document.getElementById('btnVaultUpload').textContent = 'Select A File First';
+
+  document.getElementById('vaultUploadModal').classList.add('open');
+}
+
+function closeVaultUploadModal(e) {
+  if (!e || e.target === document.getElementById('vaultUploadModal')) {
+    document.getElementById('vaultUploadModal').classList.remove('open');
+  }
+}
+
+var vaultDocSelectedFile = null;
+
+function handleVaultDocFileSelect(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) { showToast('Please select a PDF or image', '#ff4757'); return; }
+  if (file.size > 20*1024*1024) { showToast('File must be under 20MB', '#ff4757'); return; }
+  vaultDocSelectedFile = file;
+  document.getElementById('vaultFileDrop').classList.add('has-file');
+  document.getElementById('vaultFileDropText').textContent = '✓ ' + file.name;
+  document.getElementById('btnVaultUpload').disabled = false;
+  document.getElementById('btnVaultUpload').textContent = 'Upload & Verify →';
+}
+
+async function submitVaultDocUpload() {
+  if (!vaultDocSelectedFile || !vaultUploadTargetType) return;
+  var btn = document.getElementById('btnVaultUpload');
+  btn.disabled = true; btn.textContent = 'Verifying...';
+  try {
+    var fd = new FormData();
+    fd.append('company_id', companyId);
+    fd.append('doc_type_id', vaultUploadTargetType);
+    fd.append('file', vaultDocSelectedFile);
+    var res = await fetch('/tl/compliance/upload', { method: 'POST', body: fd });
+    var d = await res.json();
+    if (res.status === 402) { showToast(d.error, '#ff6b1a'); closeVaultUploadModal(); openVaultModal(); return; }
+    if (d.error) throw new Error(d.error);
+
+    showToast(d.is_correct_doc_type === false ? '⚠️ Wrong document type — please check and re-upload' : '✅ Verified — ' + (d.status||'').toUpperCase());
+    closeVaultUploadModal();
+    await renderVaultSection();
+  } catch(e) {
+    showToast(e.message || 'Upload failed', '#ff4757');
+    btn.disabled = false; btn.textContent = 'Upload & Verify →';
+  }
+}
+
+function viewVaultDoc(docTypeId) {
+  var req = vaultRequirements.find(function(r){return r.doc_type_id === docTypeId});
+  if (!req) return;
+  // doc_type_id alone isn't enough to fetch — need the actual document id,
+  // which isn't in the requirements payload. Open via doc_type lookup on
+  // the server side instead: simplest reliable path is opening the upload
+  // modal, which already shows current status; full inline viewer is a
+  // future enhancement once document ids are threaded through.
+  window.open('/tl/compliance/document?company_id=' + companyId + '&doc_type_id=' + docTypeId, '_blank');
 }
 
 function handleVaultPillClick() {
