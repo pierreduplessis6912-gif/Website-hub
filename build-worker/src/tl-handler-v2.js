@@ -12,6 +12,8 @@
 //
 // All four free trials are independent, one-time, per company, lifetime.
 
+import { generateProductRunDocx } from './tl-docx.js';
+
 const V2_PRICES = { gonogo: 100, pricing: 750, bidpack: 2500 };
 const UPLOAD_PRICE_PER_DOC = 20;
 const FREE_UPLOAD_MAX_DOCS = 5;
@@ -41,6 +43,7 @@ export async function handleTlV2(request, env) {
 
   if (path === '/tl/v2/product/run' && method === 'POST') return handleRunProduct(request, env, tlJson);
   if (path === '/tl/v2/product-run' && method === 'GET') return handleGetProductRun(url, env, tlJson);
+  if (path === '/tl/v2/product-run/download' && method === 'GET') return handleDownloadProductRun(url, env);
 
   if (path === '/tl/v2/free-trials' && method === 'GET') return handleGetFreeTrials(url, env, tlJson);
 
@@ -325,6 +328,37 @@ async function handleGetProductRun(url, env, tlJson) {
   if (run.report_json) run.report = JSON.parse(run.report_json);
 
   return tlJson(run);
+}
+
+// ── DOWNLOAD a product run as a real, editable .docx ──────────────────────
+async function handleDownloadProductRun(url, env) {
+  const id = url.searchParams.get('id');
+  if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+
+  const run = await env.TL_DB.prepare('SELECT * FROM tl_product_runs WHERE id=? LIMIT 1').bind(id).first();
+  if (!run) return new Response(JSON.stringify({ error: 'Product run not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  if (run.status !== 'complete' || !run.report_json) {
+    return new Response(JSON.stringify({ error: 'This report is not ready yet' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  const company = await env.TL_DB.prepare('SELECT name FROM tl_companies WHERE id=? LIMIT 1').bind(run.company_id).first();
+  const report = JSON.parse(run.report_json);
+
+  try {
+    const arrayBuffer = await generateProductRunDocx(run, report, company?.name);
+    const safeTitle = (report.tender_title || 'TenderLogix-Report').replace(/[^a-zA-Z0-9 \-]/g, '').slice(0, 60).trim() || 'TenderLogix-Report';
+    const productLabel = run.product === 'gonogo' ? 'GoNoGo' : run.product === 'pricing' ? 'Pricing' : 'BidPack';
+
+    return new Response(arrayBuffer, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'Content-Disposition': `attachment; filename="${safeTitle} - ${productLabel}.docx"`,
+      },
+    });
+  } catch(e) {
+    console.error('TL v2 download — docx generation failed:', e.message, 'run:', id);
+    return new Response(JSON.stringify({ error: 'Could not generate document: ' + e.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+  }
 }
 
 // ── QUEUE CONSUMER — runs the actual Claude analysis for one product ─────
