@@ -556,13 +556,17 @@ function buildCategorySelection() {
 // Pricing schedule — the actual form a bidder fills in with their quoted
 // rate, alongside the gazetted guideline rate for reference. Distinct from
 // the BOQ in the advisory section (that's our analysis; this is the form).
-function buildPricingSchedule(boq) {
+// SBD 3.1 — Pricing Schedule (Firm Prices). National Treasury describes
+// this as the most critical form in the pack — it's where the bid is
+// actually priced. Renamed/reframed from the earlier generic version to
+// match the real SBD 3.1 structure and terminology.
+function buildSbd31PricingSchedule(boq) {
   if (!boq || !boq.length) return [];
   const priceableLines = boq.filter(item => item.unit_rate && item.unit_rate > 0);
   return [
     new Paragraph({ text: '', pageBreakBefore: true }),
-    new Paragraph({ children: [new TextRun({ text: 'PRICING SCHEDULE', bold: true, size: 28 })] }),
-    new Paragraph({ children: [new TextRun({ text: 'Complete the "Your Tendered Rate" column. Guideline rates shown are gazetted/benchmark figures for reference — confirm against the official tender document before finalising.', italics: true, size: 18 })] }),
+    ...formHeader('SBD 3.1', 'PRICING SCHEDULE — FIRM PRICES'),
+    new Paragraph({ children: [new TextRun({ text: 'This is the most critical form in the bid pack — it is where the price is actually quoted. Complete the "Your Tendered Rate" column. Guideline rates shown are gazetted/benchmark figures for reference only — confirm against the official tender document and SBD 3.1 form included in the tender pack before finalising.', italics: true, size: 18 })] }),
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       new TableRow({ children: ['Description', 'Unit', 'Guideline Rate', 'Your Tendered Rate'].map(h => new TableCell({
@@ -575,6 +579,41 @@ function buildPricingSchedule(boq) {
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'R' + item.unit_rate.toLocaleString(), size: 16 })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'R __________', size: 16 })] })] }),
       ]})),
+    ]}),
+    new Paragraph({ text: '' }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+      fieldRow('Total Bid Price (excl. VAT)', 'R __________'),
+      fieldRow('VAT (if registered)', 'R __________'),
+      fieldRow('Total Bid Price (incl. VAT)', 'R __________'),
+    ]}),
+  ];
+}
+
+// SBD 6.2 — Local Content Declaration (PPR 2011, Regulation 9). Required
+// for designated sectors only — this form genuinely needs a real local
+// content % calculation per SATS 1286:2011, which this system cannot
+// compute (requires actual supplier cost breakdowns by country of origin).
+// Included as a real, honest template flagging that the calculation itself
+// must be done manually or by a qualified person — not faked with a guess.
+function buildSbd62LocalContent(company) {
+  return [
+    ...formHeader('SBD 6.2', 'LOCAL CONTENT DECLARATION'),
+    new Paragraph({ children: [new TextRun({ text: 'Only applicable if this tender specifies a "designated sector" under the Preferential Procurement Regulations. Check the tender document\'s Special Conditions before completing — if local content is not specified as a requirement, this form is not applicable.', bold: true, color: 'FF4757', size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Paragraph({ children: [new TextRun({ text: 'The local content percentage MUST be calculated using the formula in SATS 1286:2011, based on actual costs and country of origin of all inputs. This calculation cannot be automated by this system — it requires real supplier invoices, cost breakdowns, and exchange rates at the date of bid advertisement. Engage a qualified person (e.g. your accountant or a SARS-registered customs consultant) to complete Annexures C, D, and E before signing this declaration.', italics: true, size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+      fieldRow('Name of Bidder', company?.name),
+      fieldRow('Designated Sector', TO_COMPLETE),
+      fieldRow('Calculated Local Content %', TO_COMPLETE),
+      fieldRow('Annexures C, D, E Attached', '☐ YES   ☐ NO'),
+    ]}),
+    new Paragraph({ text: '' }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+      fieldRow('Name (Print)', null),
+      fieldRow('Signature', '_________________ (sign in black ink)'),
+      fieldRow('Capacity', null),
+      fieldRow('Date', null),
     ]}),
   ];
 }
@@ -702,6 +741,7 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
     const formsChildren = [
       new Paragraph({ children: [new TextRun({ text: 'OFFICIAL BID FORMS — COMPLETE AND SIGN', bold: true, size: 32, color: BRAND_ORANGE })] }),
       new Paragraph({ children: [new TextRun({ text: 'Fields marked in orange require manual completion — this system does not yet hold this data. Verify every pre-filled field is current before submission.', italics: true, size: 18, color: '888888' })] }),
+      new Paragraph({ children: [new TextRun({ text: 'IMPORTANT: National Treasury periodically revises SBD/MBD form layouts (e.g. the 2022 SBD 4 consolidation). These are reference templates reflecting the standard structure — always cross-check against the actual SBD/MBD forms included in this specific tender pack before signing and submitting. Using an outdated form layout can result in disqualification.', bold: true, color: 'FF4757', size: 16 })] }),
       ...buildMbd1(company, report),
       ...buildMbd2(company),
       ...buildMbd4(company),
@@ -711,8 +751,9 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
       ...buildMbd15(company),
       ...buildMbd16(),
       ...buildMbd72(company, report),
+      ...buildSbd62LocalContent(company),
       ...buildCategorySelection(),
-      ...buildPricingSchedule(report.boq),
+      ...buildSbd31PricingSchedule(report.boq),
       ...buildSubmissionPackaging(report, company),
     ];
     sections.push({
