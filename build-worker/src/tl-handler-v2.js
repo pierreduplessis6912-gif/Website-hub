@@ -13,6 +13,7 @@
 // All four free trials are independent, one-time, per company, lifetime.
 
 import { generateProductRunDocx } from './tl-docx.js';
+import { checkVaultSubscription } from './tl-handler.js';
 
 const V2_PRICES = { gonogo: 100, pricing: 750, bidpack: 2500 };
 const UPLOAD_PRICE_PER_DOC = 20;
@@ -434,16 +435,24 @@ async function handleDownloadProductRun(url, env) {
 
   // Phase 2 — real verified compliance documents, only relevant for the
   // bidpack tier's submission pack (others don't show this section at all).
+  // GATED behind Document Vault — non-subscribers get an upsell note
+  // instead of an empty/broken-looking section. Directors/address data is
+  // NOT gated — that's free, since it's just pre-filling forms with data
+  // the company entered themselves, not custody of verified documents.
   let complianceDocuments = [];
   let directors = [];
+  let hasVaultAccess = false;
   if (run.product === 'bidpack') {
-    const docsResult = await env.TL_DB.prepare(`
-      SELECT cd.*, dt.name as doc_name FROM tl_compliance_documents cd
-      JOIN tl_doc_types dt ON cd.doc_type_id = dt.id
-      WHERE cd.company_id = ?
-      ORDER BY dt.name
-    `).bind(run.company_id).all();
-    complianceDocuments = docsResult.results || [];
+    hasVaultAccess = await checkVaultSubscription(env, run.company_id);
+    if (hasVaultAccess) {
+      const docsResult = await env.TL_DB.prepare(`
+        SELECT cd.*, dt.name as doc_name FROM tl_compliance_documents cd
+        JOIN tl_doc_types dt ON cd.doc_type_id = dt.id
+        WHERE cd.company_id = ?
+        ORDER BY dt.name
+      `).bind(run.company_id).all();
+      complianceDocuments = docsResult.results || [];
+    }
 
     const directorsResult = await env.TL_DB.prepare(
       'SELECT * FROM tl_company_directors WHERE company_id=? ORDER BY display_order, created_at'
@@ -452,7 +461,7 @@ async function handleDownloadProductRun(url, env) {
   }
 
   try {
-    const arrayBuffer = await generateProductRunDocx(run, report, company, complianceDocuments, directors);
+    const arrayBuffer = await generateProductRunDocx(run, report, company, complianceDocuments, directors, hasVaultAccess);
     const safeTitle = (report.tender_title || 'TenderLogix-Report').replace(/[^a-zA-Z0-9 \-]/g, '').slice(0, 60).trim() || 'TenderLogix-Report';
     const productLabel = run.product === 'gonogo' ? 'GoNoGo' : run.product === 'pricing' ? 'Pricing' : 'BidPack';
 
