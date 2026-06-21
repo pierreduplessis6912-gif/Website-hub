@@ -241,16 +241,9 @@ async function subscribeVault() {
     var d = await res.json();
     if (d.error) throw new Error(d.error);
 
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = d.action_url;
-    Object.entries(d.fields).forEach(function(entry) {
-      var input = document.createElement('input');
-      input.type = 'hidden'; input.name = entry[0]; input.value = entry[1];
-      form.appendChild(input);
-    });
-    document.body.appendChild(form);
-    form.submit();
+    // buildPayFastLink returns a complete, ready-to-use checkout URL —
+    // simple redirect, same pattern as Website Hub's own subscriptions.
+    window.location.href = d.checkout_url;
   } catch(e) {
     showToast(e.message || 'Could not start subscription', '#ff4757');
     btn.disabled = false; btn.textContent = 'Subscribe — R99/month';
