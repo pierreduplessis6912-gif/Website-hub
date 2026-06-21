@@ -8,6 +8,8 @@
 // Each tier upgrade charges (tier_price - amount_paid) on that SAME submission.
 // Balance is rand sitting on the account, drawn down first; PayFast covers the shortfall.
 
+import { buildPayFastLink, isTestMode } from './shared-services.js';
+
 const TIER_PRICES = { gonogo: 20, pricing: 750, bidpack: 2500 };
 
 export async function handleTenderLogix(request, env) {
@@ -810,39 +812,10 @@ async function handleTlListSubmissions(url, env, tlJson) {
 
 // ── PAYFAST WEBHOOK ──────────────────────────────────────────────
 // Tops up account balance in rand. No fixed packages — pay exactly what's needed.
-// ── PayFast MD5 signature — required for all recurring/subscription
-// payments. Confirmed native crypto.subtle MD5 support in Workers runtime.
-// Field order matches PayFast's documented checkout-page field order.
-async function generatePayfastSignature(data, passphrase) {
-  const fieldOrder = [
-    'merchant_id','merchant_key','return_url','cancel_url','notify_url',
-    'name_first','name_last','email_address','cell_number',
-    'm_payment_id','amount','item_name','item_description',
-    'custom_int1','custom_int2','custom_int3','custom_int4','custom_int5',
-    'custom_str1','custom_str2','custom_str3','custom_str4','custom_str5',
-    'email_confirmation','confirmation_address','payment_method',
-    'subscription_type','billing_date','recurring_amount','frequency','cycles',
-  ];
-
-  let paramString = '';
-  for (const key of fieldOrder) {
-    const val = data[key];
-    if (val !== undefined && val !== null && String(val).trim() !== '') {
-      paramString += `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, '+')}&`;
-    }
-  }
-  paramString = paramString.slice(0, -1); // drop trailing &
-  if (passphrase) {
-    paramString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`;
-  }
-
-  const hashBuffer = await crypto.subtle.digest({ name: 'MD5' }, new TextEncoder().encode(paramString));
-  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// ── Document Vault — subscribe. Returns the signed PayFast checkout fields
-// for the frontend to build a real submission form with. R99/month,
-// recurring, indefinite (cycles=0, runs until cancelled).
+// ── Document Vault — subscribe. Uses the same buildPayFastLink helper
+// already proven in production for Website Hub's R699/R999 monthly
+// subscriptions (launch-worker) — correct sandbox/live credential
+// switching via isTestMode(env), no need to hand-roll signature logic.
 async function handleVaultSubscribe(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
   const { company_id } = body;
@@ -851,33 +824,23 @@ async function handleVaultSubscribe(request, env, tlJson) {
   const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
   if (!company) return tlJson({ error: 'Company not found' }, 404);
 
-  const merchantId = env.PAYFAST_MERCHANT_ID || '10000100';
-  const merchantKey = env.PAYFAST_MERCHANT_KEY || '';
-  const passphrase = env.PAYFAST_PASSPHRASE || '';
+  const returnUrl = `https://tenderlogix.co.za/dashboard-v2/${company_id}?vault=active`;
+  const cancelUrl = `https://tenderlogix.co.za/dashboard-v2/${company_id}`;
+  const notifyUrl = 'https://tenderlogix.co.za/tl/payfast-webhook';
 
-  const fields = {
-    merchant_id: merchantId,
-    merchant_key: merchantKey,
-    return_url: `https://tenderlogix.co.za/dashboard-v2/${company_id}?vault=active`,
-    cancel_url: `https://tenderlogix.co.za/dashboard-v2/${company_id}`,
-    notify_url: 'https://tenderlogix.co.za/tl/payfast-webhook',
-    name_first: company.client_name || company.name,
-    email_address: company.email || '',
-    m_payment_id: crypto.randomUUID(),
-    amount: '99.00',
-    item_name: 'TenderLogix Document Vault',
-    item_description: 'Monthly compliance document storage, verification, and retrieval',
-    custom_str1: company_id,
-    custom_str2: 'vault_subscription',
-    subscription_type: '1',
-    recurring_amount: '99.00',
-    frequency: '3', // monthly
-    cycles: '0',    // indefinite — runs until cancelled
-  };
+  const url = buildPayFastLink(99, 'TenderLogix Document Vault', company_id, env, {
+    returnUrl,
+    cancelUrl,
+    notifyUrl,
+    customStr2: 'vault_subscription',
+    itemDesc: `${company.name} — Document Vault monthly subscription`,
+    subscription: true,
+    frequency: 3, // monthly
+    cycles: 0,    // infinite — runs until cancelled
+    recurringAmount: 99,
+  });
 
-  const signature = await generatePayfastSignature(fields, passphrase);
-
-  return tlJson({ success: true, fields: { ...fields, signature }, action_url: 'https://www.payfast.co.za/eng/process' });
+  return tlJson({ success: true, checkout_url: url, sandbox: isTestMode(env) });
 }
 
 async function handleTlPayfast(request, env, tlJson) {
