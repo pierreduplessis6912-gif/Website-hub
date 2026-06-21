@@ -331,8 +331,12 @@ export default {
               ],
             }],
           });
-          const buffer = await Packer.toBuffer(doc);
-          return new Response(buffer, {
+          // Packer.toBuffer() uses JSZip's 'nodebuffer' output, which requires
+          // Node's actual Buffer API — not available in Workers' runtime even
+          // with nodejs_compat. toArrayBuffer() is the documented worker-safe
+          // method, using a standard JS ArrayBuffer instead.
+          const arrayBuffer = await Packer.toArrayBuffer(doc);
+          return new Response(arrayBuffer, {
             headers: {
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
               'Content-Disposition': 'attachment; filename="docx-test.docx"',
