@@ -459,6 +459,150 @@ function buildMbd15(company) {
   ];
 }
 
+// MBD 2 — Tax Clearance Certificate Requirements (acknowledgement + action checklist)
+function buildMbd2(company) {
+  const actions = [
+    'Log into SARS e-Filing at www.sars.gov.za',
+    'Navigate to "Tax Compliance Status"',
+    'Generate and print TCS PIN (active status must show "COMPLIANT")',
+    'Attach the TCS PIN printout behind this form',
+    'If a consortium/JV is formed, EACH party needs a separate TCS PIN',
+  ];
+  return [
+    ...formHeader('MBD 2', 'TAX CLEARANCE CERTIFICATE REQUIREMENTS'),
+    new Paragraph({ children: [new TextRun({ text: 'Original Tax Clearance Certificate is required. Certified copies are NOT acceptable. Valid for 1 year from date of approval.', italics: true, size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Paragraph({ children: [new TextRun({ text: 'ACTION CHECKLIST', bold: true })] }),
+    ...actions.map(a => new Paragraph({ children: [new TextRun({ text: '☐  ' + a, size: 18 })] })),
+    new Paragraph({ text: '' }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+      fieldRow('Name of Enterprise', company?.name),
+      fieldRow('TCS PIN', null),
+      fieldRow('Date Obtained', null),
+    ]}),
+  ];
+}
+
+// MBD 16 — General Conditions of Contract (acknowledgement, no fields to complete)
+function buildMbd16() {
+  return [
+    ...formHeader('MBD 16', 'GENERAL CONDITIONS OF CONTRACT — ACKNOWLEDGEMENT'),
+    new Paragraph({ children: [new TextRun({ text: 'By signing the MBD 1 Declaration and the Contract Form (MBD 7.2), the bidder acknowledges acceptance of the General Conditions of Contract as set out in the tender document, including but not limited to:', size: 18 })] }),
+    new Paragraph({ text: '' }),
+    ...['Definitions', 'Performance Security', 'Inspections, Tests and Analyses', 'Warranty', 'Payment terms', 'Force Majeure', 'Termination', 'Applicable Law: South African law'].map(item =>
+      new Paragraph({ children: [new TextRun({ text: '•  ' + item, size: 18 })] })
+    ),
+    new Paragraph({ text: '' }),
+    new Paragraph({ children: [new TextRun({ text: 'No signature required on this form — acknowledgement is given via the MBD 1 and MBD 7.2 declarations.', italics: true, size: 16, color: '888888' })] }),
+  ];
+}
+
+// MBD 7.2 — Contract Form (Rendering of Services), Part 1 — Bidder's portion
+function buildMbd72(company, report) {
+  return [
+    ...formHeader('MBD 7.2', 'CONTRACT FORM — RENDERING OF SERVICES (PART 1, BIDDER)'),
+    new Paragraph({ children: [new TextRun({ text: '1. I hereby undertake to render the services described in the bidding documents in accordance with the requirements stipulated in bid number ' + (report?.tender_reference || '[bid number]') + ' at the price(s) quoted. My offer remains binding and open for acceptance during the validity period.', size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Paragraph({ children: [new TextRun({ text: '2. I confirm I have satisfied myself as to the correctness and validity of my bid; that the price(s) and rate(s) quoted cover all services specified and all my obligations; I accept that mistakes in price(s)/rate(s)/calculations are at my own risk.', size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Paragraph({ children: [new TextRun({ text: '3. I accept full responsibility for the proper execution and fulfilment of all obligations under this agreement.', size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Paragraph({ children: [new TextRun({ text: '4. I declare no participation in any collusive practices with any bidder regarding this or any other bid.', size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Paragraph({ children: [new TextRun({ text: '5. I confirm I am duly authorised to sign this contract.', size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+      fieldRow('Name of Firm', company?.name),
+      fieldRow('Name (Print)', null),
+      fieldRow('Signature', '_________________ (sign in black ink)'),
+      fieldRow('Capacity', null),
+      fieldRow('Witness 1', TO_COMPLETE),
+      fieldRow('Witness 2', TO_COMPLETE),
+      fieldRow('Date', null),
+    ]}),
+  ];
+}
+
+// Category selection — which discipline(s) the bidder is tendering for.
+// Pre-checks nothing (we don't reliably know which category the company
+// genuinely holds registration for), but lists the rates for quick reference.
+function buildCategorySelection() {
+  const categories = [
+    ['Professional Engineer Technologist', 'ECSA AND NHBRC registration (both required)', 'R4,200.00 per unit'],
+    ['Roof Inspector / Roof Engineer', 'ITC-SA accreditation, sanctioned by ECSA', 'R2,100.00 per unit'],
+    ['Health & Safety Agent', 'SACPCMP registration (manager or agent)', 'R101.18 per unit'],
+    ['Land Surveyor', 'SA Council for Professional and Technical Surveyors', 'R628.00 per site'],
+  ];
+  return [
+    new Paragraph({ text: '', pageBreakBefore: true }),
+    new Paragraph({ children: [new TextRun({ text: 'CATEGORY SELECTION', bold: true, size: 28 })] }),
+    new Paragraph({ children: [new TextRun({ text: 'Tick ONLY the category/categories for which valid professional registration is held. Submitting for a category without the required certificate results in disqualification for that category.', italics: true, size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+      new TableRow({ children: ['Tick', 'Category', 'Required Registration', 'Rate'].map(h => new TableCell({
+        shading: { type: ShadingType.SOLID, color: DARK_GRAY, fill: DARK_GRAY },
+        children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 16 })] })],
+      })) }),
+      ...categories.map(([name, reg, rate]) => new TableRow({ children: [
+        new TableCell({ children: [new Paragraph('☐')] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: name, bold: true, size: 16 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: reg, size: 16 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: rate, size: 16 })] })] }),
+      ]})),
+    ]}),
+  ];
+}
+
+// Pricing schedule — the actual form a bidder fills in with their quoted
+// rate, alongside the gazetted guideline rate for reference. Distinct from
+// the BOQ in the advisory section (that's our analysis; this is the form).
+function buildPricingSchedule(boq) {
+  if (!boq || !boq.length) return [];
+  const priceableLines = boq.filter(item => item.unit_rate && item.unit_rate > 0);
+  return [
+    new Paragraph({ text: '', pageBreakBefore: true }),
+    new Paragraph({ children: [new TextRun({ text: 'PRICING SCHEDULE', bold: true, size: 28 })] }),
+    new Paragraph({ children: [new TextRun({ text: 'Complete the "Your Tendered Rate" column. Guideline rates shown are gazetted/benchmark figures for reference — confirm against the official tender document before finalising.', italics: true, size: 18 })] }),
+    new Paragraph({ text: '' }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+      new TableRow({ children: ['Description', 'Unit', 'Guideline Rate', 'Your Tendered Rate'].map(h => new TableCell({
+        shading: { type: ShadingType.SOLID, color: DARK_GRAY, fill: DARK_GRAY },
+        children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 16 })] })],
+      })) }),
+      ...priceableLines.map(item => new TableRow({ children: [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.line_item || '', size: 16 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.unit || '', size: 16 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'R' + item.unit_rate.toLocaleString(), size: 16 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'R __________', size: 16 })] })] }),
+      ]})),
+    ]}),
+  ];
+}
+
+// Final submission/packaging checklist — envelope endorsement, USB, ink rules.
+function buildSubmissionPackaging(report, company) {
+  return [
+    new Paragraph({ text: '', pageBreakBefore: true }),
+    new Paragraph({ children: [new TextRun({ text: 'SUBMISSION & PACKAGING', bold: true, size: 28 })] }),
+    new Paragraph({ children: [new TextRun({ text: 'ENVELOPE ENDORSEMENT', bold: true })] }),
+    new Paragraph({ children: [new TextRun({ text: 'Write the following on the outside of the sealed envelope:', italics: true, size: 16 })] }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+      fieldRow('Tender Number', report?.tender_reference),
+      fieldRow('Tender Description', report?.tender_title),
+      fieldRow('Name of Bidder', company?.name),
+    ]}),
+    new Paragraph({ text: '' }),
+    new Paragraph({ children: [new TextRun({ text: 'FINAL CHECKLIST', bold: true })] }),
+    ...[
+      'All forms completed in BLACK INK — no Tippex/correction fluid anywhere',
+      'Official forms used — not retyped',
+      'Scanned copy of entire bid document saved to USB and included in envelope',
+      'Envelope sealed and correctly endorsed',
+      'Bid validity period (180 days) confirmed and accepted',
+    ].map(item => new Paragraph({ children: [new TextRun({ text: '☐  ' + item, size: 18 })] })),
+  ];
+}
+
 
 export async function generateProductRunDocx(run, report, company, complianceDocuments) {
   const companyName = company?.name;
@@ -559,11 +703,17 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
       new Paragraph({ children: [new TextRun({ text: 'OFFICIAL BID FORMS — COMPLETE AND SIGN', bold: true, size: 32, color: BRAND_ORANGE })] }),
       new Paragraph({ children: [new TextRun({ text: 'Fields marked in orange require manual completion — this system does not yet hold this data. Verify every pre-filled field is current before submission.', italics: true, size: 18, color: '888888' })] }),
       ...buildMbd1(company, report),
+      ...buildMbd2(company),
       ...buildMbd4(company),
       ...buildMbd61(company),
       ...buildMbd8(company),
       ...buildMbd9(company, report),
       ...buildMbd15(company),
+      ...buildMbd16(),
+      ...buildMbd72(company, report),
+      ...buildCategorySelection(),
+      ...buildPricingSchedule(report.boq),
+      ...buildSubmissionPackaging(report, company),
     ];
     sections.push({
       // No headers/footers key at all — section inherits nothing branded.
