@@ -561,6 +561,19 @@ function buyBalance() {
 }
 
 loadDashboard();
+
+// ── Browser back-button fix ────────────────────────────────────────────
+// Some browsers restore this page from the back-forward cache (bfcache) on
+// back-navigation WITHOUT re-running scripts — leaving the dashboard in a
+// stale, half-loaded state (the exact "kicks you out, have to reload"
+// symptom). pageshow's persisted flag tells us when that's happened, so we
+// can force a fresh reload of all data without the user noticing anything
+// beyond a brief refresh.
+window.addEventListener('pageshow', function(event) {
+  if (event.persisted) {
+    loadDashboard();
+  }
+});
 </script>
 </body>
 </html>
