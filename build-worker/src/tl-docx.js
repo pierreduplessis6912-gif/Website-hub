@@ -10,7 +10,8 @@
 // locked layout. This is a hard product requirement, not a nice-to-have.
 
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-         HeadingLevel, AlignmentType, BorderStyle, WidthType, ShadingType } from 'docx';
+         HeadingLevel, AlignmentType, BorderStyle, WidthType, ShadingType,
+         Header, Footer } from 'docx';
 
 const BRAND_ORANGE = 'FF6B1A';
 const DARK_GRAY = '1C1D20';
@@ -184,6 +185,48 @@ function buildChecklistSection(title, items, statusKey, labelKey, notesKey) {
       ...(item[notesKey] ? [new Paragraph({ children: [new TextRun({ text: item[notesKey], italics: true, size: 18, color: '666666' })], indent: { left: 360 } })] : []),
       new Paragraph({ text: '' }),
     ]),
+  ];
+}
+
+// ── Phase 2 — REAL verified compliance documents on file ─────────────────
+// Lists every certificate this company has actually uploaded and had
+// verified through the compliance system (CIDB, B-BBEE, tax, etc), with
+// real status and expiry — pulled from tl_compliance_documents, not
+// self-reported text. This is advisory (branded section), since it's a
+// status summary, not a document to submit itself — the actual certificate
+// files still need to be physically attached by the bidder (see note).
+function buildComplianceDocumentsSection(complianceDocuments) {
+  if (!complianceDocuments || !complianceDocuments.length) {
+    return [
+      new Paragraph({ text: 'Verified Compliance Documents On File', heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ children: [new TextRun({ text: 'No compliance documents have been uploaded and verified yet for this company. Upload certificates via the Compliance Status section of your dashboard so future submission packs can reference them directly.', italics: true, color: '888888' })] }),
+      new Paragraph({ text: '' }),
+    ];
+  }
+
+  const rows = complianceDocuments.map(doc => {
+    const statusColor = doc.status === 'green' ? '2ECC71' : doc.status === 'amber' ? BRAND_ORANGE : 'FF4757';
+    const statusLabel = doc.status === 'green' ? 'Valid' : doc.status === 'amber' ? 'Renewal Due Soon' : doc.status === 'red' ? 'Expired / Invalid' : 'Pending';
+    return new TableRow({ children: [
+      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: doc.doc_name || doc.doc_type_id, bold: true, size: 18 })] })] }),
+      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: doc.extracted_value || '—', size: 18 })] })] }),
+      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: doc.expiry_date || '—', size: 18 })] })] }),
+      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: statusLabel, bold: true, color: statusColor, size: 18 })] })] }),
+    ]});
+  });
+
+  return [
+    new Paragraph({ text: 'Verified Compliance Documents On File', heading: HeadingLevel.HEADING_2 }),
+    new Paragraph({ children: [new TextRun({ text: 'These certificates have been uploaded and verified through TenderLogix. Physically attach the original or certified copy of each VALID document to your submission — this list confirms what you have on file, it does not replace the physical document.', italics: true, size: 16, color: '888888' })] }),
+    new Paragraph({ text: '' }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+      new TableRow({ children: ['Document', 'Detail', 'Expiry', 'Status'].map(h => new TableCell({
+        shading: { type: ShadingType.SOLID, color: DARK_GRAY, fill: DARK_GRAY },
+        children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 18 })] })],
+      })) }),
+      ...rows,
+    ]}),
+    new Paragraph({ text: '' }),
   ];
 }
 
@@ -416,31 +459,24 @@ function buildMbd15(company) {
   ];
 }
 
-// Assembles all real MBD forms for the bidpack — Phase 1 of the genuine
-// submission pack. Forms included match what's actually required by the
-// vast majority of SA municipal/provincial tenders.
-function buildRealFormsSection(company, report) {
-  return [
-    new Paragraph({ text: '', pageBreakBefore: true }),
-    new Paragraph({ children: [new TextRun({ text: 'OFFICIAL BID FORMS — COMPLETE AND SIGN', bold: true, size: 32, color: BRAND_ORANGE })] }),
-    new Paragraph({ children: [new TextRun({ text: 'Fields marked in orange require manual completion — this system does not yet hold this data. Verify every pre-filled field is current before submission.', italics: true, size: 18, color: '888888' })] }),
-    ...buildMbd1(company, report),
-    ...buildMbd4(company),
-    ...buildMbd61(company),
-    ...buildMbd8(company),
-    ...buildMbd9(company, report),
-    ...buildMbd15(company),
-  ];
-}
 
-
-export async function generateProductRunDocx(run, report, company) {
+export async function generateProductRunDocx(run, report, company, complianceDocuments) {
   const companyName = company?.name;
   const product = run.product;
   const title = report.tender_title || 'Tender Analysis';
   const ref = report.tender_reference;
 
-  const children = [
+  // ── ADVISORY CONTENT — fully TenderLogix branded ──────────────────────
+  // Verdict, eligibility, compliance status, BOQ pricing, risk flags. None
+  // of this is ever submitted to a tender box — it's our analysis, for the
+  // bidder's eyes, and carries the brand throughout (header + footer on
+  // every page of this section).
+  const advisoryChildren = [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'TENDERLOGIX', bold: true, size: 20, color: BRAND_ORANGE, characterSpacing: 40 })],
+    }),
+    new Paragraph({ text: '' }),
     new Paragraph({ text: title, heading: HeadingLevel.TITLE }),
     ...(ref ? [new Paragraph({ children: [new TextRun({ text: 'Ref: ' + ref, italics: true, color: '666666' })] })] : []),
     new Paragraph({ children: [new TextRun({ text: 'Prepared for: ' + (companyName || ''), color: '666666' })] }),
@@ -449,7 +485,7 @@ export async function generateProductRunDocx(run, report, company) {
 
   if (product === 'gonogo' && report.verdict) {
     const verdictColor = report.verdict === 'GO' ? '2ECC71' : report.verdict === 'NO_GO' ? 'FF4757' : BRAND_ORANGE;
-    children.push(
+    advisoryChildren.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
         children: [new TextRun({ text: report.verdict.replace('_', ' '), bold: true, size: 56, color: verdictColor })],
@@ -462,7 +498,7 @@ export async function generateProductRunDocx(run, report, company) {
       ...buildChecklistSection('How To Gain An Edge', report.edge_recommendations, null, 'action', 'impact'),
     );
     if (report.future_readiness) {
-      children.push(
+      advisoryChildren.push(
         new Paragraph({ text: 'Path To Future Tenders', heading: HeadingLevel.HEADING_2 }),
         new Paragraph({ children: [new TextRun({ text: report.future_readiness })] }),
       );
@@ -471,15 +507,15 @@ export async function generateProductRunDocx(run, report, company) {
 
   if (product === 'pricing' || product === 'bidpack') {
     if (report.competitive_landscape) {
-      children.push(
+      advisoryChildren.push(
         new Paragraph({ text: 'Competitive Landscape', heading: HeadingLevel.HEADING_2 }),
         new Paragraph({ children: [new TextRun({ text: report.competitive_landscape })] }),
         new Paragraph({ text: '' }),
       );
     }
-    children.push(...buildBoqTable(report.boq, report.boq_totals));
+    advisoryChildren.push(...buildBoqTable(report.boq, report.boq_totals));
     if (report.pricing_disclaimer) {
-      children.push(
+      advisoryChildren.push(
         new Paragraph({
           children: [new TextRun({ text: report.pricing_disclaimer, italics: true, size: 16, color: '888888' })],
           border: { top: { style: BorderStyle.SINGLE, size: 6, color: 'CCCCCC', space: 8 } },
@@ -489,16 +525,54 @@ export async function generateProductRunDocx(run, report, company) {
   }
 
   if (product === 'bidpack') {
-    children.push(...buildChecklistSection('Compliance Checklist', report.compliance_checklist, 'status', 'item', 'notes'));
-    // Real, structured MBD forms — Phase 1 of the genuine submission pack.
-    // Replaces the old narrative "transcription guide" approach: these are
-    // actual form layouts, pre-filled with real company data where we have
-    // it, clearly marked for manual completion where we don't.
-    children.push(...buildRealFormsSection(company, report));
+    advisoryChildren.push(...buildChecklistSection('Compliance Checklist', report.compliance_checklist, 'status', 'item', 'notes'));
+    advisoryChildren.push(...buildComplianceDocumentsSection(complianceDocuments));
+  }
+
+  const brandedHeader = new Header({
+    children: [new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      children: [new TextRun({ text: 'TenderLogix · Analysis & Advisory', size: 14, color: '999999' })],
+    })],
+  });
+  const brandedFooter = new Footer({
+    children: [new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'This page is TenderLogix advisory content — NOT for submission. AI-assisted analysis, verify independently.', size: 13, color: 'AAAAAA' })],
+    })],
+  });
+
+  const sections = [{
+    headers: { default: brandedHeader },
+    footers: { default: brandedFooter },
+    children: advisoryChildren,
+  }];
+
+  // ── OFFICIAL FORMS — Phase 1, completely UNBRANDED ────────────────────
+  // A new, separate docx section with NO header/footer at all. These are
+  // genuine MBD form layouts intended for actual submission — a third-party
+  // logo or "Prepared by TenderLogix" on a government tender form would be
+  // inappropriate and could raise questions with the evaluator. This
+  // section starts on its own page (new section = automatic page break).
+  if (product === 'bidpack') {
+    const formsChildren = [
+      new Paragraph({ children: [new TextRun({ text: 'OFFICIAL BID FORMS — COMPLETE AND SIGN', bold: true, size: 32, color: BRAND_ORANGE })] }),
+      new Paragraph({ children: [new TextRun({ text: 'Fields marked in orange require manual completion — this system does not yet hold this data. Verify every pre-filled field is current before submission.', italics: true, size: 18, color: '888888' })] }),
+      ...buildMbd1(company, report),
+      ...buildMbd4(company),
+      ...buildMbd61(company),
+      ...buildMbd8(company),
+      ...buildMbd9(company, report),
+      ...buildMbd15(company),
+    ];
+    sections.push({
+      // No headers/footers key at all — section inherits nothing branded.
+      children: formsChildren,
+    });
   }
 
   const doc = new Document({
-    sections: [{ children }],
+    sections,
     styles: {
       default: {
         document: { run: { font: 'Calibri', size: 22 } },
