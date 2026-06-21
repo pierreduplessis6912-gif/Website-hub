@@ -786,6 +786,15 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
   // environment — a repeated header marker is the practical equivalent).
   if (product === 'bidpack') {
     const formsChildren = [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'TENDERLOGIX', bold: true, size: 24, color: BRAND_ORANGE, characterSpacing: 40 })],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+        children: [new TextRun({ text: 'BID PREPARATION TOOLKIT', size: 18, color: '999999', characterSpacing: 20 })],
+      }),
       new Paragraph({ children: [new TextRun({ text: 'FORM COMPLETION GUIDE — TRANSCRIBE TO OFFICIAL FORMS', bold: true, size: 32, color: BRAND_ORANGE })] }),
       new Paragraph({
         children: [new TextRun({ text: '⚠ DO NOT SUBMIT THIS DOCUMENT AS YOUR BID FORMS. ', bold: true, color: 'FF4757', size: 18 }), new TextRun({ text: 'This tender requires bids completed in BLACK INK on the OFFICIAL forms downloaded from the issuing authority\'s website — retyped or substitute forms can result in automatic disqualification. Use the data below to fill in the real official forms by hand or in a fillable PDF.', bold: true, color: 'FF4757', size: 18 })],
@@ -807,16 +816,34 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
       ...buildSubmissionPackaging(report, company),
     ];
 
+    // Two-tier header: safety warning stays visually dominant (red, bold,
+    // top line) — that's non-negotiable, it's what stops a disqualification.
+    // Brand mark sits confidently below it, full identity, not hidden — the
+    // goal is a clerk recognising this page on sight and asking for it by
+    // name, the same way Google Drive shows you a Google file before you
+    // open it. This document never gets submitted, so there's no reason to
+    // hold the brand back here.
     const referenceToolHeader = new Header({
-      children: [new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: 'REFERENCE TOOL — TRANSCRIBE TO OFFICIAL FORMS IN BLACK INK — DO NOT SUBMIT AS-IS', bold: true, size: 16, color: 'FF4757' })],
-      })],
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 40 },
+          children: [new TextRun({ text: 'REFERENCE TOOL — TRANSCRIBE TO OFFICIAL FORMS IN BLACK INK — DO NOT SUBMIT AS-IS', bold: true, size: 16, color: 'FF4757' })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'EEEEEE', space: 4 } },
+          children: [new TextRun({ text: 'TENDERLOGIX', bold: true, size: 16, color: BRAND_ORANGE, characterSpacing: 30 }), new TextRun({ text: '  ·  BID PREPARATION TOOLKIT', size: 14, color: '999999' })],
+        }),
+      ],
     });
     const referenceToolFooter = new Footer({
       children: [new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: 'This page is a drafting aid, not an official bid form. Submitting a retyped form may result in disqualification.', size: 13, color: 'AAAAAA' })],
+        children: [
+          new TextRun({ text: 'TenderLogix', bold: true, size: 13, color: BRAND_ORANGE }),
+          new TextRun({ text: ' — this page is a drafting aid, not an official bid form. Submitting a retyped form may result in disqualification. tenderlogix.co.za', size: 13, color: 'AAAAAA' }),
+        ],
       })],
     });
 
