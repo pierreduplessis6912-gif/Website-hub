@@ -57,6 +57,12 @@ export async function handleTenderLogix(request, env) {
   }
 
   // ── Compliance documents ──────────────────────────────────────
+  if (path === '/tl/vault/status' && method === 'GET') {
+    const company_id = url.searchParams.get('company_id');
+    if (!company_id) return tlJson({ error: 'company_id required' }, 400);
+    const hasAccess = await checkVaultSubscription(env, company_id);
+    return tlJson({ company_id, vault_active: hasAccess, price: 'R99/month' });
+  }
   if (path === '/tl/compliance/requirements' && method === 'GET')  return handleTlComplianceRequirements(url, env, tlJson);
   if (path === '/tl/compliance/upload'       && method === 'POST') return handleTlComplianceUpload(request, env, tlJson);
   if (path === '/tl/compliance/flag-missing' && method === 'POST') return handleTlComplianceFlagMissing(request, env, tlJson);
@@ -249,6 +255,20 @@ function arrayBufferToBase64(arrayBuffer) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
   return btoa(binary);
+}
+
+// ── DOCUMENT VAULT — subscription check ───────────────────────────────────
+// Returns true only if the company has a row with status='active' AND
+// current_period_end is still in the future. No row, or an expired/
+// cancelled/past_due status, correctly returns false — fails closed.
+export async function checkVaultSubscription(env, company_id) {
+  const sub = await env.TL_DB.prepare(
+    `SELECT status, current_period_end FROM tl_vault_subscriptions WHERE company_id=? LIMIT 1`
+  ).bind(company_id).first();
+  if (!sub) return false;
+  if (sub.status !== 'active') return false;
+  if (!sub.current_period_end) return false;
+  return new Date(sub.current_period_end) > new Date();
 }
 
 // ── REFERENCE GATE CHECK — confirms multi-document uploads belong to ONE tender ──
@@ -992,6 +1012,19 @@ async function handleTlComplianceUpload(request, env, tlJson) {
 
   const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
   if (!company) return tlJson({ error: 'Company not found' }, 404);
+
+  // ── Document Vault gate — R99/month. Compliance upload/storage/retrieval
+  // is entirely behind this subscription. Go/No-Go/Pricing/Bid Pack verdicts
+  // remain fully functional and honest without it (self-reported data,
+  // clearly marked as such) — this gate is specifically about custody and
+  // verification of real certificates, not about degrading core analysis.
+  const hasVaultAccess = await checkVaultSubscription(env, company_id);
+  if (!hasVaultAccess) {
+    return tlJson({
+      error: 'Document Vault is a R99/month feature — upload, verify, and securely store your compliance certificates, with instant retrieval and expiry alerts. Subscribe to unlock.',
+      vault_required: true,
+    }, 402);
+  }
 
   const docType = await env.TL_DB.prepare('SELECT * FROM tl_doc_types WHERE id=? LIMIT 1').bind(doc_type_id).first();
   if (!docType) return tlJson({ error: 'Unknown document type' }, 404);
