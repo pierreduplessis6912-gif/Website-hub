@@ -112,7 +112,10 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
 
 <nav class="nav">
   <a href="/" class="nav-brand">Tender<span>Logix</span></a>
-  <div class="balance-pill" onclick="openBalanceModal()" id="balancePill">R— balance</div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#" id="profileLink" style="font-size:12px;color:#999;text-decoration:none;font-weight:600">Profile</a>
+    <div class="balance-pill" onclick="openBalanceModal()" id="balancePill">R— balance</div>
+  </div>
 </nav>
 
 <div class="page">
@@ -183,6 +186,7 @@ function showToast(msg, color) {
 
 async function loadDashboard() {
   if (!companyId) { window.location.href = '/register'; return; }
+  document.getElementById('profileLink').href = '/profile/' + companyId;
   try {
     var res = await fetch('/tl/company?id=' + companyId);
     var d = await res.json();
