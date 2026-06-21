@@ -47,6 +47,11 @@ export async function handleTlV2(request, env) {
 
   if (path === '/tl/v2/free-trials' && method === 'GET') return handleGetFreeTrials(url, env, tlJson);
 
+  if (path === '/tl/v2/directors' && method === 'GET') return handleListDirectors(url, env, tlJson);
+  if (path === '/tl/v2/directors' && method === 'POST') return handleSaveDirector(request, env, tlJson);
+  if (path === '/tl/v2/directors' && method === 'DELETE') return handleDeleteDirector(request, env, tlJson);
+  if (path === '/tl/v2/company/details' && method === 'POST') return handleUpdateCompanyDetails(request, env, tlJson);
+
   return tlJson({ error: 'Not found' }, 404);
 }
 
@@ -273,6 +278,89 @@ async function handleGetFreeTrials(url, env, tlJson) {
   return tlJson({ company_id, free_trials_available: availability });
 }
 
+// ── DIRECTORS — list/add/edit/delete ──────────────────────────────────────
+// Closes the real gap that left MBD 4, MBD 15, and MBD 7.2 mostly blank:
+// director name, ID number, tax number, residential address.
+async function handleListDirectors(url, env, tlJson) {
+  const company_id = url.searchParams.get('company_id');
+  if (!company_id) return tlJson({ error: 'company_id required' }, 400);
+
+  const directors = await env.TL_DB.prepare(
+    'SELECT * FROM tl_company_directors WHERE company_id=? ORDER BY display_order, created_at'
+  ).bind(company_id).all();
+
+  return tlJson({ company_id, directors: directors.results || [] });
+}
+
+async function handleSaveDirector(request, env, tlJson) {
+  const body = await request.json().catch(() => ({}));
+  const { company_id, id, full_name, id_number, tax_number, residential_address, is_state_employee } = body;
+
+  if (!company_id || !full_name) return tlJson({ error: 'company_id and full_name required' }, 400);
+
+  const company = await env.TL_DB.prepare('SELECT id FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  if (!company) return tlJson({ error: 'Company not found' }, 404);
+
+  if (id) {
+    // Editing an existing director — verify it belongs to this company first
+    const existing = await env.TL_DB.prepare('SELECT id FROM tl_company_directors WHERE id=? AND company_id=? LIMIT 1').bind(id, company_id).first();
+    if (!existing) return tlJson({ error: 'Director not found for this company' }, 404);
+
+    await env.TL_DB.prepare(`
+      UPDATE tl_company_directors SET full_name=?, id_number=?, tax_number=?, residential_address=?, is_state_employee=? WHERE id=?
+    `).bind(full_name, id_number || null, tax_number || null, residential_address || null, is_state_employee ? 1 : 0, id).run();
+
+    return tlJson({ success: true, director_id: id, updated: true });
+  }
+
+  const newId = crypto.randomUUID();
+  const countRow = await env.TL_DB.prepare('SELECT COUNT(*) as cnt FROM tl_company_directors WHERE company_id=?').bind(company_id).first();
+  await env.TL_DB.prepare(`
+    INSERT INTO tl_company_directors (id, company_id, full_name, id_number, tax_number, residential_address, is_state_employee, display_order)
+    VALUES (?,?,?,?,?,?,?,?)
+  `).bind(newId, company_id, full_name, id_number || null, tax_number || null, residential_address || null, is_state_employee ? 1 : 0, countRow?.cnt || 0).run();
+
+  return tlJson({ success: true, director_id: newId, created: true });
+}
+
+async function handleDeleteDirector(request, env, tlJson) {
+  const body = await request.json().catch(() => ({}));
+  const { company_id, id } = body;
+  if (!company_id || !id) return tlJson({ error: 'company_id and id required' }, 400);
+
+  const existing = await env.TL_DB.prepare('SELECT id FROM tl_company_directors WHERE id=? AND company_id=? LIMIT 1').bind(id, company_id).first();
+  if (!existing) return tlJson({ error: 'Director not found for this company' }, 404);
+
+  await env.TL_DB.prepare('DELETE FROM tl_company_directors WHERE id=?').bind(id).run();
+  return tlJson({ success: true, deleted: id });
+}
+
+// ── COMPANY DETAILS — address, tax ref, VAT, municipal account ───────────
+// Separate, focused endpoint from the existing /tl/company/update (v1) so
+// v2 can evolve its own profile fields independently.
+async function handleUpdateCompanyDetails(request, env, tlJson) {
+  const body = await request.json().catch(() => ({}));
+  const { company_id, street_address, postal_address, city, postal_code, tax_reference_number, vat_number, municipal_account_number } = body;
+  if (!company_id) return tlJson({ error: 'company_id required' }, 400);
+
+  const existing = await env.TL_DB.prepare('SELECT id FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  if (!existing) return tlJson({ error: 'Company not found' }, 404);
+
+  await env.TL_DB.prepare(`
+    UPDATE tl_companies SET
+      street_address=COALESCE(?, street_address),
+      postal_address=COALESCE(?, postal_address),
+      city=COALESCE(?, city),
+      postal_code=COALESCE(?, postal_code),
+      tax_reference_number=COALESCE(?, tax_reference_number),
+      vat_number=COALESCE(?, vat_number),
+      municipal_account_number=COALESCE(?, municipal_account_number)
+    WHERE id=?
+  `).bind(street_address, postal_address, city, postal_code, tax_reference_number, vat_number, municipal_account_number, company_id).run();
+
+  return tlJson({ success: true, company_id });
+}
+
 // ── RUN A PRODUCT — gonogo/pricing/bidpack, fully independent, charge-after-success via queue ──
 async function handleRunProduct(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
@@ -347,6 +435,7 @@ async function handleDownloadProductRun(url, env) {
   // Phase 2 — real verified compliance documents, only relevant for the
   // bidpack tier's submission pack (others don't show this section at all).
   let complianceDocuments = [];
+  let directors = [];
   if (run.product === 'bidpack') {
     const docsResult = await env.TL_DB.prepare(`
       SELECT cd.*, dt.name as doc_name FROM tl_compliance_documents cd
@@ -355,10 +444,15 @@ async function handleDownloadProductRun(url, env) {
       ORDER BY dt.name
     `).bind(run.company_id).all();
     complianceDocuments = docsResult.results || [];
+
+    const directorsResult = await env.TL_DB.prepare(
+      'SELECT * FROM tl_company_directors WHERE company_id=? ORDER BY display_order, created_at'
+    ).bind(run.company_id).all();
+    directors = directorsResult.results || [];
   }
 
   try {
-    const arrayBuffer = await generateProductRunDocx(run, report, company, complianceDocuments);
+    const arrayBuffer = await generateProductRunDocx(run, report, company, complianceDocuments, directors);
     const safeTitle = (report.tender_title || 'TenderLogix-Report').replace(/[^a-zA-Z0-9 \-]/g, '').slice(0, 60).trim() || 'TenderLogix-Report';
     const productLabel = run.product === 'gonogo' ? 'GoNoGo' : run.product === 'pricing' ? 'Pricing' : 'BidPack';
 
