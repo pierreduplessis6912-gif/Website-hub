@@ -341,11 +341,11 @@ async function handleDownloadProductRun(url, env) {
     return new Response(JSON.stringify({ error: 'This report is not ready yet' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
   }
 
-  const company = await env.TL_DB.prepare('SELECT name FROM tl_companies WHERE id=? LIMIT 1').bind(run.company_id).first();
+  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(run.company_id).first();
   const report = JSON.parse(run.report_json);
 
   try {
-    const arrayBuffer = await generateProductRunDocx(run, report, company?.name);
+    const arrayBuffer = await generateProductRunDocx(run, report, company);
     const safeTitle = (report.tender_title || 'TenderLogix-Report').replace(/[^a-zA-Z0-9 \-]/g, '').slice(0, 60).trim() || 'TenderLogix-Report';
     const productLabel = run.product === 'gonogo' ? 'GoNoGo' : run.product === 'pricing' ? 'Pricing' : 'BidPack';
 
