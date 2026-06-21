@@ -22,6 +22,24 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
 .nav-brand{font-family:var(--display);font-size:18px;color:var(--paper);text-decoration:none;text-transform:uppercase}
 .nav-brand span{color:var(--gold)}
 .balance-pill{background:rgba(255,107,26,.12);border:1px solid rgba(255,107,26,.3);padding:7px 14px;font-family:var(--mono);font-size:12px;color:var(--gold);font-weight:700}
+.vault-pill{padding:7px 12px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.3px}
+.vault-pill.inactive{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--dim)}
+.vault-pill.inactive:hover{background:rgba(255,107,26,.08);border-color:rgba(255,107,26,.3);color:var(--gold)}
+.vault-pill.active{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);color:var(--green)}
+
+.vault-nudge{background:linear-gradient(135deg,rgba(255,107,26,.08),rgba(255,107,26,.03));border:1px solid rgba(255,107,26,.25);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.vault-nudge:hover{border-color:rgba(255,107,26,.45)}
+.vault-nudge-icon{font-size:20px;flex-shrink:0}
+.vault-nudge-text{flex:1;font-size:12px;color:var(--paper);line-height:1.5}
+.vault-nudge-text strong{color:var(--gold)}
+.vault-nudge-cta{font-family:var(--mono);font-size:10px;color:var(--gold);font-weight:700;letter-spacing:.3px;flex-shrink:0;white-space:nowrap}
+
+.modal-vault .modal-title{display:flex;align-items:center;gap:8px}
+.vault-pain-list{margin:16px 0}
+.vault-pain-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;color:var(--dim)}
+.vault-pain-item:last-child{border-bottom:none}
+.vault-price-compare{background:rgba(255,255,255,.04);padding:12px 16px;text-align:center;margin:16px 0;font-family:var(--mono);font-size:12px;color:var(--dim)}
+.vault-price-compare strong{color:var(--gold);font-size:16px}
 .page{max-width:720px;margin:0 auto;padding:24px 20px 80px}
 .hero{margin-bottom:28px}
 .hero h1{font-family:var(--display);font-size:clamp(26px,6vw,38px);text-transform:uppercase;letter-spacing:-.3px}
@@ -112,8 +130,9 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
 
 <nav class="nav">
   <a href="/" class="nav-brand">Tender<span>Logix</span></a>
-  <div style="display:flex;align-items:center;gap:10px">
+  <div style="display:flex;align-items:center;gap:8px">
     <a href="#" id="profileLink" style="font-size:12px;color:#999;text-decoration:none;font-weight:600">Profile</a>
+    <div class="vault-pill" id="vaultPill" onclick="handleVaultPillClick()">📁 Vault</div>
     <div class="balance-pill" onclick="openBalanceModal()" id="balancePill">R— balance</div>
   </div>
 </nav>
@@ -141,12 +160,6 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
     <div class="price-line" id="uploadPriceLine"></div>
   </div>
 
-  <div class="upload-box" id="vaultCard">
-    <div class="upload-box-title">📁 Document Vault</div>
-    <p class="upload-box-sub" id="vaultStatusText">Checking status...</p>
-    <button class="btn-gold" id="btnVault" onclick="subscribeVault()" style="display:none">Subscribe — R99/month</button>
-  </div>
-
   <div class="hero">
     <h1>Your <span>Tenders.</span></h1>
   </div>
@@ -164,6 +177,31 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
     </div>
     <button class="btn-buy" id="btnBuy" onclick="buyBalance()">Pay R100 →</button>
     <button class="btn-close" onclick="closeBalanceModal()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal-overlay modal-vault" id="vaultModal" onclick="closeVaultModal(event)">
+  <div class="modal">
+    <div class="modal-title">📁 Document Vault</div>
+    <p class="modal-sub">R99/month — cheaper than Netflix, and it could save your bid.</p>
+
+    <div class="vault-pain-list">
+      <div class="vault-pain-item">😩 <span>It's 11pm. Bid closes tomorrow. Where's your B-BBEE certificate? <strong style="color:var(--paper)">Without Vault, you're digging through email.</strong></span></div>
+      <div class="vault-pain-item">📅 <span>Your CIDB grading quietly expired 3 weeks ago. You only find out when a bid gets rejected.</span></div>
+      <div class="vault-pain-item">🖨️ <span>You download a Bid Pack to print — and the certificate section is empty, because nothing's on file.</span></div>
+    </div>
+
+    <p class="modal-sub" style="margin-bottom:10px"><strong style="color:var(--paper)">With Vault, R99/month:</strong></p>
+    <div class="vault-pain-list">
+      <div class="vault-pain-item">✅ <span>Every Bid Pack downloads with your real, verified certificates already attached. One tap, fully assembled.</span></div>
+      <div class="vault-pain-item">✅ <span><strong style="color:var(--paper)">We'll remind you</strong> before anything expires — never miss a renewal again.</span></div>
+      <div class="vault-pain-item">✅ <span>Out of office? Any director can pull the certificate from their phone, instantly.</span></div>
+    </div>
+
+    <div class="vault-price-compare">R99/month ≈ <strong>R3.30/day</strong> — less than a coffee, for documents that could cost you a contract</div>
+
+    <button class="btn-buy" id="btnVaultModal" onclick="subscribeVault()">Subscribe — R99/month</button>
+    <button class="btn-close" onclick="closeVaultModal()">Not now</button>
   </div>
 </div>
 
@@ -214,25 +252,43 @@ async function loadDashboard() {
   } catch(e) { showToast('Could not load dashboard', '#ff4757'); }
 }
 
+var vaultActive = false;
+
 async function loadVaultStatus() {
   try {
     var res = await fetch('/tl/vault/status?company_id=' + companyId);
     var d = await res.json();
-    var statusText = document.getElementById('vaultStatusText');
-    var btn = document.getElementById('btnVault');
-
-    if (d.vault_active) {
-      statusText.innerHTML = '✅ Active — your real B-BBEE, CIDB, tax, and compliance certificates are stored, verified, and automatically included in every Bid Pack.';
-      btn.style.display = 'none';
+    vaultActive = !!d.vault_active;
+    var pill = document.getElementById('vaultPill');
+    if (vaultActive) {
+      pill.className = 'vault-pill active';
+      pill.textContent = '📁 Vault ✓';
     } else {
-      statusText.innerHTML = 'Store and verify your compliance certificates once — every future Bid Pack downloads with them already attached. One click, fully assembled, ready to print.';
-      btn.style.display = 'block';
+      pill.className = 'vault-pill inactive';
+      pill.textContent = '📁 Vault';
     }
   } catch(e) { console.warn('loadVaultStatus error:', e); }
 }
 
+function handleVaultPillClick() {
+  if (vaultActive) {
+    showToast('✅ Vault active — your certificates are stored and ready');
+    return;
+  }
+  openVaultModal();
+}
+
+function openVaultModal() {
+  document.getElementById('vaultModal').classList.add('open');
+}
+function closeVaultModal(e) {
+  if (!e || e.target === document.getElementById('vaultModal')) {
+    document.getElementById('vaultModal').classList.remove('open');
+  }
+}
+
 async function subscribeVault() {
-  var btn = document.getElementById('btnVault');
+  var btn = document.getElementById('btnVaultModal');
   btn.disabled = true; btn.textContent = 'Preparing...';
   try {
     var res = await fetch('/tl/vault/subscribe', {
@@ -329,8 +385,8 @@ async function submitUpload() {
   btn.disabled = false;
 }
 
-function productLabel(p) { return p==='gonogo' ? 'GO / NO-GO' : p==='pricing' ? 'PRICING' : 'BID PACK'; }
-function productPrice(p) { return p==='gonogo' ? 100 : p==='pricing' ? 750 : 2500; }
+function productLabel(p) { return p==='gonogo' ? 'GO / NO-GO' : 'BID PACK'; }
+function productPrice(p) { return p==='gonogo' ? 100 : 750; }
 
 async function loadTenders() {
   try {
@@ -348,7 +404,7 @@ async function loadTenders() {
       // silently overwrite a later successful one as the loop continues.
       (t.product_runs || []).forEach(function(r) { if (!runsByProduct[r.product]) runsByProduct[r.product] = r; });
 
-      var products = ['gonogo','pricing','bidpack'].map(function(p) {
+      var products = ['gonogo','bidpack'].map(function(p) {
         var run = runsByProduct[p];
         if (!run) {
           var isFree = freeTrials[p];
@@ -385,8 +441,7 @@ async function loadTenders() {
 
 function productSub(p) {
   if (p==='gonogo') return 'Should you bid? Verdict, eligibility, risk flags.';
-  if (p==='pricing') return 'Market pricing. Priced BOQ, no opinions.';
-  return 'Ready to submit. Full kit with cover letter.';
+  return 'Priced BOQ + every official form, pre-filled. Print and go.';
 }
 
 async function runProduct(tenderId, product) {
@@ -415,6 +470,17 @@ async function viewProductReport(runId) {
     currentReportRunId = runId;
     var r = d.report;
     var html = '<div class="report-heading"><h1>'+(r.tender_title||'Tender Analysis')+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
+
+    // Contextual nudge — surfaces exactly where the pain is real: someone
+    // about to print/download a Bid Pack, the moment they'd actually feel
+    // the gap of not having certificates already attached.
+    if (d.product === 'bidpack' && !vaultActive) {
+      html += '<div class="vault-nudge" onclick="openVaultModal()">' +
+        '<div class="vault-nudge-icon">📁</div>' +
+        '<div class="vault-nudge-text">You\'re about to print this without your real certificates attached. <strong>Vault subscribers</strong> get every Bid Pack fully assembled — no digging for documents at the last minute.</div>' +
+        '<div class="vault-nudge-cta">R99/mo →</div>' +
+      '</div>';
+    }
 
     if (r.verdict) {
       var cls = r.verdict.toLowerCase();
