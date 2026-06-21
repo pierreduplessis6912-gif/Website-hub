@@ -1,5 +1,6 @@
 import { handleTenderLogix, processTlQueueMessage } from './tl-handler.js';
 import { handleTlV2, processTlV2QueueMessage } from './tl-handler-v2.js';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel } from 'docx';
 // ============================================================
 // WH-BUILD — Website Hub Build Worker
 // Clean rewrite — Session D10 2026-05-27
@@ -302,6 +303,46 @@ export default {
       if (path === '/admin/run-migration'      && method === 'POST') return handleRunMigration(request, env);
       if (path === '/admin/delete-client'      && method === 'POST') return handleDeleteClient(request, env);
       if (path === '/admin/bootstrap-admin'    && method === 'POST') return handleAdminBootstrapAdmin(request, env);
+      if (path === '/admin/test-docx' && method === 'GET') {
+        try {
+          const doc = new Document({
+            sections: [{
+              children: [
+                new Paragraph({ text: 'TenderLogix — docx Generation Test', heading: HeadingLevel.HEADING_1 }),
+                new Paragraph({
+                  children: [
+                    new TextRun('This is a plain sentence. '),
+                    new TextRun({ text: 'This part is bold.', bold: true }),
+                  ],
+                }),
+                new Paragraph({ text: '' }),
+                new Table({
+                  rows: [
+                    new TableRow({ children: [
+                      new TableCell({ children: [new Paragraph('Item')] }),
+                      new TableCell({ children: [new Paragraph('Rate')] }),
+                    ]}),
+                    new TableRow({ children: [
+                      new TableCell({ children: [new Paragraph('Health and Safety Agent')] }),
+                      new TableCell({ children: [new Paragraph('R101.18')] }),
+                    ]}),
+                  ],
+                }),
+              ],
+            }],
+          });
+          const buffer = await Packer.toBuffer(doc);
+          return new Response(buffer, {
+            headers: {
+              'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'Content-Disposition': 'attachment; filename="docx-test.docx"',
+            },
+          });
+        } catch(e) {
+          console.error('docx test failed:', e.message, e.stack?.slice(0,1000));
+          return new Response(JSON.stringify({ error: e.message, stack: e.stack?.slice(0,1000) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        }
+      }
       if (path === '/admin/bootstrap-start'    && method === 'POST') return handleAdminBootstrapStart(request, env);
       // ── Bootstrap endpoints — driven by KV_KEYS.BOOTSTRAP registry ──────────
       if (path.startsWith('/admin/bootstrap-') && method === 'POST') {
