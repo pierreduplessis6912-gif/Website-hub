@@ -308,7 +308,7 @@ function buildMbd1(company, report, directors) {
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name (Print)', primaryDirector?.full_name),
-      fieldRow('Signature', '_________________ (sign in black ink)'),
+      fieldRow('Signature', '[Sign on the OFFICIAL form, in black ink]'),
       fieldRow('Capacity', null),
       fieldRow('Date', null),
     ]}),
@@ -343,7 +343,7 @@ function buildMbd61(company) {
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name of Company/Firm', company?.name),
       fieldRow('Company Registration Number', company?.reg_number),
-      fieldRow('Signature of Tenderer', '_________________ (sign in black ink)'),
+      fieldRow('Signature of Tenderer', '[Sign on the OFFICIAL form, in black ink]'),
       fieldRow('Date', null),
     ]}),
   ];
@@ -392,7 +392,7 @@ function buildMbd4(company, directors) {
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name of Enterprise', company?.name),
-      fieldRow('Signature', '_________________ (sign in black ink)'),
+      fieldRow('Signature', '[Sign on the OFFICIAL form, in black ink]'),
       fieldRow('Date', null),
     ]}),
   ];
@@ -416,7 +416,7 @@ function buildMbd8(company) {
     ]),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name of Enterprise', company?.name),
-      fieldRow('Signature', '_________________ (sign in black ink)'),
+      fieldRow('Signature', '[Sign on the OFFICIAL form, in black ink]'),
       fieldRow('Witness 1', TO_COMPLETE),
       fieldRow('Witness 2', TO_COMPLETE),
       fieldRow('Date', null),
@@ -445,7 +445,7 @@ function buildMbd9(company, report) {
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name (Print)', null),
-      fieldRow('Signature', '_________________ (sign in black ink)'),
+      fieldRow('Signature', '[Sign on the OFFICIAL form, in black ink]'),
       fieldRow('Capacity', null),
       fieldRow('Date', null),
     ]}),
@@ -485,7 +485,7 @@ function buildMbd15(company, directors) {
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name (Print)', directors && directors[0]?.full_name),
-      fieldRow('Signature', '_________________ (sign before Commissioner of Oaths)'),
+      fieldRow('Signature', '[Sign on the OFFICIAL form, before Commissioner of Oaths]'),
       fieldRow('Date', null),
     ]}),
     new Paragraph({ text: '' }),
@@ -553,7 +553,7 @@ function buildMbd72(company, report, directors) {
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name of Firm', company?.name),
       fieldRow('Name (Print)', directors && directors[0]?.full_name),
-      fieldRow('Signature', '_________________ (sign in black ink)'),
+      fieldRow('Signature', '[Sign on the OFFICIAL form, in black ink]'),
       fieldRow('Capacity', null),
       fieldRow('Witness 1', TO_COMPLETE),
       fieldRow('Witness 2', TO_COMPLETE),
@@ -650,7 +650,7 @@ function buildSbd62LocalContent(company) {
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name (Print)', null),
-      fieldRow('Signature', '_________________ (sign in black ink)'),
+      fieldRow('Signature', '[Sign on the OFFICIAL form, in black ink]'),
       fieldRow('Capacity', null),
       fieldRow('Date', null),
     ]}),
@@ -776,11 +776,22 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
   // logo or "Prepared by TenderLogix" on a government tender form would be
   // inappropriate and could raise questions with the evaluator. This
   // section starts on its own page (new section = automatic page break).
+  //
+  // CRITICAL: tender documents explicitly require bids to be completed on
+  // OFFICIAL forms, in BLACK INK, and state "do not retype" — submitting a
+  // retyped/printed version of these reference tables would itself be a
+  // disqualifying error. This section is a TRANSCRIPTION GUIDE, never a
+  // print-and-submit form set, reinforced via a persistent page header
+  // (true Word watermarks need a third-party library not available in this
+  // environment — a repeated header marker is the practical equivalent).
   if (product === 'bidpack') {
     const formsChildren = [
-      new Paragraph({ children: [new TextRun({ text: 'OFFICIAL BID FORMS — COMPLETE AND SIGN', bold: true, size: 32, color: BRAND_ORANGE })] }),
-      new Paragraph({ children: [new TextRun({ text: 'Fields marked in orange require manual completion — this system does not yet hold this data. Verify every pre-filled field is current before submission.', italics: true, size: 18, color: '888888' })] }),
-      new Paragraph({ children: [new TextRun({ text: 'IMPORTANT: National Treasury periodically revises SBD/MBD form layouts (e.g. the 2022 SBD 4 consolidation). These are reference templates reflecting the standard structure — always cross-check against the actual SBD/MBD forms included in this specific tender pack before signing and submitting. Using an outdated form layout can result in disqualification.', bold: true, color: 'FF4757', size: 16 })] }),
+      new Paragraph({ children: [new TextRun({ text: 'FORM COMPLETION GUIDE — TRANSCRIBE TO OFFICIAL FORMS', bold: true, size: 32, color: BRAND_ORANGE })] }),
+      new Paragraph({
+        children: [new TextRun({ text: '⚠ DO NOT SUBMIT THIS DOCUMENT AS YOUR BID FORMS. ', bold: true, color: 'FF4757', size: 18 }), new TextRun({ text: 'This tender requires bids completed in BLACK INK on the OFFICIAL forms downloaded from the issuing authority\'s website — retyped or substitute forms can result in automatic disqualification. Use the data below to fill in the real official forms by hand or in a fillable PDF.', bold: true, color: 'FF4757', size: 18 })],
+      }),
+      new Paragraph({ children: [new TextRun({ text: 'Fields marked in orange require manual completion — this system does not yet hold this data. Verify every pre-filled field is current before transcribing.', italics: true, size: 18, color: '888888' })] }),
+      new Paragraph({ children: [new TextRun({ text: 'IMPORTANT: National Treasury periodically revises SBD/MBD form layouts (e.g. the 2022 SBD 4 consolidation). These are reference templates reflecting the standard structure — always cross-check against the actual SBD/MBD forms included in this specific tender pack.', bold: true, color: 'FF4757', size: 16 })] }),
       ...buildMbd1(company, report, directors),
       ...buildMbd2(company),
       ...buildMbd4(company, directors),
@@ -795,8 +806,23 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
       ...buildSbd31PricingSchedule(report.boq),
       ...buildSubmissionPackaging(report, company),
     ];
+
+    const referenceToolHeader = new Header({
+      children: [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'REFERENCE TOOL — TRANSCRIBE TO OFFICIAL FORMS IN BLACK INK — DO NOT SUBMIT AS-IS', bold: true, size: 16, color: 'FF4757' })],
+      })],
+    });
+    const referenceToolFooter = new Footer({
+      children: [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'This page is a drafting aid, not an official bid form. Submitting a retyped form may result in disqualification.', size: 13, color: 'AAAAAA' })],
+      })],
+    });
+
     sections.push({
-      // No headers/footers key at all — section inherits nothing branded.
+      headers: { default: referenceToolHeader },
+      footers: { default: referenceToolFooter },
       children: formsChildren,
     });
   }
