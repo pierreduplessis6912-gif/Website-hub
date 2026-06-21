@@ -265,15 +265,18 @@ function formHeader(formCode, formName) {
 }
 
 // MBD 1 — Tender Notice and Invitation to Bid (Details of Tenderer)
-function buildMbd1(company, report) {
+function buildMbd1(company, report, directors) {
+  const fullStreetAddress = [company?.street_address, company?.city, company?.postal_code].filter(Boolean).join(', ');
+  const fullPostalAddress = [company?.postal_address, company?.city, company?.postal_code].filter(Boolean).join(', ');
+  const primaryDirector = directors && directors[0];
   return [
     ...formHeader('MBD 1', 'TENDER NOTICE AND INVITATION TO BID — DETAILS OF TENDERER'),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name of Bidder', company?.name),
       fieldRow('Trading As (if different)', null),
-      fieldRow('Street Address', null),
-      fieldRow('Postal Address', null),
-      fieldRow('Contact Person', null),
+      fieldRow('Street Address', fullStreetAddress || null),
+      fieldRow('Postal Address', fullPostalAddress || null),
+      fieldRow('Contact Person', primaryDirector?.full_name),
       fieldRow('Enterprise Registration Number', company?.reg_number),
       fieldRow('CIDB CRS Number', company?.cidb_grade),
       fieldRow('TCS PIN', null),
@@ -288,7 +291,7 @@ function buildMbd1(company, report) {
     new Paragraph({ children: [new TextRun({ text: 'I am duly authorised to represent the tenderer and hereby tender to supply the goods/render the services described, on the terms and conditions stipulated in the tender document.', italics: true, size: 18 })] }),
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
-      fieldRow('Name (Print)', null),
+      fieldRow('Name (Print)', primaryDirector?.full_name),
       fieldRow('Signature', '_________________ (sign in black ink)'),
       fieldRow('Capacity', null),
       fieldRow('Date', null),
@@ -331,7 +334,7 @@ function buildMbd61(company) {
 }
 
 // MBD 4 — Declaration of Interest
-function buildMbd4(company) {
+function buildMbd4(company, directors) {
   const questions = [
     'Are you presently in the service of the state?',
     'Have you been in the service of the state for the past twelve months?',
@@ -339,12 +342,21 @@ function buildMbd4(company) {
     'Are any directors/managers/principal shareholders in service of the state?',
     'Do you or any directors have interest in other related companies bidding for this contract?',
   ];
+  const directorRows = (directors && directors.length)
+    ? directors.map(d => new TableRow({ children: [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: d.full_name, size: 16 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: d.id_number || TO_COMPLETE, size: 16, color: d.id_number ? '000000' : 'AA6600' })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: d.tax_number || TO_COMPLETE, size: 16, color: d.tax_number ? '000000' : 'AA6600' })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: d.is_state_employee ? 'YES' : 'N/A', size: 16 })] })] }),
+      ]}))
+    : [new TableRow({ children: [1,2,3,4].map(() => new TableCell({ children: [new Paragraph(TO_COMPLETE)] })) })];
+
   return [
     ...formHeader('MBD 4', 'DECLARATION OF INTEREST'),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Company Registration Number', company?.reg_number),
-      fieldRow('Tax Reference Number', null),
-      fieldRow('VAT Registration Number', null),
+      fieldRow('Tax Reference Number', company?.tax_reference_number),
+      fieldRow('VAT Registration Number', company?.vat_number),
     ]}),
     new Paragraph({ text: '' }),
     ...questions.flatMap(q => [
@@ -353,12 +365,13 @@ function buildMbd4(company) {
       new Paragraph({ text: '' }),
     ]),
     new Paragraph({ children: [new TextRun({ text: 'DIRECTORS / TRUSTEES / MEMBERS / SHAREHOLDERS (compulsory)', bold: true })] }),
+    ...(!directors || !directors.length ? [new Paragraph({ children: [new TextRun({ text: 'No directors on file — add them via your dashboard profile before finalising this form.', italics: true, size: 16, color: 'AA6600' })] })] : []),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       new TableRow({ children: ['Full Name', 'ID Number', 'Tax Number', 'State Employee No.'].map(h => new TableCell({
         shading: { type: ShadingType.SOLID, color: DARK_GRAY, fill: DARK_GRAY },
         children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 16 })] })],
       })) }),
-      ...[1,2,3].map(() => new TableRow({ children: [1,2,3,4].map(() => new TableCell({ children: [new Paragraph(TO_COMPLETE)] })) })),
+      ...directorRows,
     ]}),
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
@@ -424,15 +437,25 @@ function buildMbd9(company, report) {
 }
 
 // MBD 15 — Certificate for Payment of Municipal Services
-function buildMbd15(company) {
+function buildMbd15(company, directors) {
+  const businessAddress = [company?.street_address, company?.city, company?.postal_code].filter(Boolean).join(', ');
+  const directorRows = (directors && directors.length)
+    ? directors.map(d => new TableRow({ children: [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: d.full_name, size: 16 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: d.residential_address || TO_COMPLETE, size: 16, color: d.residential_address ? '000000' : 'AA6600' })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: businessAddress || TO_COMPLETE, size: 16, color: businessAddress ? '000000' : 'AA6600' })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: company?.municipal_account_number || TO_COMPLETE, size: 16, color: company?.municipal_account_number ? '000000' : 'AA6600' })] })] }),
+      ]}))
+    : [new TableRow({ children: [1,2,3,4].map(() => new TableCell({ children: [new Paragraph(TO_COMPLETE)] })) })];
+
   return [
     ...formHeader('MBD 15', 'CERTIFICATE FOR PAYMENT OF MUNICIPAL SERVICES'),
     new Paragraph({ children: [new TextRun({ text: 'MUST be signed before a Commissioner of Oaths', bold: true, color: 'FF4757' })] }),
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name of Enterprise', company?.name),
-      fieldRow('Physical Business Address', null),
-      fieldRow('Municipal Account Number', null),
+      fieldRow('Physical Business Address', businessAddress || null),
+      fieldRow('Municipal Account Number', company?.municipal_account_number),
     ]}),
     new Paragraph({ text: '' }),
     new Paragraph({ children: [new TextRun({ text: 'DIRECTOR / SHAREHOLDER / PARTNER DETAILS', bold: true })] }),
@@ -441,11 +464,11 @@ function buildMbd15(company) {
         shading: { type: ShadingType.SOLID, color: DARK_GRAY, fill: DARK_GRAY },
         children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 16 })] })],
       })) }),
-      ...[1,2].map(() => new TableRow({ children: [1,2,3,4].map(() => new TableCell({ children: [new Paragraph(TO_COMPLETE)] })) })),
+      ...directorRows,
     ]}),
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
-      fieldRow('Name (Print)', null),
+      fieldRow('Name (Print)', directors && directors[0]?.full_name),
       fieldRow('Signature', '_________________ (sign before Commissioner of Oaths)'),
       fieldRow('Date', null),
     ]}),
@@ -498,7 +521,7 @@ function buildMbd16() {
 }
 
 // MBD 7.2 — Contract Form (Rendering of Services), Part 1 — Bidder's portion
-function buildMbd72(company, report) {
+function buildMbd72(company, report, directors) {
   return [
     ...formHeader('MBD 7.2', 'CONTRACT FORM — RENDERING OF SERVICES (PART 1, BIDDER)'),
     new Paragraph({ children: [new TextRun({ text: '1. I hereby undertake to render the services described in the bidding documents in accordance with the requirements stipulated in bid number ' + (report?.tender_reference || '[bid number]') + ' at the price(s) quoted. My offer remains binding and open for acceptance during the validity period.', size: 18 })] }),
@@ -513,7 +536,7 @@ function buildMbd72(company, report) {
     new Paragraph({ text: '' }),
     new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
       fieldRow('Name of Firm', company?.name),
-      fieldRow('Name (Print)', null),
+      fieldRow('Name (Print)', directors && directors[0]?.full_name),
       fieldRow('Signature', '_________________ (sign in black ink)'),
       fieldRow('Capacity', null),
       fieldRow('Witness 1', TO_COMPLETE),
@@ -643,7 +666,7 @@ function buildSubmissionPackaging(report, company) {
 }
 
 
-export async function generateProductRunDocx(run, report, company, complianceDocuments) {
+export async function generateProductRunDocx(run, report, company, complianceDocuments, directors) {
   const companyName = company?.name;
   const product = run.product;
   const title = report.tender_title || 'Tender Analysis';
@@ -742,15 +765,15 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
       new Paragraph({ children: [new TextRun({ text: 'OFFICIAL BID FORMS — COMPLETE AND SIGN', bold: true, size: 32, color: BRAND_ORANGE })] }),
       new Paragraph({ children: [new TextRun({ text: 'Fields marked in orange require manual completion — this system does not yet hold this data. Verify every pre-filled field is current before submission.', italics: true, size: 18, color: '888888' })] }),
       new Paragraph({ children: [new TextRun({ text: 'IMPORTANT: National Treasury periodically revises SBD/MBD form layouts (e.g. the 2022 SBD 4 consolidation). These are reference templates reflecting the standard structure — always cross-check against the actual SBD/MBD forms included in this specific tender pack before signing and submitting. Using an outdated form layout can result in disqualification.', bold: true, color: 'FF4757', size: 16 })] }),
-      ...buildMbd1(company, report),
+      ...buildMbd1(company, report, directors),
       ...buildMbd2(company),
-      ...buildMbd4(company),
+      ...buildMbd4(company, directors),
       ...buildMbd61(company),
       ...buildMbd8(company),
       ...buildMbd9(company, report),
-      ...buildMbd15(company),
+      ...buildMbd15(company, directors),
       ...buildMbd16(),
-      ...buildMbd72(company, report),
+      ...buildMbd72(company, report, directors),
       ...buildSbd62LocalContent(company),
       ...buildCategorySelection(),
       ...buildSbd31PricingSchedule(report.boq),
