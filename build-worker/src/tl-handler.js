@@ -1238,9 +1238,10 @@ async function handleTlComplianceFlagMissing(request, env, tlJson) {
 // (matches the doc's actual company_id), not just the doc id alone.
 async function handleTlComplianceDocumentDownload(url, env) {
   const docId = url.searchParams.get('id');
+  const docTypeId = url.searchParams.get('doc_type_id');
   const companyId = url.searchParams.get('company_id');
-  if (!docId || !companyId) {
-    return new Response(JSON.stringify({ error: 'id and company_id required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  if ((!docId && !docTypeId) || !companyId) {
+    return new Response(JSON.stringify({ error: 'company_id and either id or doc_type_id required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
 
   const hasVaultAccess = await checkVaultSubscription(env, companyId);
@@ -1248,9 +1249,12 @@ async function handleTlComplianceDocumentDownload(url, env) {
     return new Response(JSON.stringify({ error: 'Document Vault subscription required', vault_required: true }), { status: 402, headers: { 'Content-Type': 'application/json' } });
   }
 
-  const doc = await env.TL_DB.prepare(
-    'SELECT * FROM tl_compliance_documents WHERE id=? AND company_id=? LIMIT 1'
-  ).bind(docId, companyId).first();
+  // Lookup by either the document's own row id, or by doc_type_id (simpler
+  // for the frontend, which only knows the type — there's at most one
+  // current document per type per company, so this is unambiguous).
+  const doc = docId
+    ? await env.TL_DB.prepare('SELECT * FROM tl_compliance_documents WHERE id=? AND company_id=? LIMIT 1').bind(docId, companyId).first()
+    : await env.TL_DB.prepare('SELECT * FROM tl_compliance_documents WHERE doc_type_id=? AND company_id=? LIMIT 1').bind(docTypeId, companyId).first();
   if (!doc || !doc.r2_key) {
     return new Response(JSON.stringify({ error: 'Document not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
   }
