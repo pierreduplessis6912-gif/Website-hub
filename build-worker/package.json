@@ -1,0 +1,7 @@
+{
+  "name": "wh-build",
+  "private": true,
+  "dependencies": {
+    "docx": "^9.1.1"
+  }
+}
