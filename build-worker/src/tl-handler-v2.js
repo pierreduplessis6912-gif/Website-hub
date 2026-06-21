@@ -344,8 +344,21 @@ async function handleDownloadProductRun(url, env) {
   const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(run.company_id).first();
   const report = JSON.parse(run.report_json);
 
+  // Phase 2 — real verified compliance documents, only relevant for the
+  // bidpack tier's submission pack (others don't show this section at all).
+  let complianceDocuments = [];
+  if (run.product === 'bidpack') {
+    const docsResult = await env.TL_DB.prepare(`
+      SELECT cd.*, dt.name as doc_name FROM tl_compliance_documents cd
+      JOIN tl_doc_types dt ON cd.doc_type_id = dt.id
+      WHERE cd.company_id = ?
+      ORDER BY dt.name
+    `).bind(run.company_id).all();
+    complianceDocuments = docsResult.results || [];
+  }
+
   try {
-    const arrayBuffer = await generateProductRunDocx(run, report, company);
+    const arrayBuffer = await generateProductRunDocx(run, report, company, complianceDocuments);
     const safeTitle = (report.tender_title || 'TenderLogix-Report').replace(/[^a-zA-Z0-9 \-]/g, '').slice(0, 60).trim() || 'TenderLogix-Report';
     const productLabel = run.product === 'gonogo' ? 'GoNoGo' : run.product === 'pricing' ? 'Pricing' : 'BidPack';
 
