@@ -195,7 +195,23 @@ function buildChecklistSection(title, items, statusKey, labelKey, notesKey) {
 // self-reported text. This is advisory (branded section), since it's a
 // status summary, not a document to submit itself — the actual certificate
 // files still need to be physically attached by the bidder (see note).
-function buildComplianceDocumentsSection(complianceDocuments) {
+function buildComplianceDocumentsSection(complianceDocuments, hasVaultAccess) {
+  if (!hasVaultAccess) {
+    return [
+      new Paragraph({ text: 'Verified Compliance Documents', heading: HeadingLevel.HEADING_2 }),
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [new TableRow({ children: [new TableCell({
+          shading: { type: ShadingType.SOLID, color: 'FFF4E8', fill: 'FFF4E8' },
+          children: [
+            new Paragraph({ children: [new TextRun({ text: '🔒 Document Vault — R99/month', bold: true, color: BRAND_ORANGE, size: 22 })] }),
+            new Paragraph({ children: [new TextRun({ text: 'Subscribe to securely store, verify, and instantly retrieve your B-BBEE, CIDB, tax, and compliance certificates — with expiry alerts so nothing lapses unnoticed. Once subscribed, this Bid Pack automatically includes your real, verified certificates alongside the forms — no more "(attach your B-BBEE certificate here)" placeholders. One click, fully assembled, ready to print.', size: 18, color: '555555' })] }),
+          ],
+        })] })],
+      }),
+      new Paragraph({ text: '' }),
+    ];
+  }
   if (!complianceDocuments || !complianceDocuments.length) {
     return [
       new Paragraph({ text: 'Verified Compliance Documents On File', heading: HeadingLevel.HEADING_2 }),
@@ -666,7 +682,7 @@ function buildSubmissionPackaging(report, company) {
 }
 
 
-export async function generateProductRunDocx(run, report, company, complianceDocuments, directors) {
+export async function generateProductRunDocx(run, report, company, complianceDocuments, directors, hasVaultAccess) {
   const companyName = company?.name;
   const product = run.product;
   const title = report.tender_title || 'Tender Analysis';
@@ -732,7 +748,7 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
 
   if (product === 'bidpack') {
     advisoryChildren.push(...buildChecklistSection('Compliance Checklist', report.compliance_checklist, 'status', 'item', 'notes'));
-    advisoryChildren.push(...buildComplianceDocumentsSection(complianceDocuments));
+    advisoryChildren.push(...buildComplianceDocumentsSection(complianceDocuments, hasVaultAccess));
   }
 
   const brandedHeader = new Header({
