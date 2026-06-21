@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Company Profile — TenderLogix</title>
+<meta name="theme-color" content="#0a0a0a">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ink:#0a0a0a;--paper:#ffffff;
+  --dark:#0a0a0a;--surface:#1c1d20;--surface2:#2a2b2f;
+  --gold:#ff6b1a;--gold-light:#ff8c4a;
+  --muted:rgba(255,255,255,.55);--dim:rgba(255,255,255,.32);
+  --green:#2ecc71;--red:#ff4757;
+  --display:'Archivo Black',sans-serif;--body:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html{-webkit-font-smoothing:antialiased}
+body{font-family:var(--body);background:var(--dark);color:var(--paper);min-height:100vh}
+.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{font-family:var(--display);font-size:18px;color:var(--paper);text-decoration:none;text-transform:uppercase}
+.nav-brand span{color:var(--gold)}
+.nav-back{font-size:13px;color:var(--gold);text-decoration:none;font-weight:600}
+.page{max-width:680px;margin:0 auto;padding:24px 20px 100px}
+.hero h1{font-family:var(--display);font-size:clamp(24px,6vw,34px);text-transform:uppercase;letter-spacing:-.3px;margin-bottom:6px}
+.hero h1 span{color:var(--gold)}
+.hero p{font-size:13px;color:var(--dim);margin-bottom:24px}
+.section{background:var(--surface);border:1px solid rgba(255,255,255,.06);padding:22px;margin-bottom:20px}
+.section-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.field input{width:100%;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--paper);font-family:var(--body);font-size:14px}
+.field input:focus{outline:none;border-color:var(--gold)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-save{background:var(--gold);color:var(--ink);padding:13px;font-family:var(--body);font-size:13px;font-weight:700;border:none;cursor:pointer;width:100%;letter-spacing:.5px;text-transform:uppercase;margin-top:6px}
+.btn-save:disabled{opacity:.5}
+
+.director-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:16px;margin-bottom:12px}
+.director-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.director-detail{font-size:11px;color:var(--dim);font-family:var(--mono)}
+.director-actions{display:flex;gap:10px;margin-top:10px}
+.btn-small{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--paper);padding:7px 14px;font-size:11px;cursor:pointer;text-transform:uppercase;letter-spacing:.3px}
+.btn-small.danger{border-color:rgba(255,71,87,.4);color:var(--red)}
+.btn-add-director{background:rgba(255,107,26,.1);border:1px dashed rgba(255,107,26,.4);color:var(--gold);padding:14px;width:100%;font-size:13px;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.empty-note{font-size:12px;color:var(--dim);font-style:italic;margin-bottom:12px}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);width:100%;max-width:480px;padding:28px 24px;border-top:2px solid var(--gold);max-height:88vh;overflow-y:auto}
+.modal-title{font-family:var(--display);font-size:20px;text-transform:uppercase;margin-bottom:18px}
+.checkbox-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.checkbox-row input{width:auto}
+.checkbox-row label{font-size:13px;color:var(--paper);text-transform:none;letter-spacing:0}
+.btn-close{background:transparent;color:var(--dim);padding:12px;font-family:var(--body);font-size:12px;border:1px solid rgba(255,255,255,.1);cursor:pointer;width:100%;text-transform:uppercase;margin-top:8px}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:12px 24px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;z-index:999}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/dashboard-v2" class="nav-brand">Tender<span>Logix</span></a>
+  <a href="#" class="nav-back" id="backLink">← Dashboard</a>
+</nav>
+
+<div class="page">
+  <div class="hero">
+    <h1>Company <span>Profile.</span></h1>
+    <p>This data fills your official bid forms automatically — MBD 1, 4, 15, and 7.2 all pull from here.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Company Details</div>
+    <div class="field"><label>Street Address</label><input type="text" id="street_address" placeholder="e.g. 12 Main Road"></div>
+    <div class="field-row">
+      <div class="field"><label>City</label><input type="text" id="city" placeholder="e.g. Richards Bay"></div>
+      <div class="field"><label>Postal Code</label><input type="text" id="postal_code" placeholder="e.g. 3900"></div>
+    </div>
+    <div class="field"><label>Postal Address <span style="text-transform:none">(if different)</span></label><input type="text" id="postal_address" placeholder="Leave blank if same as street address"></div>
+    <div class="field-row">
+      <div class="field"><label>Tax Reference Number</label><input type="text" id="tax_reference_number" placeholder="SARS income tax number"></div>
+      <div class="field"><label>VAT Number</label><input type="text" id="vat_number" placeholder="Leave blank if not VAT registered"></div>
+    </div>
+    <div class="field"><label>Municipal Account Number</label><input type="text" id="municipal_account_number" placeholder="For MBD 15"></div>
+    <button class="btn-save" id="btnSaveDetails" onclick="saveCompanyDetails()">Save Company Details</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Directors / Shareholders / Members</div>
+    <p class="empty-note" id="directorsEmptyNote" style="display:none">No directors added yet. MBD 4, MBD 15, and MBD 7.2 need at least one director to sign.</p>
+    <div id="directorsList"></div>
+    <button class="btn-add-director" onclick="openDirectorModal()">+ Add Director</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="directorModal" onclick="closeDirectorModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="directorModalTitle">Add Director</div>
+    <div class="field"><label>Full Name *</label><input type="text" id="d_full_name" placeholder="As it appears on ID"></div>
+    <div class="field"><label>ID Number</label><input type="text" id="d_id_number" placeholder="13-digit SA ID number"></div>
+    <div class="field"><label>Tax Number</label><input type="text" id="d_tax_number" placeholder="Individual tax reference number"></div>
+    <div class="field"><label>Residential Address</label><input type="text" id="d_residential_address" placeholder="Full residential address"></div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="d_is_state_employee">
+      <label for="d_is_state_employee">Currently in the service of the state</label>
+    </div>
+    <button class="btn-save" id="btnSaveDirector" onclick="saveDirector()">Save Director</button>
+    <button class="btn-close" onclick="closeDirectorModal()">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var companyId = location.pathname.split('/profile/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
+var directors = [];
+var editingDirectorId = null;
+
+document.getElementById('backLink').href = '/dashboard-v2/' + companyId;
+
+function showToast(msg, color) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || '#ffffff';
+  t.style.color = color ? '#fff' : '#0a0a0a';
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+async function loadProfile() {
+  if (!companyId) { window.location.href = '/register'; return; }
+  try {
+    var res = await fetch('/tl/company?id=' + companyId);
+    var d = await res.json();
+    if (d.error) { showToast('Could not load profile', '#ff4757'); return; }
+    ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number'].forEach(function(field) {
+      var el = document.getElementById(field);
+      if (el && d[field]) el.value = d[field];
+    });
+    await loadDirectors();
+  } catch(e) { showToast('Could not load profile', '#ff4757'); }
+}
+
+async function saveCompanyDetails() {
+  var btn = document.getElementById('btnSaveDetails');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    var body = { company_id: companyId };
+    ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number'].forEach(function(field) {
+      var val = document.getElementById(field).value.trim();
+      if (val) body[field] = val;
+    });
+    var res = await fetch('/tl/v2/company/details', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+    showToast('✅ Company details saved');
+  } catch(e) {
+    showToast(e.message || 'Failed to save', '#ff4757');
+  }
+  btn.disabled = false; btn.textContent = 'Save Company Details';
+}
+
+async function loadDirectors() {
+  try {
+    var res = await fetch('/tl/v2/directors?company_id=' + companyId);
+    var d = await res.json();
+    directors = d.directors || [];
+    renderDirectors();
+  } catch(e) { console.warn('loadDirectors error:', e); }
+}
+
+function renderDirectors() {
+  var listEl = document.getElementById('directorsList');
+  var emptyNote = document.getElementById('directorsEmptyNote');
+  emptyNote.style.display = directors.length ? 'none' : 'block';
+
+  listEl.innerHTML = directors.map(function(dir) {
+    return '<div class="director-card">' +
+      '<div class="director-name">' + dir.full_name + '</div>' +
+      '<div class="director-detail">' + (dir.id_number ? 'ID: ' + dir.id_number : 'No ID on file') + (dir.is_state_employee ? ' · STATE EMPLOYEE' : '') + '</div>' +
+      '<div class="director-actions">' +
+        '<button class="btn-small" onclick="editDirector(&quot;' + dir.id + '&quot;)">Edit</button>' +
+        '<button class="btn-small danger" onclick="removeDirector(&quot;' + dir.id + '&quot;)">Remove</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function openDirectorModal() {
+  editingDirectorId = null;
+  document.getElementById('directorModalTitle').textContent = 'Add Director';
+  ['d_full_name','d_id_number','d_tax_number','d_residential_address'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('d_is_state_employee').checked = false;
+  document.getElementById('directorModal').classList.add('open');
+}
+
+function editDirector(id) {
+  var dir = directors.find(function(d) { return d.id === id; });
+  if (!dir) return;
+  editingDirectorId = id;
+  document.getElementById('directorModalTitle').textContent = 'Edit Director';
+  document.getElementById('d_full_name').value = dir.full_name || '';
+  document.getElementById('d_id_number').value = dir.id_number || '';
+  document.getElementById('d_tax_number').value = dir.tax_number || '';
+  document.getElementById('d_residential_address').value = dir.residential_address || '';
+  document.getElementById('d_is_state_employee').checked = !!dir.is_state_employee;
+  document.getElementById('directorModal').classList.add('open');
+}
+
+function closeDirectorModal(e) {
+  if (!e || e.target === document.getElementById('directorModal')) {
+    document.getElementById('directorModal').classList.remove('open');
+  }
+}
+
+async function saveDirector() {
+  var fullName = document.getElementById('d_full_name').value.trim();
+  if (!fullName) { showToast('Full name is required', '#ff6b1a'); return; }
+
+  var btn = document.getElementById('btnSaveDirector');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    var body = {
+      company_id: companyId,
+      full_name: fullName,
+      id_number: document.getElementById('d_id_number').value.trim() || null,
+      tax_number: document.getElementById('d_tax_number').value.trim() || null,
+      residential_address: document.getElementById('d_residential_address').value.trim() || null,
+      is_state_employee: document.getElementById('d_is_state_employee').checked,
+    };
+    if (editingDirectorId) body.id = editingDirectorId;
+
+    var res = await fetch('/tl/v2/directors', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+
+    showToast('✅ Director saved');
+    closeDirectorModal();
+    await loadDirectors();
+  } catch(e) {
+    showToast(e.message || 'Failed to save director', '#ff4757');
+  }
+  btn.disabled = false; btn.textContent = 'Save Director';
+}
+
+async function removeDirector(id) {
+  if (!confirm('Remove this director?')) return;
+  try {
+    var res = await fetch('/tl/v2/directors', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ company_id: companyId, id: id })
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+    showToast('Director removed');
+    await loadDirectors();
+  } catch(e) {
+    showToast(e.message || 'Failed to remove', '#ff4757');
+  }
+}
+
+loadProfile();
+</script>
+</body>
+</html>
