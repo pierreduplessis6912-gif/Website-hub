@@ -141,6 +141,12 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
     <div class="price-line" id="uploadPriceLine"></div>
   </div>
 
+  <div class="upload-box" id="vaultCard">
+    <div class="upload-box-title">📁 Document Vault</div>
+    <p class="upload-box-sub" id="vaultStatusText">Checking status...</p>
+    <button class="btn-gold" id="btnVault" onclick="subscribeVault()" style="display:none">Subscribe — R99/month</button>
+  </div>
+
   <div class="hero">
     <h1>Your <span>Tenders.</span></h1>
   </div>
@@ -203,8 +209,52 @@ async function loadDashboard() {
       : 'R20 per document.';
     document.getElementById('uploadSub').textContent = uploadSub;
 
+    await loadVaultStatus();
     await loadTenders();
   } catch(e) { showToast('Could not load dashboard', '#ff4757'); }
+}
+
+async function loadVaultStatus() {
+  try {
+    var res = await fetch('/tl/vault/status?company_id=' + companyId);
+    var d = await res.json();
+    var statusText = document.getElementById('vaultStatusText');
+    var btn = document.getElementById('btnVault');
+
+    if (d.vault_active) {
+      statusText.innerHTML = '✅ Active — your real B-BBEE, CIDB, tax, and compliance certificates are stored, verified, and automatically included in every Bid Pack.';
+      btn.style.display = 'none';
+    } else {
+      statusText.innerHTML = 'Store and verify your compliance certificates once — every future Bid Pack downloads with them already attached. One click, fully assembled, ready to print.';
+      btn.style.display = 'block';
+    }
+  } catch(e) { console.warn('loadVaultStatus error:', e); }
+}
+
+async function subscribeVault() {
+  var btn = document.getElementById('btnVault');
+  btn.disabled = true; btn.textContent = 'Preparing...';
+  try {
+    var res = await fetch('/tl/vault/subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ company_id: companyId })
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = d.action_url;
+    Object.entries(d.fields).forEach(function(entry) {
+      var input = document.createElement('input');
+      input.type = 'hidden'; input.name = entry[0]; input.value = entry[1];
+      form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+  } catch(e) {
+    showToast(e.message || 'Could not start subscription', '#ff4757');
+    btn.disabled = false; btn.textContent = 'Subscribe — R99/month';
+  }
 }
 
 function renderFileList() {
