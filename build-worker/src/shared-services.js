@@ -180,6 +180,7 @@ export const KV_KEYS = {
     'tl-intake':        'app:tl-intake',
     'tl-dashboard':     'app:tl-dashboard',
     'tl-dashboard-v2':  'app:tl-dashboard-v2',
+    'tl-profile-v2':    'app:tl-profile-v2',
   },
 
   // ── Built site content ─────────────────────────────────────────────────────
