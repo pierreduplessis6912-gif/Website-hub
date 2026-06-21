@@ -487,6 +487,23 @@ async function viewProductReport(runId) {
       html += '<div class="verdict-banner '+cls+'"><div class="verdict-label '+cls+'">'+r.verdict.replace('_',' ')+'</div><p class="verdict-summary">'+(r.verdict_summary||'')+'</p></div>';
     }
     if (r.eligibility) { html += section('Eligibility', r.eligibility.map(function(e){return checkRow(e.status==='MET'?'✅':e.status==='UNMET'?'❌':'❓', e.requirement, e.detail+(e.notes?' '+e.notes:''));})); }
+
+    // Count genuine unverified gaps — only nudge when there's REAL evidence
+    // from THIS report, not a generic message shown regardless of content.
+    if (d.product === 'gonogo' && !vaultActive && r.eligibility) {
+      var unverifiedItems = r.eligibility.filter(function(e) {
+        return e.status === 'UNKNOWN' && /self-reported|not verified|unverified/i.test(e.notes || '');
+      });
+      if (unverifiedItems.length > 0) {
+        var gapNames = unverifiedItems.slice(0, 3).map(function(e) { return e.requirement; }).join(', ');
+        html += '<div class="vault-nudge" onclick="openVaultModal()">' +
+          '<div class="vault-nudge-icon">❓</div>' +
+          '<div class="vault-nudge-text"><strong>' + unverifiedItems.length + ' item' + (unverifiedItems.length>1?'s':'') + ' above could be marked ✅ VERIFIED</strong> instead of ❓ — ' + gapNames + (unverifiedItems.length>3?', and more':'') + '. Vault checks your real certificates so every future verdict is built on facts, not guesses.</div>' +
+          '<div class="vault-nudge-cta">R99/mo →</div>' +
+        '</div>';
+      }
+    }
+
     if (r.compliance_checklist) { html += section('Compliance', r.compliance_checklist.map(function(c){return checkRow(c.risk_level==='HIGH'?'🔴':c.risk_level==='MEDIUM'?'🟡':'🟢', c.item, c.notes);})); }
     if (r.competitive_landscape) { html += section('Competitive Landscape', ['<p style="font-size:13px;color:var(--dim);line-height:1.7">'+r.competitive_landscape+'</p>']); }
     if (r.boq) {
