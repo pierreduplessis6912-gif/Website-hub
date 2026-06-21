@@ -14,6 +14,9 @@ jobs:
         run: |
           cp design-db.js build-worker/src/design-db.js
           cp photo-db.js build-worker/src/photo-db.js
+      - name: Install npm dependencies
+        working-directory: build-worker
+        run: npm install
       - name: Deploy wh-build
         uses: cloudflare/wrangler-action@v4
         with:
