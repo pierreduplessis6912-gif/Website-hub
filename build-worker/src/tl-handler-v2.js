@@ -15,7 +15,12 @@
 import { generateProductRunDocx } from './tl-docx.js';
 import { checkVaultSubscription } from './tl-handler.js';
 
-const V2_PRICES = { gonogo: 100, pricing: 750, bidpack: 2500 };
+const V2_PRICES = { gonogo: 100, pricing: 750, bidpack: 750 };
+// NOTE: 'pricing' as a standalone purchasable product is being retired from
+// the UI — its content (BOQ, competitive landscape) is now fully absorbed
+// into 'bidpack', which dropped from R2,500 to R750 to match. The pricing
+// constant and internal product type are kept (not deleted) since the v1
+// dashboard and any existing in-flight 'pricing' runs still reference it.
 const UPLOAD_PRICE_PER_DOC = 20;
 const FREE_UPLOAD_MAX_DOCS = 5;
 
