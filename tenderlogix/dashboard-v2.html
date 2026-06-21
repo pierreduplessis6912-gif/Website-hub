@@ -45,6 +45,9 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
 .vault-doc-actions{display:flex;gap:6px;flex-shrink:0}
 .vault-doc-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--paper);width:30px;height:30px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .vault-doc-btn:hover{background:rgba(255,107,26,.15);border-color:rgba(255,107,26,.4)}
+.vault-doc-add{border:1px dashed rgba(255,107,26,.3);background:rgba(255,107,26,.03)!important}
+.vault-doc-add:hover{background:rgba(255,107,26,.08)!important}
+.vault-doc-add .vault-doc-name{color:var(--gold)}
 .vault-locked-overlay{text-align:center;padding:32px 16px;position:relative}
 .vault-locked-icon{font-size:32px;margin-bottom:10px;opacity:.6}
 .vault-locked-text{font-size:13px;color:var(--dim);line-height:1.6;max-width:320px;margin:0 auto 18px}
@@ -255,6 +258,21 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
   </div>
 </div>
 
+<div class="modal-overlay" id="flagMissingModal" onclick="closeFlagMissingModal(event)">
+  <div class="modal">
+    <div class="modal-title">➕ Add A Document Type</div>
+    <p class="modal-sub">Don't see something your industry needs — Bargaining Council, PSIRA, a local municipal permit? Add it. This also helps every future company in your industry.</p>
+    <div class="field">
+      <label class="label" style="display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Document Name</label>
+      <input class="input" id="flagDocName" type="text" placeholder="e.g. PSIRA Registration" style="width:100%;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--paper);font-family:var(--body);font-size:14px;margin-bottom:14px">
+      <label class="label" style="display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Brief Description <span style="text-transform:none;letter-spacing:0">optional</span></label>
+      <input class="input" id="flagDocDesc" type="text" placeholder="What is it / why does it matter?" style="width:100%;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--paper);font-family:var(--body);font-size:14px">
+    </div>
+    <button class="btn-buy" id="btnFlagMissing" onclick="submitFlagMissing()" style="margin-top:16px">Add Document Type</button>
+    <button class="btn-close" onclick="closeFlagMissingModal()">Cancel</button>
+  </div>
+</div>
+
 <div class="report-overlay" id="reportOverlay">
   <div class="report-nav"><button class="report-back" onclick="closeReport()">← Back</button><button class="report-download" id="downloadBtn" onclick="downloadCurrentReport()">⬇ Download .docx</button></div>
   <div class="report-body" id="reportBody"></div>
@@ -375,7 +393,12 @@ async function renderVaultSection() {
         '<div class="vault-doc-info"><div class="vault-doc-name">'+r.name+'</div><div class="vault-doc-meta '+metaCls+'">'+meta+'</div></div>' +
         actions +
       '</div>';
-    }).join('') + '</div>';
+    }).join('') +
+    '<div class="vault-doc-pill vault-doc-add" onclick="openFlagMissingModal()">' +
+      '<div class="vault-doc-light">➕</div>' +
+      '<div class="vault-doc-info"><div class="vault-doc-name">Add Document Type</div><div class="vault-doc-meta">Bargaining Council, PSIRA, local permit, anything specific to your industry</div></div>' +
+    '</div>' +
+    '</div>';
   } catch(e) { console.warn('renderVaultSection error:', e); }
 }
 
@@ -457,6 +480,42 @@ function viewVaultDoc(docTypeId) {
   // modal, which already shows current status; full inline viewer is a
   // future enhancement once document ids are threaded through.
   window.open('/tl/compliance/document?company_id=' + companyId + '&doc_type_id=' + docTypeId, '_blank');
+}
+
+function openFlagMissingModal() {
+  document.getElementById('flagDocName').value = '';
+  document.getElementById('flagDocDesc').value = '';
+  document.getElementById('flagMissingModal').classList.add('open');
+}
+function closeFlagMissingModal(e) {
+  if (!e || e.target === document.getElementById('flagMissingModal')) {
+    document.getElementById('flagMissingModal').classList.remove('open');
+  }
+}
+
+async function submitFlagMissing() {
+  var name = document.getElementById('flagDocName').value.trim();
+  var desc = document.getElementById('flagDocDesc').value.trim();
+  if (!name) { showToast('Please enter a document name', '#ff6b1a'); return; }
+
+  var btn = document.getElementById('btnFlagMissing');
+  btn.disabled = true; btn.textContent = 'Adding...';
+  try {
+    var res = await fetch('/tl/compliance/flag-missing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company_id: companyId, name: name, description: desc || null })
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+
+    closeFlagMissingModal();
+    showToast('✅ Added "' + name + '" — it now appears in your Vault');
+    await renderVaultSection();
+  } catch(e) {
+    showToast(e.message || 'Failed to add document type', '#ff4757');
+  }
+  btn.disabled = false; btn.textContent = 'Add Document Type';
 }
 
 function handleVaultPillClick() {
