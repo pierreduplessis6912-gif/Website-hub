@@ -69,6 +69,7 @@ export async function handleTenderLogix(request, env) {
 
   if (path === '/tl/balance' && method === 'GET')  return handleTlGetBalance(url, env, tlJson);
   if (path === '/tl/payfast-webhook' && method === 'POST') return handleTlPayfast(request, env, tlJson);
+  if (path === '/tl/vault/subscribe' && method === 'POST') return handleVaultSubscribe(request, env, tlJson);
 
   // ── Static pages ─────────────────────────────────────────────
   if (path === '/' || path === '') {
@@ -809,15 +810,110 @@ async function handleTlListSubmissions(url, env, tlJson) {
 
 // ── PAYFAST WEBHOOK ──────────────────────────────────────────────
 // Tops up account balance in rand. No fixed packages — pay exactly what's needed.
+// ── PayFast MD5 signature — required for all recurring/subscription
+// payments. Confirmed native crypto.subtle MD5 support in Workers runtime.
+// Field order matches PayFast's documented checkout-page field order.
+async function generatePayfastSignature(data, passphrase) {
+  const fieldOrder = [
+    'merchant_id','merchant_key','return_url','cancel_url','notify_url',
+    'name_first','name_last','email_address','cell_number',
+    'm_payment_id','amount','item_name','item_description',
+    'custom_int1','custom_int2','custom_int3','custom_int4','custom_int5',
+    'custom_str1','custom_str2','custom_str3','custom_str4','custom_str5',
+    'email_confirmation','confirmation_address','payment_method',
+    'subscription_type','billing_date','recurring_amount','frequency','cycles',
+  ];
+
+  let paramString = '';
+  for (const key of fieldOrder) {
+    const val = data[key];
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      paramString += `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, '+')}&`;
+    }
+  }
+  paramString = paramString.slice(0, -1); // drop trailing &
+  if (passphrase) {
+    paramString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`;
+  }
+
+  const hashBuffer = await crypto.subtle.digest({ name: 'MD5' }, new TextEncoder().encode(paramString));
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ── Document Vault — subscribe. Returns the signed PayFast checkout fields
+// for the frontend to build a real submission form with. R99/month,
+// recurring, indefinite (cycles=0, runs until cancelled).
+async function handleVaultSubscribe(request, env, tlJson) {
+  const body = await request.json().catch(() => ({}));
+  const { company_id } = body;
+  if (!company_id) return tlJson({ error: 'company_id required' }, 400);
+
+  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  if (!company) return tlJson({ error: 'Company not found' }, 404);
+
+  const merchantId = env.PAYFAST_MERCHANT_ID || '10000100';
+  const merchantKey = env.PAYFAST_MERCHANT_KEY || '';
+  const passphrase = env.PAYFAST_PASSPHRASE || '';
+
+  const fields = {
+    merchant_id: merchantId,
+    merchant_key: merchantKey,
+    return_url: `https://tenderlogix.co.za/dashboard-v2/${company_id}?vault=active`,
+    cancel_url: `https://tenderlogix.co.za/dashboard-v2/${company_id}`,
+    notify_url: 'https://tenderlogix.co.za/tl/payfast-webhook',
+    name_first: company.client_name || company.name,
+    email_address: company.email || '',
+    m_payment_id: crypto.randomUUID(),
+    amount: '99.00',
+    item_name: 'TenderLogix Document Vault',
+    item_description: 'Monthly compliance document storage, verification, and retrieval',
+    custom_str1: company_id,
+    custom_str2: 'vault_subscription',
+    subscription_type: '1',
+    recurring_amount: '99.00',
+    frequency: '3', // monthly
+    cycles: '0',    // indefinite — runs until cancelled
+  };
+
+  const signature = await generatePayfastSignature(fields, passphrase);
+
+  return tlJson({ success: true, fields: { ...fields, signature }, action_url: 'https://www.payfast.co.za/eng/process' });
+}
+
 async function handleTlPayfast(request, env, tlJson) {
   const text = await request.text();
   const params = new URLSearchParams(text);
   const status = params.get('payment_status');
   const company_id = params.get('custom_str1');
+  const purpose = params.get('custom_str2'); // 'balance_topup' | 'vault_subscription'
   const amount = Math.round(parseFloat(params.get('amount_gross') || '0'));
+  const token = params.get('token'); // present on subscription ITNs
 
-  if (status !== 'COMPLETE' || !company_id || amount <= 0) return tlJson({ ok: true });
+  if (status !== 'COMPLETE' || !company_id) return tlJson({ ok: true });
 
+  if (purpose === 'vault_subscription') {
+    // Subscription ITN — activate or renew the Document Vault. PayFast sends
+    // an ITN on the initial subscription AND on every recurring charge, so
+    // this same branch correctly handles both setup and monthly renewals.
+    const periodEnd = new Date();
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    const existing = await env.TL_DB.prepare('SELECT id FROM tl_vault_subscriptions WHERE company_id=? LIMIT 1').bind(company_id).first();
+    if (existing) {
+      await env.TL_DB.prepare(`
+        UPDATE tl_vault_subscriptions SET status='active', current_period_end=?, payfast_token=COALESCE(?, payfast_token), updated_at=CURRENT_TIMESTAMP WHERE company_id=?
+      `).bind(periodEnd.toISOString(), token || null, company_id).run();
+    } else {
+      await env.TL_DB.prepare(`
+        INSERT INTO tl_vault_subscriptions (id, company_id, status, current_period_end, payfast_token)
+        VALUES (?,?,'active',?,?)
+      `).bind(crypto.randomUUID(), company_id, periodEnd.toISOString(), token || null).run();
+    }
+    return tlJson({ ok: true });
+  }
+
+  // Default — balance top-up (existing behaviour, untouched)
+  if (amount <= 0) return tlJson({ ok: true });
   await env.TL_DB.prepare('UPDATE tl_companies SET balance=balance+? WHERE id=?').bind(amount, company_id).run();
   await env.TL_DB.prepare(`INSERT INTO tl_credits (id, company_id, amount, type, payfast_id) VALUES (?,?,?,'purchase',?)`)
     .bind(crypto.randomUUID(), company_id, amount, params.get('pf_payment_id')||null).run();
