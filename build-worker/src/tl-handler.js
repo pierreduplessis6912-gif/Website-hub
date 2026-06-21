@@ -68,6 +68,7 @@ export async function handleTenderLogix(request, env) {
   if (path === '/tl/compliance/requirements' && method === 'GET')  return handleTlComplianceRequirements(url, env, tlJson);
   if (path === '/tl/compliance/upload'       && method === 'POST') return handleTlComplianceUpload(request, env, tlJson);
   if (path === '/tl/compliance/flag-missing' && method === 'POST') return handleTlComplianceFlagMissing(request, env, tlJson);
+  if (path === '/tl/compliance/document' && method === 'GET') return handleTlComplianceDocumentDownload(url, env);
 
   if (path === '/tl/balance' && method === 'GET')  return handleTlGetBalance(url, env, tlJson);
   if (path === '/tl/payfast-webhook' && method === 'POST') return handleTlPayfast(request, env, tlJson);
@@ -1229,6 +1230,43 @@ async function handleTlComplianceFlagMissing(request, env, tlJson) {
   }
 
   return tlJson({ success: true, doc_type_id: docTypeId });
+}
+
+// ── DOWNLOAD/VIEW a stored compliance certificate ─────────────────────────
+// Gated behind Vault — same custody principle as upload. Serves the real
+// file straight from R2. company_id is required as a basic ownership check
+// (matches the doc's actual company_id), not just the doc id alone.
+async function handleTlComplianceDocumentDownload(url, env) {
+  const docId = url.searchParams.get('id');
+  const companyId = url.searchParams.get('company_id');
+  if (!docId || !companyId) {
+    return new Response(JSON.stringify({ error: 'id and company_id required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  const hasVaultAccess = await checkVaultSubscription(env, companyId);
+  if (!hasVaultAccess) {
+    return new Response(JSON.stringify({ error: 'Document Vault subscription required', vault_required: true }), { status: 402, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  const doc = await env.TL_DB.prepare(
+    'SELECT * FROM tl_compliance_documents WHERE id=? AND company_id=? LIMIT 1'
+  ).bind(docId, companyId).first();
+  if (!doc || !doc.r2_key) {
+    return new Response(JSON.stringify({ error: 'Document not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  const obj = await env.TL_DOCS.get(doc.r2_key);
+  if (!obj) {
+    return new Response(JSON.stringify({ error: 'File not found in storage' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  const contentType = obj.httpMetadata?.contentType || 'application/octet-stream';
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': contentType,
+      'Content-Disposition': `inline; filename="${doc.doc_type_id}.${contentType.includes('pdf') ? 'pdf' : 'jpg'}"`,
+    },
+  });
 }
 
 // ── QUEUE CONSUMER ENTRY POINT ───────────────────────────────────────────
