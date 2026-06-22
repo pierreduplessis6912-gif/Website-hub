@@ -1002,46 +1002,166 @@ async function viewProductReport(runId) {
     if (!d.report) { showToast('Report not ready', 'warn'); return; }
     currentReportRunId = runId;
     var r = d.report;
-    var html = '<div class="report-heading"><h1>'+(r.tender_title||'Tender Analysis')+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
+    var html = '';
 
+    // ── HEADING ──
+    html += '<div class="report-heading"><h1>'+(r.tender_title||'Tender Analysis')+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
+
+    // ── VAULT NUDGE (bidpack) ──
     if (d.product==='bidpack' && !vaultActive) {
-      html += '<div class="vault-nudge" onclick="openVaultModal()">'+
-        '<div class="vault-nudge-indicator"></div>'+
-        '<div class="vault-nudge-text">You\'re about to print this without your real certificates attached. <strong>Vault subscribers</strong> get every Bid Pack fully assembled — no last-minute document hunting.</div>'+
-        '<div class="vault-nudge-cta">R99/mo</div>'+
-      '</div>';
+      html += '<div class="vault-nudge" onclick="openVaultModal()"><div class="vault-nudge-indicator"></div><div class="vault-nudge-text">You\'re about to print this without your real certificates attached. <strong>Vault subscribers</strong> get every Bid Pack fully assembled — no last-minute document hunting.</div><div class="vault-nudge-cta">R99/mo</div></div>';
     }
 
-    if (r.verdict) {
-      var cls = r.verdict.toLowerCase();
-      html += '<div class="verdict-banner '+cls+'"><div class="verdict-label '+cls+'">'+r.verdict.replace('_',' ')+'</div><p class="verdict-summary">'+(r.verdict_summary||'')+'</p></div>';
-    }
-    if (r.eligibility) { html += section('Eligibility', r.eligibility.map(function(e){return checkRow(e.status==='MET'?'✅':e.status==='UNMET'?'❌':'❓',e.requirement,e.detail+(e.notes?' '+e.notes:''));})); }
+    // ── GO/NO-GO: 3-LAYER REPORT ──
+    if (d.product === 'gonogo') {
 
-    if (d.product==='gonogo' && !vaultActive && r.eligibility) {
-      var unverified = r.eligibility.filter(function(e){ return e.status==='UNKNOWN' && /self-reported|not verified|unverified/i.test(e.notes||''); });
-      if (unverified.length>0) {
-        var names = unverified.slice(0,3).map(function(e){return e.requirement;}).join(', ');
-        html += '<div class="vault-nudge" onclick="openVaultModal()">'+
-          '<div class="vault-nudge-indicator"></div>'+
-          '<div class="vault-nudge-text"><strong>'+unverified.length+' item'+(unverified.length>1?'s':'')+' above could be marked verified</strong> — '+names+(unverified.length>3?', and more':'')+'. Vault checks your real certificates so every future verdict is built on facts.</div>'+
-          '<div class="vault-nudge-cta">R99/mo</div>'+
-        '</div>';
+      // VERDICT BANNER
+      if (r.verdict) {
+        var cls = r.verdict.toLowerCase();
+        var verdictLabel = r.verdict === 'GO' ? 'GO' : r.verdict === 'NO_GO' ? 'NO GO' : 'CONDITIONAL GO';
+        html += '<div class="verdict-banner '+cls+'">';
+        html += '<div class="verdict-label '+cls+'">'+verdictLabel+'</div>';
+        html += '<p class="verdict-summary">'+(r.verdict_summary||'')+'</p>';
+
+        // Confidence indicator
+        if (r.assessment_confidence) {
+          var confColor = r.assessment_confidence==='HIGH' ? '#1a9e5c' : r.assessment_confidence==='MEDIUM' ? '#e07b00' : '#d93025';
+          html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px;">';
+          html += '<div style="width:8px;height:8px;border-radius:50%;background:'+confColor+';flex-shrink:0"></div>';
+          html += '<div style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5)">'+r.assessment_confidence+' CONFIDENCE';
+          if (r.profile_completeness_pct !== undefined) html += ' · PROFILE '+r.profile_completeness_pct+'% COMPLETE';
+          html += '</div></div>';
+          if (r.assessment_confidence_reason) {
+            html += '<p style="font-size:12px;color:rgba(255,255,255,.35);margin-top:8px;font-style:italic">'+r.assessment_confidence_reason+'</p>';
+          }
+        }
+        html += '</div>';
       }
-    }
 
-    if (r.compliance_checklist) { html += section('Compliance', r.compliance_checklist.map(function(c){return checkRow(c.risk_level==='HIGH'?'🔴':c.risk_level==='MEDIUM'?'🟡':'🟢',c.item,c.notes);})); }
-    if (r.competitive_landscape) { html += section('Competitive Landscape',['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.competitive_landscape+'</p>']); }
-    if (r.boq) {
-      var rows = r.boq.map(function(b){return '<tr><td>'+b.line_item+'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
-      var totalRow = r.boq_totals ? '<tr class="boq-total"><td colspan="4">Recommended Bid</td><td colspan="2">R'+(r.boq_totals.recommended_bid||0).toLocaleString()+'</td></tr>' : '';
-      html += '<div class="report-section"><div class="report-section-title">Bill Of Quantities</div><table class="boq-table"><thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th>Conf.</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
+      // LAYER 1 — FACTS
+      if (r.facts && r.facts.length) {
+        html += '<div class="report-section">';
+        html += '<div class="report-section-title">Layer 1 — What The Data Shows</div>';
+        html += '<p style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:12px;font-family:var(--mono)">DIRECT FACTS FROM TENDER DOCUMENT AND COMPANY PROFILE. NO INTERPRETATION.</p>';
+        r.facts.forEach(function(f) {
+          var statusIcon = f.company_status==='MET' ? '✅' : f.company_status==='UNMET' ? '✗' : f.company_status==='EXPIRED' ? '⚠' : '?';
+          var statusColor = f.company_status==='MET' ? '#1a9e5c' : f.company_status==='UNMET' ? '#d93025' : f.company_status==='EXPIRED' ? '#e07b00' : 'rgba(255,255,255,.4)';
+          var verificationBadge = '';
+          if (f.verification === 'VERIFIED') verificationBadge = '<span style="font-family:var(--mono);font-size:9px;background:rgba(26,158,92,.15);color:#1a9e5c;border:1px solid rgba(26,158,92,.25);padding:2px 6px;border-radius:2px;margin-left:6px">VERIFIED</span>';
+          else if (f.verification === 'SELF_REPORTED') verificationBadge = '<span style="font-family:var(--mono);font-size:9px;background:rgba(224,123,0,.1);color:#e07b00;border:1px solid rgba(224,123,0,.2);padding:2px 6px;border-radius:2px;margin-left:6px">SELF-REPORTED</span>';
+          else if (f.verification === 'MISSING') verificationBadge = '<span style="font-family:var(--mono);font-size:9px;background:rgba(217,48,37,.08);color:#d93025;border:1px solid rgba(217,48,37,.2);padding:2px 6px;border-radius:2px;margin-left:6px">MISSING</span>';
+          var mandatoryTag = f.is_mandatory ? '<span style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-left:6px">MANDATORY</span>' : '';
+          html += '<div class="check-item">';
+          html += '<div style="flex-shrink:0;font-size:14px;color:'+statusColor+'">'+statusIcon+'</div>';
+          html += '<div style="flex:1"><div class="check-text">'+f.requirement+verificationBadge+mandatoryTag+'</div>';
+          if (f.company_data) html += '<div class="check-notes">On file: '+f.company_data+'</div>';
+          if (f.source) html += '<div class="check-notes" style="color:rgba(255,255,255,.2)">Source: '+f.source+'</div>';
+          html += '</div></div>';
+        });
+
+        // Vault nudge for unverified items
+        if (!vaultActive) {
+          var unverified = r.facts.filter(function(f){ return f.verification==='SELF_REPORTED' || f.verification==='MISSING'; });
+          if (unverified.length > 0) {
+            html += '<div class="vault-nudge" style="margin-top:8px" onclick="openVaultModal()"><div class="vault-nudge-indicator"></div><div class="vault-nudge-text"><strong>'+unverified.length+' item'+(unverified.length>1?'s':'')+' above are unverified.</strong> Vault confirms your real certificates so future reports show VERIFIED, not SELF-REPORTED.</div><div class="vault-nudge-cta">R99/mo</div></div>';
+          }
+        }
+        html += '</div>';
+      }
+
+      // LAYER 2 — RISK ASSESSMENT
+      if (r.risk_assessment && r.risk_assessment.length) {
+        html += '<div class="report-section">';
+        html += '<div class="report-section-title">Layer 2 — Risk Assessment</div>';
+        html += '<p style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:12px;font-family:var(--mono)">PROBABILITY + REASONING. WHAT IS DRIVING EACH RISK.</p>';
+        r.risk_assessment.forEach(function(risk) {
+          var lColor = risk.likelihood==='HIGH' ? '#d93025' : risk.likelihood==='MEDIUM' ? '#e07b00' : '#1a9e5c';
+          html += '<div style="padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05)">';
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+          html += '<div style="width:6px;height:6px;border-radius:50%;background:'+lColor+';flex-shrink:0"></div>';
+          html += '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.85)">'+risk.risk+'</div>';
+          html += '<div style="font-family:var(--mono);font-size:9px;color:'+lColor+';margin-left:auto;white-space:nowrap">'+risk.likelihood+' LIKELIHOOD</div>';
+          html += '</div>';
+          if (risk.reasoning) html += '<div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.55;margin-bottom:4px">'+risk.reasoning+'</div>';
+          if (risk.what_changes_it) html += '<div style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.55"><span style="color:#e07b00">What changes it:</span> '+risk.what_changes_it+'</div>';
+          html += '</div>';
+        });
+
+        // Disqualification probability
+        if (r.disqualification_probability) {
+          var dqColor = r.disqualification_probability==='HIGH' ? '#d93025' : r.disqualification_probability==='MEDIUM' ? '#e07b00' : '#1a9e5c';
+          html += '<div style="margin-top:14px;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)">';
+          html += '<div style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3);margin-bottom:6px;letter-spacing:1px">DISQUALIFICATION PROBABILITY</div>';
+          html += '<div style="font-family:var(--mono);font-size:18px;font-weight:700;color:'+dqColor+'">'+r.disqualification_probability+'</div>';
+          if (r.disqualification_probability_reasoning) html += '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:6px;line-height:1.55">'+r.disqualification_probability_reasoning+'</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      // LAYER 3 — RECOMMENDATION
+      if (r.recommendation) {
+        html += '<div class="report-section">';
+        html += '<div class="report-section-title">Layer 3 — Recommendation</div>';
+        html += '<p style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:12px;font-family:var(--mono)">DIRECTIONAL GUIDANCE. THE DECISION REMAINS YOURS.</p>';
+        html += '<div style="padding:16px;background:rgba(255,255,255,.04);border-left:3px solid #ff6b1a;font-size:14px;color:rgba(255,255,255,.85);line-height:1.65">'+r.recommendation+'</div>';
+
+        if (r.conditional_actions && r.conditional_actions.length) {
+          html += '<div style="margin-top:14px">';
+          r.conditional_actions.forEach(function(a) {
+            html += '<div style="padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);margin-bottom:4px">';
+            html += '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:3px">'+a.action+'</div>';
+            if (a.deadline) html += '<div style="font-family:var(--mono);font-size:10px;color:#e07b00;margin-bottom:3px">Deadline: '+a.deadline+'</div>';
+            if (a.impact_if_done) html += '<div style="font-size:12px;color:rgba(255,255,255,.4)">Impact: '+a.impact_if_done+'</div>';
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      // COMPLIANCE CHECKLIST (what to prepare)
+      if (r.compliance_checklist) {
+        html += section('Compliance Checklist', r.compliance_checklist.map(function(c){
+          var icon = c.risk_level==='HIGH' ? '✗' : c.risk_level==='MEDIUM' ? '!' : '·';
+          var color = c.risk_level==='HIGH' ? '#d93025' : c.risk_level==='MEDIUM' ? '#e07b00' : '#1a9e5c';
+          return '<div class="check-item"><div style="flex-shrink:0;font-weight:700;color:'+color+'">'+icon+'</div><div><div class="check-text">'+c.item+'</div>'+(c.notes?'<div class="check-notes">'+c.notes+'</div>':'')+'</div></div>';
+        }));
+      }
+
+      // FUTURE READINESS
+      if (r.future_readiness) {
+        html += section('Path To Future Tenders', ['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.future_readiness+'</p>']);
+      }
+
+      // LEGACY SUPPORT — old schema fields
+      if (!r.facts && r.eligibility) {
+        html += section('Eligibility', r.eligibility.map(function(e){return checkRow(e.status==='MET'?'✅':e.status==='UNMET'?'✗':'?',e.requirement,e.detail+(e.notes?' '+e.notes:''));}));
+      }
+      if (!r.risk_assessment && r.risk_flags) {
+        html += section('Risk Flags', r.risk_flags.map(function(f){return checkRow(f.severity==='HIGH'?'✗':f.severity==='MEDIUM'?'!':'·',f.flag,f.mitigation);}));
+      }
+      if (!r.recommendation && r.edge_recommendations) {
+        html += section('How To Gain An Edge', r.edge_recommendations.map(function(e){return checkRow('→',e.action,e.impact+(e.timeframe?' · '+e.timeframe:''));}));
+      }
+
+    } else {
+      // ── BIDPACK / PRICING — unchanged rendering ──
+      if (r.verdict) {
+        var cls = r.verdict.toLowerCase();
+        html += '<div class="verdict-banner '+cls+'"><div class="verdict-label '+cls+'">'+r.verdict.replace(/_/g,' ')+'</div><p class="verdict-summary">'+(r.verdict_summary||'')+'</p></div>';
+      }
+      if (r.compliance_checklist) { html += section('Compliance', r.compliance_checklist.map(function(c){return checkRow(c.risk_level==='HIGH'?'✗':c.risk_level==='MEDIUM'?'!':'·',c.item,c.notes);})); }
+      if (r.competitive_landscape) { html += section('Competitive Landscape',['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.competitive_landscape+'</p>']); }
+      if (r.boq) {
+        var rows = r.boq.map(function(b){return '<tr><td>'+b.line_item+'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
+        var totalRow = r.boq_totals ? '<tr class="boq-total"><td colspan="4">Recommended Bid</td><td colspan="2">R'+(r.boq_totals.recommended_bid||0).toLocaleString()+'</td></tr>' : '';
+        html += '<div class="report-section"><div class="report-section-title">Bill Of Quantities</div><table class="boq-table"><thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th>Conf.</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
+      }
+      if (r.future_readiness) { html += section('Path To Future Tenders',['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.future_readiness+'</p>']); }
+      if (r.submission_document) { html += '<div class="report-section"><div class="report-section-title">Submission Document</div><div class="submission-doc">'+r.submission_document+'</div></div>'; }
+      if (r.pricing_disclaimer) { html += '<div class="disclaimer">'+r.pricing_disclaimer+'</div>'; }
     }
-    if (r.risk_flags) { html += section('Risk Flags',r.risk_flags.map(function(f){return checkRow(f.severity==='HIGH'?'🔴':f.severity==='MEDIUM'?'🟡':'🟢',f.flag,f.mitigation);})); }
-    if (r.edge_recommendations) { html += section('How To Gain An Edge',r.edge_recommendations.map(function(e){return checkRow('→',e.action,e.impact+(e.timeframe?' · '+e.timeframe:''));})); }
-    if (r.future_readiness) { html += section('Path To Future Tenders',['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.future_readiness+'</p>']); }
-    if (r.submission_document) { html += '<div class="report-section"><div class="report-section-title">Submission Document</div><div class="submission-doc">'+r.submission_document+'</div></div>'; }
-    if (r.pricing_disclaimer) { html += '<div class="disclaimer">'+r.pricing_disclaimer+'</div>'; }
 
     document.getElementById('reportBody').innerHTML = html;
     document.getElementById('reportOverlay').classList.add('open');
