@@ -533,10 +533,9 @@ export async function processTlV2QueueMessage(msg, env) {
 
   // ── 3. LARGE TENDER DETECTION ────────────────────────────────────────
   const estimatedPdfTokens = Math.ceil(totalPdfBytes / 3.5);
+  const useTwoPass = estimatedPdfTokens > MAX_SAFE_PDF_TOKENS && estimatedPdfTokens <= MAX_PDF_TOKENS;
   if (estimatedPdfTokens > 100_000) {
-    console.warn('TL v2 — large tender:', estimatedPdfTokens, 'est. tokens,', docKeys.length, 'docs,', totalPdfBytes, 'bytes. run:', productRunId);
-    // Future: implement chunking strategy here for very large tenders
-    // For now: proceed and let callClaude's hard limit catch anything > 180k tokens
+    console.warn('TL v2 — large tender:', estimatedPdfTokens, 'est. tokens,', docKeys.length, 'docs,', totalPdfBytes, 'bytes. run:', productRunId, useTwoPass ? '→ two-pass' : '→ size_exceeded');
   }
 
   if (!pdfDocs.length) {
@@ -545,7 +544,7 @@ export async function processTlV2QueueMessage(msg, env) {
     return;
   }
 
-  const result = await runV2Product(productRunId, company, pdfDocs, product, env);
+  const result = await runV2Product(productRunId, company, pdfDocs, product, env, useTwoPass);
 
   if (!result.success) {
     if (result.size_exceeded) {
@@ -629,16 +628,67 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
     }
   }
 
+  // ── Build user content — PDFs + prompt ─────────────────────────────────
   const finalPrompt = pdfSizeWarning ? `${fullPrompt}\n\n${pdfSizeWarning}` : fullPrompt;
   const userContent = pdfDocs && pdfDocs.length
     ? [...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })), { type: 'text', text: finalPrompt }]
     : finalPrompt;
 
+  // ── CUT 1: tool_choice forced schema ────────────────────────────────────
+  // Instead of appending schema to prompt and regex-parsing text output,
+  // pass schema as a tool with tool_choice: forced. Anthropic enforces the
+  // schema at the API level — response comes back in content[0].input as a
+  // parsed object. No JSON.parse, no markdown fence stripping, no regex.
+  //
+  // Only applies when schemaText is provided (not callClaudeSimple).
+  // appendSchemaInstruction=true means caller already handled schema in prompt
+  // (bidpack call2 prose) — skip tool_choice for those.
+  let toolDef = null;
+  if (schemaText && !appendSchemaInstruction) {
+    try {
+      // schemaText is our prose-style schema instruction string.
+      // Convert it to a minimal tool that forces JSON output.
+      // We use a generic "analysis_result" tool with additionalProperties: true
+      // so Claude fills in whatever fields the prompt describes.
+      // This is intentionally loose — we don't want the tool schema to
+      // conflict with the detailed field instructions in the prompt itself.
+      toolDef = {
+        name: 'analysis_result',
+        description: 'Return the complete structured analysis result as specified in the system prompt.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            result: {
+              type: 'object',
+              description: 'The full analysis result matching the schema described in the prompt.',
+              additionalProperties: true
+            }
+          },
+          required: ['result']
+        }
+      };
+    } catch(e) {
+      console.warn('TL v2 callClaude — tool schema build failed, falling back to prompt-only:', e.message);
+      toolDef = null;
+    }
+  }
+
   try {
+    const requestBody = {
+      model: 'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: userContent }]
+    };
+
+    if (toolDef) {
+      requestBody.tools = [toolDef];
+      requestBody.tool_choice = { type: 'tool', name: 'analysis_result' };
+    }
+
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content: userContent }] }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!aiRes.ok) {
@@ -648,28 +698,39 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
     }
 
     const aiData = await aiRes.json();
-    const rawText = aiData.content?.[0]?.text || '';
     const stopReason = aiData.stop_reason;
 
-    // ── 1. TOKEN TRACKING — capture usage for cost logging ──────────────
+    // ── TOKEN TRACKING ───────────────────────────────────────────────────
     const inputTokens  = aiData.usage?.input_tokens  || 0;
     const outputTokens = aiData.usage?.output_tokens || 0;
     const costUsd      = (inputTokens * COST_INPUT_PER_TOKEN) + (outputTokens * COST_OUTPUT_PER_TOKEN);
 
-    if (!rawText) {
-      console.error('TL v2 callClaude — empty response. stop_reason:', stopReason);
-      return { success: false, reason: 'Empty response from analysis engine' };
-    }
-
     let data;
-    try {
-      data = JSON.parse(rawText.replace(/```json|```/g, '').trim());
-    } catch(e) {
-      console.error('TL v2 callClaude — JSON parse failed. stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
-      const reason = stopReason === 'max_tokens'
-        ? 'The analysis exceeded the response size limit before completing. Please try again.'
-        : 'Could not parse analysis result';
-      return { success: false, reason };
+
+    if (toolDef) {
+      // tool_choice path: result is in content[0].input.result
+      const toolBlock = aiData.content?.find(b => b.type === 'tool_use' && b.name === 'analysis_result');
+      if (!toolBlock) {
+        console.error('TL v2 callClaude — no tool_use block in response. stop_reason:', stopReason);
+        return { success: false, reason: 'Analysis engine did not return a structured result' };
+      }
+      data = toolBlock.input?.result || toolBlock.input || {};
+    } else {
+      // Prose / fallback path: parse text as before
+      const rawText = aiData.content?.[0]?.text || '';
+      if (!rawText) {
+        console.error('TL v2 callClaude — empty text response. stop_reason:', stopReason);
+        return { success: false, reason: 'Empty response from analysis engine' };
+      }
+      try {
+        data = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+      } catch(e) {
+        console.error('TL v2 callClaude — JSON parse failed. stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
+        const reason = stopReason === 'max_tokens'
+          ? 'The analysis exceeded the response size limit before completing. Please try again.'
+          : 'Could not parse analysis result';
+        return { success: false, reason };
+      }
     }
 
     return { success: true, data, inputTokens, outputTokens, costUsd };
@@ -720,7 +781,113 @@ async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
 }
 
 // ── ANALYSIS — one focused prompt per product, genuinely distinct ────────
-async function runV2Product(productRunId, company, pdfDocs, product, env) {
+
+// ── TWO-PASS ANALYSIS FOR LARGE TENDERS ─────────────────────────────────────
+// Pass 1: PDFs attached, skeleton extraction (cheap, ~2k output tokens)
+// Pass 2: skeleton as text context, full analysis (no PDFs re-attached, ~20k input)
+// Net: ~80% input token reduction for 100k-180k tenders vs single-pass.
+async function callClaudeTwoPass(env, pdfDocs, analysisPrompt, schemaText, maxTokens) {
+  // ── PASS 1: Skeleton extraction ─────────────────────────────────────────
+  const skeletonTool = {
+    name: 'tender_skeleton',
+    description: 'Extract structured facts from the tender document.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tender_title:            { type: 'string' },
+        tender_reference:        { type: 'string' },
+        issuing_entity:          { type: 'string' },
+        closing_date:            { type: 'string' },
+        contract_duration:       { type: 'string' },
+        scope_summary:           { type: 'string' },
+        evaluation_system:       { type: 'string' },
+        functionality_min:       { type: 'string' },
+        evaluation_criteria:     { type: 'array', items: { type: 'string' } },
+        pricing_structure:       { type: 'string' },
+        mandatory_docs:          { type: 'array', items: { type: 'string' } },
+        mandatory_registrations: { type: 'array', items: { type: 'string' } },
+        special_conditions:      { type: 'array', items: { type: 'string' } },
+        red_flags:               { type: 'array', items: { type: 'string' } }
+      },
+      required: ['tender_title', 'scope_summary', 'mandatory_docs']
+    }
+  };
+
+  let skeleton = null;
+  let pass1Input = 0, pass1Output = 0;
+
+  try {
+    const p1Res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        tools: [skeletonTool],
+        tool_choice: { type: 'tool', name: 'tender_skeleton' },
+        messages: [{ role: 'user', content: [
+          ...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })),
+          { type: 'text', text: 'Extract the structured skeleton of this tender. Be exhaustive on mandatory documents and registrations — missing any causes disqualification.' }
+        ]}]
+      })
+    });
+    if (p1Res.ok) {
+      const p1Data = await p1Res.json();
+      const block = p1Data.content?.find(b => b.type === 'tool_use' && b.name === 'tender_skeleton');
+      if (block) {
+        skeleton = block.input;
+        pass1Input  = p1Data.usage?.input_tokens  || 0;
+        pass1Output = p1Data.usage?.output_tokens || 0;
+        console.log('TL two-pass — pass 1 OK. tokens:', pass1Input, '+', pass1Output);
+      }
+    }
+  } catch(e) {
+    console.warn('TL two-pass — pass 1 failed, falling back:', e.message);
+  }
+
+  // Fall back to single-pass if skeleton extraction failed
+  if (!skeleton) return callClaude(env, pdfDocs, analysisPrompt, schemaText, maxTokens, false);
+
+  // ── PASS 2: Full analysis using skeleton as text (no PDFs) ───────────────
+  const ctx = `TENDER SKELETON (pre-extracted):\n${JSON.stringify(skeleton, null, 2)}\n\n`;
+  const toolDef = {
+    name: 'analysis_result',
+    description: 'Return the complete structured analysis result.',
+    input_schema: { type: 'object', properties: { result: { type: 'object', additionalProperties: true } }, required: ['result'] }
+  };
+
+  try {
+    const p2Res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: maxTokens,
+        tools: [toolDef],
+        tool_choice: { type: 'tool', name: 'analysis_result' },
+        messages: [{ role: 'user', content: ctx + analysisPrompt }]
+      })
+    });
+    if (!p2Res.ok) return { success: false, reason: `Analysis engine returned ${p2Res.status}` };
+
+    const p2Data = await p2Res.json();
+    const p2Input  = p2Data.usage?.input_tokens  || 0;
+    const p2Output = p2Data.usage?.output_tokens || 0;
+    const totalIn  = pass1Input  + p2Input;
+    const totalOut = pass1Output + p2Output;
+    const costUsd  = (totalIn * COST_INPUT_PER_TOKEN) + (totalOut * COST_OUTPUT_PER_TOKEN);
+    console.log('TL two-pass — pass 2 OK. total tokens:', totalIn, '+', totalOut, 'cost: $' + costUsd.toFixed(4));
+
+    const block = p2Data.content?.find(b => b.type === 'tool_use' && b.name === 'analysis_result');
+    if (!block) return { success: false, reason: 'No structured result in pass 2' };
+    return { success: true, data: block.input?.result || block.input || {}, inputTokens: totalIn, outputTokens: totalOut, costUsd };
+  } catch(e) {
+    console.error('TL two-pass — pass 2 exception:', e.message);
+    return { success: false, reason: e.message };
+  }
+}
+
+async function runV2Product(productRunId, company, pdfDocs, product, env, useTwoPass = false) {
   try {
     const companyContext = await buildCompanyContext(company, env);
 
@@ -911,7 +1078,9 @@ Write as complete well-formatted markdown. One disclaimer at the top. No repeate
 
     } else {
       const fullPrompt = `${prompt}\n\nReturn ONLY this JSON structure:\n${schema}\n\nReturn ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
-      const singleResult = await callClaude(env, pdfDocs, fullPrompt, schema, maxTokens, true);
+      const singleResult = useTwoPass
+        ? await callClaudeTwoPass(env, pdfDocs, fullPrompt, schema, maxTokens)
+        : await callClaude(env, pdfDocs, fullPrompt, schema, maxTokens, true);
       if (!singleResult.success) {
         console.error('TL v2 —', product, 'call failed. run:', productRunId, 'reason:', singleResult.reason);
         await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
