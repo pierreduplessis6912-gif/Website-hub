@@ -988,6 +988,40 @@ window.addEventListener('beforeunload', function(e) {
   e.returnValue = '';
 });
 
+// ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
+var deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(function(e) {
+    console.warn('SW registration failed:', e);
+  });
+}
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('installBtn').style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', function() {
+  document.getElementById('installBtn').style.display = 'none';
+  deferredInstallPrompt = null;
+});
+
+async function handleInstall() {
+  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (window.matchMedia('(display-mode: standalone)').matches) { showToast('Already installed'); return; }
+  if (isIos) { showToast('Tap Share then "Add to Home Screen"'); return; }
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    var result = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (result.outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
+  } else {
+    showToast('Open in Chrome to install as an app');
+  }
+}
+
   } catch(e) { showToast(e.message||'Upload failed', 'error'); }
   btn.disabled = false;
 }
@@ -1066,6 +1100,40 @@ window.addEventListener('beforeunload', function(e) {
   e.preventDefault();
   e.returnValue = '';
 });
+
+// ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
+var deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(function(e) {
+    console.warn('SW registration failed:', e);
+  });
+}
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('installBtn').style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', function() {
+  document.getElementById('installBtn').style.display = 'none';
+  deferredInstallPrompt = null;
+});
+
+async function handleInstall() {
+  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (window.matchMedia('(display-mode: standalone)').matches) { showToast('Already installed'); return; }
+  if (isIos) { showToast('Tap Share then "Add to Home Screen"'); return; }
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    var result = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (result.outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
+  } else {
+    showToast('Open in Chrome to install as an app');
+  }
+}
 
   } catch(e) { showToast(e.message||'Failed to queue', 'error'); }
 }
@@ -1291,6 +1359,40 @@ window.addEventListener('beforeunload', function(e) {
   e.returnValue = '';
 });
 
+// ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
+var deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(function(e) {
+    console.warn('SW registration failed:', e);
+  });
+}
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('installBtn').style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', function() {
+  document.getElementById('installBtn').style.display = 'none';
+  deferredInstallPrompt = null;
+});
+
+async function handleInstall() {
+  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (window.matchMedia('(display-mode: standalone)').matches) { showToast('Already installed'); return; }
+  if (isIos) { showToast('Tap Share then "Add to Home Screen"'); return; }
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    var result = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (result.outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
+  } else {
+    showToast('Open in Chrome to install as an app');
+  }
+}
+
 
 window.addEventListener('pageshow', function(event) {
   if (event.persisted) { loadDashboard();
@@ -1302,6 +1404,40 @@ window.addEventListener('beforeunload', function(e) {
   e.preventDefault();
   e.returnValue = '';
 });
+
+// ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
+var deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(function(e) {
+    console.warn('SW registration failed:', e);
+  });
+}
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('installBtn').style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', function() {
+  document.getElementById('installBtn').style.display = 'none';
+  deferredInstallPrompt = null;
+});
+
+async function handleInstall() {
+  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (window.matchMedia('(display-mode: standalone)').matches) { showToast('Already installed'); return; }
+  if (isIos) { showToast('Tap Share then "Add to Home Screen"'); return; }
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    var result = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (result.outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
+  } else {
+    showToast('Open in Chrome to install as an app');
+  }
+}
  }
 });
 </script>
