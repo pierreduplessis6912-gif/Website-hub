@@ -228,11 +228,11 @@ export default {
       }
       if (url.pathname.startsWith('/dashboard-v2')) {
         const v2dash = await env.SITES.get('app:tl-dashboard-v2').catch(() => null);
-        if (v2dash) return new Response(v2dash, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+        if (v2dash) return new Response(v2dash, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' } });
       }
       if (url.pathname.startsWith('/profile-v2') || url.pathname.startsWith('/profile/')) {
         const v2profile = await env.SITES.get('app:tl-profile-v2').catch(() => null);
-        if (v2profile) return new Response(v2profile, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+        if (v2profile) return new Response(v2profile, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' } });
       }
       return handleTenderLogix(request, env);
     }
