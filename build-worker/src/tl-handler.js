@@ -47,7 +47,15 @@ export async function handleTenderLogix(request, env) {
     path === '/tl/payfast-webhook' ||                   // PayFast server callback
     path === '/tl/auth/check' ||
     path === '/tl/auth/verify-otp' ||
-    path === '/tl/auth/logout'
+    path === '/tl/auth/logout' ||
+    path === '/' || path === '' ||                      // landing page
+    path === '/register' ||                             // registration page
+    path === '/login' ||                                // login page
+    path === '/manifest.json' ||                        // PWA manifest
+    path === '/sw.js' ||                                // service worker
+    path === '/tl-icon-192.svg' ||                      // PWA icons
+    path === '/tl-icon-512.svg' ||
+    path === '/health'                                  // health check
   );
 
   if (!isPublicRoute) {
