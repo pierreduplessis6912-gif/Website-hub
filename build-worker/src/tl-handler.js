@@ -55,7 +55,9 @@ export async function handleTenderLogix(request, env) {
     path === '/sw.js' ||                                // service worker
     path === '/tl-icon-192.svg' ||                      // PWA icons
     path === '/tl-icon-512.svg' ||
-    path === '/health'                                  // health check
+    path === '/health' ||                               // health check
+    path === '/terms' ||                                // legal
+    path === '/privacy'                                 // legal
   );
 
   if (!isPublicRoute) {
@@ -124,6 +126,15 @@ export async function handleTenderLogix(request, env) {
   if (path === '/tl-icon-192.svg' || path === '/tl-icon-512.svg') {
     const icon = await env.SITES.get('app:tl-icon').catch(() => null);
     if (icon) return new Response(icon, { headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=604800' } });
+  }
+
+  if (path === '/terms') {
+    const terms = await env.SITES.get('app:tl-terms').catch(() => null);
+    if (terms) return new Response(terms, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=86400' } });
+  }
+  if (path === '/privacy') {
+    const privacy = await env.SITES.get('app:tl-privacy').catch(() => null);
+    if (privacy) return new Response(privacy, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=86400' } });
   }
 
   if (path === '/login') {
