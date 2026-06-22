@@ -89,7 +89,7 @@ export async function handleTenderLogix(request, env) {
   if (path === '/tl/compliance/requirements' && method === 'GET')  return handleTlComplianceRequirements(url, env, tlJson);
   if (path === '/tl/compliance/upload'       && method === 'POST') return handleTlComplianceUpload(request, env, tlJson);
   if (path === '/tl/compliance/flag-missing' && method === 'POST') return handleTlComplianceFlagMissing(request, env, tlJson);
-  if (path === '/tl/compliance/document' && method === 'GET') return handleTlComplianceDocumentDownload(url, env);
+  if (path === '/tl/compliance/document' && method === 'GET') return handleTlComplianceDocumentDownload(url, env, request);
 
   if (path === '/tl/balance' && method === 'GET')  return handleTlGetBalance(url, env, tlJson);
   if (path === '/tl/payfast-webhook' && method === 'POST') return handleTlPayfast(request, env, tlJson);
@@ -1261,12 +1261,19 @@ async function handleTlComplianceFlagMissing(request, env, tlJson) {
 // Gated behind Vault — same custody principle as upload. Serves the real
 // file straight from R2. company_id is required as a basic ownership check
 // (matches the doc's actual company_id), not just the doc id alone.
-async function handleTlComplianceDocumentDownload(url, env) {
+async function handleTlComplianceDocumentDownload(url, env, request) {
   const docId = url.searchParams.get('id');
   const docTypeId = url.searchParams.get('doc_type_id');
   const companyId = url.searchParams.get('company_id');
   if ((!docId && !docTypeId) || !companyId) {
     return new Response(JSON.stringify({ error: 'company_id and either id or doc_type_id required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // ── Verify the session owns this company ────────────────────────────
+  const { getSession } = await import('./tl-auth.js');
+  const session = await getSession(request, env);
+  if (!session || session.company_id !== companyId) {
+    return new Response(JSON.stringify({ error: 'Unauthorised — you can only access your own documents' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
   const hasVaultAccess = await checkVaultSubscription(env, companyId);
