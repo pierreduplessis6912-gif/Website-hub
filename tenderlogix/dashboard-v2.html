@@ -923,11 +923,11 @@ async function submitUpload() {
   btn.disabled = false;
 }
 
-function productLabel(p) { return p==='gonogo' ? 'GO / NO-GO' : 'BID PACK'; }
+function productLabel(p) { return p==='gonogo' ? 'DECISION ANALYSIS' : 'BID PACK'; }
 function productPrice(p) { return p==='gonogo' ? 100 : 750; }
 function productSub(p) {
   return p==='gonogo'
-    ? 'Should you bid? Verdict, eligibility, risk flags.'
+    ? 'Facts, risk assessment, and recommendation — in 60 seconds.'
     : 'Priced BOQ + every official form, pre-filled. Print and go.';
 }
 
@@ -954,7 +954,7 @@ async function loadTenders() {
         }
         if (run.status==='complete') {
           var badgeCls = run.verdict==='GO'?'status-go':run.verdict==='NO_GO'?'status-nogo':run.verdict==='CONDITIONAL_GO'?'status-cond':'';
-          var badgeText = run.verdict ? run.verdict.replace('_',' ') : 'DONE';
+          var verdictMap = {'GO':'PROCEED','NO_GO':'NOT RECOMMENDED','CONDITIONAL_GO':'CONDITIONAL'}; var badgeText = run.verdict ? (verdictMap[run.verdict]||run.verdict.replace(/_/g,' ')) : 'DONE';
           return '<div class="product-card done" onclick="viewProductReport(\''+run.id+'\')">'+
             '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">View report</div></div>'+
             '<div class="product-right"><span class="product-status '+badgeCls+'">'+badgeText+'</span></div></div>';
@@ -1005,7 +1005,7 @@ async function viewProductReport(runId) {
     var html = '';
 
     // ── HEADING ──
-    html += '<div class="report-heading"><h1>'+(r.tender_title||'Tender Analysis')+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
+    html += '<div class="report-heading"><h1>'+(r.tender_title||'Decision Analysis')+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
 
     // ── VAULT NUDGE (bidpack) ──
     if (d.product==='bidpack' && !vaultActive) {
