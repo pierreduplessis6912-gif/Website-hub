@@ -4,64 +4,170 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Company Profile — TenderLogix</title>
-<meta name="theme-color" content="#0a0a0a">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#f8f7f4">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --ink:#0a0a0a;--paper:#ffffff;
-  --dark:#0a0a0a;--surface:#1c1d20;--surface2:#2a2b2f;
-  --gold:#ff6b1a;--gold-light:#ff8c4a;
-  --muted:rgba(255,255,255,.55);--dim:rgba(255,255,255,.32);
-  --green:#2ecc71;--red:#ff4757;
+  --cream:#f8f7f4;--cream2:#f0ede8;--cream3:#e8e4de;
+  --white:#ffffff;
+  --charcoal:#0e0c09;--charcoal2:#1c1a17;
+  --mid:#6b6560;--dim:#9e9890;
+  --border:rgba(14,12,9,.1);--border2:rgba(14,12,9,.06);
+  --orange:#ff6b1a;--orange-light:#ff8c4a;
+  --orange-dim:rgba(255,107,26,.08);--orange-glow:rgba(255,107,26,.25);
+  --green:#1a9e5c;--green-dim:rgba(26,158,92,.1);--green-border:rgba(26,158,92,.25);
+  --red:#d93025;--red-dim:rgba(217,48,37,.08);
   --display:'Archivo Black',sans-serif;--body:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
 }
 html{-webkit-font-smoothing:antialiased}
-body{font-family:var(--body);background:var(--dark);color:var(--paper);min-height:100vh}
-.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
-.nav-brand{font-family:var(--display);font-size:18px;color:var(--paper);text-decoration:none;text-transform:uppercase}
-.nav-brand span{color:var(--gold)}
-.nav-back{font-size:13px;color:var(--gold);text-decoration:none;font-weight:600}
-.page{max-width:680px;margin:0 auto;padding:24px 20px 100px}
-.hero h1{font-family:var(--display);font-size:clamp(24px,6vw,34px);text-transform:uppercase;letter-spacing:-.3px;margin-bottom:6px}
-.hero h1 span{color:var(--gold)}
-.hero p{font-size:13px;color:var(--dim);margin-bottom:24px}
-.section{background:var(--surface);border:1px solid rgba(255,255,255,.06);padding:22px;margin-bottom:20px}
-.section-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08)}
+body{
+  font-family:var(--body);background:var(--cream);color:var(--charcoal);min-height:100vh;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+/* NAV */
+.nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(248,247,244,.95);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;
+}
+.nav-brand{font-family:var(--display);font-size:18px;color:var(--charcoal);text-decoration:none;text-transform:uppercase}
+.nav-brand span{color:var(--orange)}
+.nav-back{font-size:13px;color:var(--orange);text-decoration:none;font-weight:600;transition:opacity .15s}
+.nav-back:hover{opacity:.7}
+
+/* PAGE */
+.page{max-width:680px;margin:0 auto;padding:28px 20px 100px}
+.hero{margin-bottom:28px}
+.hero h1{font-family:var(--display);font-size:clamp(24px,6vw,34px);text-transform:uppercase;letter-spacing:-.3px;margin-bottom:6px;color:var(--charcoal)}
+.hero h1 span{color:var(--orange)}
+.hero p{font-size:13px;color:var(--mid);line-height:1.6}
+
+/* SECTIONS */
+.section{
+  background:var(--white);border:1px solid var(--border);
+  border-top:3px solid var(--orange);
+  padding:22px;margin-bottom:20px;
+}
+.section-title{
+  font-family:var(--mono);font-size:10px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--orange);
+  margin-bottom:16px;padding-bottom:10px;
+  border-bottom:1px solid var(--border);
+}
+
+/* FIELDS */
 .field{margin-bottom:14px}
-.field label{display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.field input{width:100%;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--paper);font-family:var(--body);font-size:14px}
-.field input:focus{outline:none;border-color:var(--gold)}
+.field label{
+  display:block;font-size:11px;font-weight:600;
+  color:var(--mid);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:6px;
+}
+.field input{
+  width:100%;padding:12px 14px;
+  background:var(--cream2);border:1px solid var(--border);
+  color:var(--charcoal);font-family:var(--body);font-size:14px;
+  outline:none;transition:border-color .2s;
+}
+.field input::placeholder{color:var(--dim)}
+.field input:focus{border-color:var(--orange);background:var(--white)}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.btn-save{background:var(--gold);color:var(--ink);padding:13px;font-family:var(--body);font-size:13px;font-weight:700;border:none;cursor:pointer;width:100%;letter-spacing:.5px;text-transform:uppercase;margin-top:6px}
-.btn-save:disabled{opacity:.5}
 
-.director-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:16px;margin-bottom:12px}
-.director-name{font-size:14px;font-weight:700;margin-bottom:4px}
+/* BUTTONS */
+.btn-primary{
+  background:var(--orange);color:var(--white);
+  padding:13px 24px;font-family:var(--body);
+  font-size:13px;font-weight:700;border:none;cursor:pointer;
+  width:100%;letter-spacing:.5px;text-transform:uppercase;
+  margin-top:8px;transition:all .2s;
+  box-shadow:0 4px 16px var(--orange-glow);
+}
+.btn-primary:hover{background:var(--orange-light);box-shadow:0 6px 24px var(--orange-glow);transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-secondary{
+  background:transparent;color:var(--mid);padding:10px 16px;
+  font-family:var(--body);font-size:12px;border:1px solid var(--border);
+  cursor:pointer;text-transform:uppercase;letter-spacing:.3px;
+  transition:all .2s;
+}
+.btn-secondary:hover{border-color:var(--charcoal);color:var(--charcoal)}
+
+/* DIRECTOR CARDS */
+.director-card{
+  background:var(--cream2);border:1px solid var(--border2);
+  padding:16px;margin-bottom:8px;
+  transition:box-shadow .15s;
+}
+.director-card:hover{box-shadow:0 2px 12px rgba(14,12,9,.06)}
+.director-name{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--charcoal)}
 .director-detail{font-size:11px;color:var(--dim);font-family:var(--mono)}
-.director-actions{display:flex;gap:10px;margin-top:10px}
-.btn-small{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--paper);padding:7px 14px;font-size:11px;cursor:pointer;text-transform:uppercase;letter-spacing:.3px}
-.btn-small.danger{border-color:rgba(255,71,87,.4);color:var(--red)}
-.btn-add-director{background:rgba(255,107,26,.1);border:1px dashed rgba(255,107,26,.4);color:var(--gold);padding:14px;width:100%;font-size:13px;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
-.empty-note{font-size:12px;color:var(--dim);font-style:italic;margin-bottom:12px}
+.director-state-badge{
+  display:inline-block;background:var(--orange-dim);
+  color:var(--orange);border:1px solid rgba(255,107,26,.2);
+  font-family:var(--mono);font-size:9px;letter-spacing:.5px;
+  padding:2px 7px;margin-left:6px;border-radius:2px;
+  text-transform:uppercase;
+}
+.director-actions{display:flex;gap:8px;margin-top:12px}
+.btn-small{
+  background:var(--white);border:1px solid var(--border);
+  color:var(--mid);padding:7px 14px;font-size:11px;
+  cursor:pointer;text-transform:uppercase;letter-spacing:.3px;
+  transition:all .15s;
+}
+.btn-small:hover{border-color:var(--charcoal);color:var(--charcoal)}
+.btn-small.danger{border-color:var(--red-dim);color:var(--red)}
+.btn-small.danger:hover{background:var(--red-dim)}
 
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.btn-add-director{
+  background:var(--orange-dim);
+  border:1px dashed rgba(255,107,26,.3);
+  color:var(--orange);padding:14px;width:100%;
+  font-size:13px;font-weight:700;cursor:pointer;
+  text-transform:uppercase;letter-spacing:.5px;
+  transition:all .2s;
+}
+.btn-add-director:hover{background:rgba(255,107,26,.12);border-color:var(--orange)}
+
+.empty-note{font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.6}
+
+/* MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(14,12,9,.5);
+  z-index:200;display:none;align-items:flex-end;justify-content:center;
+}
 .modal-overlay.open{display:flex}
-.modal{background:var(--surface);width:100%;max-width:480px;padding:28px 24px;border-top:2px solid var(--gold);max-height:88vh;overflow-y:auto}
-.modal-title{font-family:var(--display);font-size:20px;text-transform:uppercase;margin-bottom:18px}
+.modal{
+  background:var(--white);width:100%;max-width:480px;
+  padding:28px 24px;border-top:3px solid var(--orange);
+  max-height:88vh;overflow-y:auto;
+}
+.modal-title{font-family:var(--display);font-size:20px;text-transform:uppercase;margin-bottom:18px;color:var(--charcoal)}
+.modal .field input{background:var(--cream2)}
 .checkbox-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.checkbox-row input{width:auto}
-.checkbox-row label{font-size:13px;color:var(--paper);text-transform:none;letter-spacing:0}
-.btn-close{background:transparent;color:var(--dim);padding:12px;font-family:var(--body);font-size:12px;border:1px solid rgba(255,255,255,.1);cursor:pointer;width:100%;text-transform:uppercase;margin-top:8px}
+.checkbox-row input{width:auto;accent-color:var(--orange)}
+.checkbox-row label{font-size:13px;color:var(--charcoal);text-transform:none;letter-spacing:0;font-weight:400}
 
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:12px 24px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;z-index:999}
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--charcoal);color:var(--white);
+  padding:12px 24px;font-size:13px;font-weight:600;
+  opacity:0;transition:opacity .3s;pointer-events:none;
+  max-width:90vw;z-index:999;border-radius:2px;
+}
 .toast.show{opacity:1}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast.warn{background:var(--orange)}
 </style>
 </head>
 <body>
 
 <nav class="nav">
-  <a href="/dashboard-v2" class="nav-brand">Tender<span>Logix</span></a>
+  <a href="/" class="nav-brand">Tender<span>Logix</span></a>
   <a href="#" class="nav-back" id="backLink">← Dashboard</a>
 </nav>
 
@@ -78,13 +184,13 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
       <div class="field"><label>City</label><input type="text" id="city" placeholder="e.g. Richards Bay"></div>
       <div class="field"><label>Postal Code</label><input type="text" id="postal_code" placeholder="e.g. 3900"></div>
     </div>
-    <div class="field"><label>Postal Address <span style="text-transform:none">(if different)</span></label><input type="text" id="postal_address" placeholder="Leave blank if same as street address"></div>
+    <div class="field"><label>Postal Address <span style="text-transform:none;letter-spacing:0;font-weight:400">(if different)</span></label><input type="text" id="postal_address" placeholder="Leave blank if same as street address"></div>
     <div class="field-row">
       <div class="field"><label>Tax Reference Number</label><input type="text" id="tax_reference_number" placeholder="SARS income tax number"></div>
-      <div class="field"><label>VAT Number</label><input type="text" id="vat_number" placeholder="Leave blank if not VAT registered"></div>
+      <div class="field"><label>VAT Number</label><input type="text" id="vat_number" placeholder="Blank if not VAT registered"></div>
     </div>
     <div class="field"><label>Municipal Account Number</label><input type="text" id="municipal_account_number" placeholder="For MBD 15"></div>
-    <button class="btn-save" id="btnSaveDetails" onclick="saveCompanyDetails()">Save Company Details</button>
+    <button class="btn-primary" id="btnSaveDetails" onclick="saveCompanyDetails()">Save Company Details</button>
   </div>
 
   <div class="section">
@@ -95,10 +201,11 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
   </div>
 </div>
 
+<!-- DIRECTOR MODAL -->
 <div class="modal-overlay" id="directorModal" onclick="closeDirectorModal(event)">
   <div class="modal">
     <div class="modal-title" id="directorModalTitle">Add Director</div>
-    <div class="field"><label>Full Name *</label><input type="text" id="d_full_name" placeholder="As it appears on ID"></div>
+    <div class="field"><label>Full Name <span style="text-transform:none;letter-spacing:0;font-weight:400">required</span></label><input type="text" id="d_full_name" placeholder="As it appears on ID"></div>
     <div class="field"><label>ID Number</label><input type="text" id="d_id_number" placeholder="13-digit SA ID number"></div>
     <div class="field"><label>Tax Number</label><input type="text" id="d_tax_number" placeholder="Individual tax reference number"></div>
     <div class="field"><label>Residential Address</label><input type="text" id="d_residential_address" placeholder="Full residential address"></div>
@@ -106,8 +213,8 @@ body{font-family:var(--body);background:var(--dark);color:var(--paper);min-heigh
       <input type="checkbox" id="d_is_state_employee">
       <label for="d_is_state_employee">Currently in the service of the state</label>
     </div>
-    <button class="btn-save" id="btnSaveDirector" onclick="saveDirector()">Save Director</button>
-    <button class="btn-close" onclick="closeDirectorModal()">Cancel</button>
+    <button class="btn-primary" id="btnSaveDirector" onclick="saveDirector()">Save Director</button>
+    <button class="btn-secondary" style="width:100%;margin-top:8px" onclick="closeDirectorModal()">Cancel</button>
   </div>
 </div>
 
@@ -120,11 +227,10 @@ var editingDirectorId = null;
 
 document.getElementById('backLink').href = '/dashboard-v2/' + companyId;
 
-function showToast(msg, color) {
+function showToast(msg, type) {
   var t = document.getElementById('toast');
   t.textContent = msg;
-  t.style.background = color || '#ffffff';
-  t.style.color = color ? '#fff' : '#0a0a0a';
+  t.className = 'toast' + (type ? ' '+type : '');
   t.classList.add('show');
   setTimeout(function() { t.classList.remove('show'); }, 3000);
 }
@@ -134,13 +240,13 @@ async function loadProfile() {
   try {
     var res = await fetch('/tl/company?id=' + companyId);
     var d = await res.json();
-    if (d.error) { showToast('Could not load profile', '#ff4757'); return; }
+    if (d.error) { showToast('Could not load profile', 'error'); return; }
     ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number'].forEach(function(field) {
       var el = document.getElementById(field);
       if (el && d[field]) el.value = d[field];
     });
     await loadDirectors();
-  } catch(e) { showToast('Could not load profile', '#ff4757'); }
+  } catch(e) { showToast('Could not load profile', 'error'); }
 }
 
 async function saveCompanyDetails() {
@@ -153,13 +259,13 @@ async function saveCompanyDetails() {
       if (val) body[field] = val;
     });
     var res = await fetch('/tl/v2/company/details', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
     });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
-    showToast('✅ Company details saved');
+    showToast('Company details saved', 'success');
   } catch(e) {
-    showToast(e.message || 'Failed to save', '#ff4757');
+    showToast(e.message || 'Failed to save', 'error');
   }
   btn.disabled = false; btn.textContent = 'Save Company Details';
 }
@@ -177,14 +283,14 @@ function renderDirectors() {
   var listEl = document.getElementById('directorsList');
   var emptyNote = document.getElementById('directorsEmptyNote');
   emptyNote.style.display = directors.length ? 'none' : 'block';
-
   listEl.innerHTML = directors.map(function(dir) {
-    return '<div class="director-card">' +
-      '<div class="director-name">' + dir.full_name + '</div>' +
-      '<div class="director-detail">' + (dir.id_number ? 'ID: ' + dir.id_number : 'No ID on file') + (dir.is_state_employee ? ' · STATE EMPLOYEE' : '') + '</div>' +
-      '<div class="director-actions">' +
-        '<button class="btn-small" onclick="editDirector(&quot;' + dir.id + '&quot;)">Edit</button>' +
-        '<button class="btn-small danger" onclick="removeDirector(&quot;' + dir.id + '&quot;)">Remove</button>' +
+    var stateTag = dir.is_state_employee ? '<span class="director-state-badge">State Employee</span>' : '';
+    return '<div class="director-card">'+
+      '<div class="director-name">'+dir.full_name+stateTag+'</div>'+
+      '<div class="director-detail">'+(dir.id_number ? 'ID: '+dir.id_number : 'No ID on file')+(dir.tax_number ? ' · Tax: '+dir.tax_number : '')+'</div>'+
+      '<div class="director-actions">'+
+        '<button class="btn-small" onclick="editDirector(\''+dir.id+'\')">Edit</button>'+
+        '<button class="btn-small danger" onclick="removeDirector(\''+dir.id+'\')">Remove</button>'+
       '</div></div>';
   }).join('');
 }
@@ -192,13 +298,13 @@ function renderDirectors() {
 function openDirectorModal() {
   editingDirectorId = null;
   document.getElementById('directorModalTitle').textContent = 'Add Director';
-  ['d_full_name','d_id_number','d_tax_number','d_residential_address'].forEach(function(id) { document.getElementById(id).value = ''; });
+  ['d_full_name','d_id_number','d_tax_number','d_residential_address'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('d_is_state_employee').checked = false;
   document.getElementById('directorModal').classList.add('open');
 }
 
 function editDirector(id) {
-  var dir = directors.find(function(d) { return d.id === id; });
+  var dir = directors.find(function(d){ return d.id===id; });
   if (!dir) return;
   editingDirectorId = id;
   document.getElementById('directorModalTitle').textContent = 'Edit Director';
@@ -211,15 +317,13 @@ function editDirector(id) {
 }
 
 function closeDirectorModal(e) {
-  if (!e || e.target === document.getElementById('directorModal')) {
+  if (!e || e.target===document.getElementById('directorModal'))
     document.getElementById('directorModal').classList.remove('open');
-  }
 }
 
 async function saveDirector() {
   var fullName = document.getElementById('d_full_name').value.trim();
-  if (!fullName) { showToast('Full name is required', '#ff6b1a'); return; }
-
+  if (!fullName) { showToast('Full name is required', 'warn'); return; }
   var btn = document.getElementById('btnSaveDirector');
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
@@ -232,18 +336,16 @@ async function saveDirector() {
       is_state_employee: document.getElementById('d_is_state_employee').checked,
     };
     if (editingDirectorId) body.id = editingDirectorId;
-
     var res = await fetch('/tl/v2/directors', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
     });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
-
-    showToast('✅ Director saved');
+    showToast('Director saved', 'success');
     closeDirectorModal();
     await loadDirectors();
   } catch(e) {
-    showToast(e.message || 'Failed to save director', '#ff4757');
+    showToast(e.message || 'Failed to save director', 'error');
   }
   btn.disabled = false; btn.textContent = 'Save Director';
 }
@@ -252,15 +354,14 @@ async function removeDirector(id) {
   if (!confirm('Remove this director?')) return;
   try {
     var res = await fetch('/tl/v2/directors', {
-      method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ company_id: companyId, id: id })
+      method:'DELETE', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ company_id:companyId, id:id })
     });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
     showToast('Director removed');
     await loadDirectors();
-  } catch(e) {
-    showToast(e.message || 'Failed to remove', '#ff4757');
-  }
+  } catch(e) { showToast(e.message||'Failed to remove', 'error'); }
 }
 
 loadProfile();
