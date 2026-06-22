@@ -247,6 +247,60 @@ done
 
 ---
 
+## How Bootstrapping Works
+
+Every customer-facing HTML page is stored in Cloudflare KV and served from there — not directly from the git repo. This means **deploying code (git push) does NOT automatically update page content** unless the bootstrap step runs too.
+
+### The two-part deploy system
+
+1. **GitHub Actions deploys the worker code** (JS logic, endpoints, routing)
+2. **The bootstrap step pushes HTML files into KV** (what users actually see)
+
+Both happen automatically on every `git push` via the `bootstrap-html` job in `deploy.yml`.
+
+### KV key registry
+
+Every KV key is registered in `build-worker/src/shared-services.js` under `KV_KEYS.BOOTSTRAP`. If you add a new page:
+
+1. Add the HTML file to the repo (e.g. `tenderlogix/login.html`)
+2. Add the bootstrap entry to `KV_KEYS.BOOTSTRAP` in `shared-services.js`:
+   ```js
+   'tl-login': 'app:tl-login',
+   ```
+3. Add it to the `for page in ...` loop in `.github/workflows/deploy.yml`
+4. Add the route to serve it in the appropriate handler (e.g. `tl-handler.js`)
+5. Push — Actions will deploy the worker AND bootstrap the page
+
+### Manual bootstrap (when you need it immediately)
+
+If a page isn't showing up after a deploy, bootstrap it manually:
+```bash
+curl -s -X POST "https://preview.websitehub.co.za/admin/bootstrap-{page-key}" \
+  -H "x-admin-key: ADMIN_KEY_CLAUDEROX" \
+  -H "Content-Type: text/html" \
+  --data-binary @<(curl -s https://raw.githubusercontent.com/pierreduplessis6912-gif/Website-hub/main/{path-to-file}.html)
+```
+
+Example — bootstrap the TenderLogix login page:
+```bash
+curl -s -X POST "https://preview.websitehub.co.za/admin/bootstrap-tl-login" \
+  -H "x-admin-key: ADMIN_KEY_CLAUDEROX" \
+  -H "Content-Type: text/html" \
+  --data-binary @<(curl -s https://raw.githubusercontent.com/pierreduplessis6912-gif/Website-hub/main/tenderlogix/login.html)
+```
+
+### Current TenderLogix pages and their KV keys
+
+| Page | File | KV Key | Bootstrap endpoint |
+|------|------|--------|--------------------|
+| Landing | `tenderlogix/landing.html` | `app:tl-landing` | `bootstrap-tl-landing` |
+| Register | `tenderlogix/intake.html` | `app:tl-intake` | `bootstrap-tl-intake` |
+| Dashboard | `tenderlogix/dashboard-v2.html` | `app:tl-dashboard-v2` | `bootstrap-tl-dashboard-v2` |
+| Profile | `tenderlogix/profile-v2.html` | `app:tl-profile-v2` | `bootstrap-tl-profile-v2` |
+| Login | `tenderlogix/login.html` | `app:tl-login` | `bootstrap-tl-login` |
+
+---
+
 ## Legal & Compliance
 
 - POPIA registered — Information Regulator of South Africa — Reg. No. 2026-024548
