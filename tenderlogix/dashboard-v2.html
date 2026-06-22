@@ -4,294 +4,548 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dashboard — TenderLogix</title>
-<meta name="theme-color" content="#0a0a0a">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#f8f7f4">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --ink:#0a0a0a;--paper:#ffffff;
-  --dark:#0a0a0a;--surface:#1c1d20;--surface2:#2a2b2f;
-  --gold:#ff6b1a;--gold-light:#ff8c4a;
-  --muted:rgba(255,255,255,.55);--dim:rgba(255,255,255,.32);
-  --green:#2ecc71;--red:#ff4757;--amber:#ff6b1a;
+  --cream:#f8f7f4;--cream2:#f0ede8;--cream3:#e8e4de;
+  --white:#ffffff;
+  --charcoal:#0e0c09;--charcoal2:#1c1a17;
+  --mid:#6b6560;--dim:#9e9890;
+  --border:rgba(14,12,9,.1);--border2:rgba(14,12,9,.06);
+  --orange:#ff6b1a;--orange-light:#ff8c4a;
+  --orange-dim:rgba(255,107,26,.08);--orange-glow:rgba(255,107,26,.25);
+  --green:#1a9e5c;--green-dim:rgba(26,158,92,.1);--green-border:rgba(26,158,92,.25);
+  --red:#d93025;--red-dim:rgba(217,48,37,.08);--red-border:rgba(217,48,37,.2);
+  --amber:#e07b00;--amber-dim:rgba(224,123,0,.08);--amber-border:rgba(224,123,0,.2);
   --display:'Archivo Black',sans-serif;--body:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
 }
 html{-webkit-font-smoothing:antialiased}
-body{font-family:var(--body);background:var(--dark);color:var(--paper);min-height:100vh}
-.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
-.nav-brand{font-family:var(--display);font-size:18px;color:var(--paper);text-decoration:none;text-transform:uppercase}
-.nav-brand span{color:var(--gold)}
-.balance-pill{background:rgba(255,107,26,.12);border:1px solid rgba(255,107,26,.3);padding:7px 14px;font-family:var(--mono);font-size:12px;color:var(--gold);font-weight:700}
-.vault-pill{padding:7px 12px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.3px}
+body{
+  font-family:var(--body);background:var(--cream);color:var(--charcoal);min-height:100vh;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
 
-/* ── VAULT SECTION — distinct, premium visual language ── */
-.vault-section{background:linear-gradient(160deg,#15120a,#0a0a0a);border:1px solid rgba(255,107,26,.25);box-shadow:0 0 0 1px rgba(255,107,26,.05),0 8px 32px rgba(0,0,0,.4);padding:24px;margin-bottom:28px;position:relative;overflow:hidden}
-.vault-section::before{content:'';position:absolute;top:-40%;right:-10%;width:200px;height:200px;background:radial-gradient(circle,rgba(255,107,26,.08),transparent 70%);pointer-events:none}
-.vault-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;position:relative}
-.vault-section-title{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
-.vault-section-title span{color:var(--gold)}
-.vault-badge-exclusive{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--gold);background:rgba(255,107,26,.12);border:1px solid rgba(255,107,26,.3);padding:3px 8px}
-.vault-section-sub{font-size:12px;color:var(--dim);margin-bottom:20px;position:relative}
-.vault-doc-grid{display:grid;grid-template-columns:1fr;gap:1px;background:rgba(255,255,255,.06);position:relative}
-.vault-doc-pill{background:#161616;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s}
-.vault-doc-pill:hover{background:#1d1d1d}
-.vault-doc-light{font-size:16px;flex-shrink:0}
-.vault-doc-info{flex:1;min-width:0}
-.vault-doc-name{font-size:13px;font-weight:600;color:var(--paper);margin-bottom:2px}
-.vault-doc-meta{font-size:10px;color:var(--dim);font-family:var(--mono)}
-.vault-doc-meta.amber{color:var(--gold)}
-.vault-doc-meta.red{color:var(--red)}
-.vault-doc-meta.green{color:var(--green)}
-.vault-doc-actions{display:flex;gap:6px;flex-shrink:0}
-.vault-doc-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--paper);width:30px;height:30px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.vault-doc-btn:hover{background:rgba(255,107,26,.15);border-color:rgba(255,107,26,.4)}
-.vault-doc-add{border:1px dashed rgba(255,107,26,.3);background:rgba(255,107,26,.03)!important}
-.vault-doc-add:hover{background:rgba(255,107,26,.08)!important}
-.vault-doc-add .vault-doc-name{color:var(--gold)}
-.vault-locked-overlay{text-align:center;padding:32px 16px;position:relative}
-.vault-locked-icon{font-size:32px;margin-bottom:10px;opacity:.6}
-.vault-locked-text{font-size:13px;color:var(--dim);line-height:1.6;max-width:320px;margin:0 auto 18px}
-.vault-upload-modal-list{font-size:11px;color:var(--dim);margin-bottom:14px}
-.vault-pill.inactive{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--dim)}
-.vault-pill.inactive:hover{background:rgba(255,107,26,.08);border-color:rgba(255,107,26,.3);color:var(--gold)}
-.vault-pill.active{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);color:var(--green)}
+/* NAV */
+.nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(248,247,244,.95);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;
+}
+.nav-brand{font-family:var(--display);font-size:18px;color:var(--charcoal);text-decoration:none;text-transform:uppercase}
+.nav-brand span{color:var(--orange)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-link{font-size:12px;color:var(--mid);text-decoration:none;font-weight:600;text-transform:uppercase;letter-spacing:.3px;transition:color .15s}
+.nav-link:hover{color:var(--charcoal)}
+.vault-pill{
+  padding:7px 12px;font-family:var(--mono);font-size:11px;
+  font-weight:700;cursor:pointer;transition:all .15s;
+  letter-spacing:.3px;border:1px solid var(--border);
+  background:var(--white);color:var(--mid);
+}
+.vault-pill:hover{border-color:var(--orange);color:var(--orange)}
+.vault-pill.active{background:var(--green-dim);border-color:var(--green-border);color:var(--green)}
+.vault-pill.inactive{background:var(--white);border-color:var(--border);color:var(--mid)}
+.balance-pill{
+  padding:7px 14px;font-family:var(--mono);font-size:12px;
+  color:var(--orange);font-weight:700;cursor:pointer;
+  background:var(--orange-dim);border:1px solid rgba(255,107,26,.2);
+  transition:all .15s;
+}
+.balance-pill:hover{border-color:var(--orange)}
 
-.vault-nudge{background:linear-gradient(135deg,rgba(255,107,26,.08),rgba(255,107,26,.03));border:1px solid rgba(255,107,26,.25);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;cursor:pointer}
-.vault-nudge:hover{border-color:rgba(255,107,26,.45)}
-.vault-nudge-icon{font-size:20px;flex-shrink:0}
-.vault-nudge-text{flex:1;font-size:12px;color:var(--paper);line-height:1.5}
-.vault-nudge-text strong{color:var(--gold)}
-.vault-nudge-cta{font-family:var(--mono);font-size:10px;color:var(--gold);font-weight:700;letter-spacing:.3px;flex-shrink:0;white-space:nowrap}
+/* PAGE */
+.page{max-width:720px;margin:0 auto;padding:28px 20px 80px}
+.page-section-title{
+  font-family:var(--display);font-size:clamp(22px,5vw,32px);
+  text-transform:uppercase;letter-spacing:-.3px;
+  color:var(--charcoal);margin-bottom:20px;
+}
+.page-section-title span{color:var(--orange)}
 
-.modal-vault .modal-title{display:flex;align-items:center;gap:8px}
-.vault-pain-list{margin:16px 0}
-.vault-pain-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;color:var(--dim)}
-.vault-pain-item:last-child{border-bottom:none}
-.vault-price-compare{background:rgba(255,255,255,.04);padding:12px 16px;text-align:center;margin:16px 0;font-family:var(--mono);font-size:12px;color:var(--dim)}
-.vault-price-compare strong{color:var(--gold);font-size:16px}
-.page{max-width:720px;margin:0 auto;padding:24px 20px 80px}
-.hero{margin-bottom:28px}
-.hero h1{font-family:var(--display);font-size:clamp(26px,6vw,38px);text-transform:uppercase;letter-spacing:-.3px}
-.hero h1 span{color:var(--gold)}
-.btn-gold{background:var(--gold);color:var(--ink);padding:13px 24px;font-family:var(--body);font-size:13px;font-weight:700;border:none;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;width:100%;margin-top:14px}
-.btn-gold:disabled{opacity:.4}
-.upload-box{background:var(--surface);border:1px solid rgba(255,255,255,.06);padding:24px;margin-bottom:32px}
-.upload-box-title{font-family:var(--display);font-size:20px;text-transform:uppercase;margin-bottom:6px}
-.upload-box-sub{font-size:12px;color:var(--dim);margin-bottom:16px}
-.file-drop{border:2px dashed rgba(255,255,255,.15);background:rgba(255,255,255,.03);padding:28px 16px;text-align:center;cursor:pointer}
-.file-drop.has-file{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.06)}
-.file-item{display:flex;justify-content:space-between;padding:8px 10px;background:rgba(255,255,255,.04);margin-top:6px;font-size:12px}
-.file-item-remove{color:var(--red);background:none;border:none;cursor:pointer}
+/* UPLOAD BOX */
+.upload-box{
+  background:var(--white);border:1px solid var(--border);
+  border-top:3px solid var(--orange);
+  padding:24px;margin-bottom:32px;
+}
+.upload-box-title{font-family:var(--display);font-size:18px;text-transform:uppercase;margin-bottom:6px;color:var(--charcoal)}
+.upload-box-sub{font-size:12px;color:var(--mid);margin-bottom:20px}
+.file-drop{
+  border:2px dashed var(--border);
+  background:var(--cream2);
+  padding:28px 16px;text-align:center;cursor:pointer;
+  transition:all .2s;
+}
+.file-drop:hover{border-color:var(--orange);background:var(--orange-dim)}
+.file-drop.has-file{border-color:var(--green);border-style:solid;background:var(--green-dim)}
+.file-drop-icon{
+  width:40px;height:40px;margin:0 auto 10px;
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+}
+.file-drop-icon svg{width:20px;height:20px;stroke:var(--mid)}
+.file-drop.has-file .file-drop-icon{border-color:var(--green)}
+.file-drop.has-file .file-drop-icon svg{stroke:var(--green)}
+.file-drop-text{font-size:13px;color:var(--mid)}
+.file-drop.has-file .file-drop-text{color:var(--green);font-weight:600}
+.file-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:9px 12px;background:var(--cream2);
+  border:1px solid var(--border2);
+  margin-top:4px;font-size:12px;color:var(--charcoal);
+}
+.file-item-name{display:flex;align-items:center;gap:8px}
+.file-item-dot{width:6px;height:6px;background:var(--green);border-radius:50%;flex-shrink:0}
+.file-item-remove{
+  color:var(--red);background:none;border:none;cursor:pointer;
+  font-size:16px;line-height:1;padding:0 2px;opacity:.6;
+}
+.file-item-remove:hover{opacity:1}
 .ref-field{margin-top:14px}
-.ref-field input{width:100%;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--paper);font-family:var(--body);font-size:14px}
-.price-line{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:10px;text-align:center}
-.price-line strong{color:var(--gold)}
-.free-badge{display:inline-block;background:rgba(46,204,113,.15);color:var(--green);font-family:var(--mono);font-size:10px;padding:2px 8px;letter-spacing:.5px;margin-left:6px}
+.ref-field input{
+  width:100%;padding:12px 14px;
+  background:var(--white);border:1px solid var(--border);
+  color:var(--charcoal);font-family:var(--body);font-size:14px;outline:none;
+  transition:border-color .2s;
+}
+.ref-field input::placeholder{color:var(--dim)}
+.ref-field input:focus{border-color:var(--orange)}
+.price-line{font-family:var(--mono);font-size:11px;color:var(--mid);margin-top:10px;text-align:center}
+.price-line strong{color:var(--orange)}
+.free-badge{
+  display:inline-block;background:var(--green);color:var(--white);
+  font-family:var(--mono);font-size:9px;padding:2px 7px;
+  letter-spacing:.5px;margin-left:6px;border-radius:2px;
+}
 
-.tender-card{background:var(--surface);border:1px solid rgba(255,255,255,.06);margin-bottom:20px;overflow:hidden}
-.tender-head{padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
-.tender-title{font-size:15px;font-weight:600;line-height:1.3;margin-bottom:4px}
+/* PRIMARY BUTTON */
+.btn-primary{
+  background:var(--orange);color:var(--white);
+  padding:14px 24px;font-family:var(--body);
+  font-size:13px;font-weight:700;border:none;cursor:pointer;
+  letter-spacing:.5px;text-transform:uppercase;width:100%;
+  margin-top:16px;transition:all .2s;
+  box-shadow:0 4px 16px var(--orange-glow);
+}
+.btn-primary:hover{background:var(--orange-light);box-shadow:0 6px 24px var(--orange-glow);transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* VAULT SECTION */
+.vault-section{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-top:3px solid var(--orange);
+  padding:24px;margin-bottom:32px;
+}
+.vault-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.vault-section-title{font-family:var(--display);font-size:18px;text-transform:uppercase;color:var(--charcoal)}
+.vault-section-title span{color:var(--orange)}
+.vault-badge{
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;
+  padding:3px 8px;text-transform:uppercase;border-radius:2px;
+}
+.vault-badge.locked{background:var(--cream2);color:var(--dim);border:1px solid var(--border)}
+.vault-badge.active{background:var(--green-dim);color:var(--green);border:1px solid var(--green-border)}
+.vault-section-sub{font-size:12px;color:var(--mid);margin-bottom:20px}
+
+/* VAULT LOCKED */
+.vault-locked{text-align:center;padding:32px 16px}
+.vault-locked-title{font-family:var(--display);font-size:16px;text-transform:uppercase;color:var(--charcoal);margin-bottom:10px}
+.vault-locked-text{font-size:13px;color:var(--mid);line-height:1.65;max-width:340px;margin:0 auto 20px}
+.btn-outline{
+  display:inline-block;padding:12px 28px;
+  border:2px solid var(--orange);color:var(--orange);
+  background:transparent;font-family:var(--body);
+  font-size:13px;font-weight:700;cursor:pointer;
+  letter-spacing:.5px;text-transform:uppercase;
+  transition:all .2s;
+}
+.btn-outline:hover{background:var(--orange);color:var(--white);box-shadow:0 4px 16px var(--orange-glow)}
+
+/* VAULT DOC GRID */
+.vault-doc-grid{display:grid;gap:2px}
+.vault-doc-row{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;background:var(--cream2);
+  border:1px solid var(--border2);cursor:pointer;
+  transition:all .15s;
+}
+.vault-doc-row:hover{background:var(--white);border-color:var(--orange)}
+.vault-doc-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.vault-doc-status.green{background:var(--green)}
+.vault-doc-status.amber{background:var(--amber)}
+.vault-doc-status.red{background:var(--red)}
+.vault-doc-status.missing{background:var(--dim);border:1px solid var(--border)}
+.vault-doc-info{flex:1;min-width:0}
+.vault-doc-name{font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:2px}
+.vault-doc-meta{font-size:11px;color:var(--dim);font-family:var(--mono)}
+.vault-doc-meta.green{color:var(--green)}
+.vault-doc-meta.amber{color:var(--amber)}
+.vault-doc-meta.red{color:var(--red)}
+.vault-doc-actions{display:flex;gap:6px;flex-shrink:0}
+.vault-doc-btn{
+  background:var(--white);border:1px solid var(--border);
+  color:var(--mid);width:30px;height:30px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.vault-doc-btn:hover{border-color:var(--orange);color:var(--orange)}
+.vault-doc-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.vault-doc-add{
+  border:1px dashed rgba(255,107,26,.3)!important;
+  background:var(--orange-dim)!important;
+}
+.vault-doc-add:hover{border-color:var(--orange)!important;background:rgba(255,107,26,.12)!important}
+.vault-doc-add .vault-doc-name{color:var(--orange)}
+.vault-doc-add .vault-doc-status{background:var(--orange);opacity:.5}
+
+/* VAULT NUDGE */
+.vault-nudge{
+  background:var(--orange-dim);
+  border:1px solid rgba(255,107,26,.2);
+  padding:14px 16px;margin-bottom:16px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  transition:border-color .15s;
+}
+.vault-nudge:hover{border-color:var(--orange)}
+.vault-nudge-indicator{width:3px;height:40px;background:var(--orange);flex-shrink:0;border-radius:2px}
+.vault-nudge-text{flex:1;font-size:12px;color:var(--charcoal);line-height:1.55}
+.vault-nudge-text strong{color:var(--orange)}
+.vault-nudge-cta{font-family:var(--mono);font-size:10px;color:var(--orange);font-weight:700;letter-spacing:.3px;flex-shrink:0;white-space:nowrap}
+
+/* TENDER CARDS */
+.tender-card{
+  background:var(--white);border:1px solid var(--border);
+  margin-bottom:12px;overflow:hidden;
+  transition:box-shadow .2s;
+}
+.tender-card:hover{box-shadow:0 4px 20px rgba(14,12,9,.06)}
+.tender-head{padding:16px 18px;border-bottom:1px solid var(--border2)}
+.tender-title{font-size:14px;font-weight:700;line-height:1.35;margin-bottom:4px;color:var(--charcoal)}
 .tender-meta{font-size:11px;color:var(--dim);font-family:var(--mono)}
-.products-row{display:grid;grid-template-columns:1fr;gap:1px;background:rgba(255,255,255,.06)}
-.product-card{background:var(--surface);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:background .15s}
-.product-card:hover{background:var(--surface2)}
+.products-row{display:grid;gap:1px;background:var(--border2)}
+.product-card{
+  background:var(--white);padding:14px 18px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;cursor:pointer;transition:background .15s;
+}
+.product-card:hover{background:var(--cream2)}
 .product-card.done{cursor:default}
 .product-left{flex:1;min-width:0}
-.product-name{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
-.product-sub{font-size:11px;color:var(--dim);line-height:1.4}
+.product-name{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;color:var(--charcoal)}
+.product-sub{font-size:11px;color:var(--mid);line-height:1.4}
 .product-right{flex-shrink:0;text-align:right}
-.product-price{font-family:var(--mono);font-size:13px;color:var(--gold);font-weight:700}
+.product-price{font-family:var(--mono);font-size:13px;color:var(--orange);font-weight:700}
 .product-price.free{color:var(--green)}
-.product-status{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;margin-top:4px;padding:2px 8px;display:inline-block}
-.status-go{background:rgba(46,204,113,.15);color:var(--green)}
-.status-nogo{background:rgba(255,71,87,.15);color:var(--red)}
-.status-cond{background:rgba(255,107,26,.15);color:var(--gold)}
-.status-proc{background:rgba(255,107,26,.1);color:var(--gold)}
-.status-failed{background:rgba(255,71,87,.1);color:var(--red)}
+.product-status{
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;
+  text-transform:uppercase;padding:3px 8px;
+  display:inline-block;border-radius:2px;
+}
+.status-go{background:var(--green-dim);color:var(--green);border:1px solid var(--green-border)}
+.status-nogo{background:var(--red-dim);color:var(--red);border:1px solid var(--red-border)}
+.status-cond{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-border)}
+.status-proc{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,107,26,.2)}
+.status-failed{background:var(--red-dim);color:var(--red);border:1px solid var(--red-border)}
 
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:flex-end;justify-content:center}
+/* MODALS */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(14,12,9,.5);
+  z-index:200;display:none;align-items:flex-end;justify-content:center;
+}
 .modal-overlay.open{display:flex}
-.modal{background:var(--surface);width:100%;max-width:480px;padding:28px 24px;border-top:2px solid var(--gold)}
-.modal-title{font-family:var(--display);font-size:22px;text-transform:uppercase;margin-bottom:8px}
-.modal-sub{font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.6}
-.amount-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.amount-opt{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);padding:14px 8px;text-align:center;cursor:pointer}
-.amount-opt.selected{background:rgba(255,107,26,.1);border-color:var(--gold)}
-.amount-opt-val{font-family:var(--display);font-size:18px;color:var(--gold)}
-.btn-buy{background:var(--gold);color:var(--ink);padding:14px;font-family:var(--body);font-size:13px;font-weight:700;border:none;cursor:pointer;width:100%;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
-.btn-close{background:transparent;color:var(--dim);padding:12px;font-family:var(--body);font-size:12px;border:1px solid rgba(255,255,255,.1);cursor:pointer;width:100%;text-transform:uppercase}
+.modal{
+  background:var(--white);width:100%;max-width:480px;
+  padding:28px 24px;border-top:3px solid var(--orange);
+  max-height:90vh;overflow-y:auto;
+}
+.modal-title{font-family:var(--display);font-size:20px;text-transform:uppercase;margin-bottom:8px;color:var(--charcoal)}
+.modal-sub{font-size:13px;color:var(--mid);margin-bottom:20px;line-height:1.6}
 
-.report-overlay{position:fixed;inset:0;background:var(--dark);z-index:300;overflow-y:auto;display:none}
+/* VAULT MODAL */
+.vault-pain-list{margin:16px 0;display:grid;gap:10px}
+.vault-pain-item{
+  display:flex;gap:12px;padding:12px 14px;
+  background:var(--cream2);border:1px solid var(--border2);
+  font-size:13px;color:var(--mid);line-height:1.55;
+}
+.vault-pain-item-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.vault-pain-item-dot.problem{background:var(--red)}
+.vault-pain-item-dot.solution{background:var(--green)}
+.vault-pain-item strong{color:var(--charcoal)}
+.vault-price-row{
+  background:var(--cream2);border:1px solid var(--border);
+  padding:14px 16px;text-align:center;margin:16px 0;
+}
+.vault-price-row span{font-family:var(--mono);font-size:12px;color:var(--mid)}
+.vault-price-row strong{font-family:var(--display);font-size:24px;color:var(--orange)}
+
+/* BALANCE MODAL */
+.amount-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.amount-opt{
+  background:var(--cream2);border:1px solid var(--border);
+  padding:14px 8px;text-align:center;cursor:pointer;transition:all .15s;
+}
+.amount-opt:hover{border-color:var(--orange)}
+.amount-opt.selected{background:var(--orange-dim);border-color:var(--orange)}
+.amount-opt-val{font-family:var(--display);font-size:18px;color:var(--charcoal)}
+.amount-opt.selected .amount-opt-val{color:var(--orange)}
+.btn-secondary{
+  background:transparent;color:var(--mid);padding:12px;
+  font-family:var(--body);font-size:12px;
+  border:1px solid var(--border);cursor:pointer;width:100%;
+  text-transform:uppercase;letter-spacing:.3px;transition:all .2s;
+}
+.btn-secondary:hover{border-color:var(--charcoal);color:var(--charcoal)}
+
+/* MODAL INPUTS */
+.modal-field{margin-bottom:16px}
+.modal-label{font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+.modal-input{
+  width:100%;padding:12px 14px;
+  background:var(--cream2);border:1px solid var(--border);
+  color:var(--charcoal);font-family:var(--body);font-size:14px;outline:none;
+  transition:border-color .2s;
+}
+.modal-input::placeholder{color:var(--dim)}
+.modal-input:focus{border-color:var(--orange)}
+
+/* REPORT OVERLAY — stays dark, it's a document viewer */
+.report-overlay{position:fixed;inset:0;background:#0e0c09;z-index:300;overflow-y:auto;display:none;color:#fff}
 .report-overlay.open{display:block}
-.report-nav{position:sticky;top:0;background:rgba(10,10,10,.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
-.report-download{background:var(--gold);color:var(--ink);border:none;padding:9px 16px;font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.3px}
+.report-nav{
+  position:sticky;top:0;background:rgba(14,12,9,.95);
+  backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);
+  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;
+}
+.report-download{
+  background:var(--orange);color:var(--white);border:none;
+  padding:9px 16px;font-family:var(--body);font-size:12px;
+  font-weight:700;cursor:pointer;letter-spacing:.3px;
+  box-shadow:0 2px 12px var(--orange-glow);
+}
 .report-download:disabled{opacity:.5}
-.report-back{font-size:13px;color:var(--gold);background:none;border:none;font-weight:600;cursor:pointer}
+.report-back{font-size:13px;color:var(--orange);background:none;border:none;font-weight:600;cursor:pointer}
 .report-body{max-width:720px;margin:0 auto;padding:32px 20px 80px}
-.report-heading h1{font-family:var(--display);font-size:24px;text-transform:uppercase;margin-bottom:6px}
-.report-heading-ref{font-family:var(--mono);font-size:11px;color:var(--gold)}
+.report-heading h1{font-family:var(--display);font-size:24px;text-transform:uppercase;margin-bottom:6px;color:#fff}
+.report-heading-ref{font-family:var(--mono);font-size:11px;color:var(--orange)}
 .verdict-banner{padding:24px;margin:20px 0;text-align:center}
-.verdict-banner.go{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.25)}
-.verdict-banner.no_go{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.25)}
+.verdict-banner.go{background:rgba(26,158,92,.1);border:1px solid rgba(26,158,92,.25)}
+.verdict-banner.no_go{background:rgba(217,48,37,.1);border:1px solid rgba(217,48,37,.2)}
 .verdict-banner.conditional_go{background:rgba(255,107,26,.1);border:1px solid rgba(255,107,26,.25)}
 .verdict-label{font-family:var(--display);font-size:38px;text-transform:uppercase}
 .verdict-label.go{color:var(--green)}
 .verdict-label.no_go{color:var(--red)}
-.verdict-label.conditional_go{color:var(--gold)}
-.verdict-summary{font-size:14px;color:var(--dim);margin-top:8px;line-height:1.7}
+.verdict-label.conditional_go{color:var(--orange)}
+.verdict-summary{font-size:14px;color:rgba(255,255,255,.5);margin-top:8px;line-height:1.7}
 .report-section{margin:28px 0}
-.report-section-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.report-section-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
 .check-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
-.check-text{font-size:13px;flex:1}
-.check-notes{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5}
+.check-text{font-size:13px;flex:1;color:rgba(255,255,255,.85)}
+.check-notes{font-size:11px;color:rgba(255,255,255,.4);margin-top:3px;line-height:1.5}
 .boq-table{width:100%;border-collapse:collapse}
-.boq-table th{font-family:var(--mono);font-size:9px;color:var(--dim);padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08)}
-.boq-table td{font-size:12px;padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.boq-table th{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.35);padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08)}
+.boq-table td{font-size:12px;padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(255,255,255,.8)}
 .boq-total{background:rgba(255,107,26,.08);font-weight:700}
-.submission-doc{background:var(--surface);border:1px solid rgba(255,255,255,.08);padding:24px;font-size:13px;line-height:1.8;white-space:pre-wrap}
-.disclaimer{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:16px;font-size:11px;color:var(--dim);line-height:1.7;font-family:var(--mono);margin-top:24px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:12px 24px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;z-index:999}
+.submission-doc{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:24px;font-size:13px;line-height:1.8;white-space:pre-wrap;color:rgba(255,255,255,.8)}
+.disclaimer{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:16px;font-size:11px;color:rgba(255,255,255,.35);line-height:1.7;font-family:var(--mono);margin-top:24px}
+
+/* EMPTY STATE */
+.empty-state{
+  background:var(--white);border:1px solid var(--border);
+  padding:40px 20px;text-align:center;color:var(--dim);font-size:13px;
+}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--charcoal);color:var(--white);
+  padding:12px 24px;font-size:13px;font-weight:600;
+  opacity:0;transition:opacity .3s;pointer-events:none;
+  max-width:90vw;z-index:999;border-radius:2px;
+}
 .toast.show{opacity:1}
-.empty-state{background:var(--surface);padding:40px 20px;text-align:center;color:var(--dim);font-size:13px}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast.warn{background:var(--amber)}
+
+/* VAULT UPLOAD CURRENT */
+.vault-upload-current{
+  font-size:11px;color:var(--mid);margin-bottom:14px;
+  padding:10px 12px;background:var(--cream2);
+  border:1px solid var(--border);font-family:var(--mono);
+}
 </style>
 </head>
 <body>
 
 <nav class="nav">
   <a href="/" class="nav-brand">Tender<span>Logix</span></a>
-  <div style="display:flex;align-items:center;gap:8px">
-    <a href="#" id="profileLink" style="font-size:12px;color:#999;text-decoration:none;font-weight:600">Profile</a>
-    <div class="vault-pill" id="vaultPill" onclick="handleVaultPillClick()">📁 Vault</div>
+  <div class="nav-right">
+    <a href="#" id="profileLink" class="nav-link">Profile</a>
+    <div class="vault-pill inactive" id="vaultPill" onclick="handleVaultPillClick()">Vault</div>
     <div class="balance-pill" onclick="openBalanceModal()" id="balancePill">R— balance</div>
   </div>
 </nav>
 
 <div class="page">
-  <div class="hero">
-    <h1>Upload A <span>Tender.</span></h1>
-  </div>
+
+  <h1 class="page-section-title" style="margin-bottom:20px">Upload A <span>Tender.</span></h1>
 
   <div class="upload-box">
     <div class="upload-box-title">New Tender</div>
     <p class="upload-box-sub" id="uploadSub">R20 per document — your first tender (up to 5 documents) is free.</p>
-    <div class="field" style="margin-bottom:14px">
-      <input type="file" id="pdfFile" accept="application/pdf" multiple style="display:none" onchange="handleFileSelect(this)">
-      <div class="file-drop" id="fileDrop" onclick="document.getElementById('pdfFile').click()">
-        <div style="font-size:24px;margin-bottom:6px">📄</div>
-        <div style="font-size:13px;color:var(--dim)" id="fileDropText">Tap to select one or more PDFs</div>
+    <input type="file" id="pdfFile" accept="application/pdf" multiple style="display:none" onchange="handleFileSelect(this)">
+    <div class="file-drop" id="fileDrop" onclick="document.getElementById('pdfFile').click()">
+      <div class="file-drop-icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
       </div>
-      <div id="fileList"></div>
+      <div class="file-drop-text" id="fileDropText">Tap to select one or more PDFs</div>
     </div>
+    <div id="fileList"></div>
     <div class="ref-field">
-      <input type="text" id="tenderRef" placeholder="Tender reference (required for 2+ documents)">
+      <input type="text" id="tenderRef" placeholder="Tender reference number (required for 2+ documents)">
     </div>
-    <button class="btn-gold" id="btnUpload" onclick="submitUpload()" disabled>Select PDFs First</button>
+    <button class="btn-primary" id="btnUpload" onclick="submitUpload()" disabled>Select PDFs First</button>
     <div class="price-line" id="uploadPriceLine"></div>
   </div>
 
+  <!-- VAULT -->
   <div class="vault-section" id="vaultSection">
     <div class="vault-section-head">
-      <div class="vault-section-title">📁 The <span>Vault</span></div>
-      <div class="vault-badge-exclusive" id="vaultBadge">LOCKED</div>
+      <div class="vault-section-title">Document <span>Vault</span></div>
+      <div class="vault-badge locked" id="vaultBadge">Locked</div>
     </div>
     <p class="vault-section-sub" id="vaultSectionSub">Loading...</p>
     <div id="vaultDocGrid"></div>
   </div>
 
-  <div class="hero">
-    <h1>Your <span>Tenders.</span></h1>
-  </div>
+  <h1 class="page-section-title">Your <span>Tenders.</span></h1>
   <div id="tendersList"><div class="empty-state">No tenders uploaded yet.</div></div>
+
 </div>
 
+<!-- BALANCE MODAL -->
 <div class="modal-overlay" id="balanceModal" onclick="closeBalanceModal(event)">
   <div class="modal">
     <div class="modal-title">Top Up Balance</div>
-    <p class="modal-sub">Add funds to your account.</p>
+    <p class="modal-sub">Add funds to your account. Used automatically when you run products.</p>
     <div class="amount-options">
       <div class="amount-opt selected" data-amount="100" onclick="selectAmount(this)"><div class="amount-opt-val">R100</div></div>
       <div class="amount-opt" data-amount="500" onclick="selectAmount(this)"><div class="amount-opt-val">R500</div></div>
       <div class="amount-opt" data-amount="3000" onclick="selectAmount(this)"><div class="amount-opt-val">R3,000</div></div>
     </div>
-    <button class="btn-buy" id="btnBuy" onclick="buyBalance()">Pay R100 →</button>
-    <button class="btn-close" onclick="closeBalanceModal()">Cancel</button>
+    <button class="btn-primary" id="btnBuy" onclick="buyBalance()">Pay R100</button>
+    <button class="btn-secondary" style="margin-top:8px" onclick="closeBalanceModal()">Cancel</button>
   </div>
 </div>
 
+<!-- VAULT SUBSCRIBE MODAL -->
 <div class="modal-overlay modal-vault" id="vaultModal" onclick="closeVaultModal(event)">
   <div class="modal">
-    <div class="modal-title">📁 Document Vault</div>
-    <p class="modal-sub">R99/month — cheaper than Netflix, and it could save your bid.</p>
+    <div class="modal-title">Document Vault</div>
+    <p class="modal-sub">R99/month — store, verify, and instantly retrieve all your compliance certificates.</p>
 
     <div class="vault-pain-list">
-      <div class="vault-pain-item">😩 <span>It's 11pm. Bid closes tomorrow. Where's your B-BBEE certificate? <strong style="color:var(--paper)">Without Vault, you're digging through email.</strong></span></div>
-      <div class="vault-pain-item">📅 <span>Your CIDB grading quietly expired 3 weeks ago. You only find out when a bid gets rejected.</span></div>
-      <div class="vault-pain-item">🖨️ <span>You download a Bid Pack to print — and the certificate section is empty, because nothing's on file.</span></div>
+      <div class="vault-pain-item">
+        <div class="vault-pain-item-dot problem"></div>
+        <span>Bid closes tomorrow. Where's your B-BBEE certificate? <strong>Without Vault, you're digging through email at 11pm.</strong></span>
+      </div>
+      <div class="vault-pain-item">
+        <div class="vault-pain-item-dot problem"></div>
+        <span>Your CIDB grading expired 3 weeks ago. You only find out when a bid gets rejected.</span>
+      </div>
+      <div class="vault-pain-item">
+        <div class="vault-pain-item-dot problem"></div>
+        <span>You download a Bid Pack — and the certificate section is empty, because nothing's on file.</span>
+      </div>
     </div>
 
-    <p class="modal-sub" style="margin-bottom:10px"><strong style="color:var(--paper)">With Vault, R99/month:</strong></p>
+    <p style="font-size:12px;font-weight:700;color:var(--charcoal);text-transform:uppercase;letter-spacing:.3px;margin-bottom:10px">With Vault:</p>
     <div class="vault-pain-list">
-      <div class="vault-pain-item">✅ <span>Every Bid Pack downloads with your real, verified certificates already attached. One tap, fully assembled.</span></div>
-      <div class="vault-pain-item">✅ <span><strong style="color:var(--paper)">We'll remind you</strong> before anything expires — never miss a renewal again.</span></div>
-      <div class="vault-pain-item">✅ <span>Out of office? Any director can pull the certificate from their phone, instantly.</span></div>
+      <div class="vault-pain-item">
+        <div class="vault-pain-item-dot solution"></div>
+        <span><strong>Every Bid Pack downloads with your real, verified certificates already attached.</strong> One tap, fully assembled.</span>
+      </div>
+      <div class="vault-pain-item">
+        <div class="vault-pain-item-dot solution"></div>
+        <span><strong>Expiry reminders</strong> before anything lapses — never miss a renewal again.</span>
+      </div>
+      <div class="vault-pain-item">
+        <div class="vault-pain-item-dot solution"></div>
+        <span>Any director can pull any certificate from their phone, instantly.</span>
+      </div>
     </div>
 
-    <div class="vault-price-compare">R99/month ≈ <strong>R3.30/day</strong> — less than a coffee, for documents that could cost you a contract</div>
+    <div class="vault-price-row">
+      <span>Just </span><strong>R99</strong><span>/month — less than a tank of petrol</span>
+    </div>
 
-    <button class="btn-buy" id="btnVaultModal" onclick="subscribeVault()">Subscribe — R99/month</button>
-    <button class="btn-close" onclick="closeVaultModal()">Not now</button>
+    <button class="btn-primary" id="btnVaultModal" onclick="subscribeVault()">Subscribe — R99/month</button>
+    <button class="btn-secondary" style="margin-top:8px" onclick="closeVaultModal()">Not now</button>
   </div>
 </div>
 
+<!-- VAULT UPLOAD MODAL -->
 <div class="modal-overlay" id="vaultUploadModal" onclick="closeVaultUploadModal(event)">
   <div class="modal">
     <div class="modal-title" id="vaultUploadTitle">Upload Document</div>
-    <p class="modal-sub" id="vaultUploadDesc">—</p>
-    <div id="vaultUploadCurrent" style="display:none" class="vault-upload-modal-list"></div>
+    <p class="modal-sub" id="vaultUploadDesc">Upload your certificate to verify.</p>
+    <div id="vaultUploadCurrent" style="display:none" class="vault-upload-current"></div>
     <input type="file" id="vaultDocFile" accept="application/pdf,image/*" style="display:none" onchange="handleVaultDocFileSelect(this)">
     <div class="file-drop" id="vaultFileDrop" onclick="document.getElementById('vaultDocFile').click()">
-      <div style="font-size:24px;margin-bottom:6px">📄</div>
-      <div style="font-size:13px;color:var(--dim)" id="vaultFileDropText">Tap to upload — PDF or photo</div>
+      <div class="file-drop-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div class="file-drop-text" id="vaultFileDropText">Tap to upload — PDF or photo</div>
     </div>
-    <button class="btn-buy" id="btnVaultUpload" onclick="submitVaultDocUpload()" disabled style="margin-top:16px">Select A File First</button>
-    <button class="btn-close" onclick="closeVaultUploadModal()">Cancel</button>
+    <button class="btn-primary" id="btnVaultUpload" onclick="submitVaultDocUpload()" disabled style="margin-top:16px">Select A File First</button>
+    <button class="btn-secondary" style="margin-top:8px" onclick="closeVaultUploadModal()">Cancel</button>
   </div>
 </div>
 
+<!-- ADD DOCUMENT TYPE MODAL -->
 <div class="modal-overlay" id="flagMissingModal" onclick="closeFlagMissingModal(event)">
   <div class="modal">
-    <div class="modal-title">➕ Add A Document Type</div>
-    <p class="modal-sub">Don't see something your industry needs — Bargaining Council, PSIRA, a local municipal permit? Add it. This also helps every future company in your industry.</p>
-    <div class="field">
-      <label class="label" style="display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Document Name</label>
-      <input class="input" id="flagDocName" type="text" placeholder="e.g. PSIRA Registration" style="width:100%;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--paper);font-family:var(--body);font-size:14px;margin-bottom:14px">
-      <label class="label" style="display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Brief Description <span style="text-transform:none;letter-spacing:0">optional</span></label>
-      <input class="input" id="flagDocDesc" type="text" placeholder="What is it / why does it matter?" style="width:100%;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--paper);font-family:var(--body);font-size:14px">
+    <div class="modal-title">Add Document Type</div>
+    <p class="modal-sub">Don't see a document your industry needs? Add it — it helps every future company in your sector too.</p>
+    <div class="modal-field">
+      <label class="modal-label" for="flagDocName">Document Name</label>
+      <input class="modal-input" id="flagDocName" type="text" placeholder="e.g. PSIRA Registration">
     </div>
-    <button class="btn-buy" id="btnFlagMissing" onclick="submitFlagMissing()" style="margin-top:16px">Add Document Type</button>
-    <button class="btn-close" onclick="closeFlagMissingModal()">Cancel</button>
+    <div class="modal-field">
+      <label class="modal-label" for="flagDocDesc">Brief Description <span style="text-transform:none;letter-spacing:0;font-weight:400">optional</span></label>
+      <input class="modal-input" id="flagDocDesc" type="text" placeholder="What is it and why does it matter?">
+    </div>
+    <button class="btn-primary" id="btnFlagMissing" onclick="submitFlagMissing()" style="margin-top:4px">Add Document Type</button>
+    <button class="btn-secondary" style="margin-top:8px" onclick="closeFlagMissingModal()">Cancel</button>
   </div>
 </div>
 
+<!-- REPORT OVERLAY — stays dark -->
 <div class="report-overlay" id="reportOverlay">
-  <div class="report-nav"><button class="report-back" onclick="closeReport()">← Back</button><button class="report-download" id="downloadBtn" onclick="downloadCurrentReport()">⬇ Download .docx</button></div>
+  <div class="report-nav">
+    <button class="report-back" onclick="closeReport()">← Back</button>
+    <button class="report-download" id="downloadBtn" onclick="downloadCurrentReport()">Download .docx</button>
+  </div>
   <div class="report-body" id="reportBody"></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-var companyId = location.pathname.split('/dashboard/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
+var companyId = location.pathname.split('/dashboard-v2/')[1]?.split('/')[0] || location.pathname.split('/dashboard/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
 var companyData = null;
 var freeTrials = {};
 var selectedFiles = [];
 var selectedAmount = 100;
 
-function showToast(msg, color) {
+function showToast(msg, type) {
   var t = document.getElementById('toast');
   t.textContent = msg;
-  t.style.background = color || '#ffffff';
-  t.style.color = color ? '#fff' : '#0a0a0a';
+  t.className = 'toast' + (type ? ' '+type : '');
   t.classList.add('show');
   setTimeout(function() { t.classList.remove('show'); }, 3500);
 }
@@ -302,7 +556,7 @@ async function loadDashboard() {
   try {
     var res = await fetch('/tl/company?id=' + companyId);
     var d = await res.json();
-    if (d.error) { showToast('Session expired'); return; }
+    if (d.error) { showToast('Session expired', 'error'); return; }
     companyData = d;
     document.getElementById('balancePill').textContent = 'R' + (d.balance || 0) + ' balance';
 
@@ -310,14 +564,13 @@ async function loadDashboard() {
     var trialsData = await trialsRes.json();
     freeTrials = trialsData.free_trials_available || {};
 
-    var uploadSub = freeTrials.upload
+    document.getElementById('uploadSub').textContent = freeTrials.upload
       ? 'Your first tender (up to 5 documents) is free.'
       : 'R20 per document.';
-    document.getElementById('uploadSub').textContent = uploadSub;
 
     await loadVaultStatus();
     await loadTenders();
-  } catch(e) { showToast('Could not load dashboard', '#ff4757'); }
+  } catch(e) { showToast('Could not load dashboard', 'error'); }
 }
 
 var vaultActive = false;
@@ -330,10 +583,10 @@ async function loadVaultStatus() {
     var pill = document.getElementById('vaultPill');
     if (vaultActive) {
       pill.className = 'vault-pill active';
-      pill.textContent = '📁 Vault ✓';
+      pill.textContent = 'Vault Active';
     } else {
       pill.className = 'vault-pill inactive';
-      pill.textContent = '📁 Vault';
+      pill.textContent = 'Vault';
     }
     await renderVaultSection();
   } catch(e) { console.warn('loadVaultStatus error:', e); }
@@ -347,23 +600,20 @@ async function renderVaultSection() {
   var grid = document.getElementById('vaultDocGrid');
 
   if (!vaultActive) {
-    badge.textContent = 'LOCKED';
-    badge.style.color = '#888';
-    badge.style.borderColor = 'rgba(255,255,255,.15)';
-    badge.style.background = 'rgba(255,255,255,.05)';
+    badge.className = 'vault-badge locked';
+    badge.textContent = 'Locked';
     sub.textContent = 'Securely store, verify, and instantly retrieve your compliance certificates.';
-    grid.innerHTML = '<div class="vault-locked-overlay">' +
-      '<div class="vault-locked-icon">🔒</div>' +
-      '<div class="vault-locked-text">No more digging through email at 11pm. Subscribe to unlock secure storage, automatic expiry reminders, and certificates that attach themselves to every Bid Pack.</div>' +
-      '<button class="btn-gold" style="max-width:240px" onclick="openVaultModal()">Unlock — R99/month</button>' +
-    '</div>';
+    grid.innerHTML =
+      '<div class="vault-locked">' +
+        '<div class="vault-locked-title">Certificates, Organised</div>' +
+        '<div class="vault-locked-text">No more digging through email before a deadline. Subscribe to unlock secure storage, automatic expiry reminders, and certificates that attach themselves to every Bid Pack.</div>' +
+        '<button class="btn-outline" onclick="openVaultModal()">Unlock Vault — R99/month</button>' +
+      '</div>';
     return;
   }
 
-  badge.textContent = 'EXCLUSIVE';
-  badge.style.color = '';
-  badge.style.borderColor = '';
-  badge.style.background = '';
+  badge.className = 'vault-badge active';
+  badge.textContent = 'Active';
 
   try {
     var res = await fetch('/tl/compliance/requirements?company_id=' + companyId);
@@ -373,39 +623,39 @@ async function renderVaultSection() {
     var verified = vaultRequirements.filter(function(r){return r.status==='green'}).length;
     sub.textContent = verified + ' of ' + vaultRequirements.length + ' documents verified. Tap any to upload, view, or replace.';
 
-    grid.innerHTML = '<div class="vault-doc-grid">' + vaultRequirements.map(function(r) {
-      var light = r.status==='green' ? '🟢' : r.status==='amber' ? '🟡' : r.status==='red' ? '🔴' : '⚪️';
-      var metaCls = r.status==='green' ? 'green' : r.status==='amber' ? 'amber' : r.status==='red' ? 'red' : '';
+    var rows = vaultRequirements.map(function(r) {
+      var dotCls = r.status==='green' ? 'green' : r.status==='amber' ? 'amber' : r.status==='red' ? 'red' : 'missing';
+      var metaCls = dotCls === 'missing' ? '' : dotCls;
       var meta = 'Not uploaded';
-      if (r.status === 'green') meta = (r.extracted_value || 'Verified') + (r.expiry_date ? ' · expires ' + r.expiry_date : '');
-      else if (r.status === 'amber') meta = 'Renewal due soon' + (r.expiry_date ? ' · ' + r.expiry_date : '');
-      else if (r.status === 'red') meta = r.red_reason === 'wrong_document' ? 'Wrong document — re-upload' : 'Expired';
+      if (r.status==='green') meta = (r.extracted_value||'Verified') + (r.expiry_date ? ' · expires '+r.expiry_date : '');
+      else if (r.status==='amber') meta = 'Renewal due soon' + (r.expiry_date ? ' · '+r.expiry_date : '');
+      else if (r.status==='red') meta = r.red_reason==='wrong_document' ? 'Wrong document — please re-upload' : 'Expired';
 
-      var actions = '<div class="vault-doc-actions">';
-      if (r.status !== 'missing') {
-        actions += '<button class="vault-doc-btn" onclick="event.stopPropagation();viewVaultDoc(&quot;'+r.doc_type_id+'&quot;)" title="View">👁</button>';
-      }
-      actions += '<button class="vault-doc-btn" onclick="event.stopPropagation();openVaultUploadModal(&quot;'+r.doc_type_id+'&quot;)" title="Upload">⬆</button>';
-      actions += '</div>';
+      var viewBtn = r.status !== 'missing'
+        ? '<button class="vault-doc-btn" onclick="event.stopPropagation();viewVaultDoc(\''+r.doc_type_id+'\')" title="View"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>'
+        : '';
+      var uploadBtn = '<button class="vault-doc-btn" onclick="event.stopPropagation();openVaultUploadModal(\''+r.doc_type_id+'\')" title="Upload"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>';
 
-      return '<div class="vault-doc-pill" onclick="openVaultUploadModal(&quot;'+r.doc_type_id+'&quot;)">' +
-        '<div class="vault-doc-light">'+light+'</div>' +
-        '<div class="vault-doc-info"><div class="vault-doc-name">'+r.name+'</div><div class="vault-doc-meta '+metaCls+'">'+meta+'</div></div>' +
-        actions +
+      return '<div class="vault-doc-row" onclick="openVaultUploadModal(\''+r.doc_type_id+'\')">'+
+        '<div class="vault-doc-status '+dotCls+'"></div>'+
+        '<div class="vault-doc-info"><div class="vault-doc-name">'+r.name+'</div><div class="vault-doc-meta '+metaCls+'">'+meta+'</div></div>'+
+        '<div class="vault-doc-actions">'+viewBtn+uploadBtn+'</div>'+
       '</div>';
-    }).join('') +
-    '<div class="vault-doc-pill vault-doc-add" onclick="openFlagMissingModal()">' +
-      '<div class="vault-doc-light">➕</div>' +
-      '<div class="vault-doc-info"><div class="vault-doc-name">Add Document Type</div><div class="vault-doc-meta">Bargaining Council, PSIRA, local permit, anything specific to your industry</div></div>' +
-    '</div>' +
+    }).join('');
+
+    var addRow = '<div class="vault-doc-row vault-doc-add" onclick="openFlagMissingModal()">'+
+      '<div class="vault-doc-status" style="background:var(--orange);opacity:.5"></div>'+
+      '<div class="vault-doc-info"><div class="vault-doc-name">Add Document Type</div><div class="vault-doc-meta">Bargaining Council, PSIRA, local permit — anything specific to your industry</div></div>'+
     '</div>';
+
+    grid.innerHTML = '<div class="vault-doc-grid">'+rows+addRow+'</div>';
   } catch(e) { console.warn('renderVaultSection error:', e); }
 }
 
 var vaultUploadTargetType = null;
 
 function openVaultUploadModal(docTypeId) {
-  var req = vaultRequirements.find(function(r){return r.doc_type_id === docTypeId});
+  var req = vaultRequirements.find(function(r){return r.doc_type_id===docTypeId});
   if (!req) return;
   vaultUploadTargetType = docTypeId;
   document.getElementById('vaultUploadTitle').textContent = req.name;
@@ -414,7 +664,7 @@ function openVaultUploadModal(docTypeId) {
   var current = document.getElementById('vaultUploadCurrent');
   if (req.status !== 'missing') {
     current.style.display = 'block';
-    current.textContent = 'Currently on file: ' + (req.extracted_value || req.status) + (req.expiry_date ? ' · expires ' + req.expiry_date : '');
+    current.textContent = 'Currently on file: '+(req.extracted_value||req.status)+(req.expiry_date?' · expires '+req.expiry_date:'');
   } else {
     current.style.display = 'none';
   }
@@ -424,14 +674,11 @@ function openVaultUploadModal(docTypeId) {
   document.getElementById('vaultFileDropText').textContent = 'Tap to upload — PDF or photo';
   document.getElementById('btnVaultUpload').disabled = true;
   document.getElementById('btnVaultUpload').textContent = 'Select A File First';
-
   document.getElementById('vaultUploadModal').classList.add('open');
 }
-
 function closeVaultUploadModal(e) {
-  if (!e || e.target === document.getElementById('vaultUploadModal')) {
+  if (!e || e.target===document.getElementById('vaultUploadModal'))
     document.getElementById('vaultUploadModal').classList.remove('open');
-  }
 }
 
 var vaultDocSelectedFile = null;
@@ -439,13 +686,13 @@ var vaultDocSelectedFile = null;
 function handleVaultDocFileSelect(input) {
   var file = input.files[0];
   if (!file) return;
-  if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) { showToast('Please select a PDF or image', '#ff4757'); return; }
-  if (file.size > 20*1024*1024) { showToast('File must be under 20MB', '#ff4757'); return; }
+  if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) { showToast('Please select a PDF or image', 'error'); return; }
+  if (file.size > 20*1024*1024) { showToast('File must be under 20MB', 'error'); return; }
   vaultDocSelectedFile = file;
   document.getElementById('vaultFileDrop').classList.add('has-file');
-  document.getElementById('vaultFileDropText').textContent = '✓ ' + file.name;
+  document.getElementById('vaultFileDropText').textContent = file.name;
   document.getElementById('btnVaultUpload').disabled = false;
-  document.getElementById('btnVaultUpload').textContent = 'Upload & Verify →';
+  document.getElementById('btnVaultUpload').textContent = 'Upload & Verify';
 }
 
 async function submitVaultDocUpload() {
@@ -457,29 +704,21 @@ async function submitVaultDocUpload() {
     fd.append('company_id', companyId);
     fd.append('doc_type_id', vaultUploadTargetType);
     fd.append('file', vaultDocSelectedFile);
-    var res = await fetch('/tl/compliance/upload', { method: 'POST', body: fd });
+    var res = await fetch('/tl/compliance/upload', { method:'POST', body:fd });
     var d = await res.json();
-    if (res.status === 402) { showToast(d.error, '#ff6b1a'); closeVaultUploadModal(); openVaultModal(); return; }
+    if (res.status===402) { showToast(d.error, 'warn'); closeVaultUploadModal(); openVaultModal(); return; }
     if (d.error) throw new Error(d.error);
-
-    showToast(d.is_correct_doc_type === false ? '⚠️ Wrong document type — please check and re-upload' : '✅ Verified — ' + (d.status||'').toUpperCase());
+    showToast(d.is_correct_doc_type===false ? 'Wrong document type — please check and re-upload' : 'Verified — '+String(d.status||'').toUpperCase(), d.is_correct_doc_type===false ? 'warn' : 'success');
     closeVaultUploadModal();
     await renderVaultSection();
   } catch(e) {
-    showToast(e.message || 'Upload failed', '#ff4757');
-    btn.disabled = false; btn.textContent = 'Upload & Verify →';
+    showToast(e.message || 'Upload failed', 'error');
+    btn.disabled = false; btn.textContent = 'Upload & Verify';
   }
 }
 
 function viewVaultDoc(docTypeId) {
-  var req = vaultRequirements.find(function(r){return r.doc_type_id === docTypeId});
-  if (!req) return;
-  // doc_type_id alone isn't enough to fetch — need the actual document id,
-  // which isn't in the requirements payload. Open via doc_type lookup on
-  // the server side instead: simplest reliable path is opening the upload
-  // modal, which already shows current status; full inline viewer is a
-  // future enhancement once document ids are threaded through.
-  window.open('/tl/compliance/document?company_id=' + companyId + '&doc_type_id=' + docTypeId, '_blank');
+  window.open('/tl/compliance/document?company_id='+companyId+'&doc_type_id='+docTypeId, '_blank');
 }
 
 function openFlagMissingModal() {
@@ -488,51 +727,38 @@ function openFlagMissingModal() {
   document.getElementById('flagMissingModal').classList.add('open');
 }
 function closeFlagMissingModal(e) {
-  if (!e || e.target === document.getElementById('flagMissingModal')) {
+  if (!e || e.target===document.getElementById('flagMissingModal'))
     document.getElementById('flagMissingModal').classList.remove('open');
-  }
 }
 
 async function submitFlagMissing() {
   var name = document.getElementById('flagDocName').value.trim();
   var desc = document.getElementById('flagDocDesc').value.trim();
-  if (!name) { showToast('Please enter a document name', '#ff6b1a'); return; }
-
+  if (!name) { showToast('Please enter a document name', 'warn'); return; }
   var btn = document.getElementById('btnFlagMissing');
   btn.disabled = true; btn.textContent = 'Adding...';
   try {
     var res = await fetch('/tl/compliance/flag-missing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company_id: companyId, name: name, description: desc || null })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ company_id:companyId, name:name, description:desc||null })
     });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
-
     closeFlagMissingModal();
-    showToast('✅ Added "' + name + '" — it now appears in your Vault');
+    showToast('Added "'+name+'" — it now appears in your Vault', 'success');
     await renderVaultSection();
-  } catch(e) {
-    showToast(e.message || 'Failed to add document type', '#ff4757');
-  }
+  } catch(e) { showToast(e.message||'Failed to add document type', 'error'); }
   btn.disabled = false; btn.textContent = 'Add Document Type';
 }
 
 function handleVaultPillClick() {
-  if (vaultActive) {
-    showToast('✅ Vault active — your certificates are stored and ready');
-    return;
-  }
+  if (vaultActive) { showToast('Vault active — certificates stored and ready', 'success'); return; }
   openVaultModal();
 }
-
-function openVaultModal() {
-  document.getElementById('vaultModal').classList.add('open');
-}
+function openVaultModal() { document.getElementById('vaultModal').classList.add('open'); }
 function closeVaultModal(e) {
-  if (!e || e.target === document.getElementById('vaultModal')) {
+  if (!e || e.target===document.getElementById('vaultModal'))
     document.getElementById('vaultModal').classList.remove('open');
-  }
 }
 
 async function subscribeVault() {
@@ -540,16 +766,14 @@ async function subscribeVault() {
   btn.disabled = true; btn.textContent = 'Preparing...';
   try {
     var res = await fetch('/tl/vault/subscribe', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ company_id: companyId })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ company_id:companyId })
     });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
-
-    // buildPayFastLink returns a complete, ready-to-use checkout URL —
-    // simple redirect, same pattern as Website Hub's own subscriptions.
     window.location.href = d.checkout_url;
   } catch(e) {
-    showToast(e.message || 'Could not start subscription', '#ff4757');
+    showToast(e.message||'Could not start subscription', 'error');
     btn.disabled = false; btn.textContent = 'Subscribe — R99/month';
   }
 }
@@ -571,28 +795,27 @@ function renderFileList() {
   }
 
   drop.classList.add('has-file');
-  text.textContent = '✓ ' + selectedFiles.length + ' document' + (selectedFiles.length>1?'s':'') + ' selected';
+  text.textContent = selectedFiles.length + ' document'+(selectedFiles.length>1?'s':'')+' selected';
   listEl.innerHTML = selectedFiles.map(function(f,i){
-    return '<div class="file-item"><span>📄 '+f.name+'</span><button class="file-item-remove" onclick="removeFile('+i+')">✕</button></div>';
+    return '<div class="file-item"><div class="file-item-name"><div class="file-item-dot"></div>'+f.name+'</div><button class="file-item-remove" onclick="removeFile('+i+')">×</button></div>';
   }).join('');
 
-  var isFree = freeTrials.upload && selectedFiles.length <= 5;
-  var price = isFree ? 0 : selectedFiles.length * 20;
+  var isFree = freeTrials.upload && selectedFiles.length<=5;
+  var price = isFree ? 0 : selectedFiles.length*20;
   priceLine.innerHTML = isFree
-    ? '<strong>FREE</strong> — first tender trial<span class="free-badge">FREE TRIAL</span>'
-    : selectedFiles.length + ' × R20 = <strong>R' + price + '</strong>';
+    ? '<strong>FREE</strong> — first tender trial <span class="free-badge">FREE TRIAL</span>'
+    : selectedFiles.length+' × R20 = <strong>R'+price+'</strong>';
   btn.disabled = false;
-  btn.textContent = isFree ? 'Upload Free →' : 'Upload · R' + price + ' →';
+  btn.textContent = isFree ? 'Upload Free' : 'Upload · R'+price;
 }
 
 function removeFile(i) { selectedFiles.splice(i,1); renderFileList(); }
 
 function handleFileSelect(input) {
-  var newFiles = Array.from(input.files || []);
-  newFiles.forEach(function(f) {
-    if (f.type !== 'application/pdf') { showToast('Skipped "'+f.name+'" — PDF only', '#ff4757'); return; }
-    if (f.size > 32*1024*1024) { showToast('Skipped "'+f.name+'" — over 32MB', '#ff4757'); return; }
-    if (!selectedFiles.some(function(x){return x.name===f.name && x.size===f.size})) selectedFiles.push(f);
+  Array.from(input.files||[]).forEach(function(f) {
+    if (f.type!=='application/pdf') { showToast('Skipped "'+f.name+'" — PDF only', 'warn'); return; }
+    if (f.size>32*1024*1024) { showToast('Skipped "'+f.name+'" — over 32MB', 'warn'); return; }
+    if (!selectedFiles.some(function(x){return x.name===f.name&&x.size===f.size})) selectedFiles.push(f);
   });
   input.value = '';
   renderFileList();
@@ -601,8 +824,7 @@ function handleFileSelect(input) {
 async function submitUpload() {
   var ref = document.getElementById('tenderRef').value.trim();
   if (!selectedFiles.length) return;
-  if (selectedFiles.length > 1 && !ref) { showToast('Reference required for multiple documents', '#ff6b1a'); return; }
-
+  if (selectedFiles.length>1 && !ref) { showToast('Reference required for multiple documents', 'warn'); return; }
   var btn = document.getElementById('btnUpload');
   btn.disabled = true; btn.textContent = 'Uploading...';
   try {
@@ -610,101 +832,90 @@ async function submitUpload() {
     fd.append('company_id', companyId);
     selectedFiles.forEach(function(f){ fd.append('files', f); });
     if (ref) fd.append('tender_ref', ref);
-
-    var res = await fetch('/tl/v2/tender/upload', { method:'POST', body: fd });
+    var res = await fetch('/tl/v2/tender/upload', { method:'POST', body:fd });
     var d = await res.json();
-
-    if (res.status === 409 && d.gate_failed) {
-      var proceed = confirm('Mismatch: ' + (d.gate_message||'') + '\\n\\nProceed anyway?');
-      if (proceed) { fd.append('override_gate','true'); res = await fetch('/tl/v2/tender/upload',{method:'POST',body:fd}); d = await res.json(); }
+    if (res.status===409 && d.gate_failed) {
+      var proceed = confirm('Mismatch: '+(d.gate_message||'')+'\n\nProceed anyway?');
+      if (proceed) { fd.append('override_gate','true'); res=await fetch('/tl/v2/tender/upload',{method:'POST',body:fd}); d=await res.json(); }
       else { btn.disabled=false; renderFileList(); return; }
     }
-    if (res.status === 402) { showToast(d.error, '#ff6b1a'); openBalanceModal(); btn.disabled=false; renderFileList(); return; }
+    if (res.status===402) { showToast(d.error, 'warn'); openBalanceModal(); btn.disabled=false; renderFileList(); return; }
     if (d.error) throw new Error(d.error);
-
     selectedFiles = [];
     document.getElementById('tenderRef').value = '';
     renderFileList();
-    showToast(d.was_free_trial ? '✅ Tender uploaded — free trial used!' : '✅ Tender uploaded — R'+d.charged+' charged');
+    showToast(d.was_free_trial ? 'Tender uploaded — free trial used' : 'Tender uploaded — R'+d.charged+' charged', 'success');
     await loadDashboard();
-  } catch(e) {
-    showToast(e.message || 'Upload failed', '#ff4757');
-  }
+  } catch(e) { showToast(e.message||'Upload failed', 'error'); }
   btn.disabled = false;
 }
 
 function productLabel(p) { return p==='gonogo' ? 'GO / NO-GO' : 'BID PACK'; }
 function productPrice(p) { return p==='gonogo' ? 100 : 750; }
+function productSub(p) {
+  return p==='gonogo'
+    ? 'Should you bid? Verdict, eligibility, risk flags.'
+    : 'Priced BOQ + every official form, pre-filled. Print and go.';
+}
 
 async function loadTenders() {
   try {
-    var res = await fetch('/tl/v2/tenders?company_id=' + companyId);
+    var res = await fetch('/tl/v2/tenders?company_id='+companyId);
     var d = await res.json();
     var tenders = d.tenders || [];
     if (!tenders.length) { document.getElementById('tendersList').innerHTML = '<div class="empty-state">No tenders uploaded yet.</div>'; return; }
 
     document.getElementById('tendersList').innerHTML = tenders.map(function(t) {
-      var title = t.tender_title || 'Tender — ' + new Date(t.created_at).toLocaleDateString('en-ZA');
+      var title = t.tender_title || 'Tender — '+new Date(t.created_at).toLocaleDateString('en-ZA');
       var runsByProduct = {};
-      // product_runs is ordered newest-first (created_at DESC) — only keep
-      // the FIRST occurrence of each product, which is the most recent run.
-      // Without this guard, older failed attempts on the same product would
-      // silently overwrite a later successful one as the loop continues.
-      (t.product_runs || []).forEach(function(r) { if (!runsByProduct[r.product]) runsByProduct[r.product] = r; });
+      (t.product_runs||[]).forEach(function(r){ if (!runsByProduct[r.product]) runsByProduct[r.product]=r; });
 
       var products = ['gonogo','bidpack'].map(function(p) {
         var run = runsByProduct[p];
         if (!run) {
           var isFree = freeTrials[p];
-          return '<div class="product-card" onclick="runProduct(&quot;'+t.id+'&quot;,&quot;'+p+'&quot;)">'+
+          return '<div class="product-card" onclick="runProduct(\''+t.id+'\',\''+p+'\')">'+
             '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">'+productSub(p)+'</div></div>'+
-            '<div class="product-right"><div class="product-price'+(isFree?' free':'')+'">'+(isFree?'FREE':'R'+productPrice(p))+'</div></div></div>';
+            '<div class="product-right"><div class="product-price'+(isFree?' free':'')+'">'+( isFree?'FREE':'R'+productPrice(p))+'</div></div></div>';
         }
-
-        if (run.status === 'complete') {
+        if (run.status==='complete') {
           var badgeCls = run.verdict==='GO'?'status-go':run.verdict==='NO_GO'?'status-nogo':run.verdict==='CONDITIONAL_GO'?'status-cond':'';
           var badgeText = run.verdict ? run.verdict.replace('_',' ') : 'DONE';
-          return '<div class="product-card done" onclick="viewProductReport(&quot;'+run.id+'&quot;)">'+
-            '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">View report →</div></div>'+
+          return '<div class="product-card done" onclick="viewProductReport(\''+run.id+'\')">'+
+            '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">View report</div></div>'+
             '<div class="product-right"><span class="product-status '+badgeCls+'">'+badgeText+'</span></div></div>';
         }
-        if (run.status === 'failed') {
-          return '<div class="product-card" onclick="runProduct(&quot;'+t.id+'&quot;,&quot;'+p+'&quot;)">'+
+        if (run.status==='failed') {
+          return '<div class="product-card" onclick="runProduct(\''+t.id+'\',\''+p+'\')">'+
             '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">Failed — not charged. Tap to retry.</div></div>'+
             '<div class="product-right"><span class="product-status status-failed">FAILED</span></div></div>';
         }
         return '<div class="product-card done">'+
-          '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">Processing — this can take several minutes</div></div>'+
+          '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">Processing — this can take a few minutes</div></div>'+
           '<div class="product-right"><span class="product-status status-proc">'+run.status.toUpperCase()+'</span></div></div>';
       }).join('');
 
-      return '<div class="tender-card"><div class="tender-head"><div class="tender-title">'+title+'</div><div class="tender-meta">'+t.document_count+' document'+(t.document_count>1?'s':'')+' · '+new Date(t.created_at).toLocaleDateString('en-ZA')+'</div></div><div class="products-row">'+products+'</div></div>';
+      return '<div class="tender-card"><div class="tender-head"><div class="tender-title">'+title+'</div><div class="tender-meta">'+t.document_count+' doc'+(t.document_count>1?'s':'')+' · '+new Date(t.created_at).toLocaleDateString('en-ZA')+'</div></div><div class="products-row">'+products+'</div></div>';
     }).join('');
 
-    // Poll any in-progress runs
     var anyProcessing = tenders.some(function(t){ return (t.product_runs||[]).some(function(r){ return r.status==='queued'||r.status==='processing'; }); });
     if (anyProcessing) setTimeout(loadTenders, 5000);
   } catch(e) { console.warn('loadTenders error:', e); }
 }
 
-function productSub(p) {
-  if (p==='gonogo') return 'Should you bid? Verdict, eligibility, risk flags.';
-  return 'Priced BOQ + every official form, pre-filled. Print and go.';
-}
-
 async function runProduct(tenderId, product) {
-  showToast('Queueing ' + productLabel(product) + '...');
+  showToast('Queueing '+productLabel(product)+'...');
   try {
     var res = await fetch('/tl/v2/product/run', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ tender_id: tenderId, product: product })
+      body: JSON.stringify({ tender_id:tenderId, product:product })
     });
     var d = await res.json();
-    if (res.status === 402) { showToast(d.error, '#ff6b1a'); openBalanceModal(); return; }
+    if (res.status===402) { showToast(d.error, 'warn'); openBalanceModal(); return; }
     if (d.error) throw new Error(d.error);
-    showToast(d.is_free_trial ? 'Queued — free trial!' : 'Queued — R'+d.price+' will be charged on success');
+    showToast(d.is_free_trial ? 'Queued — free trial!' : 'Queued — R'+d.price+' charged on success', 'success');
     await loadDashboard();
-  } catch(e) { showToast(e.message || 'Failed to queue', '#ff4757'); }
+  } catch(e) { showToast(e.message||'Failed to queue', 'error'); }
 }
 
 var currentReportRunId = null;
@@ -712,21 +923,18 @@ var currentReportRunId = null;
 async function viewProductReport(runId) {
   showToast('Loading report...');
   try {
-    var res = await fetch('/tl/v2/product-run?id=' + runId);
+    var res = await fetch('/tl/v2/product-run?id='+runId);
     var d = await res.json();
-    if (!d.report) { showToast('Report not ready'); return; }
+    if (!d.report) { showToast('Report not ready', 'warn'); return; }
     currentReportRunId = runId;
     var r = d.report;
     var html = '<div class="report-heading"><h1>'+(r.tender_title||'Tender Analysis')+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
 
-    // Contextual nudge — surfaces exactly where the pain is real: someone
-    // about to print/download a Bid Pack, the moment they'd actually feel
-    // the gap of not having certificates already attached.
-    if (d.product === 'bidpack' && !vaultActive) {
-      html += '<div class="vault-nudge" onclick="openVaultModal()">' +
-        '<div class="vault-nudge-icon">📁</div>' +
-        '<div class="vault-nudge-text">You\'re about to print this without your real certificates attached. <strong>Vault subscribers</strong> get every Bid Pack fully assembled — no digging for documents at the last minute.</div>' +
-        '<div class="vault-nudge-cta">R99/mo →</div>' +
+    if (d.product==='bidpack' && !vaultActive) {
+      html += '<div class="vault-nudge" onclick="openVaultModal()">'+
+        '<div class="vault-nudge-indicator"></div>'+
+        '<div class="vault-nudge-text">You\'re about to print this without your real certificates attached. <strong>Vault subscribers</strong> get every Bid Pack fully assembled — no last-minute document hunting.</div>'+
+        '<div class="vault-nudge-cta">R99/mo</div>'+
       '</div>';
     }
 
@@ -734,93 +942,77 @@ async function viewProductReport(runId) {
       var cls = r.verdict.toLowerCase();
       html += '<div class="verdict-banner '+cls+'"><div class="verdict-label '+cls+'">'+r.verdict.replace('_',' ')+'</div><p class="verdict-summary">'+(r.verdict_summary||'')+'</p></div>';
     }
-    if (r.eligibility) { html += section('Eligibility', r.eligibility.map(function(e){return checkRow(e.status==='MET'?'✅':e.status==='UNMET'?'❌':'❓', e.requirement, e.detail+(e.notes?' '+e.notes:''));})); }
+    if (r.eligibility) { html += section('Eligibility', r.eligibility.map(function(e){return checkRow(e.status==='MET'?'✅':e.status==='UNMET'?'❌':'❓',e.requirement,e.detail+(e.notes?' '+e.notes:''));})); }
 
-    // Count genuine unverified gaps — only nudge when there's REAL evidence
-    // from THIS report, not a generic message shown regardless of content.
-    if (d.product === 'gonogo' && !vaultActive && r.eligibility) {
-      var unverifiedItems = r.eligibility.filter(function(e) {
-        return e.status === 'UNKNOWN' && /self-reported|not verified|unverified/i.test(e.notes || '');
-      });
-      if (unverifiedItems.length > 0) {
-        var gapNames = unverifiedItems.slice(0, 3).map(function(e) { return e.requirement; }).join(', ');
-        html += '<div class="vault-nudge" onclick="openVaultModal()">' +
-          '<div class="vault-nudge-icon">❓</div>' +
-          '<div class="vault-nudge-text"><strong>' + unverifiedItems.length + ' item' + (unverifiedItems.length>1?'s':'') + ' above could be marked ✅ VERIFIED</strong> instead of ❓ — ' + gapNames + (unverifiedItems.length>3?', and more':'') + '. Vault checks your real certificates so every future verdict is built on facts, not guesses.</div>' +
-          '<div class="vault-nudge-cta">R99/mo →</div>' +
+    if (d.product==='gonogo' && !vaultActive && r.eligibility) {
+      var unverified = r.eligibility.filter(function(e){ return e.status==='UNKNOWN' && /self-reported|not verified|unverified/i.test(e.notes||''); });
+      if (unverified.length>0) {
+        var names = unverified.slice(0,3).map(function(e){return e.requirement;}).join(', ');
+        html += '<div class="vault-nudge" onclick="openVaultModal()">'+
+          '<div class="vault-nudge-indicator"></div>'+
+          '<div class="vault-nudge-text"><strong>'+unverified.length+' item'+(unverified.length>1?'s':'')+' above could be marked verified</strong> — '+names+(unverified.length>3?', and more':'')+'. Vault checks your real certificates so every future verdict is built on facts.</div>'+
+          '<div class="vault-nudge-cta">R99/mo</div>'+
         '</div>';
       }
     }
 
-    if (r.compliance_checklist) { html += section('Compliance', r.compliance_checklist.map(function(c){return checkRow(c.risk_level==='HIGH'?'🔴':c.risk_level==='MEDIUM'?'🟡':'🟢', c.item, c.notes);})); }
-    if (r.competitive_landscape) { html += section('Competitive Landscape', ['<p style="font-size:13px;color:var(--dim);line-height:1.7">'+r.competitive_landscape+'</p>']); }
+    if (r.compliance_checklist) { html += section('Compliance', r.compliance_checklist.map(function(c){return checkRow(c.risk_level==='HIGH'?'🔴':c.risk_level==='MEDIUM'?'🟡':'🟢',c.item,c.notes);})); }
+    if (r.competitive_landscape) { html += section('Competitive Landscape',['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.competitive_landscape+'</p>']); }
     if (r.boq) {
       var rows = r.boq.map(function(b){return '<tr><td>'+b.line_item+'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
       var totalRow = r.boq_totals ? '<tr class="boq-total"><td colspan="4">Recommended Bid</td><td colspan="2">R'+(r.boq_totals.recommended_bid||0).toLocaleString()+'</td></tr>' : '';
       html += '<div class="report-section"><div class="report-section-title">Bill Of Quantities</div><table class="boq-table"><thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th>Conf.</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
     }
-    if (r.risk_flags) { html += section('Risk Flags', r.risk_flags.map(function(f){return checkRow(f.severity==='HIGH'?'🔴':f.severity==='MEDIUM'?'🟡':'🟢', f.flag, f.mitigation);})); }
-    if (r.edge_recommendations) { html += section('How To Gain An Edge', r.edge_recommendations.map(function(e){return checkRow('🎯', e.action, e.impact+(e.timeframe?' · '+e.timeframe:''));})); }
-    if (r.future_readiness) { html += section('Path To Future Tenders', ['<p style="font-size:13px;color:var(--dim);line-height:1.7">'+r.future_readiness+'</p>']); }
-    if (r.compliance_checklist && d.product==='bidpack') { /* already rendered above */ }
+    if (r.risk_flags) { html += section('Risk Flags',r.risk_flags.map(function(f){return checkRow(f.severity==='HIGH'?'🔴':f.severity==='MEDIUM'?'🟡':'🟢',f.flag,f.mitigation);})); }
+    if (r.edge_recommendations) { html += section('How To Gain An Edge',r.edge_recommendations.map(function(e){return checkRow('→',e.action,e.impact+(e.timeframe?' · '+e.timeframe:''));})); }
+    if (r.future_readiness) { html += section('Path To Future Tenders',['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.future_readiness+'</p>']); }
     if (r.submission_document) { html += '<div class="report-section"><div class="report-section-title">Submission Document</div><div class="submission-doc">'+r.submission_document+'</div></div>'; }
     if (r.pricing_disclaimer) { html += '<div class="disclaimer">'+r.pricing_disclaimer+'</div>'; }
 
     document.getElementById('reportBody').innerHTML = html;
     document.getElementById('reportOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
-  } catch(e) { showToast('Could not load report', '#ff4757'); }
+  } catch(e) { showToast('Could not load report', 'error'); }
 }
 
 function section(title, rows) {
   return '<div class="report-section"><div class="report-section-title">'+title+'</div>'+rows.join('')+'</div>';
 }
 function checkRow(icon, text, notes) {
-  return '<div class="check-item"><div>'+icon+'</div><div><div class="check-text">'+text+'</div>'+(notes?'<div class="check-notes">'+notes+'</div>':'')+'</div></div>';
+  return '<div class="check-item"><div style="flex-shrink:0">'+icon+'</div><div><div class="check-text">'+text+'</div>'+(notes?'<div class="check-notes">'+notes+'</div>':'')+'</div></div>';
 }
 
-function closeReport() { document.getElementById('reportOverlay').classList.remove('open'); document.body.style.overflow=''; currentReportRunId = null; }
+function closeReport() { document.getElementById('reportOverlay').classList.remove('open'); document.body.style.overflow=''; currentReportRunId=null; }
 
 function downloadCurrentReport() {
   if (!currentReportRunId) return;
   var btn = document.getElementById('downloadBtn');
   btn.disabled = true; btn.textContent = 'Preparing...';
-  // Direct navigation triggers the browser's native download handling for
-  // the docx Content-Disposition header — no need to fetch+blob manually.
   var a = document.createElement('a');
-  a.href = '/tl/v2/product-run/download?id=' + currentReportRunId;
+  a.href = '/tl/v2/product-run/download?id='+currentReportRunId;
   a.click();
-  setTimeout(function() { btn.disabled = false; btn.textContent = '⬇ Download .docx'; }, 1500);
+  setTimeout(function(){ btn.disabled=false; btn.textContent='Download .docx'; }, 1500);
 }
 
 function selectAmount(el) {
   document.querySelectorAll('.amount-opt').forEach(function(o){o.classList.remove('selected')});
   el.classList.add('selected');
   selectedAmount = parseInt(el.dataset.amount);
-  document.getElementById('btnBuy').textContent = 'Pay R'+selectedAmount+' →';
+  document.getElementById('btnBuy').textContent = 'Pay R'+selectedAmount;
 }
 function openBalanceModal(){ document.getElementById('balanceModal').classList.add('open'); }
 function closeBalanceModal(e){ if(!e||e.target===document.getElementById('balanceModal')) document.getElementById('balanceModal').classList.remove('open'); }
 function buyBalance() {
   var form=document.createElement('form'); form.method='POST'; form.action='https://www.payfast.co.za/eng/process';
-  var fields={merchant_id:'10000100',merchant_key:'PAYFAST_MERCHANT_KEY',return_url:'https://tenderlogix.co.za/dashboard/'+companyId,cancel_url:'https://tenderlogix.co.za/dashboard/'+companyId,notify_url:'https://tenderlogix.co.za/tl/payfast-webhook',amount:selectedAmount.toFixed(2),item_name:'TenderLogix Top Up',custom_str1:companyId};
+  var fields={merchant_id:'10000100',merchant_key:'PAYFAST_MERCHANT_KEY',return_url:'https://tenderlogix.co.za/dashboard-v2/'+companyId,cancel_url:'https://tenderlogix.co.za/dashboard-v2/'+companyId,notify_url:'https://tenderlogix.co.za/tl/payfast-webhook',amount:selectedAmount.toFixed(2),item_name:'TenderLogix Top Up',custom_str1:companyId};
   Object.entries(fields).forEach(function(e){var i=document.createElement('input');i.type='hidden';i.name=e[0];i.value=e[1];form.appendChild(i);});
   document.body.appendChild(form); form.submit();
 }
 
 loadDashboard();
 
-// ── Browser back-button fix ────────────────────────────────────────────
-// Some browsers restore this page from the back-forward cache (bfcache) on
-// back-navigation WITHOUT re-running scripts — leaving the dashboard in a
-// stale, half-loaded state (the exact "kicks you out, have to reload"
-// symptom). pageshow's persisted flag tells us when that's happened, so we
-// can force a fresh reload of all data without the user noticing anything
-// beyond a brief refresh.
 window.addEventListener('pageshow', function(event) {
-  if (event.persisted) {
-    loadDashboard();
-  }
+  if (event.persisted) { loadDashboard(); }
 });
 </script>
 </body>
