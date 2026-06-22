@@ -396,6 +396,19 @@ async function handleRunProduct(request, env, tlJson) {
     VALUES (?,?,?,?,'queued',?,0)
   `).bind(id, tender_id, tender.company_id, product, isFreeTrial ? 1 : 0).run();
 
+  // ── 4. QUEUE SERIALISATION — one active run per company at a time ─────
+  // Check if the company already has a queued or processing run.
+  // This prevents hammering the API with concurrent requests and keeps costs predictable.
+  const activeRun = await env.TL_DB.prepare(
+    `SELECT id FROM tl_product_runs WHERE company_id=? AND status IN ('queued','processing') LIMIT 1`
+  ).bind(tender.company_id).first().catch(() => null);
+
+  if (activeRun) {
+    // Clean up the run we just inserted since we won't queue it
+    await env.TL_DB.prepare(`DELETE FROM tl_product_runs WHERE id=?`).bind(id).run().catch(() => {});
+    return tlJson({ error: 'Another analysis is already running. Please wait for it to complete before starting a new one.', retry_after_seconds: 60 }, 429);
+  }
+
   // Analysis runs in the background queue — same proven pattern as v1.
   // Charging (if not a free trial) happens inside the queue consumer, AFTER
   // a genuine, valid result is confirmed — never before.
@@ -548,12 +561,44 @@ export async function processTlV2QueueMessage(msg, env) {
 // ── Shared Claude call helper — used by gonogo/pricing directly, and by
 // bidpack's two-call split. Centralises the fetch/parse/validate-shape logic
 // so error handling stays consistent everywhere a Claude call happens.
+// ── TOKEN COST CONSTANTS (Sonnet 4.6 pricing) ────────────────────────────
+const COST_INPUT_PER_TOKEN  = 3 / 1_000_000;   // $3 per 1M input tokens
+const COST_OUTPUT_PER_TOKEN = 15 / 1_000_000;  // $15 per 1M output tokens
+const MAX_SAFE_PDF_TOKENS   = 150_000;          // warn above this
+const MAX_PDF_TOKENS        = 180_000;          // hard reject above this (~200k context - prompt headroom)
+const BYTES_PER_TOKEN_PDF   = 3.5;              // rough estimate: 1 token ≈ 3.5 bytes of PDF
+
+// ── Estimate PDF token count from raw bytes ───────────────────────────────
+function estimatePdfTokens(pdfDocs) {
+  const totalBytes = pdfDocs.reduce((sum, d) => sum + Math.ceil(d.base64.length * 0.75), 0);
+  return { totalBytes, estimatedTokens: Math.ceil(totalBytes / BYTES_PER_TOKEN_PDF) };
+}
+
 async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appendSchemaInstruction) {
   const fullPrompt = appendSchemaInstruction
     ? promptText // promptText already has schema appended by caller for single-call products
     : `${promptText}\n\nReturn ONLY this JSON structure:\n${schemaText}\n\nReturn ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
 
-  const userContent = pdfDocs.length
+  // ── 2. PDF SIZE CHECK — reject if too large for context window ───────────
+  if (pdfDocs && pdfDocs.length) {
+    const { totalBytes, estimatedTokens } = estimatePdfTokens(pdfDocs);
+    if (estimatedTokens > MAX_PDF_TOKENS) {
+      console.warn('TL callClaude — PDF too large:', estimatedTokens, 'estimated tokens across', pdfDocs.length, 'docs');
+      return {
+        success: false,
+        reason: `Tender document is too large for analysis (estimated ${Math.round(estimatedTokens/1000)}k tokens, limit ${Math.round(MAX_PDF_TOKENS/1000)}k). Try splitting the tender into smaller sections or uploading only the key specification pages.`,
+        pdf_too_large: true,
+        estimated_tokens: estimatedTokens,
+        total_bytes: totalBytes
+      };
+    }
+    if (estimatedTokens > MAX_SAFE_PDF_TOKENS) {
+      console.warn('TL callClaude — large PDF warning:', estimatedTokens, 'estimated tokens');
+      // Continue but flag it — analysis may be slower or hit max_tokens
+    }
+  }
+
+  const userContent = pdfDocs && pdfDocs.length
     ? [...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })), { type: 'text', text: fullPrompt }]
     : fullPrompt;
 
@@ -574,6 +619,11 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
     const rawText = aiData.content?.[0]?.text || '';
     const stopReason = aiData.stop_reason;
 
+    // ── 1. TOKEN TRACKING — capture usage for cost logging ──────────────
+    const inputTokens  = aiData.usage?.input_tokens  || 0;
+    const outputTokens = aiData.usage?.output_tokens || 0;
+    const costUsd      = (inputTokens * COST_INPUT_PER_TOKEN) + (outputTokens * COST_OUTPUT_PER_TOKEN);
+
     if (!rawText) {
       console.error('TL v2 callClaude — empty response. stop_reason:', stopReason);
       return { success: false, reason: 'Empty response from analysis engine' };
@@ -590,7 +640,7 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
       return { success: false, reason };
     }
 
-    return { success: true, data };
+    return { success: true, data, inputTokens, outputTokens, costUsd };
   } catch(e) {
     console.error('TL v2 callClaude — exception:', e.message);
     return { success: false, reason: e.message };
@@ -630,7 +680,7 @@ async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
     }
 
     // No JSON.parse. No schema validation. The text IS the answer.
-    return { success: true, text };
+    return { success: true, text, inputTokens, outputTokens, costUsd };
   } catch(e) {
     console.error('TL v2 callClaudeSimple — exception:', e.message);
     return { success: false, reason: e.message };
@@ -861,9 +911,27 @@ Write as complete well-formatted markdown. One disclaimer at the top. No repeate
       }
     }
 
+    // ── TOKEN COST LOGGING ───────────────────────────────────────────────
+    const totalInputTokens  = (call1Result?.inputTokens  || 0) + (call2Result?.inputTokens  || 0) + (singleResult?.inputTokens  || 0);
+    const totalOutputTokens = (call1Result?.outputTokens || 0) + (call2Result?.outputTokens || 0) + (singleResult?.outputTokens || 0);
+    const totalCostUsd      = (call1Result?.costUsd || 0) + (call2Result?.costUsd || 0) + (singleResult?.costUsd || 0);
+    const pdfSizeInfo       = pdfDocs?.length ? estimatePdfTokens(pdfDocs) : { totalBytes: 0, estimatedTokens: 0 };
+
     await env.TL_DB.prepare(`
-      UPDATE tl_product_runs SET status='complete', verdict=?, report_r2_key=?, report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-    `).bind(report.verdict || null, reportKey, JSON.stringify(report), productRunId).run();
+      UPDATE tl_product_runs
+      SET status='complete', verdict=?, report_r2_key=?, report_json=?,
+          input_tokens=?, output_tokens=?, estimated_cost_usd=?,
+          pdf_total_bytes=?, pdf_estimated_tokens=?,
+          updated_at=CURRENT_TIMESTAMP
+      WHERE id=?
+    `).bind(
+      report.verdict || null, reportKey, JSON.stringify(report),
+      totalInputTokens, totalOutputTokens, totalCostUsd,
+      pdfSizeInfo.totalBytes, pdfSizeInfo.estimatedTokens,
+      productRunId
+    ).run();
+
+    console.log('TL v2 — run complete:', productRunId, 'tokens:', totalInputTokens, '+', totalOutputTokens, 'cost: $' + totalCostUsd.toFixed(4));
 
     return { success: true };
 
