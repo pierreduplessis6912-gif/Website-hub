@@ -383,6 +383,7 @@ body{
 
 <nav class="nav">
   <a href="/" class="nav-brand">Tender<span>Logix</span></a>
+  <div id="navCompanyName" style="font-size:12px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;display:none"></div>
   <div class="nav-right">
     <a href="#" id="profileLink" class="nav-link">Profile</a>
     <div class="vault-pill inactive" id="vaultPill" onclick="handleVaultPillClick()">Vault</div>
@@ -392,6 +393,7 @@ body{
 
 <div class="page">
 
+  <div id="dashGreeting" style="font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:24px;height:2px;background:var(--orange)"></span><span id="greetingText"></span></div>
   <h1 class="page-section-title" style="margin-bottom:20px">Upload A <span>Tender.</span></h1>
 
   <div class="upload-box">
@@ -559,6 +561,14 @@ async function loadDashboard() {
     if (d.error) { showToast('Session expired', 'error'); return; }
     companyData = d;
     document.getElementById('balancePill').textContent = 'R' + (d.balance || 0) + ' balance';
+    if (d.name) {
+      var nameEl = document.getElementById('navCompanyName');
+      if (nameEl) { nameEl.textContent = d.name; nameEl.style.display = 'block'; }
+      var greetEl = document.getElementById('greetingText');
+      if (greetEl) greetEl.textContent = d.name;
+      document.getElementById('dashGreeting').style.display = 'flex';
+      document.title = d.name + ' — TenderLogix';
+    }
 
     var trialsRes = await fetch('/tl/v2/free-trials?company_id=' + companyId);
     var trialsData = await trialsRes.json();
@@ -1017,3 +1027,4 @@ window.addEventListener('pageshow', function(event) {
 </script>
 </body>
 </html>
+
