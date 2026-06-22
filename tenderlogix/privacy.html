@@ -125,10 +125,10 @@ footer{border-top:1px solid var(--border);padding:32px 24px;text-align:center}
   </ul>
 
   <h2>5. How We Use AI to Process Your Information</h2>
-  <p>TenderLogix uses Anthropic's Claude AI model to analyse tender documents and generate outputs. When you submit a tender for analysis, the document content and relevant portions of your company profile are transmitted to Anthropic's API for processing. This transmission is encrypted in transit.</p>
+  <p>TenderLogix uses an encrypted third-party AI analysis service to analyse tender documents and generate outputs. When you submit a tender for analysis, the document content and relevant portions of your company profile are transmitted to this service for processing. All transmission is encrypted in transit.</p>
   <p>We have taken the following steps to protect your information in this context:</p>
   <ul>
-    <li>Your documents are not used to train Anthropic's AI models. Anthropic's API terms prohibit using API outputs for model training without explicit consent.</li>
+    <li>Your documents are not used to train AI models. The terms governing our AI analysis service prohibit using API outputs for model training without explicit consent.</li>
     <li>Document content is transmitted only when you actively initiate an analysis. We do not batch-process your documents in the background.</li>
     <li>Analysis outputs are stored in your account and are accessible only to you.</li>
     <li>Director personal details (ID numbers, residential addresses) are <strong>not</strong> transmitted to the AI unless you explicitly include them in a form pre-fill request.</li>
@@ -143,29 +143,29 @@ footer{border-top:1px solid var(--border);padding:32px 24px;text-align:center}
       <th>Location</th>
     </tr>
     <tr>
-      <td>Cloudflare (Workers, D1, R2, KV)</td>
+      <td>Encrypted cloud infrastructure and storage providers</td>
       <td>Platform infrastructure — compute, database, document storage, caching</td>
-      <td>Global CDN; primary data residency in South Africa/Europe</td>
+      <td>Global; primary data residency in South Africa/Europe</td>
     </tr>
     <tr>
-      <td>Anthropic (Claude API)</td>
+      <td>Encrypted third-party AI analysis service</td>
       <td>AI-assisted document analysis</td>
-      <td>United States (data transmitted encrypted; not used for training)</td>
+      <td>Encrypted transmission; data not used for training</td>
     </tr>
     <tr>
-      <td>PayFast</td>
+      <td>Our payment processing partner</td>
       <td>Payment processing</td>
       <td>South Africa</td>
     </tr>
     <tr>
-      <td>Evolution API / WhatsApp</td>
+      <td>WhatsApp (via our own hosted integration)</td>
       <td>OTP authentication and service notifications</td>
-      <td>South Africa (hosted on our own infrastructure)</td>
+      <td>South Africa</td>
     </tr>
     <tr>
-      <td>Resend</td>
-      <td>Transactional email delivery</td>
-      <td>United States</td>
+      <td>Transactional email provider</td>
+      <td>Service email delivery</td>
+      <td>Encrypted transmission</td>
     </tr>
   </table>
   <p>We do not sell, rent, or trade your personal information. We do not share your information with any third party for marketing purposes.</p>
