@@ -102,7 +102,7 @@ For EACH document attached (in the order given), answer:
 Return ONLY this JSON, one entry per document in the same order they were attached:
 {
   "documents": [
-    { "filename_guess": "string", "reference_found": true | false, "different_reference_found": "string or null", "likely_annexure": true | false, "concern_level": "NONE" | "LOW" | "HIGH" }
+    { "filename_guess": "string", "reference_found": true, "different_reference_found": "string or null", "likely_annexure": true, "concern_level": "NONE or LOW or HIGH" }
   ]
 }
 
@@ -651,60 +651,53 @@ async function runV2Product(productRunId, company, pdfDocs, product, env) {
 YOUR OUTPUT HAS THREE DISTINCT LAYERS — keep them completely separate, never blend them:
 
 LAYER 1 — FACTS (what exists in the document and verified company data only)
-Extract requirements directly from the tender document and cross-reference against the company profile. Mark each item: VERIFIED (from uploaded certificate), SELF_REPORTED (stated in profile but not confirmed by certificate), MISSING (not in profile at all), or EXPIRED (certificate on file is expired). No interpretation in this layer — only what is demonstrably true.
+Extract requirements directly from the tender document and cross-reference against the company profile. Mark each item: VERIFIED (from uploaded certificate), SELF_REPORTED (stated in profile but not confirmed), MISSING (not in profile at all), or EXPIRED (certificate on file is expired). No interpretation — only what is demonstrably true.
 
 LAYER 2 — RISK ASSESSMENT (probability + reasoning + confidence)
-Score each risk with a likelihood AND your reasoning. Be explicit about what is driving uncertainty. A 35% complete company profile means LOW confidence — state this clearly. Estimate disqualification probability, functionality scores, and preference points where possible. Distinguish hard disqualifiers (missing mandatory cert) from soft risks (pricing outside typical range).
+Score each risk with a likelihood AND your reasoning. Be explicit about uncertainty. A 35% complete company profile means LOW confidence — state this. Estimate disqualification probability and functionality scores where possible. Distinguish hard disqualifiers (missing mandatory cert) from soft risks (pricing outside typical range).
 
 LAYER 3 — RECOMMENDATION (directional, not declarative)
-Never write "DO NOT SUBMIT" or "AUTOMATIC DISQUALIFICATION". Write "Not recommended in current state — high disqualification risk due to X" or "Recommended if Y is resolved before closing date". Always include what would change the recommendation. Make the decision obvious without forcing it.
+Never write DO NOT SUBMIT or AUTOMATIC DISQUALIFICATION. Write: Not recommended in current state — high disqualification risk due to X. Or: Recommended if Y is resolved before closing date. Always include what would change the recommendation.
 
-VERDICT LABELS:
-- GO: Well-positioned, no hard blockers, proceed with confidence
-- CONDITIONAL_GO: Viable but specific actions required before submission
-- NO_GO: Hard blocker exists OR risk/effort ratio is clearly unfavourable — always explain what would change this
+VERDICT VALUES: GO (well-positioned, no hard blockers), CONDITIONAL_GO (viable but actions required), NO_GO (hard blocker or unfavourable risk/effort — always explain what would change this).
 
-PROFILE COMPLETENESS: Estimate what percentage of meaningful profile fields are populated. State this explicitly. Low completeness = low confidence = you must say so.
+PROFILE COMPLETENESS: Estimate what percentage of meaningful profile fields are populated. State this explicitly. Low completeness means low confidence.
 
 COMPANY PROFILE:
-\${companyContext}
+${companyContext}
 
-TENDER DOCUMENT(S): \${pdfDocs.length} file(s) attached — treat as one combined tender pack.\`;
+TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached — treat as one combined tender pack.`;
 
-      schema = `{
-  "tender_title": "string — actual title of this tender. Never generic like 'Tender Document'.",
-  "tender_reference": "string or null",
-  "verdict": "GO" | "NO_GO" | "CONDITIONAL_GO",
-  "verdict_summary": "string — 2-3 sentences. Directional, not declarative. What does the data show, not what they must do.",
-  "assessment_confidence": "HIGH" | "MEDIUM" | "LOW",
-  "assessment_confidence_reason": "string — why this confidence level. Profile completeness, data quality, ambiguity in tender.",
-  "profile_completeness_pct": number,
-  "facts": [
-    {
-      "requirement": "string — exact requirement from tender document",
-      "source": "string — where in the tender this was found",
-      "company_status": "MET" | "UNMET" | "UNKNOWN" | "EXPIRED",
-      "company_data": "string or null — what we actually have on file",
-      "verification": "VERIFIED" | "SELF_REPORTED" | "MISSING",
-      "is_mandatory": true | false
-    }
-  ],
-  "risk_assessment": [
-    {
-      "risk": "string — specific risk description",
-      "likelihood": "HIGH" | "MEDIUM" | "LOW",
-      "impact": "HIGH" | "MEDIUM" | "LOW",
-      "reasoning": "string — why this likelihood and impact rating",
-      "what_changes_it": "string — concrete action that would reduce this risk"
-    }
-  ],
-  "disqualification_probability": "HIGH" | "MEDIUM" | "LOW",
-  "disqualification_probability_reasoning": "string",
-  "recommendation": "string — one clear directional sentence. Not DO/DO NOT. What the data suggests and why.",
-  "conditional_actions": [ { "action": "string", "deadline": "string or null", "impact_if_done": "string" } ],
-  "compliance_checklist": [ { "item": "string", "risk_level": "HIGH" | "MEDIUM" | "LOW", "notes": "string" } ],
-  "future_readiness": "string or null — what would make this company competitive for similar tenders in future"
-}\`;
+      schema = JSON.stringify({
+        tender_title: "string — actual title of this tender",
+        tender_reference: "string or null",
+        verdict: "GO or NO_GO or CONDITIONAL_GO",
+        verdict_summary: "string — 2-3 sentences, directional not declarative",
+        assessment_confidence: "HIGH or MEDIUM or LOW",
+        assessment_confidence_reason: "string — why this confidence level",
+        profile_completeness_pct: 0,
+        facts: [{
+          requirement: "string — exact requirement from tender",
+          source: "string — where in tender found",
+          company_status: "MET or UNMET or UNKNOWN or EXPIRED",
+          company_data: "string or null",
+          verification: "VERIFIED or SELF_REPORTED or MISSING",
+          is_mandatory: true
+        }],
+        risk_assessment: [{
+          risk: "string — specific risk",
+          likelihood: "HIGH or MEDIUM or LOW",
+          impact: "HIGH or MEDIUM or LOW",
+          reasoning: "string — why this rating",
+          what_changes_it: "string — action that reduces this risk"
+        }],
+        disqualification_probability: "HIGH or MEDIUM or LOW",
+        disqualification_probability_reasoning: "string",
+        recommendation: "string — directional, not DO/DO NOT",
+        conditional_actions: [{ action: 'string', deadline: 'string or null', impact_if_done: 'string' }],
+        compliance_checklist: [{ item: 'string', risk_level: 'HIGH or MEDIUM or LOW', notes: 'string' }],
+        future_readiness: "string or null"
+      });
 
     } else if (product === 'pricing') {
       maxTokens = 6144;
@@ -722,7 +715,7 @@ Produce a priced BOQ. If the tender specifies government-prescribed/gazetted rat
       schema = `{
   "tender_title": "string",
   "tender_reference": "string or null",
-  "boq": [ { "line_item": "string", "unit": "string", "quantity": number, "unit_rate": number, "total": number, "confidence": "HIGH" | "MEDIUM" | "LOW", "source": "string" } ],
+  "boq": [ { "line_item": "string", "unit": "string", "quantity": number, "unit_rate": number, "total": number, "confidence": "HIGH or MEDIUM or LOW", "source": "string" } ],
   "boq_totals": { "subtotal": number, "margin_30pct": number, "recommended_bid": number, "conservative_bid": number, "aggressive_bid": number },
   "competitive_landscape": "full paragraph — pricing structure, typical bidders, what wins on price vs preference points",
   "pricing_disclaimer": "string — standard disclaimer about indicative pricing, sources used, verify before submission"
@@ -754,7 +747,7 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
   "tender_title": "string — actual title/name of this tender",
   "tender_reference": "string or null",
   "compliance_checklist": [ { "item": "string", "status": "string", "notes": "string" } ],
-  "boq": [ { "line_item": "string", "unit": "string", "quantity": number, "unit_rate": number, "total": number, "confidence": "HIGH" | "MEDIUM" | "LOW", "source": "string" } ],
+  "boq": [ { "line_item": "string", "unit": "string", "quantity": number, "unit_rate": number, "total": number, "confidence": "HIGH or MEDIUM or LOW", "source": "string" } ],
   "boq_totals": { "subtotal": number, "margin_30pct": number, "recommended_bid": number },
   "pricing_disclaimer": "string"
 }`;
