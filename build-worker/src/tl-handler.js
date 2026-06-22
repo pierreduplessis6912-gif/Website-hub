@@ -186,7 +186,8 @@ async function handleTlCreateCompany(request, env, tlJson) {
     bee_level||null, cidb_grade||null, cidb_number||null,
     JSON.stringify(industries||[]), JSON.stringify(provinces||[]),
     years_experience||0, annual_turnover||0, employees||0,
-    normalisedPhone, normalisedEmail, address||null, client_name||null, startingBalance
+    normalisedPhone, normalisedEmail, address||null, client_name||null, startingBalance,
+    utm_source||null, utm_medium||null, utm_campaign||null
   ).run();
 
   const message = free_credits && !hasCompleteProfile
