@@ -40,6 +40,21 @@ export async function handleTenderLogix(request, env) {
   // ── ROUTES ──────────────────────────────────────────────────
   if (path === '/health') return tlJson({ status: 'ok', service: 'tenderlogix' });
 
+  // ── AUTH MIDDLEWARE — protect all routes except public ones ─────────
+  // Public: register (POST /tl/company), auth endpoints, payfast webhook
+  const isPublicRoute = (
+    (path === '/tl/company' && method === 'POST') ||   // registration
+    path === '/tl/payfast-webhook' ||                   // PayFast server callback
+    path === '/tl/auth/check' ||
+    path === '/tl/auth/verify-otp' ||
+    path === '/tl/auth/logout'
+  );
+
+  if (!isPublicRoute) {
+    const authError = await requireTlAuth(request, env);
+    if (authError) return authError;
+  }
+
   if (path === '/tl/company' && method === 'POST') return handleTlCreateCompany(request, env, tlJson);
   if (path === '/tl/company' && method === 'GET')  return handleTlGetCompany(url, env, tlJson);
   if (path === '/tl/company/update' && method === 'POST') return handleTlUpdateCompany(request, env, tlJson);
