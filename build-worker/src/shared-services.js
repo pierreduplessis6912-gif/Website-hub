@@ -185,6 +185,8 @@ export const KV_KEYS = {
     'tl-manifest':      'app:tl-manifest',
     'tl-sw':            'app:tl-sw',
     'tl-icon':          'app:tl-icon',
+    'tl-terms':         'app:tl-terms',
+    'tl-privacy':       'app:tl-privacy',
   },
 
   // ── Built site content ─────────────────────────────────────────────────────
