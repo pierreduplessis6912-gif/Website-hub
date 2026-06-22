@@ -516,12 +516,22 @@ export async function processTlV2QueueMessage(msg, env) {
   try { docKeys = JSON.parse(tender.doc_r2_keys || '[]'); } catch(e) {}
 
   const pdfDocs = [];
+  let totalPdfBytes = 0;
   for (const key of docKeys) {
     const obj = await env.TL_DOCS.get(key);
     if (obj) {
       const buf = await obj.arrayBuffer();
+      totalPdfBytes += buf.byteLength;
       pdfDocs.push({ base64: arrayBufferToBase64(buf), filename: key.split('/').pop() });
     }
+  }
+
+  // ── 3. LARGE TENDER DETECTION ────────────────────────────────────────
+  const estimatedPdfTokens = Math.ceil(totalPdfBytes / 3.5);
+  if (estimatedPdfTokens > 100_000) {
+    console.warn('TL v2 — large tender:', estimatedPdfTokens, 'est. tokens,', docKeys.length, 'docs,', totalPdfBytes, 'bytes. run:', productRunId);
+    // Future: implement chunking strategy here for very large tenders
+    // For now: proceed and let callClaude's hard limit catch anything > 180k tokens
   }
 
   if (!pdfDocs.length) {
