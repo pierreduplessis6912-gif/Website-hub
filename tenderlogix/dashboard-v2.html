@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dashboard — TenderLogix</title>
-<meta name="theme-color" content="#f8f7f4">
+<meta name="theme-color" content="#ff6b1a">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/tl-icon-192.svg">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -39,6 +41,15 @@ body{
 .nav-right{display:flex;align-items:center;gap:8px}
 .nav-link{font-size:12px;color:var(--mid);text-decoration:none;font-weight:600;text-transform:uppercase;letter-spacing:.3px;transition:color .15s}
 .nav-link:hover{color:var(--charcoal)}
+.install-btn{
+  display:none;align-items:center;gap:7px;
+  padding:7px 12px;font-family:var(--mono);font-size:11px;
+  font-weight:700;cursor:pointer;
+  background:var(--orange-dim);border:1px solid rgba(255,107,26,.2);
+  color:var(--orange);letter-spacing:.3px;transition:all .15s;
+}
+.install-btn:hover{background:var(--orange);color:var(--white);border-color:var(--orange)}
+.install-btn svg{width:14px;height:14px;fill:currentColor;flex-shrink:0}
 .vault-pill{
   padding:7px 12px;font-family:var(--mono);font-size:11px;
   font-weight:700;cursor:pointer;transition:all .15s;
@@ -384,6 +395,10 @@ body{
 <nav class="nav">
   <a href="/" class="nav-brand">Tender<span>Logix</span></a>
   <div id="navCompanyName" style="font-size:12px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;display:none"></div>
+  <button class="install-btn" id="installBtn" onclick="handleInstall()">
+    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+    Add to Home Screen
+  </button>
   <div class="nav-right">
     <a href="#" id="profileLink" class="nav-link">Profile</a>
     <a href="#" class="nav-link" onclick="handleLogout(event)" style="color:var(--red)">Sign Out</a>
