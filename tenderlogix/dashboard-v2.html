@@ -386,6 +386,7 @@ body{
   <div id="navCompanyName" style="font-size:12px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;display:none"></div>
   <div class="nav-right">
     <a href="#" id="profileLink" class="nav-link">Profile</a>
+    <a href="#" class="nav-link" onclick="handleLogout(event)" style="color:var(--red)">Sign Out</a>
     <div class="vault-pill inactive" id="vaultPill" onclick="handleVaultPillClick()">Vault</div>
     <div class="balance-pill" onclick="openBalanceModal()" id="balancePill">R— balance</div>
   </div>
@@ -944,6 +945,25 @@ async function submitUpload() {
     renderFileList();
     showToast(d.was_free_trial ? 'Tender uploaded — free trial used' : 'Tender uploaded — R'+d.charged+' charged', 'success');
     await loadDashboard();
+
+async function handleLogout(e) {
+  e.preventDefault();
+  if (!confirm('Sign out of TenderLogix?')) return;
+  try {
+    var token = localStorage.getItem('tl_session');
+    if (token) {
+      await fetch('/tl/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+    }
+  } catch(e) {}
+  localStorage.removeItem('tl_session');
+  localStorage.removeItem('tl_company_id');
+  localStorage.removeItem('tl_company_name');
+  window.removeEventListener('beforeunload', arguments.callee);
+  window.location.replace('/login');
+}
 // ── Navigation guard — warn before leaving ──────────────────────────────
 // Fires on browser back, close tab, or any navigation away from this page.
 // Exceptions: internal TenderLogix links use location.replace() so they
