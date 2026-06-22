@@ -207,6 +207,23 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 
 <script>
 var ENDPOINT = 'https://tenderlogix.co.za/tl/company';
+
+// Capture UTM params from URL and persist in sessionStorage
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  ['utm_source','utm_medium','utm_campaign'].forEach(function(k) {
+    var v = params.get(k);
+    if (v) sessionStorage.setItem(k, v);
+  });
+})();
+
+function getUtmParams() {
+  return {
+    utm_source:   sessionStorage.getItem('utm_source')   || null,
+    utm_medium:   sessionStorage.getItem('utm_medium')   || null,
+    utm_campaign: sessionStorage.getItem('utm_campaign') || null,
+  };
+}
 var UPDATE_ENDPOINT = 'https://tenderlogix.co.za/tl/company/update';
 var urlParams = new URLSearchParams(window.location.search);
 var editCompanyId = urlParams.get('edit');
@@ -367,7 +384,7 @@ async function handleSubmit() {
     var res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: JSON.stringify(Object.assign({
         name: document.getElementById('company_name').value.trim(),
         reg_number: document.getElementById('reg_number').value.trim() || null,
         email: document.getElementById('email').value.trim(),
@@ -375,7 +392,7 @@ async function handleSubmit() {
         industries: selectedIndustries,
         provinces: getProvinces(),
         client_name: document.getElementById('contact_name').value.trim(),
-      })
+      }, getUtmParams()))
     });
     var d = await res.json();
     if (res.status === 409) {
