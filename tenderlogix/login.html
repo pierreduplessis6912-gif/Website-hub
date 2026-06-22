@@ -167,6 +167,13 @@ body{
 
 <script>
 var WA_NUMBER = '27790128508';
+
+// Trap back button — push dummy history state so Android back button
+// stays on this page rather than navigating away mid-login
+history.pushState(null, '', window.location.href);
+window.addEventListener('popstate', function() {
+  history.pushState(null, '', window.location.href);
+});
 var VERIFY_ENDPOINT = 'https://tenderlogix.co.za/tl/auth/verify-otp';
 var digits = ['d1','d2','d3','d4','d5','d6'];
 var codeSent = false;
