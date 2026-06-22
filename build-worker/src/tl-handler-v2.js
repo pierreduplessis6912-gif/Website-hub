@@ -43,6 +43,10 @@ export async function handleTlV2(request, env) {
     });
   }
 
+  // ── AUTH MIDDLEWARE — all v2 routes require valid session ──────────
+  const authError = await requireTlAuth(request, env);
+  if (authError) return authError;
+
   if (path === '/tl/v2/tender/upload' && method === 'POST') return handleTenderUpload(request, env, tlJson);
   if (path === '/tl/v2/tender' && method === 'GET') return handleGetTender(url, env, tlJson);
   if (path === '/tl/v2/tenders' && method === 'GET') return handleListTenders(url, env, tlJson);
