@@ -644,33 +644,67 @@ async function runV2Product(productRunId, company, pdfDocs, product, env) {
 
     let prompt, schema, maxTokens;
 
-    if (product === 'gonogo') {
-      maxTokens = 3072;
-      prompt = `You are a South African tender bid intelligence analyst. Your single most important job is CREDIBILITY, not sales — clients return because verdicts are honest, not because they're positive.
+     if (product === 'gonogo') {
+      maxTokens = 4096;
+      prompt = `You are a South African tender bid decision intelligence system. Your job is not to tell the client what to do — it is to make the hidden cost of each option visible before they commit. Think like a GPS: precise about what you know, honest about uncertainty, directional without being authoritarian.
 
-NON-NEGOTIABLE PRINCIPLES:
-1. NO ARTIFICIAL OPTIMISM OR PESSIMISM. Say NO_GO plainly when there's no realistic path. Say GO with confidence when well-positioned.
-2. WHEN GENUINELY CLOSE, say CONDITIONAL_GO and give specific, concrete actions that would tip the odds — not vague advice.
-3. MISSING PROFILE DATA IS NOT A GUESS — mark eligibility items UNKNOWN rather than assume.
-4. EVERY NO_GO INCLUDES A PATH FORWARD WHERE ONE GENUINELY EXISTS — what would make THIS company eligible for similar tenders in future.
-5. IF THE DOCUMENT IS ILLEGIBLE, INCOMPLETE, OR NOT A TENDER, say so directly rather than producing a confident-sounding report from insufficient information.
+YOUR OUTPUT HAS THREE DISTINCT LAYERS — keep them completely separate, never blend them:
+
+LAYER 1 — FACTS (what exists in the document and verified company data only)
+Extract requirements directly from the tender document and cross-reference against the company profile. Mark each item: VERIFIED (from uploaded certificate), SELF_REPORTED (stated in profile but not confirmed by certificate), MISSING (not in profile at all), or EXPIRED (certificate on file is expired). No interpretation in this layer — only what is demonstrably true.
+
+LAYER 2 — RISK ASSESSMENT (probability + reasoning + confidence)
+Score each risk with a likelihood AND your reasoning. Be explicit about what is driving uncertainty. A 35% complete company profile means LOW confidence — state this clearly. Estimate disqualification probability, functionality scores, and preference points where possible. Distinguish hard disqualifiers (missing mandatory cert) from soft risks (pricing outside typical range).
+
+LAYER 3 — RECOMMENDATION (directional, not declarative)
+Never write "DO NOT SUBMIT" or "AUTOMATIC DISQUALIFICATION". Write "Not recommended in current state — high disqualification risk due to X" or "Recommended if Y is resolved before closing date". Always include what would change the recommendation. Make the decision obvious without forcing it.
+
+VERDICT LABELS:
+- GO: Well-positioned, no hard blockers, proceed with confidence
+- CONDITIONAL_GO: Viable but specific actions required before submission
+- NO_GO: Hard blocker exists OR risk/effort ratio is clearly unfavourable — always explain what would change this
+
+PROFILE COMPLETENESS: Estimate what percentage of meaningful profile fields are populated. State this explicitly. Low completeness = low confidence = you must say so.
 
 COMPANY PROFILE:
-${companyContext}
+\${companyContext}
 
-TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached — treat as one combined tender pack.`;
+TENDER DOCUMENT(S): \${pdfDocs.length} file(s) attached — treat as one combined tender pack.\`;
 
       schema = `{
-  "tender_title": "string — actual title/name of this tender. Never generic like 'Tender Document'.",
+  "tender_title": "string — actual title of this tender. Never generic like 'Tender Document'.",
   "tender_reference": "string or null",
   "verdict": "GO" | "NO_GO" | "CONDITIONAL_GO",
-  "verdict_summary": "2-3 sentence summary",
-  "eligibility": [ { "requirement": "string", "detail": "string", "status": "MET" | "UNMET" | "UNKNOWN", "notes": "string" } ],
+  "verdict_summary": "string — 2-3 sentences. Directional, not declarative. What does the data show, not what they must do.",
+  "assessment_confidence": "HIGH" | "MEDIUM" | "LOW",
+  "assessment_confidence_reason": "string — why this confidence level. Profile completeness, data quality, ambiguity in tender.",
+  "profile_completeness_pct": number,
+  "facts": [
+    {
+      "requirement": "string — exact requirement from tender document",
+      "source": "string — where in the tender this was found",
+      "company_status": "MET" | "UNMET" | "UNKNOWN" | "EXPIRED",
+      "company_data": "string or null — what we actually have on file",
+      "verification": "VERIFIED" | "SELF_REPORTED" | "MISSING",
+      "is_mandatory": true | false
+    }
+  ],
+  "risk_assessment": [
+    {
+      "risk": "string — specific risk description",
+      "likelihood": "HIGH" | "MEDIUM" | "LOW",
+      "impact": "HIGH" | "MEDIUM" | "LOW",
+      "reasoning": "string — why this likelihood and impact rating",
+      "what_changes_it": "string — concrete action that would reduce this risk"
+    }
+  ],
+  "disqualification_probability": "HIGH" | "MEDIUM" | "LOW",
+  "disqualification_probability_reasoning": "string",
+  "recommendation": "string — one clear directional sentence. Not DO/DO NOT. What the data suggests and why.",
+  "conditional_actions": [ { "action": "string", "deadline": "string or null", "impact_if_done": "string" } ],
   "compliance_checklist": [ { "item": "string", "risk_level": "HIGH" | "MEDIUM" | "LOW", "notes": "string" } ],
-  "risk_flags": [ { "flag": "string", "severity": "HIGH" | "MEDIUM" | "LOW", "mitigation": "string" } ],
-  "edge_recommendations": [ { "action": "string", "impact": "string", "timeframe": "string" } ],
-  "future_readiness": "string or null"
-}`;
+  "future_readiness": "string or null — what would make this company competitive for similar tenders in future"
+}\`;
 
     } else if (product === 'pricing') {
       maxTokens = 6144;
@@ -853,3 +887,4 @@ ${complianceLine('csd', 'CSD Registration', company.csd_maaa ? 'Registered' : nu
 IMPORTANT: Lines marked VERIFIED come from an actual uploaded certificate — treat as fact. SELF-REPORTED/NOT VERIFIED lines have not been confirmed. EXPIRED lines are a current compliance gap.
 `;
 }
+
