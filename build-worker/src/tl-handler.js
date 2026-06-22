@@ -154,7 +154,8 @@ async function handleTlCreateCompany(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
   const { name, reg_number, tax_number, vat_number, csd_maaa, bee_level,
           cidb_grade, cidb_number, industries, provinces, years_experience,
-          annual_turnover, employees, phone, email, address, client_name, free_credits } = body;
+          annual_turnover, employees, phone, email, address, client_name, free_credits,
+          utm_source, utm_medium, utm_campaign } = body;
 
   if (!name || !phone || !email) return tlJson({ error: 'name, phone and email required' }, 400);
 
@@ -178,8 +179,9 @@ async function handleTlCreateCompany(request, env, tlJson) {
   await env.TL_DB.prepare(`
     INSERT INTO tl_companies (id, name, reg_number, tax_number, vat_number, csd_maaa,
       bee_level, cidb_grade, cidb_number, industries, provinces, years_experience,
-      annual_turnover, employees, phone, email, address, client_name, balance, credits)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)
+      annual_turnover, employees, phone, email, address, client_name, balance, credits,
+      utm_source, utm_medium, utm_campaign)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?)
   `).bind(id, name, reg_number||null, tax_number||null, vat_number||null, csd_maaa||null,
     bee_level||null, cidb_grade||null, cidb_number||null,
     JSON.stringify(industries||[]), JSON.stringify(provinces||[]),
