@@ -742,7 +742,7 @@ async function renderVaultSection() {
   badge.textContent = 'Active';
 
   try {
-    var res = await fetch('/tl/compliance/requirements?company_id=' + companyId);
+    var res = await authFetch('/tl/compliance/requirements?company_id=' + companyId);
     var d = await res.json();
     vaultRequirements = d.requirements || [];
 
@@ -830,7 +830,7 @@ async function submitVaultDocUpload() {
     fd.append('company_id', companyId);
     fd.append('doc_type_id', vaultUploadTargetType);
     fd.append('file', vaultDocSelectedFile);
-    var res = await fetch('/tl/compliance/upload', { method:'POST', body:fd });
+    var res = await authFetch('/tl/compliance/upload', { method:'POST', body:fd });
     var d = await res.json();
     if (res.status===402) { showToast(d.error, 'warn'); closeVaultUploadModal(); openVaultModal(); return; }
     if (d.error) throw new Error(d.error);
@@ -864,7 +864,7 @@ async function submitFlagMissing() {
   var btn = document.getElementById('btnFlagMissing');
   btn.disabled = true; btn.textContent = 'Adding...';
   try {
-    var res = await fetch('/tl/compliance/flag-missing', {
+    var res = await authFetch('/tl/compliance/flag-missing', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ company_id:companyId, name:name, description:desc||null })
     });
@@ -891,7 +891,7 @@ async function subscribeVault() {
   var btn = document.getElementById('btnVaultModal');
   btn.disabled = true; btn.textContent = 'Preparing...';
   try {
-    var res = await fetch('/tl/vault/subscribe', {
+    var res = await authFetch('/tl/vault/subscribe', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ company_id:companyId })
     });
@@ -958,11 +958,11 @@ async function submitUpload() {
     fd.append('company_id', companyId);
     selectedFiles.forEach(function(f){ fd.append('files', f); });
     if (ref) fd.append('tender_ref', ref);
-    var res = await fetch('/tl/v2/tender/upload', { method:'POST', body:fd });
+    var res = await authFetch('/tl/v2/tender/upload', { method:'POST', body:fd });
     var d = await res.json();
     if (res.status===409 && d.gate_failed) {
       var proceed = confirm('Mismatch: '+(d.gate_message||'')+'\n\nProceed anyway?');
-      if (proceed) { fd.append('override_gate','true'); res=await fetch('/tl/v2/tender/upload',{method:'POST',body:fd}); d=await res.json(); }
+      if (proceed) { fd.append('override_gate','true'); res=await authFetch('/tl/v2/tender/upload',{method:'POST',body:fd}); d=await res.json(); }
       else { btn.disabled=false; renderFileList(); return; }
     }
     if (res.status===402) { showToast(d.error, 'warn'); openBalanceModal(); btn.disabled=false; renderFileList(); return; }
@@ -979,7 +979,7 @@ async function handleLogout(e) {
   try {
     var token = localStorage.getItem('tl_session');
     if (token) {
-      await fetch('/tl/auth/logout', {
+      await authFetch('/tl/auth/logout', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -1112,7 +1112,7 @@ async function loadTenders() {
 async function runProduct(tenderId, product) {
   showToast('Queueing '+productLabel(product)+'...');
   try {
-    var res = await fetch('/tl/v2/product/run', {
+    var res = await authFetch('/tl/v2/product/run', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ tender_id:tenderId, product:product })
     });
@@ -1185,7 +1185,7 @@ var currentReportRunId = null;
 async function viewProductReport(runId) {
   showToast('Loading report...');
   try {
-    var res = await fetch('/tl/v2/product-run?id='+runId);
+    var res = await authFetch('/tl/v2/product-run?id='+runId);
     var d = await res.json();
     if (!d.report) { showToast('Report not ready', 'warn'); return; }
     currentReportRunId = runId;
