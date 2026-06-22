@@ -181,6 +181,7 @@ export const KV_KEYS = {
     'tl-dashboard':     'app:tl-dashboard',
     'tl-dashboard-v2':  'app:tl-dashboard-v2',
     'tl-profile-v2':    'app:tl-profile-v2',
+    'tl-login':         'app:tl-login',
   },
 
   // ── Built site content ─────────────────────────────────────────────────────
