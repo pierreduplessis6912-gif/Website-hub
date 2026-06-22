@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign In — TenderLogix</title>
+<meta name="theme-color" content="#f8f7f4">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --cream:#f8f7f4;--cream2:#f0ede8;
+  --white:#ffffff;--charcoal:#0e0c09;--mid:#6b6560;--dim:#9e9890;
+  --border:rgba(14,12,9,.1);--border2:rgba(14,12,9,.06);
+  --orange:#ff6b1a;--orange-light:#ff8c4a;--orange-dim:rgba(255,107,26,.08);--orange-glow:rgba(255,107,26,.25);
+  --green:#25D366;--green-dim:rgba(37,211,102,.1);--green-border:rgba(37,211,102,.3);
+  --display:'Archivo Black',sans-serif;--body:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html{-webkit-font-smoothing:antialiased}
+body{
+  font-family:var(--body);background:var(--cream);color:var(--charcoal);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+.card{
+  background:var(--white);border:1px solid var(--border);
+  border-top:3px solid var(--orange);
+  padding:40px 32px;width:100%;max-width:400px;
+}
+
+.brand{
+  font-family:var(--display);font-size:20px;
+  text-transform:uppercase;color:var(--charcoal);
+  text-decoration:none;display:block;
+  margin-bottom:32px;
+}
+.brand span{color:var(--orange)}
+
+.title{
+  font-family:var(--display);font-size:clamp(24px,6vw,32px);
+  text-transform:uppercase;color:var(--charcoal);
+  margin-bottom:8px;
+}
+.subtitle{font-size:13px;color:var(--mid);line-height:1.6;margin-bottom:32px}
+
+/* OTP INPUT */
+.otp-group{
+  display:flex;gap:8px;justify-content:center;
+  margin-bottom:24px;
+}
+.otp-digit{
+  width:48px;height:60px;
+  border:1px solid var(--border);
+  border-bottom:2px solid var(--border);
+  background:var(--cream2);
+  font-family:var(--mono);font-size:24px;font-weight:700;
+  text-align:center;color:var(--charcoal);outline:none;
+  transition:all .15s;border-radius:0;
+  -webkit-appearance:none;
+}
+.otp-digit:focus{
+  border-color:var(--orange);border-bottom-color:var(--orange);
+  background:var(--white);
+  box-shadow:0 4px 12px var(--orange-glow);
+}
+.otp-digit.filled{border-color:var(--orange);background:var(--white)}
+
+/* WHATSAPP BUTTON */
+.btn-whatsapp{
+  width:100%;padding:16px 20px;
+  background:var(--green);color:var(--white);
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-family:var(--body);font-size:14px;font-weight:700;
+  letter-spacing:.3px;transition:all .2s;
+  text-decoration:none;
+  box-shadow:0 4px 16px rgba(37,211,102,.3);
+}
+.btn-whatsapp:hover{filter:brightness(1.05);box-shadow:0 6px 24px rgba(37,211,102,.4);transform:translateY(-1px)}
+.btn-whatsapp svg{width:20px;height:20px;flex-shrink:0}
+
+.divider{
+  display:flex;align-items:center;gap:12px;
+  margin:20px 0;color:var(--dim);font-size:11px;
+  font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* VERIFY BUTTON */
+.btn-verify{
+  width:100%;padding:16px;
+  background:var(--orange);color:var(--white);
+  border:none;cursor:pointer;
+  font-family:var(--body);font-size:14px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;
+  transition:all .2s;
+  box-shadow:0 4px 16px var(--orange-glow);
+  display:none;
+}
+.btn-verify.visible{display:block}
+.btn-verify:hover{background:var(--orange-light);box-shadow:0 6px 24px var(--orange-glow);transform:translateY(-1px)}
+.btn-verify:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+
+.helper{font-size:12px;color:var(--mid);text-align:center;margin-top:16px;line-height:1.6}
+.helper a{color:var(--orange);text-decoration:none;font-weight:600}
+
+.status-msg{
+  font-family:var(--mono);font-size:11px;letter-spacing:.5px;
+  text-align:center;padding:10px;margin-bottom:16px;
+  display:none;
+}
+.status-msg.show{display:block}
+.status-msg.success{color:var(--green);background:var(--green-dim);border:1px solid var(--green-border)}
+.status-msg.error{color:#d93025;background:rgba(217,48,37,.08);border:1px solid rgba(217,48,37,.2)}
+
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--charcoal);color:var(--white);
+  padding:12px 24px;font-size:13px;font-weight:600;
+  opacity:0;transition:opacity .3s;pointer-events:none;
+  max-width:90vw;z-index:999;border-radius:2px;
+}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <a href="/" class="brand">Tender<span>Logix</span></a>
+
+  <h1 class="title">Sign In.</h1>
+  <p class="subtitle">Send yourself a one-time code on WhatsApp — no password needed.</p>
+
+  <div class="status-msg" id="statusMsg"></div>
+
+  <!-- OTP entry — shown after they send LOGIN -->
+  <div class="otp-group" id="otpGroup">
+    <input class="otp-digit" id="d1" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]">
+    <input class="otp-digit" id="d2" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]">
+    <input class="otp-digit" id="d3" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]">
+    <input class="otp-digit" id="d4" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]">
+    <input class="otp-digit" id="d5" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]">
+    <input class="otp-digit" id="d6" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]">
+  </div>
+
+  <button class="btn-verify" id="btnVerify" onclick="verifyOtp()">Verify Code</button>
+
+  <div class="divider" id="divider">waiting for code</div>
+
+  <!-- WhatsApp tap-to-chat -->
+  <a class="btn-whatsapp" id="btnWhatsapp" href="https://wa.me/27790128508?text=LOGIN" target="_blank" onclick="handleWhatsappTap()">
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+    Send me a code on WhatsApp
+  </a>
+
+  <p class="helper">
+    We'll send a 6-digit code to the WhatsApp number on your account.<br>
+    <a href="mailto:support@tenderlogix.co.za">Different number? Contact support.</a>
+  </p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var WA_NUMBER = '27790128508';
+var VERIFY_ENDPOINT = 'https://tenderlogix.co.za/tl/auth/verify-otp';
+var digits = ['d1','d2','d3','d4','d5','d6'];
+var codeSent = false;
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3000);
+}
+
+function showStatus(msg, type) {
+  var el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status-msg show ' + type;
+}
+
+function handleWhatsappTap() {
+  // After they tap, show the OTP entry and instructions
+  setTimeout(function() {
+    if (!codeSent) {
+      codeSent = true;
+      showStatus('Code sent — check your WhatsApp and enter it below.', 'success');
+      document.getElementById('divider').textContent = 'enter your code';
+      document.getElementById('d1').focus();
+    }
+  }, 1500);
+}
+
+// OTP digit input handling
+digits.forEach(function(id, idx) {
+  var el = document.getElementById(id);
+
+  el.addEventListener('input', function(e) {
+    var val = e.target.value.replace(/\D/g,'');
+    e.target.value = val.slice(-1);
+    if (val) {
+      e.target.classList.add('filled');
+      if (idx < digits.length - 1) {
+        document.getElementById(digits[idx+1]).focus();
+      }
+    } else {
+      e.target.classList.remove('filled');
+    }
+    checkComplete();
+  });
+
+  el.addEventListener('keydown', function(e) {
+    if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+      document.getElementById(digits[idx-1]).focus();
+    }
+  });
+
+  // Handle paste — spread digits across boxes
+  el.addEventListener('paste', function(e) {
+    e.preventDefault();
+    var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+    pasted.split('').forEach(function(char, i) {
+      if (i < digits.length) {
+        var box = document.getElementById(digits[i]);
+        box.value = char;
+        box.classList.add('filled');
+      }
+    });
+    checkComplete();
+    if (pasted.length === 6) document.getElementById(digits[5]).focus();
+  });
+});
+
+function getOtp() {
+  return digits.map(function(id){ return document.getElementById(id).value; }).join('');
+}
+
+function checkComplete() {
+  var otp = getOtp();
+  var btn = document.getElementById('btnVerify');
+  if (otp.length === 6) {
+    btn.classList.add('visible');
+  } else {
+    btn.classList.remove('visible');
+  }
+}
+
+async function verifyOtp() {
+  var otp = getOtp();
+  if (otp.length !== 6) return;
+
+  var btn = document.getElementById('btnVerify');
+  btn.disabled = true; btn.textContent = 'Verifying...';
+
+  try {
+    var res = await fetch(VERIFY_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp: otp })
+    });
+    var d = await res.json();
+
+    if (d.error) {
+      showStatus(d.error, 'error');
+      // Clear digits
+      digits.forEach(function(id){
+        var el = document.getElementById(id);
+        el.value = '';
+        el.classList.remove('filled');
+      });
+      document.getElementById('d1').focus();
+      btn.disabled = false; btn.textContent = 'Verify Code';
+      return;
+    }
+
+    // Success — store session and redirect
+    if (d.session_token) {
+      localStorage.setItem('tl_session', d.session_token);
+      localStorage.setItem('tl_company_id', d.company_id);
+      localStorage.setItem('tl_company_name', d.company_name || '');
+    }
+
+    showStatus('Verified! Redirecting...', 'success');
+    setTimeout(function() {
+      window.location.href = '/dashboard-v2/' + d.company_id;
+    }, 600);
+
+  } catch(e) {
+    showStatus('Something went wrong — please try again.', 'error');
+    btn.disabled = false; btn.textContent = 'Verify Code';
+  }
+}
+
+// If already has valid session, redirect straight to dashboard
+var existingSession = localStorage.getItem('tl_session');
+var existingCompany = localStorage.getItem('tl_company_id');
+if (existingSession && existingCompany) {
+  // Quick check if session is still valid
+  fetch('https://tenderlogix.co.za/tl/auth/check', {
+    headers: { 'Authorization': 'Bearer ' + existingSession }
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (d.valid) window.location.href = '/dashboard-v2/' + existingCompany;
+  }).catch(function(){});
+}
+</script>
+</body>
+</html>
