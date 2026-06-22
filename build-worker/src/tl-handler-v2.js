@@ -548,8 +548,16 @@ export async function processTlV2QueueMessage(msg, env) {
   const result = await runV2Product(productRunId, company, pdfDocs, product, env);
 
   if (!result.success) {
-    console.error('TL v2 queue — product run failed:', productRunId, 'product:', product, 'reason:', result.reason);
-    // status already set to 'failed' inside runV2Product — no charge happens.
+    if (result.size_exceeded) {
+      // Special case — not a technical failure, just too large. Give user a clear message.
+      console.warn('TL v2 queue — tender too large for analysis. run:', productRunId, 'estimated_tokens:', result.estimated_tokens);
+      await env.TL_DB.prepare(
+        `UPDATE tl_product_runs SET status='size_exceeded', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+      ).bind(JSON.stringify({ error: result.reason, estimated_tokens: result.estimated_tokens }), productRunId).run();
+    } else {
+      console.error('TL v2 queue — product run failed:', productRunId, 'product:', product, 'reason:', result.reason);
+      // status already set to 'failed' inside runV2Product — no charge happens.
+    }
     return;
   }
 
@@ -594,28 +602,37 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
     ? promptText // promptText already has schema appended by caller for single-call products
     : `${promptText}\n\nReturn ONLY this JSON structure:\n${schemaText}\n\nReturn ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
 
-  // ── 2. PDF SIZE CHECK — reject if too large for context window ───────────
+  // ── 2. PDF SIZE CHECK ────────────────────────────────────────────────────
+  // Strategy:
+  //   <100k tokens  → proceed normally
+  //   100k-180k     → proceed with "focus on key sections" instruction injected
+  //   >180k tokens  → hard reject with size_exceeded (not 'failed') + clear user message
+  //
+  // We never silently fail large tenders — the user must know why and what to do.
+  let pdfSizeWarning = null;
   if (pdfDocs && pdfDocs.length) {
     const { totalBytes, estimatedTokens } = estimatePdfTokens(pdfDocs);
     if (estimatedTokens > MAX_PDF_TOKENS) {
-      console.warn('TL callClaude — PDF too large:', estimatedTokens, 'estimated tokens across', pdfDocs.length, 'docs');
+      console.warn('TL callClaude — PDF too large:', estimatedTokens, 'est. tokens,', pdfDocs.length, 'docs');
       return {
         success: false,
-        reason: `Tender document is too large for analysis (estimated ${Math.round(estimatedTokens/1000)}k tokens, limit ${Math.round(MAX_PDF_TOKENS/1000)}k). Try splitting the tender into smaller sections or uploading only the key specification pages.`,
-        pdf_too_large: true,
+        size_exceeded: true,
+        reason: `This tender document is too large for a single analysis run (estimated ${Math.round(estimatedTokens/1000)}k tokens across ${pdfDocs.length} document${pdfDocs.length>1?'s':''}). To proceed: upload only the key sections — the Scope of Work, Evaluation Criteria, Pricing Schedule, and Mandatory Requirements. Skip the General Conditions of Contract (MBD 16) and other standard boilerplate sections. You will not be charged for this run.`,
         estimated_tokens: estimatedTokens,
         total_bytes: totalBytes
       };
     }
     if (estimatedTokens > MAX_SAFE_PDF_TOKENS) {
-      console.warn('TL callClaude — large PDF warning:', estimatedTokens, 'estimated tokens');
-      // Continue but flag it — analysis may be slower or hit max_tokens
+      // Large but within limit — inject a focusing instruction
+      console.warn('TL callClaude — large tender warning:', estimatedTokens, 'est. tokens. Injecting focus instruction.');
+      pdfSizeWarning = `NOTE: This is a large tender document (estimated ${Math.round(estimatedTokens/1000)}k tokens). Focus your analysis on: (1) the Scope of Work and technical requirements, (2) the Evaluation Criteria and scoring, (3) the Pricing Schedule and mandatory rates, (4) the Special Conditions and mandatory compliance requirements. You may summarise or skip the standard General Conditions of Contract boilerplate (GCC/MBD 16) — these are standard across all SA government tenders and do not affect the eligibility assessment.`;
     }
   }
 
+  const finalPrompt = pdfSizeWarning ? `${fullPrompt}\n\n${pdfSizeWarning}` : fullPrompt;
   const userContent = pdfDocs && pdfDocs.length
-    ? [...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })), { type: 'text', text: fullPrompt }]
-    : fullPrompt;
+    ? [...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })), { type: 'text', text: finalPrompt }]
+    : finalPrompt;
 
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
