@@ -41,15 +41,26 @@ body{
 .nav-right{display:flex;align-items:center;gap:8px}
 .nav-link{font-size:12px;color:var(--mid);text-decoration:none;font-weight:600;text-transform:uppercase;letter-spacing:.3px;transition:color .15s}
 .nav-link:hover{color:var(--charcoal)}
-.install-btn{
-  display:none;align-items:center;gap:7px;
-  padding:7px 12px;font-family:var(--mono);font-size:11px;
-  font-weight:700;cursor:pointer;
-  background:var(--orange-dim);border:1px solid rgba(255,107,26,.2);
-  color:var(--orange);letter-spacing:.3px;transition:all .15s;
+.install-banner{
+  display:none;align-items:center;justify-content:space-between;
+  padding:10px 20px;
+  background:var(--orange-dim);border-bottom:1px solid rgba(255,107,26,.2);
+  font-size:12px;color:var(--charcoal);gap:12px;
 }
-.install-btn:hover{background:var(--orange);color:var(--white);border-color:var(--orange)}
-.install-btn svg{width:14px;height:14px;fill:currentColor;flex-shrink:0}
+.install-banner-text{display:flex;align-items:center;gap:8px}
+.install-banner-text svg{width:16px;height:16px;fill:var(--orange);flex-shrink:0}
+.install-banner-actions{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.install-banner-btn{
+  background:var(--orange);color:var(--white);border:none;
+  padding:7px 14px;font-family:var(--body);font-size:12px;
+  font-weight:700;cursor:pointer;letter-spacing:.3px;
+  transition:all .15s;
+}
+.install-banner-btn:hover{background:var(--orange-light)}
+.install-banner-dismiss{
+  background:none;border:none;color:var(--mid);
+  font-size:18px;cursor:pointer;line-height:1;padding:0 4px;
+}
 .vault-pill{
   padding:7px 12px;font-family:var(--mono);font-size:11px;
   font-weight:700;cursor:pointer;transition:all .15s;
@@ -395,10 +406,6 @@ body{
 <nav class="nav">
   <a href="/" class="nav-brand">Tender<span>Logix</span></a>
   <div id="navCompanyName" style="font-size:12px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;display:none"></div>
-  <button class="install-btn" id="installBtn" onclick="handleInstall()">
-    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-    Add to Home Screen
-  </button>
   <div class="nav-right">
     <a href="#" id="profileLink" class="nav-link">Profile</a>
     <a href="#" class="nav-link" onclick="handleLogout(event)" style="color:var(--red)">Sign Out</a>
@@ -406,6 +413,11 @@ body{
     <div class="balance-pill" onclick="openBalanceModal()" id="balancePill">R— balance</div>
   </div>
 </nav>
+
+<div class="install-banner" id="installBanner">
+  <div class="install-banner-text"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>Add TenderLogix to your home screen for quick access</div>
+  <div class="install-banner-actions"><button class="install-banner-btn" onclick="handleInstall()">Add to Home Screen</button><button class="install-banner-dismiss" onclick="dismissInstallBanner()" title="Dismiss">×</button></div>
+</div>
 
 <div class="page">
 
@@ -1000,13 +1012,26 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   deferredInstallPrompt = e;
-  document.getElementById('installBtn').style.display = 'flex';
+  // Show banner unless user has dismissed it in last 7 days
+  var dismissed = localStorage.getItem('tl_install_dismissed');
+  if (!dismissed || Date.now() - parseInt(dismissed) > 7*24*60*60*1000) {
+    var banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'flex';
+  }
 });
 
 window.addEventListener('appinstalled', function() {
-  document.getElementById('installBtn').style.display = 'none';
+  var banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
   deferredInstallPrompt = null;
+  localStorage.setItem('tl_install_dismissed', Date.now());
 });
+
+function dismissInstallBanner() {
+  var banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('tl_install_dismissed', Date.now());
+}
 
 async function handleInstall() {
   var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -1062,8 +1087,12 @@ async function loadTenders() {
             '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">View report</div></div>'+
             '<div class="product-right"><span class="product-status '+badgeCls+'">'+badgeText+'</span></div></div>';
         }
+        if (run.status==='size_exceeded') {
+          var sizeMsg = run.report_json ? (JSON.parse(run.report_json||'{}').error || 'Document too large') : 'Document too large';
+          return '<div class="product-card done" style="cursor:default">'+'<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub" style="color:var(--amber)">Document too large — upload key sections only. Tap to see details.</div></div>'+'<div class="product-right"><span class="product-status status-cond">TOO LARGE</span></div></div>';
+        }
         if (run.status==='failed') {
-          return '<div class="product-card" onclick="runProduct(\''+t.id+'\',\''+p+'\')">'+
+          return '<div class="product-card" onclick="runProduct(\''+t.id+'\',\''+p+'\'">'+
             '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">Failed — not charged. Tap to retry.</div></div>'+
             '<div class="product-right"><span class="product-status status-failed">FAILED</span></div></div>';
         }
@@ -1113,13 +1142,26 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   deferredInstallPrompt = e;
-  document.getElementById('installBtn').style.display = 'flex';
+  // Show banner unless user has dismissed it in last 7 days
+  var dismissed = localStorage.getItem('tl_install_dismissed');
+  if (!dismissed || Date.now() - parseInt(dismissed) > 7*24*60*60*1000) {
+    var banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'flex';
+  }
 });
 
 window.addEventListener('appinstalled', function() {
-  document.getElementById('installBtn').style.display = 'none';
+  var banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
   deferredInstallPrompt = null;
+  localStorage.setItem('tl_install_dismissed', Date.now());
 });
+
+function dismissInstallBanner() {
+  var banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('tl_install_dismissed', Date.now());
+}
 
 async function handleInstall() {
   var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -1371,13 +1413,26 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   deferredInstallPrompt = e;
-  document.getElementById('installBtn').style.display = 'flex';
+  // Show banner unless user has dismissed it in last 7 days
+  var dismissed = localStorage.getItem('tl_install_dismissed');
+  if (!dismissed || Date.now() - parseInt(dismissed) > 7*24*60*60*1000) {
+    var banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'flex';
+  }
 });
 
 window.addEventListener('appinstalled', function() {
-  document.getElementById('installBtn').style.display = 'none';
+  var banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
   deferredInstallPrompt = null;
+  localStorage.setItem('tl_install_dismissed', Date.now());
 });
+
+function dismissInstallBanner() {
+  var banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('tl_install_dismissed', Date.now());
+}
 
 async function handleInstall() {
   var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -1417,13 +1472,26 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   deferredInstallPrompt = e;
-  document.getElementById('installBtn').style.display = 'flex';
+  // Show banner unless user has dismissed it in last 7 days
+  var dismissed = localStorage.getItem('tl_install_dismissed');
+  if (!dismissed || Date.now() - parseInt(dismissed) > 7*24*60*60*1000) {
+    var banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'flex';
+  }
 });
 
 window.addEventListener('appinstalled', function() {
-  document.getElementById('installBtn').style.display = 'none';
+  var banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
   deferredInstallPrompt = null;
+  localStorage.setItem('tl_install_dismissed', Date.now());
 });
+
+function dismissInstallBanner() {
+  var banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('tl_install_dismissed', Date.now());
+}
 
 async function handleInstall() {
   var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
