@@ -365,6 +365,15 @@ async function removeDirector(id) {
 }
 
 loadProfile();
+// ── Navigation guard — warn before leaving ──────────────────────────────
+// Fires on browser back, close tab, or any navigation away from this page.
+// Exceptions: internal TenderLogix links use location.replace() so they
+// bypass this intentionally.
+window.addEventListener('beforeunload', function(e) {
+  e.preventDefault();
+  e.returnValue = '';
+});
+
 </script>
 </body>
 </html>
