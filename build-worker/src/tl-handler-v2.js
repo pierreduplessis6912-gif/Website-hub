@@ -816,7 +816,20 @@ async function callClaudeTwoPass(env, pdfDocs, analysisPrompt, schemaText, maxTo
   let skeleton = null;
   let pass1Input = 0, pass1Output = 0;
 
+  // ── Check KV cache before running Pass 1 ─────────────────────────────────
   try {
+    const pdfHash = pdfDocs.reduce((h, d) => h + d.base64.length, 0).toString(36);
+    const cacheKey = 'skeleton:' + pdfHash;
+    const cached = await env.TL_META.get(cacheKey);
+    if (cached) {
+      skeleton = JSON.parse(cached);
+      console.log('TL two-pass — skeleton cache HIT. Skipping pass 1.');
+    }
+  } catch(e) {
+    console.warn('TL two-pass — skeleton cache read failed (non-fatal):', e.message);
+  }
+
+  if (!skeleton) try {
     const p1Res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
@@ -835,15 +848,38 @@ async function callClaudeTwoPass(env, pdfDocs, analysisPrompt, schemaText, maxTo
       const p1Data = await p1Res.json();
       const block = p1Data.content?.find(b => b.type === 'tool_use' && b.name === 'tender_skeleton');
       if (block) {
-        skeleton = block.input;
-        pass1Input  = p1Data.usage?.input_tokens  || 0;
-        pass1Output = p1Data.usage?.output_tokens || 0;
-        console.log('TL two-pass — pass 1 OK. tokens:', pass1Input, '+', pass1Output);
+        const rawSkeleton = block.input;
+
+        // ── Skeleton validation — don't spend Pass 2 on garbage extraction ──
+        const isValid = rawSkeleton?.tender_title?.length > 3 &&
+                        rawSkeleton?.scope_summary?.length > 30 &&
+                        Array.isArray(rawSkeleton?.mandatory_docs) &&
+                        rawSkeleton?.mandatory_docs?.length > 0;
+
+        if (!isValid) {
+          console.warn('TL two-pass — Pass 1 skeleton failed validation (empty/garbage). Falling back to single-pass.');
+        } else {
+          skeleton = rawSkeleton;
+          pass1Input  = p1Data.usage?.input_tokens  || 0;
+          pass1Output = p1Data.usage?.output_tokens || 0;
+          console.log('TL two-pass — pass 1 OK. tokens:', pass1Input, '+', pass1Output);
+
+          // ── Cache skeleton in KV — skip pass 1 on re-upload of same PDF ──
+          // Key: skeleton:{pdfHash} where pdfHash is a fingerprint of total bytes
+          // TTL: 7 days (tenders don't change, amendments get new hash)
+          try {
+            const pdfHash = pdfDocs.reduce((h, d) => h + d.base64.length, 0).toString(36);
+            const cacheKey = 'skeleton:' + pdfHash;
+            await env.TL_META.put(cacheKey, JSON.stringify(skeleton), { expirationTtl: 604800 });
+          } catch(cacheErr) {
+            console.warn('TL two-pass — skeleton KV cache write failed (non-fatal):', cacheErr.message);
+          }
+        }
       }
     }
   } catch(e) {
     console.warn('TL two-pass — pass 1 failed, falling back:', e.message);
-  }
+  } // end if(!skeleton)
 
   // Fall back to single-pass if skeleton extraction failed
   if (!skeleton) return callClaude(env, pdfDocs, analysisPrompt, schemaText, maxTokens, false);
