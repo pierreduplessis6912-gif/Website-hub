@@ -252,7 +252,7 @@ footer{
 
 <nav>
   <a href="/" class="nav-brand">Tender<span>Logix</span></a>
-  <a href="/register" class="nav-cta">Start Free</a>
+  <a href="#" class="nav-cta" onclick="goRegister(event)">Start Free</a>
 </nav>
 
 <!-- HERO -->
@@ -262,7 +262,7 @@ footer{
     <h1>Find. Analyse.<br><span class="accent">Win.</span></h1>
     <p class="hero-sub">Most companies guess. <strong>TenderLogix knows.</strong> Transform tendering from guesswork into a data-driven competitive advantage.</p>
     <div class="cta-row">
-      <a href="/register" class="btn-primary">Analyse Your First Tender Free</a>
+      <a href="#" class="btn-primary" onclick="goRegister(event)">Analyse Your First Tender Free</a>
       <a href="#process" class="btn-ghost">How It Works</a>
     </div>
     <div class="trust-row">
@@ -397,7 +397,7 @@ footer{
   <div class="cta-band-inner">
     <h2>Stop Guessing.<br>Start Winning.</h2>
     <p>Your first upload, Go/No-Go, and Bid Pack are completely free. No card required.</p>
-    <a href="/register" class="btn-dark">Create Free Account</a>
+    <a href="#" class="btn-dark" onclick="goRegister(event)">Create Free Account</a>
     <p class="cta-note">NO SETUP FEE · FIRST ANALYSIS FREE · CANCEL ANYTIME</p>
   </div>
 </section>
@@ -411,5 +411,21 @@ footer{
   <div class="footer-copy">© 2026 TENDERLOGIX · ANALYSIS IS AI-ASSISTED AND INDICATIVE · VERIFY ALL PRICING BEFORE SUBMISSION</div>
 </footer>
 
+</footer>
+<script>
+// Preserve UTM params when navigating to register
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  ['utm_source','utm_medium','utm_campaign'].forEach(function(k) {
+    var v = params.get(k);
+    if (v) sessionStorage.setItem(k, v);
+  });
+})();
+
+function goRegister(e) {
+  if (e) e.preventDefault();
+  window.location.href = '/register';
+}
+</script>
 </body>
 </html>
