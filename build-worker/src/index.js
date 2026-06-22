@@ -1,4 +1,5 @@
 import { handleTenderLogix, processTlQueueMessage } from './tl-handler.js';
+import { handleTlLoginRequest } from './tl-auth.js';
 import { handleTlV2, processTlV2QueueMessage } from './tl-handler-v2.js';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel } from 'docx';
 // ============================================================
@@ -1988,6 +1989,16 @@ async function handleWhatsAppIncoming(request, env, ctx) {
     const stateKey = KV_KEYS.CONVO_STATE(phone);
     const stateRaw = await env.SITES.get(stateKey).catch(() => null);
     const state = stateRaw ? JSON.parse(stateRaw) : null;
+
+    // ── TENDERLOGIX LOGIN trigger ─────────────────────────────────────────
+    if (text.trim().toUpperCase() === 'LOGIN') {
+      const result = await handleTlLoginRequest(phone, env);
+      if (result.message) {
+        try { await sendWhatsApp(phone, result.message, env); }
+        catch(e) { console.warn('TL login OTP send failed:', e.message); }
+      }
+      return new Response('OK', { status: 200 });
+    }
 
     // ── STEP 1: Detect START trigger ──────────────────────────────────────
     const isStartTrigger = (t) => {
