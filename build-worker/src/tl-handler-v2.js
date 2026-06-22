@@ -787,30 +787,37 @@ SINGLE DISCLAIMER (use exactly once at the very top, nowhere else): 'Reference d
 DOCUMENT STRUCTURE:
 
 ## Eligibility Summary
-One paragraph. If gaps exist: state them and the options (partner/JV/register/withdraw). Do not repeat this section anywhere else in the document.
+One paragraph only. If gaps exist: state them and the concrete options (JV partner, register with council, withdraw). Include a timeline reality check if the closing date is imminent. Do not repeat this anywhere else.
 
 ## Bill of Quantities
-Gazetted rates where specified. Include a note: 'Gazetted rates are benchmark figures. Bids at or near these rates are expected to be competitive for price scoring.'
+Gazetted rates where specified. Add note: 'Gazetted rates are fixed benchmark figures from government policy — do not add a commercial margin. Bids at or near these rates are expected to be competitive for price scoring (80 points).'
 
 ## Forms You Can Complete Now
-For each form where company data is available: pre-fill EVERY known field from the company profile. Mark unknown fields as 'UNKNOWN — verify in profile'. Never write 'TO COMPLETE' for a field you have data for. Include: MBD 1, MBD 4 (directors table), MBD 8, MBD 9, MBD 7.2 Part 1.
+Pre-fill EVERY known field from the company profile. Mark unknown fields as 'UNKNOWN — verify in profile'. Never write 'TO COMPLETE' for a field you have data for.
+For director tables: if no directors are in the profile, write 'No director data in company profile — add via dashboard Profile page before completing this form.'
+Include: MBD 1, MBD 2, MBD 4 (directors table), MBD 6.1, MBD 8, MBD 9, MBD 15, MBD 7.2 Part 1.
 
-## Forms Requiring Additional Documents
-List forms that require registrations or certificates not on file. For each: what is needed, where to get it, estimated cost, estimated lead time.
+## Category Selection Table
+Show all categories with required registrations and gazetted rates. All boxes unchecked (bidder must tick their own). Add this note beneath the table: 'If bidding via JV or consortium, the JV partner's professional registration details must be entered here — the registered individual or entity, not the JV vehicle itself. Tick only categories for which the JV partner holds valid registration.'
 
-## Form C1 — Project References (include if tender requires functionality evaluation)
-Include the Form C1 template. If company has no qualifying projects: state score impact clearly (e.g. 'Without references, Criteria 1 = 0/20 points. Minimum 30/40 required for responsiveness.').
+## SBD 3.1 — Pricing Schedule
+Pre-fill the guideline/gazetted rate in the 'Your Tendered Rate' column as the default. Add note: 'If bidding as sole provider or JV at gazetted rates, transcribe these figures to the official form. If your JV partner has agreed a different rate, replace with the agreed figure. The municipality expects bids at or near gazetted rates for this tender type.'
+
+## Form C1 — Project References
+ALWAYS include Form C1 if the tender requires functionality evaluation. Show the form template with columns: Contract Name/Description, Nature of Work, Start Date, End Date, Client Name, Client Contact Details. If company has no qualifying projects: add a note 'No project history on file. Without client references on official letterheads, Criteria 1 score = 0/20 points. Minimum 30/40 required for responsiveness. JV partner must supply references per category.'
+
+## Verified Compliance Documents
+For each compliance document on file: show extracted value, exact expiry date, number of days since expiry (or days until expiry if still valid), and a specific renewal action with estimated cost and lead time. If a document shows as expired with no extracted date, write: 'Expiry date not extracted — upload a new certificate to Vault for verification.' Never write just 'Expired / Invalid' with no further detail.
 
 ## Submission Checklist
-Everything that must physically be in the envelope on submission day: envelope endorsement wording (exact text), USB drive requirement, black ink rule, Commissioner of Oaths requirement, closing time and physical address.
+Everything physically in the envelope: exact envelope endorsement wording, USB drive requirement, black ink rule, Commissioner of Oaths for MBD 15, closing time and physical address, validity period confirmation.
 
 COMPANY PROFILE (pre-fill every known field):
 ${companyContext}
 
 CONFIRMED BOQ TOTAL: R${call1Result.data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
 
-Write as complete well-formatted markdown. One disclaimer at the top. No repeated warnings.`;
-
+Write as complete well-formatted markdown. One disclaimer at the top. No repeated warnings. Form C1 must always be included if functionality criteria exist in this tender.`;
       const call2Result = await callClaudeSimple(env, pdfDocs, call2Prompt, 6144);
       if (!call2Result.success) {
         console.error('TL v2 — bidpack call 2 (submission pack) failed. run:', productRunId, 'reason:', call2Result.reason);
