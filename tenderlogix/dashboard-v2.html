@@ -944,6 +944,15 @@ async function submitUpload() {
     renderFileList();
     showToast(d.was_free_trial ? 'Tender uploaded — free trial used' : 'Tender uploaded — R'+d.charged+' charged', 'success');
     await loadDashboard();
+// ── Navigation guard — warn before leaving ──────────────────────────────
+// Fires on browser back, close tab, or any navigation away from this page.
+// Exceptions: internal TenderLogix links use location.replace() so they
+// bypass this intentionally.
+window.addEventListener('beforeunload', function(e) {
+  e.preventDefault();
+  e.returnValue = '';
+});
+
   } catch(e) { showToast(e.message||'Upload failed', 'error'); }
   btn.disabled = false;
 }
@@ -1014,6 +1023,15 @@ async function runProduct(tenderId, product) {
     if (d.error) throw new Error(d.error);
     showToast(d.is_free_trial ? 'Queued — free trial!' : 'Queued — R'+d.price+' charged on success', 'success');
     await loadDashboard();
+// ── Navigation guard — warn before leaving ──────────────────────────────
+// Fires on browser back, close tab, or any navigation away from this page.
+// Exceptions: internal TenderLogix links use location.replace() so they
+// bypass this intentionally.
+window.addEventListener('beforeunload', function(e) {
+  e.preventDefault();
+  e.returnValue = '';
+});
+
   } catch(e) { showToast(e.message||'Failed to queue', 'error'); }
 }
 
@@ -1229,9 +1247,27 @@ function buyBalance() {
 }
 
 loadDashboard();
+// ── Navigation guard — warn before leaving ──────────────────────────────
+// Fires on browser back, close tab, or any navigation away from this page.
+// Exceptions: internal TenderLogix links use location.replace() so they
+// bypass this intentionally.
+window.addEventListener('beforeunload', function(e) {
+  e.preventDefault();
+  e.returnValue = '';
+});
+
 
 window.addEventListener('pageshow', function(event) {
-  if (event.persisted) { loadDashboard(); }
+  if (event.persisted) { loadDashboard();
+// ── Navigation guard — warn before leaving ──────────────────────────────
+// Fires on browser back, close tab, or any navigation away from this page.
+// Exceptions: internal TenderLogix links use location.replace() so they
+// bypass this intentionally.
+window.addEventListener('beforeunload', function(e) {
+  e.preventDefault();
+  e.returnValue = '';
+});
+ }
 });
 </script>
 </body>
