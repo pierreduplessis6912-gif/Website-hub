@@ -736,7 +736,28 @@ Produce a priced BOQ. If the tender specifies government-prescribed/gazetted rat
 
       // Call 1 — BOQ + compliance checklist (identical shape to pricing's
       // proven-working call, just without the verdict-free pricing framing).
-      const call1Prompt = `You are preparing the pricing and compliance foundation for a South African government tender bid pack. The client has ALREADY DECIDED to bid. Produce a full priced BOQ (use gazetted rates where specified, flag confidence honestly) and a compliance checklist of everything needed for submission.
+      const call1Prompt = `You are a South African tender bid preparation specialist. Your job is to produce a useful, actionable toolkit — not a compliance verdict.
+
+ELIGIBILITY ASSESSMENT (Layer 1 — state once, clearly):
+Review the company profile against tender requirements. If the company is ineligible or partially ineligible:
+- State the specific gap (e.g. 'No ECSA registration — mandatory knockout for engineering technologist category')
+- Provide a concrete path forward: partner with registered professional, form JV, register with required council (give timeline), or withdraw
+- Estimate the functionality score achievable given current profile
+NEVER produce a bare 'do not bid' without alternatives. NEVER repeat the ineligibility warning multiple times.
+
+PRICING (Layer 2):
+- Use gazetted rates where explicitly specified in the tender — these are benchmarks, not a margin exercise
+- Do NOT apply a generic 30% margin to gazetted professional service rates — state the gazetted total as the reference figure
+- If quantities are unspecified, use the best available proxy and flag it clearly with the source
+- Frame the total as 'reference figure pending eligibility confirmation' if eligibility gaps exist
+
+COMPLIANCE CHECKLIST (Layer 3):
+Split into three groups:
+1. 'Forms you can complete now' — company data is available
+2. 'Forms requiring missing documents' — state what is needed, where to get it, estimated cost and lead time
+3. 'Forms requiring a professional partner' — only if a JV or sub-contractor is needed
+
+For compliance documents already on file: show extracted value, expiry date, days since expiry, and specific renewal action with estimated cost and lead time.
 
 COMPANY PROFILE:
 ${companyContext}
@@ -773,18 +794,36 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
       // envelope endorsement wording, submission checklist. Re-attaches the
       // original PDF so this call has full access to the tender's specific
       // forms and requirements, not just a summary of call 1's output.
-      const call2Prompt = `Can you do a full tender-ready submission pack for this tender? The client has ALREADY DECIDED to bid.
+      const call2Prompt = `You are producing a bid preparation toolkit for a South African government tender. Working reference document — not a legal opinion.
 
-Include: a master submission checklist (every document/form required, sourced from the tender), category/registration requirements if applicable, completion templates for every mandatory bid form (MBD1, MBD2, MBD4, MBD6.1, MBD8, MBD9, MBD15, MBD16, or local equivalents — whatever this specific tender requires), the pricing schedule template, functionality evaluation submission requirements (e.g. Form C1 references, CV template), special conditions compliance checklist, and final submission/packaging instructions (envelope endorsement wording, physical submission location, USB requirements, ink requirements).
+SINGLE DISCLAIMER (use exactly once at the very top, nowhere else): 'Reference document — transcribe to official forms in black ink. Do not submit this document as your bid.'
 
-This is a genuine preparation pack the bidder will use to transcribe onto the official forms and gather supporting documents — be thorough and specific to THIS tender's actual requirements, not generic.
+DOCUMENT STRUCTURE:
 
-COMPANY PROFILE (reference where relevant, e.g. pre-filling the company name field):
+## Eligibility Summary
+One paragraph. If gaps exist: state them and the options (partner/JV/register/withdraw). Do not repeat this section anywhere else in the document.
+
+## Bill of Quantities
+Gazetted rates where specified. Include a note: 'Gazetted rates are benchmark figures. Bids at or near these rates are expected to be competitive for price scoring.'
+
+## Forms You Can Complete Now
+For each form where company data is available: pre-fill EVERY known field from the company profile. Mark unknown fields as 'UNKNOWN — verify in profile'. Never write 'TO COMPLETE' for a field you have data for. Include: MBD 1, MBD 4 (directors table), MBD 8, MBD 9, MBD 7.2 Part 1.
+
+## Forms Requiring Additional Documents
+List forms that require registrations or certificates not on file. For each: what is needed, where to get it, estimated cost, estimated lead time.
+
+## Form C1 — Project References (include if tender requires functionality evaluation)
+Include the Form C1 template. If company has no qualifying projects: state score impact clearly (e.g. 'Without references, Criteria 1 = 0/20 points. Minimum 30/40 required for responsiveness.').
+
+## Submission Checklist
+Everything that must physically be in the envelope on submission day: envelope endorsement wording (exact text), USB drive requirement, black ink rule, Commissioner of Oaths requirement, closing time and physical address.
+
+COMPANY PROFILE (pre-fill every known field):
 ${companyContext}
 
-ALREADY-CONFIRMED PRICING (reference, do not recalculate): Recommended bid R${call1Result.data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
+CONFIRMED BOQ TOTAL: R${call1Result.data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
 
-Write this as a complete, well-formatted markdown document — not JSON, just the document itself, ready to read and use.`;
+Write as complete well-formatted markdown. One disclaimer at the top. No repeated warnings.`;
 
       const call2Result = await callClaudeSimple(env, pdfDocs, call2Prompt, 6144);
       if (!call2Result.success) {
