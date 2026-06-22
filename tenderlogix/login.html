@@ -287,7 +287,7 @@ async function verifyOtp() {
 
     showStatus('Verified! Redirecting...', 'success');
     setTimeout(function() {
-      window.location.href = '/dashboard-v2/' + d.company_id;
+      window.location.replace('/dashboard-v2/' + d.company_id);
     }, 600);
 
   } catch(e) {
@@ -304,7 +304,7 @@ if (existingSession && existingCompany) {
   fetch('https://tenderlogix.co.za/tl/auth/check', {
     headers: { 'Authorization': 'Bearer ' + existingSession }
   }).then(function(r){ return r.json(); }).then(function(d) {
-    if (d.valid) window.location.href = '/dashboard-v2/' + existingCompany;
+    if (d.valid) window.location.replace('/dashboard-v2/' + existingCompany);
   }).catch(function(){});
 }
 </script>
