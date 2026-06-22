@@ -97,7 +97,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Bootstrap all HTML pages to KV
         run: |
-          for page in landing start preview blast admin partner referral-terms tl-landing tl-intake tl-dashboard tl-dashboard-v2 tl-profile-v2; do
+          for page in landing start preview blast admin partner referral-terms tl-landing tl-intake tl-dashboard tl-dashboard-v2 tl-profile-v2 tl-login; do
             FILE="${page}.html"
             [ -f "tenderlogix/${page#tl-}.html" ] && FILE="tenderlogix/${page#tl-}.html"
             if [ -f "$FILE" ]; then
