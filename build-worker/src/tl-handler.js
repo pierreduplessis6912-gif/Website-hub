@@ -104,6 +104,20 @@ export async function handleTenderLogix(request, env) {
     const intake = await env.SITES.get('app:tl-intake').catch(() => null);
     if (intake) return new Response(intake, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' } });
   }
+  // ── PWA static files ──────────────────────────────────────────
+  if (path === '/manifest.json') {
+    const manifest = await env.SITES.get('app:tl-manifest').catch(() => null);
+    if (manifest) return new Response(manifest, { headers: { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'public, max-age=86400' } });
+  }
+  if (path === '/sw.js') {
+    const sw = await env.SITES.get('app:tl-sw').catch(() => null);
+    if (sw) return new Response(sw, { headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'no-cache' } });
+  }
+  if (path === '/tl-icon-192.svg' || path === '/tl-icon-512.svg') {
+    const icon = await env.SITES.get('app:tl-icon').catch(() => null);
+    if (icon) return new Response(icon, { headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=604800' } });
+  }
+
   if (path === '/login') {
     const login = await env.SITES.get('app:tl-login').catch(() => null);
     if (login) return new Response(login, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' } });
