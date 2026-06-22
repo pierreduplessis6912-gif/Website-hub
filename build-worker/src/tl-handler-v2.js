@@ -736,35 +736,19 @@ Produce a priced BOQ. If the tender specifies government-prescribed/gazetted rat
 
       // Call 1 — BOQ + compliance checklist (identical shape to pricing's
       // proven-working call, just without the verdict-free pricing framing).
-      const call1Prompt = `You are a South African tender bid preparation specialist. Your job is to produce a useful, actionable toolkit — not a compliance verdict.
+      const call1Prompt = `You are a South African tender bid preparation specialist. Return ONLY valid JSON matching the schema below. No markdown, no explanation outside the JSON.
 
-ELIGIBILITY ASSESSMENT (Layer 1 — state once, clearly):
-Review the company profile against tender requirements. If the company is ineligible or partially ineligible:
-- State the specific gap (e.g. 'No ECSA registration — mandatory knockout for engineering technologist category')
-- Provide a concrete path forward: partner with registered professional, form JV, register with required council (give timeline), or withdraw
-- Estimate the functionality score achievable given current profile
-NEVER produce a bare 'do not bid' without alternatives. NEVER repeat the ineligibility warning multiple times.
-
-PRICING (Layer 2):
-- Use gazetted rates where explicitly specified in the tender — these are benchmarks, not a margin exercise
-- Do NOT apply a generic 30% margin to gazetted professional service rates — state the gazetted total as the reference figure
-- If quantities are unspecified, use the best available proxy and flag it clearly with the source
-- Frame the total as 'reference figure pending eligibility confirmation' if eligibility gaps exist
-
-COMPLIANCE CHECKLIST (Layer 3):
-Split into three groups:
-1. 'Forms you can complete now' — company data is available
-2. 'Forms requiring missing documents' — state what is needed, where to get it, estimated cost and lead time
-3. 'Forms requiring a professional partner' — only if a JV or sub-contractor is needed
-
-For compliance documents already on file: show extracted value, expiry date, days since expiry, and specific renewal action with estimated cost and lead time.
+SCHEMA RULES (mandatory — always populate all fields):
+- boq: always include, even if company is ineligible. Use gazetted rates where specified. Never empty.
+- compliance_checklist: split into three groups using the 'status' field: 'CAN_COMPLETE_NOW', 'MISSING_DOCUMENTS', 'NEEDS_PARTNER'
+- pricing_disclaimer: use this field for eligibility assessment — state gaps, provide path forward (partner/JV/register/withdraw with timeline), estimate functionality score. Never a bare 'do not bid'.
+- Do NOT apply a 30% margin to gazetted professional service rates.
+- If quantities are unspecified, use best proxy and note it in the relevant boq item's source field.
 
 COMPANY PROFILE:
 ${companyContext}
 
-TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.
-
-CRITICAL: You MUST return the JSON schema below regardless of eligibility status. The eligibility assessment goes in the compliance_checklist and pricing_disclaimer fields. The BOQ must always be populated — use gazetted rates if specified, estimate if not. A company being ineligible does not mean the BOQ is empty — it means the pricing_disclaimer explains the context.`;
+TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
 
       const call1Schema = `{
   "tender_title": "string — actual title/name of this tender",
