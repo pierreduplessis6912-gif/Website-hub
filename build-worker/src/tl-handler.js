@@ -9,6 +9,7 @@
 // Balance is rand sitting on the account, drawn down first; PayFast covers the shortfall.
 
 import { buildPayFastLink, isTestMode } from './shared-services.js';
+import { handleTlVerifyOtp, handleTlAuthCheck, handleTlLogout, requireTlAuth } from './tl-auth.js';
 
 const TIER_PRICES = { gonogo: 20, pricing: 750, bidpack: 2500 };
 
@@ -30,6 +31,11 @@ export async function handleTenderLogix(request, env) {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
   }
+
+  // ── AUTH ROUTES — unauthenticated ───────────────────────────
+  if (path === '/tl/auth/verify-otp' && method === 'POST') return handleTlVerifyOtp(request, env);
+  if (path === '/tl/auth/check')                          return handleTlAuthCheck(request, env);
+  if (path === '/tl/auth/logout'     && method === 'POST') return handleTlLogout(request, env);
 
   // ── ROUTES ──────────────────────────────────────────────────
   if (path === '/health') return tlJson({ status: 'ok', service: 'tenderlogix' });
@@ -82,6 +88,10 @@ export async function handleTenderLogix(request, env) {
   if (path === '/register') {
     const intake = await env.SITES.get('app:tl-intake').catch(() => null);
     if (intake) return new Response(intake, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+  }
+  if (path === '/login') {
+    const login = await env.SITES.get('app:tl-login').catch(() => null);
+    if (login) return new Response(login, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
   }
   if (path.startsWith('/dashboard')) {
     const dashboard = await env.SITES.get('app:tl-dashboard').catch(() => null);
