@@ -236,9 +236,13 @@ function showToast(msg, type) {
 }
 
 async function loadProfile() {
-  if (!companyId) { window.location.href = '/register'; return; }
+  if (!companyId) { window.location.href = '/login'; return; }
+
+  // ── Session check ────────────────────────────────────────────
+  var sessionToken = localStorage.getItem('tl_session');
+  if (!sessionToken) { window.location.href = '/login'; return; }
   try {
-    var res = await fetch('/tl/company?id=' + companyId);
+    var res = await authFetch('/tl/company?id=' + companyId);
     var d = await res.json();
     if (d.error) { showToast('Could not load profile', 'error'); return; }
     ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number'].forEach(function(field) {
@@ -258,7 +262,7 @@ async function saveCompanyDetails() {
       var val = document.getElementById(field).value.trim();
       if (val) body[field] = val;
     });
-    var res = await fetch('/tl/v2/company/details', {
+    var res = await authFetch('/tl/v2/company/details', {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
     });
     var d = await res.json();
@@ -272,7 +276,7 @@ async function saveCompanyDetails() {
 
 async function loadDirectors() {
   try {
-    var res = await fetch('/tl/v2/directors?company_id=' + companyId);
+    var res = await authFetch('/tl/v2/directors?company_id=' + companyId);
     var d = await res.json();
     directors = d.directors || [];
     renderDirectors();
@@ -336,7 +340,7 @@ async function saveDirector() {
       is_state_employee: document.getElementById('d_is_state_employee').checked,
     };
     if (editingDirectorId) body.id = editingDirectorId;
-    var res = await fetch('/tl/v2/directors', {
+    var res = await authFetch('/tl/v2/directors', {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
     });
     var d = await res.json();
@@ -353,7 +357,7 @@ async function saveDirector() {
 async function removeDirector(id) {
   if (!confirm('Remove this director?')) return;
   try {
-    var res = await fetch('/tl/v2/directors', {
+    var res = await authFetch('/tl/v2/directors', {
       method:'DELETE', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ company_id:companyId, id:id })
     });
@@ -365,6 +369,21 @@ async function removeDirector(id) {
 }
 
 loadProfile();
+
+function authHeaders() {
+  var token = localStorage.getItem('tl_session');
+  return token ? { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token } : { 'Content-Type': 'application/json' };
+}
+
+function authFetch(url, opts) {
+  opts = opts || {};
+  var token = localStorage.getItem('tl_session');
+  if (token) opts.headers = Object.assign({}, opts.headers || {}, { 'Authorization': 'Bearer ' + token });
+  return fetch(url, opts).then(function(res) {
+    if (res.status === 401) { localStorage.removeItem('tl_session'); window.location.href = '/login'; throw new Error('Session expired'); }
+    return res;
+  });
+}
 // ── Navigation guard — warn before leaving ──────────────────────────────
 // Fires on browser back, close tab, or any navigation away from this page.
 // Exceptions: internal TenderLogix links use location.replace() so they
