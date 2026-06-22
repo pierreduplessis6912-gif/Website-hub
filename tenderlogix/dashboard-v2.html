@@ -1063,7 +1063,7 @@ async function viewProductReport(runId) {
         if (!vaultActive) {
           var unverified = r.facts.filter(function(f){ return f.verification==='SELF_REPORTED' || f.verification==='MISSING'; });
           if (unverified.length > 0) {
-            html += '<div class="vault-nudge" style="margin-top:8px" onclick="openVaultModal()"><div class="vault-nudge-indicator"></div><div class="vault-nudge-text"><strong>'+unverified.length+' item'+(unverified.length>1?'s':'')+' above are unverified.</strong> Vault confirms your real certificates so future reports show VERIFIED, not SELF-REPORTED.</div><div class="vault-nudge-cta">R99/mo</div></div>';
+            html += '<div class="vault-nudge" style="margin-top:8px" onclick="openVaultModal()"><div class="vault-nudge-indicator"></div><div class="vault-nudge-text"><strong>'+unverified.length+' item'+(unverified.length>1?'s':'')+' in this report are <strong>unverified or missing</strong> — lowering your confidence score. Subscribe to Vault, upload your certificates, and re-run for a stronger assessment. Tap to subscribe now.</div><div class="vault-nudge-cta">R99/mo →</div></div>';
           }
         }
         html += '</div>';
