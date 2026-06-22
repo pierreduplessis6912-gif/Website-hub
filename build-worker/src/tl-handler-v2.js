@@ -14,6 +14,7 @@
 
 import { generateProductRunDocx } from './tl-docx.js';
 import { checkVaultSubscription } from './tl-handler.js';
+import { requireTlAuth } from './tl-auth.js';
 
 const V2_PRICES = { gonogo: 100, pricing: 750, bidpack: 750 };
 // NOTE: 'pricing' as a standalone purchasable product is being retired from
