@@ -37,22 +37,42 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 .input.error{border-color:var(--red)}
 .err-msg{font-size:11px;color:var(--red);margin-top:6px;display:none;font-family:var(--mono);letter-spacing:.3px}
 .err-msg.show{display:block}
+
+/* Industry search */
+.industry-wrapper{position:relative}
+.industry-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--gunmetal-light);border:1px solid var(--gunmetal-border);border-top:none;max-height:220px;overflow-y:auto;z-index:20;display:none}
+.industry-dropdown.open{display:block}
+.industry-option{padding:12px 16px;font-size:13px;cursor:pointer;color:var(--dim);transition:all .1s;border-bottom:1px solid var(--gunmetal-border)}
+.industry-option:last-child{border-bottom:none}
+.industry-option:hover,.industry-option.active{background:var(--orange-dim);color:var(--orange)}
+.industry-option mark{background:none;color:var(--orange);font-weight:700}
+.selected-industries{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;min-height:0}
+.ind-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;background:var(--orange-dim);border:1px solid var(--orange);font-size:12px;color:var(--orange);font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+.ind-chip button{background:none;border:none;color:var(--orange);cursor:pointer;font-size:14px;line-height:1;padding:0;opacity:.7}
+.ind-chip button:hover{opacity:1}
+.no-results{padding:12px 16px;font-size:12px;color:var(--dim2);font-family:var(--mono)}
+
+/* Province chips */
 .chip-group{display:flex;flex-wrap:wrap;gap:8px}
 .chip{padding:9px 16px;border:1px solid var(--gunmetal-border);font-family:var(--body);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;background:var(--gunmetal);color:var(--dim);user-select:none;text-transform:uppercase;letter-spacing:.3px}
 .chip.selected{background:var(--orange-dim);color:var(--orange);border-color:var(--orange)}
 .chip:hover:not(.selected){border-color:var(--dim2);color:var(--white)}
+
 .divider{border:none;border-top:1px solid var(--gunmetal-border);margin:36px 0}
-.credits-card{background:var(--gunmetal);border:1px solid var(--orange);padding:28px;margin-bottom:24px}
-.credits-title{font-family:var(--display);font-size:24px;letter-spacing:-.5px;margin-bottom:6px;text-transform:uppercase;color:var(--orange)}
-.credits-sub{font-size:12px;font-weight:300;color:var(--dim);margin-bottom:18px;letter-spacing:.2px}
-.credits-items{list-style:none}
-.credits-items li{font-size:13px;padding:6px 0;display:flex;align-items:center;gap:10px;color:var(--white);font-weight:300}
-.credits-items li::before{content:'';width:5px;height:5px;background:var(--orange);flex-shrink:0}
+
+/* Pricing breakdown */
+.pricing-grid{display:grid;gap:2px;margin-bottom:28px}
+.pricing-row{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--gunmetal)}
+.pricing-row:first-child{border-top:2px solid var(--orange)}
+.pricing-label{font-size:13px;font-weight:500;color:var(--white)}
+.pricing-label small{display:block;font-size:11px;color:var(--dim2);font-weight:300;margin-top:3px}
+.pricing-amount{font-family:var(--mono);font-size:13px;color:var(--orange);text-align:right;white-space:nowrap}
+.pricing-amount small{display:block;font-size:10px;color:var(--dim2);font-weight:300}
+.free-badge{display:inline-block;background:var(--orange);color:var(--black);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;padding:3px 7px;text-transform:uppercase;margin-left:8px;vertical-align:middle}
+
 .btn-submit{width:100%;padding:18px;background:var(--orange);color:var(--black);font-family:var(--body);font-size:14px;font-weight:700;border:none;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:background .2s;margin-bottom:12px}
 .btn-submit:hover{background:var(--orange-light)}
 .btn-submit:disabled{opacity:.4;cursor:not-allowed}
-.btn-free{width:100%;padding:16px;background:transparent;color:var(--dim);font-family:var(--body);font-size:12px;font-weight:600;border:1px solid var(--gunmetal-border);cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:all .2s}
-.btn-free:hover{border-color:var(--white);color:var(--white)}
 .fine-print{font-size:10px;color:var(--dim2);text-align:center;line-height:1.7;margin-top:18px;font-family:var(--mono);letter-spacing:.3px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--white);color:var(--black);padding:13px 26px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
 .toast.show{opacity:1}
@@ -68,7 +88,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 <div class="page">
   <div class="page-eyebrow" id="pageEyebrow">Free Registration</div>
   <h1 class="page-title" id="pageTitle">Build Your Profile.</h1>
-  <p class="page-sub" id="pageSub">Two minutes. Used on every analysis. Add more detail later from your dashboard.</p>
+  <p class="page-sub" id="pageSub">Two minutes. Your profile is used on every analysis — the more detail, the better your results.</p>
 
   <div class="form-section">
     <div class="section-label">Company</div>
@@ -78,9 +98,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
       <div class="err-msg" id="err_company_name">Company name is required</div>
     </div>
     <div class="field">
-      <label class="label" for="reg_number">Registration Number <span>required for free trial</span></label>
+      <label class="label" for="reg_number">Registration Number <span>optional</span></label>
       <input class="input" id="reg_number" type="text" placeholder="e.g. 2019/123456/07">
-      <div class="err-msg" id="err_reg_number">Registration number required to unlock R100 free balance</div>
     </div>
   </div>
 
@@ -105,24 +124,19 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 
   <div class="form-section">
     <div class="section-label">Industries</div>
-    <div class="chip-group" id="industries">
-      <div class="chip" data-val="cleaning">Cleaning</div>
-      <div class="chip" data-val="security">Security</div>
-      <div class="chip" data-val="catering">Catering</div>
-      <div class="chip" data-val="construction">Construction</div>
-      <div class="chip" data-val="landscaping">Landscaping</div>
-      <div class="chip" data-val="it">IT &amp; Technology</div>
-      <div class="chip" data-val="transport">Transport</div>
-      <div class="chip" data-val="waste">Waste Management</div>
-      <div class="chip" data-val="electrical">Electrical</div>
-      <div class="chip" data-val="plumbing">Plumbing</div>
-      <div class="chip" data-val="consulting">Consulting</div>
-      <div class="chip" data-val="other">Other</div>
+    <div class="field">
+      <label class="label" for="industry_search">What does your company do? <span>select all that apply</span></label>
+      <div class="industry-wrapper">
+        <input class="input" id="industry_search" type="text" placeholder="Type to search e.g. cleaning, electrical..." autocomplete="off">
+        <div class="industry-dropdown" id="industryDropdown"></div>
+      </div>
+      <div class="selected-industries" id="selectedIndustries"></div>
+      <div class="err-msg" id="err_industries">Select at least one industry</div>
     </div>
   </div>
 
   <div class="form-section">
-    <div class="section-label">Provinces</div>
+    <div class="section-label">Provinces You Operate In</div>
     <div class="chip-group" id="provinces">
       <div class="chip" data-val="GP">Gauteng</div>
       <div class="chip" data-val="WC">Western Cape</div>
@@ -134,30 +148,59 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
       <div class="chip" data-val="FS">Free State</div>
       <div class="chip" data-val="NC">Northern Cape</div>
     </div>
+    <div class="err-msg" id="err_provinces">Select at least one province</div>
   </div>
 
   <hr class="divider">
 
   <div id="signupOnlySection">
-    <div class="credits-card">
-      <div class="credits-title">Starter Pack — R199</div>
-      <p class="credits-sub">EVERYTHING REQUIRED TO START WINNING</p>
-      <ul class="credits-items">
-        <li>R199 account balance to spend as you go</li>
-        <li>Full compliance checklist per tender</li>
-        <li>Competitive pricing benchmarks</li>
-        <li>Risk flags and recommendations</li>
-        <li>Dashboard + WhatsApp delivery</li>
-      </ul>
+    <div class="section-label" style="margin-bottom:16px">How Pricing Works</div>
+    <div class="pricing-grid">
+      <div class="pricing-row">
+        <div class="pricing-label">
+          Tender Upload
+          <small>Up to 5 documents per tender</small>
+        </div>
+        <div class="pricing-amount">
+          R20 <small>per document</small>
+          <span class="free-badge">1st free</span>
+        </div>
+      </div>
+      <div class="pricing-row">
+        <div class="pricing-label">
+          Go / No-Go Analysis
+          <small>Should you bid? Risk + eligibility check</small>
+        </div>
+        <div class="pricing-amount">
+          R100 <small>per run</small>
+          <span class="free-badge">1st free</span>
+        </div>
+      </div>
+      <div class="pricing-row">
+        <div class="pricing-label">
+          Bid Pack
+          <small>Full submission pack — BOQ, forms, pricing</small>
+        </div>
+        <div class="pricing-amount">
+          R750 <small>per run</small>
+          <span class="free-badge">1st free</span>
+        </div>
+      </div>
+      <div class="pricing-row">
+        <div class="pricing-label">
+          Document Vault
+          <small>Store &amp; verify compliance certificates</small>
+        </div>
+        <div class="pricing-amount">R99 <small>per month</small></div>
+      </div>
     </div>
 
-    <button class="btn-submit" id="btnPay" onclick="handleSubmit(true)">Create Account &amp; Pay R199</button>
-    <button class="btn-free" id="btnFree" onclick="handleSubmit(false)">Start Free — R100 Balance</button>
+    <button class="btn-submit" id="btnRegister" onclick="handleSubmit()">Create Free Account →</button>
   </div>
 
   <button class="btn-submit" id="btnSave" onclick="handleUpdate()" style="display:none">Save Changes</button>
 
-  <p class="fine-print">BY REGISTERING YOU AGREE TO OUR TERMS OF SERVICE AND PRIVACY POLICY · RESULTS ARE AI-ASSISTED AND INDICATIVE ONLY</p>
+  <p class="fine-print">NO PAYMENT REQUIRED TO REGISTER · YOUR FIRST UPLOAD, GO/NO-GO AND BID PACK ARE FREE · BY REGISTERING YOU AGREE TO OUR TERMS OF SERVICE</p>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -168,27 +211,126 @@ var UPDATE_ENDPOINT = 'https://tenderlogix.co.za/tl/company/update';
 var urlParams = new URLSearchParams(window.location.search);
 var editCompanyId = urlParams.get('edit');
 
-document.querySelectorAll('.chip').forEach(function(chip) {
-  chip.addEventListener('click', function() { chip.classList.toggle('selected'); });
-});
+// ── Industry list ────────────────────────────────────────────────────────
+var ALL_INDUSTRIES = [
+  'Accounting & Auditing','Advertising & Marketing','Agriculture','Air Conditioning & HVAC',
+  'Architectural Services','Asset Management','Audio Visual & Events','Automotive',
+  'Aviation','Borehole Drilling','Bricklaying & Masonry','Building & Construction',
+  'Catering & Food Services','CCTV & Security Systems','Civil Engineering',
+  'Cleaning Services','Compliance & Regulatory','Computer Hardware','Consulting',
+  'Data Management & Analytics','Debt Collection','Demolition','Electrical',
+  'Electronics','Emergency Services','Engineering (General)','Environmental Services',
+  'Fencing','Fire Protection','Fleet Management','Flooring & Tiling',
+  'Forestry','Furniture & Office Equipment','Garden & Landscaping','Generator & Power',
+  'Geotechnical Services','Glass & Glazing','Graphic Design','Health & Safety',
+  'Healthcare & Medical','Home Affairs Services','Hospitality','HR & Recruitment',
+  'ICT & Technology','Industrial Equipment','Insurance','Interior Design',
+  'Interpreter & Translation','IT Support & Networking','Laboratory Services',
+  'Legal Services','Logistics & Supply Chain','Maintenance & Repairs',
+  'Mechanical Engineering','Media & Publishing','Mining & Quarrying',
+  'Municipal Services','Office Administration','Painting & Decorating',
+  'Pest Control','Petroleum & Fuel','Photography & Videography','Plumbing',
+  'Printing & Stationery','Project Management','Property Development',
+  'Public Relations','Real Estate','Refrigeration','Renewable Energy & Solar',
+  'Research & Development','Road Construction & Paving','Roofing',
+  'Safety Equipment','Sanitation & Waste Management','Security Services',
+  'Signage','Social Development','Software Development','Structural Engineering',
+  'Survey & Mapping','Telecommunications','Training & Development','Transport & Logistics',
+  'Travel & Tourism','Upholstery & Soft Furnishings','Veterinary Services',
+  'Water & Sanitation','Welding & Fabrication','Wholesale & Distribution'
+];
 
-function showToast(msg) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 3000);
+var selectedIndustries = [];
+
+function highlightMatch(text, query) {
+  if (!query) return text;
+  var idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return text.slice(0,idx) + '<mark>' + text.slice(idx, idx+query.length) + '</mark>' + text.slice(idx+query.length);
 }
 
-function getChips(groupId) {
-  return Array.from(document.querySelectorAll('#' + groupId + ' .chip.selected')).map(function(c) { return c.dataset.val; });
+function renderDropdown(query) {
+  var dd = document.getElementById('industryDropdown');
+  var filtered = ALL_INDUSTRIES.filter(function(ind) {
+    return ind.toLowerCase().indexOf(query.toLowerCase()) !== -1 && selectedIndustries.indexOf(ind) === -1;
+  });
+  if (!query || filtered.length === 0) {
+    if (query && filtered.length === 0) {
+      dd.innerHTML = '<div class="no-results">No match — try a different term</div>';
+      dd.classList.add('open');
+    } else {
+      dd.classList.remove('open');
+    }
+    return;
+  }
+  dd.innerHTML = filtered.slice(0,8).map(function(ind) {
+    return '<div class="industry-option" data-val="'+ind+'">' + highlightMatch(ind, query) + '</div>';
+  }).join('');
+  dd.classList.add('open');
+  dd.querySelectorAll('.industry-option').forEach(function(opt) {
+    opt.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      addIndustry(opt.dataset.val);
+    });
+  });
+}
+
+function addIndustry(val) {
+  if (selectedIndustries.indexOf(val) !== -1) return;
+  selectedIndustries.push(val);
+  document.getElementById('industry_search').value = '';
+  document.getElementById('industryDropdown').classList.remove('open');
+  renderSelectedIndustries();
+  document.getElementById('err_industries').classList.remove('show');
+}
+
+function removeIndustry(val) {
+  selectedIndustries = selectedIndustries.filter(function(i) { return i !== val; });
+  renderSelectedIndustries();
+}
+
+function renderSelectedIndustries() {
+  var container = document.getElementById('selectedIndustries');
+  container.innerHTML = selectedIndustries.map(function(ind) {
+    return '<div class="ind-chip">' + ind + '<button onclick="removeIndustry(\''+ind.replace(/'/g,"\\'")+'\')" title="Remove">×</button></div>';
+  }).join('');
+}
+
+document.getElementById('industry_search').addEventListener('input', function() {
+  renderDropdown(this.value.trim());
+});
+document.getElementById('industry_search').addEventListener('blur', function() {
+  setTimeout(function() { document.getElementById('industryDropdown').classList.remove('open'); }, 150);
+});
+document.getElementById('industry_search').addEventListener('focus', function() {
+  if (this.value.trim()) renderDropdown(this.value.trim());
+});
+
+// ── Province chips ───────────────────────────────────────────────────────
+document.querySelectorAll('#provinces .chip').forEach(function(chip) {
+  chip.addEventListener('click', function() {
+    chip.classList.toggle('selected');
+    document.getElementById('err_provinces').classList.remove('show');
+  });
+});
+
+function getProvinces() {
+  return Array.from(document.querySelectorAll('#provinces .chip.selected')).map(function(c) { return c.dataset.val; });
 }
 
 function setChips(groupId, values) {
   values = values || [];
   document.querySelectorAll('#' + groupId + ' .chip').forEach(function(c) {
-    if (values.indexOf(c.dataset.val) !== -1) c.classList.add('selected');
-    else c.classList.remove('selected');
+    c.classList.toggle('selected', values.indexOf(c.dataset.val) !== -1);
   });
+}
+
+// ── Utilities ────────────────────────────────────────────────────────────
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
 }
 
 function normalisePhone(raw) {
@@ -197,7 +339,61 @@ function normalisePhone(raw) {
   return digits.replace(/^0/, '27');
 }
 
-// ── EDIT MODE — pre-fill the form from an existing company ──────────────
+function setError(id, show) {
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('show', show);
+  var inp = document.getElementById(id.replace('err_',''));
+  if (inp) inp.classList.toggle('error', show);
+}
+
+function validate() {
+  var ok = true;
+  ['company_name','contact_name','phone','email'].forEach(function(id) {
+    var val = document.getElementById(id).value.trim();
+    setError('err_'+id, !val);
+    if (!val) ok = false;
+  });
+  if (!selectedIndustries.length) { setError('err_industries', true); ok = false; }
+  if (!getProvinces().length) { setError('err_provinces', true); ok = false; }
+  return ok;
+}
+
+// ── Submit ───────────────────────────────────────────────────────────────
+async function handleSubmit() {
+  if (!validate()) { showToast('Please fill in all required fields'); return; }
+  var btn = document.getElementById('btnRegister');
+  btn.disabled = true; btn.textContent = 'Creating Account...';
+  try {
+    var res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: document.getElementById('company_name').value.trim(),
+        reg_number: document.getElementById('reg_number').value.trim() || null,
+        email: document.getElementById('email').value.trim(),
+        phone: normalisePhone(document.getElementById('phone').value.trim()),
+        industries: selectedIndustries,
+        provinces: getProvinces(),
+        client_name: document.getElementById('contact_name').value.trim(),
+      })
+    });
+    var d = await res.json();
+    if (res.status === 409) {
+      showToast(d.error || 'Account already exists for this phone or email');
+      btn.disabled = false; btn.textContent = 'Create Free Account →';
+      return;
+    }
+    if (!d.success) throw new Error(d.error || 'Registration failed');
+    localStorage.setItem('tl_company_id', d.company_id);
+    localStorage.setItem('tl_company_name', document.getElementById('company_name').value.trim());
+    window.location.href = 'https://tenderlogix.co.za/dashboard-v2/' + d.company_id;
+  } catch(e) {
+    showToast(e.message || 'Something went wrong — please try again');
+    btn.disabled = false; btn.textContent = 'Create Free Account →';
+  }
+}
+
+// ── Edit mode ────────────────────────────────────────────────────────────
 async function loadEditMode() {
   document.getElementById('pageEyebrow').textContent = 'Edit Profile';
   document.getElementById('pageTitle').textContent = 'Update Your Profile.';
@@ -205,29 +401,20 @@ async function loadEditMode() {
   document.getElementById('signupOnlySection').style.display = 'none';
   document.getElementById('btnSave').style.display = 'block';
   document.querySelector('.fine-print').style.display = 'none';
-
-  // Reg number is only "required for free trial" during signup — not editing
-  var regSpan = document.querySelector('label[for="reg_number"] span');
-  if (regSpan) regSpan.textContent = 'optional';
-
   try {
     var res = await fetch('https://tenderlogix.co.za/tl/company?id=' + editCompanyId);
     var d = await res.json();
-    if (d.error) { showToast('Could not load profile — please try again'); return; }
-
+    if (d.error) { showToast('Could not load profile'); return; }
     document.getElementById('company_name').value = d.name || '';
     document.getElementById('reg_number').value = d.reg_number || '';
     document.getElementById('contact_name').value = d.client_name || '';
     document.getElementById('phone').value = d.phone || '';
     document.getElementById('email').value = d.email || '';
-
-    var industries = [], provinces = [];
-    try { industries = JSON.parse(d.industries || '[]'); } catch(e) {}
-    try { provinces = JSON.parse(d.provinces || '[]'); } catch(e) {}
-    setChips('industries', industries);
-    setChips('provinces', provinces);
+    try { selectedIndustries = JSON.parse(d.industries || '[]'); } catch(e) {}
+    renderSelectedIndustries();
+    try { setChips('provinces', JSON.parse(d.provinces || '[]')); } catch(e) {}
   } catch(e) {
-    showToast('Could not load profile — please try again');
+    showToast('Could not load profile');
   }
 }
 
@@ -235,15 +422,12 @@ async function handleUpdate() {
   var ok = true;
   ['company_name','contact_name','phone','email'].forEach(function(id) {
     var val = document.getElementById(id).value.trim();
-    var err = document.getElementById('err_' + id);
-    if (!val) { err.classList.add('show'); document.getElementById(id).classList.add('error'); ok = false; }
-    else { err.classList.remove('show'); document.getElementById(id).classList.remove('error'); }
+    setError('err_'+id, !val);
+    if (!val) ok = false;
   });
   if (!ok) { showToast('Please fill in the required fields'); return; }
-
   var btn = document.getElementById('btnSave');
   btn.disabled = true; btn.textContent = 'Saving...';
-
   try {
     var res = await fetch(UPDATE_ENDPOINT, {
       method: 'POST',
@@ -254,99 +438,18 @@ async function handleUpdate() {
         reg_number: document.getElementById('reg_number').value.trim() || null,
         email: document.getElementById('email').value.trim(),
         phone: normalisePhone(document.getElementById('phone').value.trim()),
-        industries: getChips('industries'),
-        provinces: getChips('provinces'),
+        industries: selectedIndustries,
+        provinces: getProvinces(),
         client_name: document.getElementById('contact_name').value.trim(),
       })
     });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
     showToast('✅ Profile updated');
-    setTimeout(function() { window.location.href = '/dashboard/' + editCompanyId; }, 800);
+    setTimeout(function() { window.location.href = '/dashboard-v2/' + editCompanyId; }, 800);
   } catch(e) {
     showToast(e.message || 'Update failed');
     btn.disabled = false; btn.textContent = 'Save Changes';
-  }
-}
-
-function validate(requireFullProfile) {
-  var ok = true;
-  ['company_name','contact_name','phone','email'].forEach(function(id) {
-    var val = document.getElementById(id).value.trim();
-    var err = document.getElementById('err_' + id);
-    if (!val) { err.classList.add('show'); document.getElementById(id).classList.add('error'); ok = false; }
-    else { err.classList.remove('show'); document.getElementById(id).classList.remove('error'); }
-  });
-  if (requireFullProfile) {
-    var reg = document.getElementById('reg_number').value.trim();
-    var errReg = document.getElementById('err_reg_number');
-    if (!reg) { errReg.classList.add('show'); document.getElementById('reg_number').classList.add('error'); ok = false; }
-    else { errReg.classList.remove('show'); document.getElementById('reg_number').classList.remove('error'); }
-    if (!getChips('industries').length) { showToast('Select at least one industry for the free trial'); ok = false; }
-    if (!getChips('provinces').length) { showToast('Select at least one province for the free trial'); ok = false; }
-  }
-  return ok;
-}
-
-async function handleSubmit(pay) {
-  if (!validate(!pay)) { showToast('Please fill in the required fields'); return; }
-  var btn = pay ? document.getElementById('btnPay') : document.getElementById('btnFree');
-  btn.disabled = true;
-  btn.textContent = 'Creating Account...';
-
-  try {
-    var res = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: document.getElementById('company_name').value.trim(),
-        reg_number: document.getElementById('reg_number').value.trim() || null,
-        email: document.getElementById('email').value.trim(),
-        phone: normalisePhone(document.getElementById('phone').value.trim()),
-        industries: getChips('industries'),
-        provinces: getChips('provinces'),
-        client_name: document.getElementById('contact_name').value.trim(),
-        free_credits: !pay,
-      })
-    });
-    var d = await res.json();
-    if (res.status === 409) {
-      showToast(d.error || 'Account already exists for this phone/email');
-      btn.disabled = false; btn.textContent = pay ? 'Create Account & Pay R199' : 'Start Free — R100 Balance';
-      return;
-    }
-    if (!d.success) throw new Error(d.error || 'Registration failed');
-    if (d.message) showToast(d.message);
-
-    localStorage.setItem('tl_company_id', d.company_id);
-    localStorage.setItem('tl_company_name', document.getElementById('company_name').value.trim());
-
-    if (pay) {
-      var form = document.createElement('form');
-      form.method = 'POST';
-      form.action = 'https://www.payfast.co.za/eng/process';
-      var fields = {
-        merchant_id: '10000100', merchant_key: 'PAYFAST_MERCHANT_KEY',
-        return_url: 'https://tenderlogix.co.za/dashboard/' + d.company_id,
-        cancel_url: 'https://tenderlogix.co.za/register',
-        notify_url: 'https://tenderlogix.co.za/tl/payfast-webhook',
-        amount: '199.00', item_name: 'TenderLogix Starter Pack — 10 Credits',
-        custom_str1: d.company_id,
-      };
-      Object.entries(fields).forEach(function(e) {
-        var i = document.createElement('input');
-        i.type='hidden'; i.name=e[0]; i.value=e[1];
-        form.appendChild(i);
-      });
-      document.body.appendChild(form);
-      form.submit();
-    } else {
-      window.location.href = 'https://tenderlogix.co.za/dashboard/' + d.company_id;
-    }
-  } catch(e) {
-    showToast(e.message || 'Something went wrong');
-    btn.disabled = false;
-    btn.textContent = pay ? 'Create Account & Pay R199' : 'Start Free — R100 Balance';
   }
 }
 
