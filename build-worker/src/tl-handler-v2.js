@@ -762,7 +762,9 @@ For compliance documents already on file: show extracted value, expiry date, day
 COMPANY PROFILE:
 ${companyContext}
 
-TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
+TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.
+
+CRITICAL: You MUST return the JSON schema below regardless of eligibility status. The eligibility assessment goes in the compliance_checklist and pricing_disclaimer fields. The BOQ must always be populated — use gazetted rates if specified, estimate if not. A company being ineligible does not mean the BOQ is empty — it means the pricing_disclaimer explains the context.`;
 
       const call1Schema = `{
   "tender_title": "string — actual title/name of this tender",
@@ -773,7 +775,7 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
   "pricing_disclaimer": "string"
 }`;
 
-      const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 4096);
+      const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 5120);
       if (!call1Result.success) {
         console.error('TL v2 — bidpack call 1 (BOQ+checklist) failed. run:', productRunId, 'reason:', call1Result.reason);
         await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
