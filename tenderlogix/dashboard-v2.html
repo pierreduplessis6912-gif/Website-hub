@@ -606,6 +606,27 @@ var freeTrials = {};
 var selectedFiles = [];
 var selectedAmount = 100;
 
+function authHeaders() {
+  var token = localStorage.getItem('tl_session');
+  return token ? { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token } : { 'Content-Type': 'application/json' };
+}
+
+function authFetch(url, opts) {
+  opts = opts || {};
+  var token = localStorage.getItem('tl_session');
+  if (token) {
+    opts.headers = Object.assign({}, opts.headers || {}, { 'Authorization': 'Bearer ' + token });
+  }
+  return fetch(url, opts).then(function(res) {
+    if (res.status === 401) {
+      localStorage.removeItem('tl_session');
+      window.location.href = '/login';
+      throw new Error('Session expired');
+    }
+    return res;
+  });
+}
+
 function showToast(msg, type) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -615,10 +636,14 @@ function showToast(msg, type) {
 }
 
 async function loadDashboard() {
-  if (!companyId) { window.location.href = '/register'; return; }
+  if (!companyId) { window.location.href = '/login'; return; }
+
+  // ── Session check — redirect to login if no valid session ──
+  var sessionToken = localStorage.getItem('tl_session');
+  if (!sessionToken) { window.location.href = '/login'; return; }
   document.getElementById('profileLink').href = '/profile/' + companyId;
   try {
-    var res = await fetch('/tl/company?id=' + companyId);
+    var res = await authFetch('/tl/company?id=' + companyId);
     var d = await res.json();
     if (d.error) { showToast('Session expired', 'error'); return; }
     companyData = d;
@@ -632,7 +657,7 @@ async function loadDashboard() {
       document.title = d.name + ' — TenderLogix';
     }
 
-    var trialsRes = await fetch('/tl/v2/free-trials?company_id=' + companyId);
+    var trialsRes = await authFetch('/tl/v2/free-trials?company_id=' + companyId);
     var trialsData = await trialsRes.json();
     freeTrials = trialsData.free_trials_available || {};
 
@@ -650,7 +675,7 @@ var vaultActive = false;
 
 async function loadVaultStatus() {
   try {
-    var res = await fetch('/tl/vault/status?company_id=' + companyId);
+    var res = await authFetch('/tl/vault/status?company_id=' + companyId);
     var d = await res.json();
     vaultActive = !!d.vault_active;
     var pill = document.getElementById('vaultPill');
@@ -933,7 +958,7 @@ function productSub(p) {
 
 async function loadTenders() {
   try {
-    var res = await fetch('/tl/v2/tenders?company_id='+companyId);
+    var res = await authFetch('/tl/v2/tenders?company_id='+companyId);
     var d = await res.json();
     var tenders = d.tenders || [];
     var hiw = document.getElementById('howItWorks'); if (hiw) hiw.style.display = tenders.length ? 'none' : 'block';
