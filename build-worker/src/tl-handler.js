@@ -1330,10 +1330,20 @@ async function handleTlComplianceDocumentDownload(url, env, request) {
   }
 
   const contentType = obj.httpMetadata?.contentType || 'application/octet-stream';
+  const ext = contentType.includes('pdf') ? 'pdf' : contentType.includes('png') ? 'png' : contentType.startsWith('image/') ? 'jpg' : 'bin';
+  // ── Hardened response headers ────────────────────────────────────────
+  // no-store: browser must not cache compliance certificates
+  // nosniff: prevent MIME type sniffing attacks
+  // attachment: force download, never inline display in another tab
+  // no-referrer: prevent URL leakage if user shares/opens link elsewhere
   return new Response(obj.body, {
     headers: {
       'Content-Type': contentType,
-      'Content-Disposition': `inline; filename="${doc.doc_type_id}.${contentType.includes('pdf') ? 'pdf' : 'jpg'}"`,
+      'Content-Disposition': `attachment; filename="${doc.doc_type_id}.${ext}"`,
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer',
+      'X-Frame-Options': 'DENY',
     },
   });
 }
