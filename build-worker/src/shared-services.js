@@ -185,7 +185,7 @@ export const KV_KEYS = {
     'tl-manifest':      'app:tl-manifest',
     'tl-sw':            'app:tl-sw',
     'tl-icon':          'app:tl-icon',
-    'tl-terms':         'app:tl-terms',
+    'tl-terms':         'app:tl-terms',  // terms of service
     'tl-privacy':       'app:tl-privacy',
   },
 
