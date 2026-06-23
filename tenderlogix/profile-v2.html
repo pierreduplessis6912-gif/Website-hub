@@ -162,6 +162,40 @@ body{
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
 .toast.warn{background:var(--orange)}
+
+/* PROGRESS + SELF DECLARE */
+.progress-banner{
+  background:var(--white);border:1px solid var(--border);border-left:3px solid var(--orange);
+  padding:16px 20px;margin-bottom:20px;
+}
+.progress-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.progress-label{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--charcoal)}
+.progress-pct{font-family:var(--display);font-size:22px;color:var(--orange)}
+.progress-bar-track{height:6px;background:var(--cream2);border-radius:3px;overflow:hidden}
+.progress-bar-fill{height:100%;background:var(--orange);border-radius:3px;transition:width .4s ease}
+.progress-msg{font-size:12px;color:var(--mid);margin-top:8px;line-height:1.5}
+.progress-msg strong{color:var(--charcoal)}
+.free-unlock-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--green-dim);border:1px solid var(--green-border);
+  padding:4px 10px;font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;color:var(--green);
+  margin-top:8px;
+}
+.declare-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2)}
+.declare-item:last-child{border-bottom:none}
+.declare-toggle{flex-shrink:0;margin-top:2px;width:18px;height:18px;accent-color:var(--orange);cursor:pointer}
+.declare-body{flex:1}
+.declare-name{font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:2px}
+.declare-sub{font-size:11px;color:var(--dim);margin-bottom:4px}
+.declare-fields{display:none;margin-top:8px;gap:8px;flex-direction:column}
+.declare-fields.visible{display:flex}
+.declare-field label{font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
+.declare-field input{width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--cream2);font-size:13px;color:var(--charcoal);font-family:var(--body)}
+.declare-field input:focus{outline:none;border-color:var(--orange)}
+.declare-badge{font-family:var(--mono);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:2px 6px;margin-top:4px;display:inline-block}
+.declare-badge.self{background:rgba(158,152,144,.15);color:var(--mid)}
+.declare-badge.verified{background:var(--green-dim);color:var(--green)}
 </style>
 </head>
 <body>
@@ -175,6 +209,19 @@ body{
   <div class="hero">
     <h1>Company <span>Profile.</span></h1>
     <p>This data fills your official bid forms automatically — MBD 1, 4, 15, and 7.2 all pull from here.</p>
+  </div>
+
+  <!-- Profile Completion Progress -->
+  <div class="progress-banner" id="progressBanner">
+    <div class="progress-header">
+      <div class="progress-label">Profile Completion</div>
+      <div class="progress-pct" id="progressPct">0%</div>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-msg" id="progressMsg">Complete your profile to unlock your free Go/No-Go analysis and free Bid Pack.</div>
+    <div class="free-unlock-badge" id="freeUnlockBadge" style="display:none">✓ Free trials unlocked</div>
   </div>
 
   <div class="section">
@@ -216,6 +263,19 @@ body{
     <button class="btn-primary" id="btnSaveDirector" onclick="saveDirector()">Save Director</button>
     <button class="btn-secondary" style="width:100%;margin-top:8px" onclick="closeDirectorModal()">Cancel</button>
   </div>
+  <!-- Document Self-Declaration -->
+  <div class="section">
+    <div class="section-title">Compliance Documents</div>
+    <p style="font-size:12px;color:var(--mid);margin-bottom:16px;line-height:1.5">
+      Tick the documents you have in your possession. Even without uploading to Vault, declaring them here improves your analysis accuracy.
+      <strong style="color:var(--charcoal)">Vault subscribers get VERIFIED badges — everyone else gets SELF-REPORTED.</strong>
+    </p>
+    <div class="declare-section" id="declareSection">
+      <!-- populated by JS -->
+    </div>
+    <button class="btn-save" id="btnSaveDocs" onclick="saveSelfDeclared()" style="margin-top:16px">Save Document Declarations</button>
+  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -250,6 +310,16 @@ async function loadProfile() {
       if (el && d[field]) el.value = d[field];
     });
     await loadDirectors();
+
+    // Load self-declared documents
+    try {
+      var sdRes = await authFetch('/tl/v2/company/self-declared?company_id=' + companyId);
+      var sdData = await sdRes.json();
+      if (sdData.self_declared) selfDeclared = sdData.self_declared;
+    } catch(e) {}
+    renderDeclareSection();
+    updateCompletionScore();
+
   } catch(e) { showToast('Could not load profile', 'error'); }
 }
 
@@ -369,6 +439,132 @@ async function removeDirector(id) {
 }
 
 loadProfile();
+
+// ── DOCUMENT TYPES FOR SELF-DECLARATION ─────────────────────────────────────
+var DECLARE_DOCS = [
+  { id: 'bbee',    name: 'B-BBEE Certificate',              fields: [{key:'level',label:'B-BBEE Level (1-8)'},{key:'expiry',label:'Expiry Date',type:'date'}] },
+  { id: 'cidb',    name: 'CIDB Registration',               fields: [{key:'grade',label:'CIDB Grade'},{key:'expiry',label:'Expiry Date',type:'date'}] },
+  { id: 'csd',     name: 'CSD Registration',                fields: [{key:'number',label:'CSD Supplier Number'}] },
+  { id: 'tax',     name: 'Tax Clearance / TCS PIN',         fields: [{key:'pin',label:'TCS PIN'},{key:'expiry',label:'Expiry Date',type:'date'}] },
+  { id: 'coida',   name: 'COIDA Letter of Good Standing',   fields: [{key:'expiry',label:'Valid Until',type:'date'}] },
+  { id: 'vat',     name: 'VAT Registration',                fields: [{key:'number',label:'VAT Number'}] },
+  { id: 'liability','name':'Public Liability Insurance',    fields: [{key:'insurer',label:'Insurer'},{key:'expiry',label:'Expiry Date',type:'date'}] },
+  { id: 'bank',    name: 'Bank Confirmation Letter',        fields: [{key:'bank',label:'Bank Name'},{key:'account',label:'Account Number'}] },
+];
+
+var selfDeclared = {};
+
+function renderDeclareSection() {
+  var container = document.getElementById('declareSection');
+  if (!container) return;
+  container.innerHTML = DECLARE_DOCS.map(function(doc) {
+    var declared = selfDeclared[doc.id] || {};
+    var checked = declared.declared ? 'checked' : '';
+    var fieldsVisible = declared.declared ? 'visible' : '';
+    var badge = declared.verified
+      ? '<span class="declare-badge verified">✓ Verified via Vault</span>'
+      : (declared.declared ? '<span class="declare-badge self">Self-declared — not verified</span>' : '');
+    var fields = doc.fields.map(function(f) {
+      var val = declared[f.key] || '';
+      var type = f.type || 'text';
+      return '<div class="declare-field"><label>' + f.label + '</label><input type="' + type + '" value="' + val + '" data-doc="' + doc.id + '" data-key="' + f.key + '" onchange="updateDeclared(\'' + doc.id + '\',\'' + f.key + '\',this.value)"></div>';
+    }).join('');
+    return '<div class="declare-item">' +
+      '<input type="checkbox" class="declare-toggle" ' + checked + ' onchange="toggleDeclared(\'' + doc.id + '\',this.checked)">' +
+      '<div class="declare-body">' +
+        '<div class="declare-name">' + doc.name + '</div>' +
+        badge +
+        '<div class="declare-fields ' + fieldsVisible + '" id="fields-' + doc.id + '">' + fields + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleDeclared(docId, checked) {
+  if (!selfDeclared[docId]) selfDeclared[docId] = {};
+  selfDeclared[docId].declared = checked;
+  var fields = document.getElementById('fields-' + docId);
+  if (fields) fields.className = 'declare-fields' + (checked ? ' visible' : '');
+  updateCompletionScore();
+}
+
+function updateDeclared(docId, key, value) {
+  if (!selfDeclared[docId]) selfDeclared[docId] = {};
+  selfDeclared[docId][key] = value;
+}
+
+async function saveSelfDeclared() {
+  var btn = document.getElementById('btnSaveDocs');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  try {
+    var res = await authFetch('/tl/v2/company/self-declared', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company_id: companyId, self_declared: selfDeclared })
+    });
+    var d = await res.json();
+    if (d.success) showToast('Document declarations saved');
+    else showToast('Save failed — try again');
+  } catch(e) { showToast('Save failed'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Save Document Declarations'; }
+}
+
+// ── PROFILE COMPLETION SCORE ─────────────────────────────────────────────────
+// Weights: company details 30%, capacity 20%, directors 20%, docs 30%
+function updateCompletionScore() {
+  var score = 0;
+
+  // Company details (30 points)
+  var fields30 = ['street_address','city','tax_reference_number','annual_turnover','employees','years_experience'];
+  var filled30 = 0;
+  fields30.forEach(function(id) {
+    var el = document.getElementById(id) || document.querySelector('[name="'+id+'"]');
+    if (el && el.value && el.value.trim()) filled30++;
+  });
+  score += Math.round((filled30 / fields30.length) * 30);
+
+  // Capacity fields (20 points)
+  var fields20 = ['industries_display','provinces_display'];
+  var filled20 = 0;
+  // Check if industries/provinces are selected via the multiselect
+  if (window.selectedIndustries && window.selectedIndustries.length > 0) filled20++;
+  if (window.selectedProvinces && window.selectedProvinces.length > 0) filled20++;
+  score += Math.round((filled20 / 2) * 20);
+
+  // Directors (20 points) — any directors added
+  var dirCount = document.querySelectorAll('.director-card').length;
+  score += dirCount > 0 ? 20 : 0;
+
+  // Documents (30 points) — self-declared or verified
+  var declaredCount = Object.keys(selfDeclared).filter(function(k){ return selfDeclared[k].declared || selfDeclared[k].verified; }).length;
+  score += Math.round(Math.min(declaredCount / 3, 1) * 30); // 3 docs = full 30 points
+
+  score = Math.min(score, 100);
+
+  // Update UI
+  var pct = document.getElementById('progressPct');
+  var fill = document.getElementById('progressFill');
+  var msg = document.getElementById('progressMsg');
+  var badge = document.getElementById('freeUnlockBadge');
+
+  if (pct) pct.textContent = score + '%';
+  if (fill) fill.style.width = score + '%';
+  if (fill) fill.style.background = score >= 60 ? 'var(--green)' : 'var(--orange)';
+
+  if (score >= 60) {
+    if (msg) msg.innerHTML = '<strong>Profile complete enough for free trials.</strong> Your first Go/No-Go and Bid Pack are now unlocked.';
+    if (badge) badge.style.display = 'inline-flex';
+  } else {
+    var remaining = 60 - score;
+    if (msg) msg.innerHTML = 'You need <strong>' + remaining + '% more</strong> to unlock your free Go/No-Go and Bid Pack. Add company details, directors, or declare your documents below.';
+    if (badge) badge.style.display = 'none';
+  }
+
+  return score;
+}
+
+// Hook into existing save functions to recalculate score
+var _origSaveCompany = typeof saveCompanyDetails === 'function' ? saveCompanyDetails : null;
 
 function authHeaders() {
   var token = localStorage.getItem('tl_session');
