@@ -425,6 +425,14 @@ async function handleSubmit() {
       btn.disabled = false; btn.textContent = 'Create Free Account →';
       return;
     }
+    // Handle existing account — redirect to login instead of error
+    if (res.status === 409 && d.existing_company_id) {
+      localStorage.setItem('tl_company_id', d.existing_company_id);
+      localStorage.setItem('tl_company_name', document.getElementById('company_name').value.trim());
+      showToast('Account already exists — redirecting to login...');
+      setTimeout(function() { window.location.href = '/login'; }, 1500);
+      return;
+    }
     if (!d.success) throw new Error(d.error || 'Registration failed');
     localStorage.setItem('tl_company_id', d.company_id);
     localStorage.setItem('tl_company_name', document.getElementById('company_name').value.trim());
