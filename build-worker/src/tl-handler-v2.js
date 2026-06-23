@@ -396,23 +396,19 @@ async function handleRunProduct(request, env, tlJson) {
   }
 
   const id = crypto.randomUUID();
-  await env.TL_DB.prepare(`
-    INSERT INTO tl_product_runs (id, tender_id, company_id, product, status, is_free_trial, amount_paid)
-    VALUES (?,?,?,?,'queued',?,0)
-  `).bind(id, tender_id, tender.company_id, product, isFreeTrial ? 1 : 0).run();
-
-  // ── 4. QUEUE SERIALISATION — one active run per company at a time ─────
-  // Check if the company already has a queued or processing run.
-  // This prevents hammering the API with concurrent requests and keeps costs predictable.
+  // ── 4. QUEUE SERIALISATION — check BEFORE insert ────────────────────
   const activeRun = await env.TL_DB.prepare(
     `SELECT id FROM tl_product_runs WHERE company_id=? AND status IN ('queued','processing') LIMIT 1`
   ).bind(tender.company_id).first().catch(() => null);
 
   if (activeRun) {
-    // Clean up the run we just inserted since we won't queue it
-    await env.TL_DB.prepare(`DELETE FROM tl_product_runs WHERE id=?`).bind(id).run().catch(() => {});
     return tlJson({ error: 'Another analysis is already running. Please wait for it to complete before starting a new one.', retry_after_seconds: 60 }, 429);
   }
+
+  await env.TL_DB.prepare(`
+    INSERT INTO tl_product_runs (id, tender_id, company_id, product, status, is_free_trial, amount_paid)
+    VALUES (?,?,?,?,'queued',?,0)
+  `).bind(id, tender_id, tender.company_id, product, isFreeTrial ? 1 : 0).run();
 
   // Analysis runs in the background queue — same proven pattern as v1.
   // Charging (if not a free trial) happens inside the queue consumer, AFTER
