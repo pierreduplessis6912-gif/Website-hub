@@ -1141,14 +1141,16 @@ Write as complete well-formatted markdown. One disclaimer at the top. No repeate
         : await callClaude(env, pdfDocs, fullPrompt, schema, maxTokens, true);
       if (!singleResult.success) {
         console.error('TL v2 —', product, 'call failed. run:', productRunId, 'reason:', singleResult.reason);
-        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+          .bind(JSON.stringify({ error: singleResult.reason }), productRunId).run();
         return { success: false, reason: singleResult.reason };
       }
       report = singleResult.data;
 
       if (product === 'gonogo' && (!report.verdict || !['GO','NO_GO','CONDITIONAL_GO'].includes(report.verdict))) {
         console.error('TL v2 — gonogo missing valid verdict. run:', productRunId, 'parsed:', JSON.stringify(report).slice(0,500));
-        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+          .bind(JSON.stringify({ error: 'Missing valid verdict', parsed_keys: Object.keys(report||{}), verdict_found: report?.verdict }), productRunId).run();
         return { success: false, reason: 'Analysis did not produce a valid verdict' };
       }
       if (product === 'pricing' && (!report.boq || !Array.isArray(report.boq))) {
