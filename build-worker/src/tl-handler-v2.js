@@ -1169,8 +1169,10 @@ Write as complete well-formatted markdown. One disclaimer at the top. No repeate
     return { success: true };
 
   } catch(e) {
-    console.error('TL v2 — analysis error:', e.message, 'run:', productRunId, 'product:', product);
-    await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+    console.error('TL v2 — analysis error:', e.message, 'stack:', e.stack?.slice(0,300), 'run:', productRunId, 'product:', product);
+    await env.TL_DB.prepare(
+      `UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+    ).bind(JSON.stringify({ error: e.message, stack: e.stack?.slice(0,500) }), productRunId).run();
     return { success: false, reason: e.message };
   }
 }
