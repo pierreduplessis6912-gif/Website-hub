@@ -427,7 +427,7 @@ async function handleSubmit() {
     if (!d.success) throw new Error(d.error || 'Registration failed');
     localStorage.setItem('tl_company_id', d.company_id);
     localStorage.setItem('tl_company_name', document.getElementById('company_name').value.trim());
-    window.location.href = 'https://tenderlogix.co.za/dashboard-v2/' + d.company_id;
+    window.location.href = 'https://tenderlogix.co.za/profile-v2/' + d.company_id + '?new=1';
   } catch(e) {
     showToast(e.message || 'Something went wrong — please try again');
     btn.disabled = false; btn.textContent = 'Create Free Account →';
