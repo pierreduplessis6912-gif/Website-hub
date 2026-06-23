@@ -372,14 +372,45 @@ export default {
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/tl-query'        && method === 'POST') return handleAdminTlQuery(request, env);
       if (path === '/admin/tl-run-sync' && method === 'POST' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
-        // Runs queue consumer synchronously for debugging — returns full error
+        const steps = [];
         try {
           const body = await request.json();
           const { productRunId, tenderId, companyId, product } = body;
-          const result = await processTlV2QueueMessage({ productRunId, tenderId, companyId, product, chargeAmount: 0, isFreeTrial: true }, env);
-          return new Response(JSON.stringify({ ok: true, result }), { headers: { 'Content-Type': 'application/json' } });
+          steps.push('parsed body');
+
+          // Step 1: Check tender exists
+          const tender = await env.TL_DB.prepare('SELECT id, doc_r2_keys FROM tl_tenders WHERE id=? LIMIT 1').bind(tenderId).first();
+          steps.push('tender: ' + (tender ? 'found, keys=' + tender.doc_r2_keys : 'NOT FOUND'));
+          if (!tender) return new Response(JSON.stringify({ ok: false, steps, error: 'tender not found' }), { headers: { 'Content-Type': 'application/json' } });
+
+          // Step 2: Check company exists
+          const company = await env.TL_DB.prepare('SELECT id, name FROM tl_companies WHERE id=? LIMIT 1').bind(companyId).first();
+          steps.push('company: ' + (company ? 'found: ' + company.name : 'NOT FOUND'));
+          if (!company) return new Response(JSON.stringify({ ok: false, steps, error: 'company not found' }), { headers: { 'Content-Type': 'application/json' } });
+
+          // Step 3: Check R2 docs
+          const docKeys = JSON.parse(tender.doc_r2_keys || '[]');
+          steps.push('docKeys: ' + JSON.stringify(docKeys));
+          for (const key of docKeys) {
+            const obj = await env.TL_DOCS.get(key);
+            steps.push('R2 key ' + key + ': ' + (obj ? 'EXISTS size=' + (obj.size || 'unknown') : 'MISSING'));
+          }
+
+          // Step 4: Check ANTHROPIC_KEY
+          steps.push('ANTHROPIC_KEY set: ' + (env.ANTHROPIC_KEY ? 'YES len=' + env.ANTHROPIC_KEY.length : 'NO - MISSING'));
+
+          // Step 5: Run actual consumer
+          await processTlV2QueueMessage({ productRunId, tenderId, companyId, product, chargeAmount: 0, isFreeTrial: true }, env);
+          steps.push('processTlV2QueueMessage completed');
+
+          // Step 6: Check final DB state
+          const run = await env.TL_DB.prepare('SELECT status, input_tokens, report_json FROM tl_product_runs WHERE id=? LIMIT 1').bind(productRunId).first();
+          steps.push('final status: ' + (run?.status || 'not found'));
+
+          return new Response(JSON.stringify({ ok: true, steps, run }), { headers: { 'Content-Type': 'application/json' } });
         } catch(e) {
-          return new Response(JSON.stringify({ ok: false, error: e.message, stack: e.stack?.slice(0,1000) }), { headers: { 'Content-Type': 'application/json' } });
+          steps.push('EXCEPTION: ' + e.message);
+          return new Response(JSON.stringify({ ok: false, steps, error: e.message, stack: e.stack?.slice(0,500) }), { headers: { 'Content-Type': 'application/json' } });
         }
       }
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
