@@ -48,6 +48,23 @@ export async function handleTlV2(request, env) {
   const authError = await requireTlAuth(request, env);
   if (authError) return authError;
 
+  // ── Self-declared documents ──────────────────────────────────────────
+  if (path === '/tl/v2/company/self-declared' && method === 'GET') {
+    const companyId = url.searchParams.get('company_id');
+    if (!companyId) return tlJson({ error: 'company_id required' }, 400);
+    const row = await env.TL_DB.prepare('SELECT self_declared_docs FROM tl_companies WHERE id=? LIMIT 1').bind(companyId).first();
+    const selfDeclared = row?.self_declared_docs ? JSON.parse(row.self_declared_docs) : {};
+    return tlJson({ self_declared: selfDeclared });
+  }
+  if (path === '/tl/v2/company/self-declared' && method === 'POST') {
+    const body = await request.json();
+    const { company_id, self_declared } = body;
+    if (!company_id) return tlJson({ error: 'company_id required' }, 400);
+    await env.TL_DB.prepare('UPDATE tl_companies SET self_declared_docs=? WHERE id=?')
+      .bind(JSON.stringify(self_declared || {}), company_id).run();
+    return tlJson({ success: true });
+  }
+
   if (path === '/tl/v2/tender/upload' && method === 'POST') return handleTenderUpload(request, env, tlJson);
   if (path === '/tl/v2/tender' && method === 'GET') return handleGetTender(url, env, tlJson);
   if (path === '/tl/v2/tenders' && method === 'GET') return handleListTenders(url, env, tlJson);
