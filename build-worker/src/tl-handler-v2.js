@@ -952,7 +952,7 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
     let prompt, schema, maxTokens;
 
      if (product === 'gonogo') {
-      maxTokens = 4096;
+      maxTokens = 8192;
       prompt = `You are a South African tender bid decision intelligence system. Your job is not to tell the client what to do — it is to make the hidden cost of each option visible before they commit. Think like a GPS: precise about what you know, honest about uncertainty, directional without being authoritarian.
 
 YOUR OUTPUT HAS THREE DISTINCT LAYERS — keep them completely separate, never blend them:
