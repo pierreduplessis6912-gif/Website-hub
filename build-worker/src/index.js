@@ -371,6 +371,17 @@ export default {
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/tl-query'        && method === 'POST') return handleAdminTlQuery(request, env);
+      if (path === '/admin/tl-run-sync' && method === 'POST' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
+        // Runs queue consumer synchronously for debugging — returns full error
+        try {
+          const body = await request.json();
+          const { productRunId, tenderId, companyId, product } = body;
+          const result = await processTlV2QueueMessage({ productRunId, tenderId, companyId, product, chargeAmount: 0, isFreeTrial: true }, env);
+          return new Response(JSON.stringify({ ok: true, result }), { headers: { 'Content-Type': 'application/json' } });
+        } catch(e) {
+          return new Response(JSON.stringify({ ok: false, error: e.message, stack: e.stack?.slice(0,1000) }), { headers: { 'Content-Type': 'application/json' } });
+        }
+      }
       if (path === '/admin/register-domain'    && method === 'POST') return handleAdminRegisterDomain(request, env);
       if (path === '/admin/trigger-rebuild'    && method === 'POST') return handleAdminTriggerRebuild(request, env);
       if (path === '/admin/promo-blast'        && method === 'POST') return handlePromoBlast(request, env);
