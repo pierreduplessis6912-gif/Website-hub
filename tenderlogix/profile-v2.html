@@ -196,6 +196,14 @@ body{
 .declare-badge{font-family:var(--mono);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:2px 6px;margin-top:4px;display:inline-block}
 .declare-badge.self{background:rgba(158,152,144,.15);color:var(--mid)}
 .declare-badge.verified{background:var(--green-dim);color:var(--green)}
+
+.welcome-banner{
+  background:var(--green-dim);border:1px solid var(--green-border);border-left:3px solid var(--green);
+  padding:14px 18px;margin-bottom:20px;display:none;
+}
+.welcome-banner h3{font-family:var(--display);font-size:15px;color:var(--charcoal);text-transform:uppercase;margin-bottom:4px}
+.welcome-banner p{font-size:13px;color:var(--mid);line-height:1.5}
+.welcome-banner strong{color:var(--charcoal)}
 </style>
 </head>
 <body>
@@ -209,6 +217,12 @@ body{
   <div class="hero">
     <h1>Company <span>Profile.</span></h1>
     <p>This data fills your official bid forms automatically — MBD 1, 4, 15, and 7.2 all pull from here.</p>
+  </div>
+
+  <!-- Welcome Banner (shown on first visit) -->
+  <div class="welcome-banner" id="welcomeBanner">
+    <h3>Welcome to TenderLogix!</h3>
+    <p>You're registered. Now complete your profile to unlock your <strong>free Go/No-Go analysis</strong> and <strong>free Bid Pack</strong>. Takes about 2 minutes — the more you fill in, the better your results.</p>
   </div>
 
   <!-- Profile Completion Progress -->
@@ -297,6 +311,14 @@ function showToast(msg, type) {
 
 async function loadProfile() {
   if (!companyId) { window.location.href = '/login'; return; }
+
+  // Show welcome banner for new registrations
+  if (new URLSearchParams(window.location.search).get('new') === '1') {
+    var wb = document.getElementById('welcomeBanner');
+    if (wb) wb.style.display = 'block';
+    // Clean URL without reload
+    history.replaceState({}, '', window.location.pathname);
+  }
 
   // ── Session check ────────────────────────────────────────────
   var sessionToken = localStorage.getItem('tl_session');
