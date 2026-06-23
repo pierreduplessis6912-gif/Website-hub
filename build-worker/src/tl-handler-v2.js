@@ -1173,9 +1173,14 @@ Write as complete well-formatted markdown. One disclaimer at the top. No repeate
     }
 
     // ── TOKEN COST LOGGING ───────────────────────────────────────────────
-    const totalInputTokens  = (call1Result?.inputTokens  || 0) + (call2Result?.inputTokens  || 0) + (singleResult?.inputTokens  || 0);
-    const totalOutputTokens = (call1Result?.outputTokens || 0) + (call2Result?.outputTokens || 0) + (singleResult?.outputTokens || 0);
-    const totalCostUsd      = (call1Result?.costUsd || 0) + (call2Result?.costUsd || 0) + (singleResult?.costUsd || 0);
+    // call1Result/call2Result only exist for bidpack; singleResult only for gonogo/pricing
+    // Use typeof check to avoid ReferenceError in strict mode
+    const _c1 = typeof call1Result !== 'undefined' ? call1Result : null;
+    const _c2 = typeof call2Result !== 'undefined' ? call2Result : null;
+    const _sr = typeof singleResult !== 'undefined' ? singleResult : null;
+    const totalInputTokens  = (_c1?.inputTokens  || 0) + (_c2?.inputTokens  || 0) + (_sr?.inputTokens  || 0);
+    const totalOutputTokens = (_c1?.outputTokens || 0) + (_c2?.outputTokens || 0) + (_sr?.outputTokens || 0);
+    const totalCostUsd      = (_c1?.costUsd || 0) + (_c2?.costUsd || 0) + (_sr?.costUsd || 0);
     const pdfSizeInfo       = pdfDocs?.length ? estimatePdfTokens(pdfDocs) : { totalBytes: 0, estimatedTokens: 0 };
 
     await env.TL_DB.prepare(`
