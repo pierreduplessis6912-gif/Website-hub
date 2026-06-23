@@ -540,7 +540,17 @@ export async function processTlV2QueueMessage(msg, env) {
     return;
   }
 
-  const result = await runV2Product(productRunId, company, pdfDocs, product, env, useTwoPass);
+  console.log('TL v2 queue — calling runV2Product. run:', productRunId, 'product:', product, 'docs:', pdfDocs.length, 'bytes:', totalPdfBytes);
+  let result;
+  try {
+    result = await runV2Product(productRunId, company, pdfDocs, product, env, useTwoPass);
+  } catch(queueErr) {
+    console.error('TL v2 queue — unhandled exception in runV2Product:', queueErr.message, queueErr.stack?.slice(0,400));
+    await env.TL_DB.prepare(
+      `UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+    ).bind(JSON.stringify({ error: queueErr.message, stack: queueErr.stack?.slice(0,400), stage: 'runV2Product' }), productRunId).run();
+    return;
+  }
 
   if (!result.success) {
     if (result.size_exceeded) {
