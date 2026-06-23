@@ -216,7 +216,8 @@ async function handleTlUpdateCompany(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
   const { company_id, name, reg_number, tax_number, vat_number, csd_maaa, bee_level,
           cidb_grade, cidb_number, industries, provinces, years_experience,
-          annual_turnover, employees, phone, email, address, client_name } = body;
+          annual_turnover, employees, phone, email, address, client_name,
+          street_address, city, postal_code, postal_address, municipal_account_number } = body;
 
   if (!company_id) return tlJson({ error: 'company_id required' }, 400);
 
@@ -234,11 +235,17 @@ async function handleTlUpdateCompany(request, env, tlJson) {
     if (conflict) return tlJson({ error: 'That phone or email is already used by a different account.' }, 409);
   }
 
+  // Build composite address from split fields if provided
+  const compositeAddress = street_address
+    ? [street_address, city, postal_code].filter(Boolean).join(', ')
+    : (address ?? existing.address);
+
   await env.TL_DB.prepare(`
     UPDATE tl_companies SET
       name=?, reg_number=?, tax_number=?, vat_number=?, csd_maaa=?, bee_level=?,
       cidb_grade=?, cidb_number=?, industries=?, provinces=?, years_experience=?,
       annual_turnover=?, employees=?, phone=?, email=?, address=?, client_name=?,
+      municipal_account_number=?,
       updated_at=CURRENT_TIMESTAMP
     WHERE id=?
   `).bind(
@@ -249,7 +256,9 @@ async function handleTlUpdateCompany(request, env, tlJson) {
     provinces ? JSON.stringify(provinces) : existing.provinces,
     years_experience ?? existing.years_experience, annual_turnover ?? existing.annual_turnover,
     employees ?? existing.employees, normalisedPhone, normalisedEmail,
-    address ?? existing.address, client_name ?? existing.client_name, company_id
+    compositeAddress, client_name ?? existing.client_name,
+    municipal_account_number ?? existing.municipal_account_number ?? null,
+    company_id
   ).run();
 
   return tlJson({ success: true, company_id });
