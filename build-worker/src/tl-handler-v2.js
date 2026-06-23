@@ -1069,6 +1069,115 @@ SCHEMA RULES (mandatory — always populate all fields):
 - Do NOT apply a 30% margin to gazetted professional service rates.
 - If quantities are unspecified, use best proxy and note it in the relevant boq item's source field.
 
+
+PRICING AUTHORITY — MANDATORY FOR ALL BOQ LINE ITEMS:
+You must use the following SA construction pricing framework in this exact order of priority:
+
+1. GAZETTED RATES — if the tender document specifies fixed rates (e.g. housing subsidy programme), use those exactly. Do not adjust.
+
+2. AECOM AFRICA PROPERTY & CONSTRUCTION COST GUIDE 2025/26 — the industry-standard SA pricing bible, calibrated to 1 July 2025. Use these as your primary rate anchor for all construction line items:
+
+BUILDING COSTS (R/m² excl. VAT — July 2025 baseline):
+- RDP housing: R3,200–R3,400/m²
+- Low-cost housing: R4,000–R7,000/m²
+- Low-rise residential apartment: R9,800–R13,500/m²
+- Economic house: R7,400/m² | Standard: R9,300/m² | Middle-class: R11,200/m² | Luxury: R15,600/m²
+- Light industrial (steel frame/cladding): R5,400–R6,900/m²
+- Heavy industrial (brick to ceiling): R6,100–R8,800/m²
+- Office park (standard low-rise): R10,700–R13,100/m²
+- Primary school: R8,800–R10,100/m² | Secondary school: R10,500–R11,200/m²
+- Community centre: R14,900–R21,700/m²
+
+MEP SERVICES (R/m² excl. VAT):
+- Electrical — standard offices: R1,000–R1,500 | Residential: R900–R1,500 | Shopping centre: R1,500–R1,900
+- Electronic/security (CCTV, access, fire detection): R500–R700 offices | R450–R700 residential
+- Sprinkler system: R450–R550/m²
+- Air-conditioning — split units residential: R1,300–R2,050 | offices console: R1,150–R1,600 | central plant: R2,300–R3,600
+
+CIVIL & INFRASTRUCTURE:
+- Parking on grade: R750–R950/m² | Structured parking: R5,200–R5,800/m² | Basement: R6,100–R10,700/m²
+- Building sand: R350–R450/m³ | Plaster sand: R380–R500/m³ | River sand: R450–R600/m³
+- Cement (50kg bag): R75–R120
+
+3. STATS SA CPAP ESCALATION — apply these annual escalation rates to any rate sourced from documents older than July 2025:
+- Total construction: +7.2% per year
+- Electrical engineering: +6.5% per year
+- Mechanical engineering: +7.2% per year
+- Civil engineering materials: +7.0% per year
+- Plant and equipment: +6.8% per year
+
+4. TRADE-SPECIFIC CURRENT SA MARKET RATES (June 2026 — verified against current market):
+FLOORING:
+- Standard laminate 8mm AC3: R145–R185/m² supply | Install: R65–R85/m² | Underlay 3mm foam: R18–R28/m²
+- Quality laminate 12mm AC4: R220–R320/m² supply | Install: R75–R95/m²
+- Vinyl plank (LVT): R185–R380/m² supply | Install: R75–R95/m²
+- Ceramic tile 600x600 standard: R120–R185/m² supply | Install: R145–R195/m²
+- Porcelain tile 600x600: R195–R420/m² supply | Install: R155–R210/m²
+- Self-levelling screed 3mm: R95–R145/m² | 6mm: R165–R225/m²
+- Carpet tiles commercial: R145–R285/m² supply | Install: R45–R75/m²
+- Aluminium threshold strips: R75–R110/m
+
+PLUMBING & DRAINAGE:
+- HDPE pipe 50mm: R85–R125/m | 110mm: R195–R285/m | 160mm: R380–R520/m
+- PVC pressure pipe 20mm: R18–R28/m | 32mm: R38–R55/m | 50mm: R65–R95/m
+- Standard close-coupled toilet suite: R1,850–R3,200 supply + fit
+- Basin with mixer tap: R1,200–R2,800 supply + fit
+- Shower tray + mixer: R2,400–R5,500 supply + fit
+- Hot water cylinder 150L: R4,500–R7,800 supply + fit
+
+ELECTRICAL:
+- DB board 3-phase 12-way: R4,500–R8,500 supply + fit
+- DB board single-phase 8-way: R1,800–R3,500 supply + fit
+- 2.5mm² TRS cable (per m): R12–R18 | 4mm²: R18–R28 | 6mm²: R28–R42
+- NYY 4mm² (per m): R22–R35 | 6mm²: R35–R55
+- LED downlight fitting + lamp: R285–R650 supply + fit
+- Double power point: R285–R420 supply + fit
+- Light switch single: R165–R285 supply + fit
+- Solar PV panel 400W: R2,200–R3,800 supply
+
+PAINTING & FINISHES:
+- Interior walls — PVA 2 coats: R45–R75/m²
+- Exterior walls — textured finish: R85–R145/m²
+- Ceiling — PVA 2 coats: R40–R65/m²
+- Roof sheeting IBR 0.47mm: R135–R185/m² supply + fix
+
+STRUCTURAL:
+- Reinforced concrete (30MPa): R4,200–R5,800/m³ supply + pour
+- Brickwork (face brick): R580–R850/m² supply + lay
+- Brickwork (plaster brick): R380–R580/m² supply + lay
+- Plastering: R95–R145/m²
+- Steel I-beam structure: R2,800–R4,200/m² (Gauteng basis — add 8% for WC, 5% for KZN)
+
+EARTHWORKS & CIVIL:
+- Bulk earthworks (cut and fill): R65–R145/m³
+- Concrete kerbing: R185–R285/m
+- Asphalt paving: R195–R285/m²
+- Paving bricks (60mm): R145–R225/m² supply + lay
+
+LABOUR RATES (bargaining council basis — unskilled/semi-skilled/skilled):
+- General labourer: R95–R145/hr | Artisan (plumber/electrician): R185–R320/hr | Foreman: R220–R380/hr
+- These include statutory contributions — do not add again.
+
+REGIONAL ADJUSTMENT FACTORS (apply to all material and labour rates):
+- Gauteng: base (0%)
+- Western Cape: +8–12%
+- KwaZulu-Natal: +3–6%
+- Eastern Cape: +5–10%
+- Mpumalanga/Limpopo: +8–15% (logistics premium)
+- Northern Cape: +12–20%
+
+CONFIDENCE RATING RULES:
+- HIGH: rate taken directly from gazetted schedule or AECOM 2025/26 table above
+- MEDIUM: rate interpolated from above tables with reasonable assumptions about specification
+- LOW: rate estimated from first principles or for specialist/niche items not in above tables — flag for supplier verification
+
+MANDATORY BOQ INSTRUCTIONS:
+- Always include waste factors: tiles +15%, laminate/vinyl +10%, paint +10%, carpet +8%
+- Always include prep work as separate line items (screed, priming, waterproofing where applicable)
+- Always include site establishment, temporary facilities, and contingency (5–10%) as line items
+- Quantities must have a source note explaining how you derived them if not stated in tender
+- Never leave unit_rate as 0 — estimate with LOW confidence and note it
+
 COMPANY PROFILE:
 ${companyContext}
 
