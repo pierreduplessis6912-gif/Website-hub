@@ -279,17 +279,15 @@ body{
     <button class="btn-primary" id="btnSaveDirector" onclick="saveDirector()">Save Director</button>
     <button class="btn-secondary" style="width:100%;margin-top:8px" onclick="closeDirectorModal()">Cancel</button>
   </div>
-  <!-- Document Self-Declaration -->
+  <!-- Compliance Documents -->
   <div class="section">
     <div class="section-title">Compliance Documents</div>
-    <p style="font-size:12px;color:var(--mid);margin-bottom:16px;line-height:1.5">
-      Tick the documents you have in your possession. Even without uploading to Vault, declaring them here improves your analysis accuracy.
-      <strong style="color:var(--charcoal)">Vault subscribers get VERIFIED badges — everyone else gets SELF-REPORTED.</strong>
+    <p style="font-size:13px;color:var(--mid);margin-bottom:16px;line-height:1.6">
+      Tick the documents you have in your possession. Declaring them here gives the analysis more to work with — even without uploading to Vault.<br>
+      <strong style="color:var(--charcoal);font-size:12px">Vault subscribers get certificate verification. Everyone else gets self-declared status. Both are treated equally in the analysis.</strong>
     </p>
-    <div class="declare-section" id="declareSection">
-      <!-- populated by JS -->
-    </div>
-    <button class="btn-save" id="btnSaveDocs" onclick="saveSelfDeclared()" style="margin-top:16px;width:100%;padding:14px;background:var(--charcoal);color:var(--white);border:none;font-family:var(--body);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.5px;text-transform:uppercase">Save Document Declarations</button>
+    <div id="declareSection"><!-- populated by JS --></div>
+    <button onclick="saveSelfDeclared()" id="btnSaveDocs" style="margin-top:16px;width:100%;padding:14px;background:var(--charcoal);color:var(--white);border:none;font-family:var(--body);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.5px;text-transform:uppercase">Save Document Declarations</button>
   </div>
 
 </div>
@@ -329,10 +327,20 @@ async function loadProfile() {
     var res = await authFetch('/tl/company?id=' + companyId);
     var d = await res.json();
     if (d.error) { showToast('Could not load profile', 'error'); return; }
-    ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number'].forEach(function(field) {
+    // Populate split address fields
+    var fields = ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number'];
+    fields.forEach(function(field) {
       var el = document.getElementById(field);
       if (el && d[field]) el.value = d[field];
     });
+    // If no street_address but composite address exists, parse it
+    var saEl = document.getElementById('street_address');
+    if (saEl && !saEl.value && d.address) {
+      var parts = d.address.split(', ');
+      if (parts[0]) saEl.value = parts[0];
+      if (parts[1]) { var el = document.getElementById('city'); if (el) el.value = parts[1]; }
+      if (parts[2]) { var el = document.getElementById('postal_code'); if (el) el.value = parts[2]; }
+    }
     await loadDirectors();
 
     // Load self-declared documents
@@ -361,7 +369,7 @@ async function saveCompanyDetails() {
     });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
-    showToast('Company details saved', 'success');
+    showToast('Company details saved', 'success'); updateCompletionScore();
   } catch(e) {
     showToast(e.message || 'Failed to save', 'error');
   }
@@ -614,3 +622,4 @@ window.addEventListener('beforeunload', function(e) {
 </script>
 </body>
 </html>
+
