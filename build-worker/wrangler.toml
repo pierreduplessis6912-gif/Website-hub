@@ -54,6 +54,13 @@ crons = ["0,15,30,45 * * * *"]
 binding = "BUILD_QUEUE"
 queue = "wh-build-queue"
 
+[[queues.consumers]]
+queue = "wh-build-queue"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+dead_letter_queue = "wh-build-queue-dlq"
+
 # ── TENDER LOGIX ─────────────────────────────────────────────
 [[kv_namespaces]]
 binding = "TL_RATES"
