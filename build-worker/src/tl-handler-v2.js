@@ -1229,6 +1229,11 @@ Write as complete well-formatted markdown. One disclaimer at the top. No repeate
 
 // ── Build company context including verified compliance docs — same logic as v1 ──
 async function buildCompanyContext(company, env) {
+  // Load self-declared documents — treated equally to verified in analysis
+  const selfDeclaredDocs = (() => {
+    try { return JSON.parse(company.self_declared_docs || '{}'); } catch(e) { return {}; }
+  })();
+
   const verifiedDocs = await env.TL_DB.prepare(`
     SELECT cd.*, dt.name as doc_name FROM tl_compliance_documents cd
     JOIN tl_doc_types dt ON cd.doc_type_id = dt.id
@@ -1238,17 +1243,31 @@ async function buildCompanyContext(company, env) {
   const verifiedByType = {};
   (verifiedDocs.results || []).forEach(d => { verifiedByType[d.doc_type_id] = d; });
 
-  function complianceLine(typeId, label, selfReportedValue) {
+  function complianceLine(typeId, label, selfReportedValue, selfDeclaredDocs) {
     const v = verifiedByType[typeId];
-    if (v && v.status !== 'red') {
-      const expiryNote = v.expiry_date ? `, valid until ${v.expiry_date}` : '';
-      return `${label}: ${v.extracted_value || 'Confirmed'} — VERIFIED via uploaded certificate${expiryNote} [status: ${v.status.toUpperCase()}]`;
-    }
+    // Vault-uploaded and expired — genuine gap
     if (v && v.status === 'red') {
       const expiredNote = v.expiry_date ? ` (expired ${v.expiry_date})` : '';
-      return `${label}: EXPIRED${expiredNote} — uploaded certificate is no longer valid. Treat as UNMET until renewed.`;
+      return `${label}: EXPIRED${expiredNote} — certificate on file is no longer valid.`;
     }
-    return `${label}: ${selfReportedValue || 'Not specified'} — SELF-REPORTED, NOT VERIFIED.`;
+    // Vault-uploaded and valid — confirmed on file
+    if (v && v.status !== 'red') {
+      const expiryNote = v.expiry_date ? `, valid until ${v.expiry_date}` : '';
+      return `${label}: ${v.extracted_value || 'Confirmed'} — on file${expiryNote}.`;
+    }
+    // Self-declared via profile — treated the same as verified for analysis purposes
+    // The company has declared they hold this document. Treat as confirmed.
+    const sd = selfDeclaredDocs && selfDeclaredDocs[typeId];
+    if (sd && sd.declared) {
+      const val = sd.level || sd.grade || sd.number || sd.pin || selfReportedValue || 'Confirmed';
+      const expiryNote = sd.expiry ? `, valid until ${sd.expiry}` : '';
+      return `${label}: ${val} — declared on file${expiryNote}.`;
+    }
+    // Profile field only (no declaration, no upload)
+    if (selfReportedValue && selfReportedValue !== 'Not specified') {
+      return `${label}: ${selfReportedValue} — declared on file.`;
+    }
+    return `${label}: Not on file.`;
   }
 
   return `
@@ -1258,9 +1277,9 @@ Provinces: ${company.provinces}
 Years experience: ${company.years_experience}
 Annual turnover: R${(company.annual_turnover||0).toLocaleString()}
 Employees: ${company.employees}
-${complianceLine('cidb', 'CIDB Grade', company.cidb_grade)}
-${complianceLine('bee', 'B-BBEE Level', company.bee_level ? `Level ${company.bee_level}` : null)}
-${complianceLine('csd', 'CSD Registration', company.csd_maaa ? 'Registered' : null)}
+${complianceLine('cidb', 'CIDB Grade', company.cidb_grade, selfDeclaredDocs)}
+${complianceLine('bee', 'B-BBEE Level', company.bee_level ? `Level ${company.bee_level}` : null, selfDeclaredDocs)}
+${complianceLine('csd', 'CSD Registration', company.csd_maaa ? 'Registered' : null, selfDeclaredDocs)}
 
 IMPORTANT: Lines marked VERIFIED come from an actual uploaded certificate — treat as fact. SELF-REPORTED/NOT VERIFIED lines have not been confirmed. EXPIRED lines are a current compliance gap.
 `;
