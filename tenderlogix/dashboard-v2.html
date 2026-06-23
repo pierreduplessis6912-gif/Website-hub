@@ -729,10 +729,7 @@ async function loadDashboard() {
     var d = await res.json();
     if (d.error) { showToast('Session expired', 'error'); return; }
     companyData = d;
-    document.getElementById('balancePill').textContent = 'R' + (d.balance || 0) + ' balance';
-    if (d.name) {
-      var nameEl = document.getElementById('navCompanyName');
-      if (nameEl) { nameEl.textContent = d.name; nameEl.style.display = 'block'; }
+    document.getElementById('balancePill').textContent = 'R' + (d.balance || 0);
       var greetEl = document.getElementById('greetingText');
       if (greetEl) greetEl.textContent = d.name;
       document.getElementById('dashGreeting').style.display = 'flex';
