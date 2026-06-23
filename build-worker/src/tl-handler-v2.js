@@ -501,15 +501,28 @@ async function handleDownloadProductRun(url, env) {
 export async function processTlV2QueueMessage(msg, env) {
   const { productRunId, tenderId, companyId, product, chargeAmount, isFreeTrial } = msg;
 
-  const tender = await env.TL_DB.prepare('SELECT * FROM tl_tenders WHERE id=? LIMIT 1').bind(tenderId).first();
-  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(companyId).first();
-
-  if (!tender || !company) {
-    console.error('TL v2 queue — tender or company not found. run:', productRunId, 'tender:', tenderId, 'company:', companyId);
-    await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+  console.log('TL v2 queue STEP 1 — fetching tender and company. run:', productRunId);
+  let tender, company;
+  try {
+    tender = await env.TL_DB.prepare('SELECT * FROM tl_tenders WHERE id=? LIMIT 1').bind(tenderId).first();
+    company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(companyId).first();
+  } catch(dbErr) {
+    console.error('TL v2 queue STEP 1 FAILED — DB error:', dbErr.message);
+    await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+      .bind(JSON.stringify({ error: 'DB fetch failed: ' + dbErr.message, step: 1 }), productRunId).run().catch(()=>{});
     return;
   }
 
+  console.log('TL v2 queue STEP 1 done — tender:', !!tender, 'company:', !!company);
+
+  if (!tender || !company) {
+    console.error('TL v2 queue — tender or company not found. run:', productRunId, 'tender:', tenderId, 'company:', companyId);
+    await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+      .bind(JSON.stringify({ error: 'Tender or company not found', tenderId, companyId }), productRunId).run();
+    return;
+  }
+
+  console.log('TL v2 queue STEP 2 — setting processing status');
   await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='processing' WHERE id=?`).bind(productRunId).run();
 
   // ── Read all documents for this tender from R2 ──
