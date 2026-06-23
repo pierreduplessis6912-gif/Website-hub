@@ -74,6 +74,13 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 .btn-submit:hover{background:var(--orange-light)}
 .btn-submit:disabled{opacity:.4;cursor:not-allowed}
 .fine-print{font-size:10px;color:var(--dim2);text-align:center;line-height:1.7;margin-top:18px;font-family:var(--mono);letter-spacing:.3px}
+.consent-block{background:var(--cream2,#f0ede8);border:1px solid rgba(14,12,9,.1);border-left:3px solid var(--orange);padding:16px 18px;margin-bottom:16px}
+.consent-text{font-size:13px;color:var(--charcoal,#0e0c09);line-height:1.65;margin-bottom:12px}
+.consent-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.consent-check input[type=checkbox]{width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:var(--orange);cursor:pointer}
+.consent-check-label{font-size:13px;color:var(--charcoal,#0e0c09);font-weight:600;line-height:1.5;cursor:pointer}
+.consent-check-label a{color:var(--orange);text-decoration:none}
+.consent-check-label a:hover{text-decoration:underline}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--white);color:var(--black);padding:13px 26px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
 .toast.show{opacity:1}
 </style>
@@ -195,7 +202,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
       </div>
     </div>
 
-    <button class="btn-submit" id="btnRegister" onclick="handleSubmit()">Create Free Account →</button>
+    <div class="consent-block">
+      <p class="consent-text">TenderLogix analyses tender documents using the company information you provide. Our reports are guidance only — they are based entirely on what you tell us about your company. We do not verify the accuracy of your information, and nothing in our reports constitutes a guarantee, prediction, or promise of any tender outcome. You remain solely responsible for all bid decisions and submissions.</p>
+      <label class="consent-check">
+        <input type="checkbox" id="termsAccepted" onchange="checkConsent()">
+        <span class="consent-check-label">I have read and agree to the <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a>, and I understand that TenderLogix reports are guidance tools based on information I provide.</span>
+      </label>
+    </div>
+    <button class="btn-submit" id="btnRegister" onclick="handleSubmit()" disabled>Create Free Account →</button>
   </div>
 
   <button class="btn-submit" id="btnSave" onclick="handleUpdate()" style="display:none">Save Changes</button>
@@ -384,7 +398,7 @@ async function handleSubmit() {
     var res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign({
+      body: JSON.stringify(Object.assign({ terms_accepted: true, terms_accepted_at: new Date().toISOString() }, {
         name: document.getElementById('company_name').value.trim(),
         reg_number: document.getElementById('reg_number').value.trim() || null,
         email: document.getElementById('email').value.trim(),
