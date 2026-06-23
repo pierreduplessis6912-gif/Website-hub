@@ -390,7 +390,17 @@ function validate() {
 }
 
 // ── Submit ───────────────────────────────────────────────────────────────
+function checkConsent() {
+  var checked = document.getElementById('termsAccepted') && document.getElementById('termsAccepted').checked;
+  var btn = document.getElementById('btnRegister');
+  if (btn) btn.disabled = !checked;
+}
+
 async function handleSubmit() {
+  if (!document.getElementById('termsAccepted') || !document.getElementById('termsAccepted').checked) {
+    showToast('Please agree to the Terms of Service to continue');
+    return;
+  }
   if (!validate()) { showToast('Please fill in all required fields'); return; }
   var btn = document.getElementById('btnRegister');
   btn.disabled = true; btn.textContent = 'Creating Account...';
