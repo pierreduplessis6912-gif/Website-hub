@@ -34,13 +34,24 @@ body{
   position:sticky;top:0;z-index:100;
   background:rgba(248,247,244,.95);backdrop-filter:blur(16px);
   border-bottom:1px solid var(--border);
-  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;
+  padding:10px 20px;
 }
+.nav-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.nav-row2{display:flex;align-items:center;gap:8px}
 .nav-brand{font-family:var(--display);font-size:18px;color:var(--charcoal);text-decoration:none;text-transform:uppercase}
 .nav-brand span{color:var(--orange)}
-.nav-right{display:flex;align-items:center;gap:8px}
-.nav-link{font-size:12px;color:var(--mid);text-decoration:none;font-weight:600;text-transform:uppercase;letter-spacing:.3px;transition:color .15s}
-.nav-link:hover{color:var(--charcoal)}
+.nav-btn{
+  font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
+  padding:7px 14px;cursor:pointer;border:none;font-family:var(--body);
+  transition:all .15s;text-decoration:none;display:inline-block;
+}
+.nav-btn-outline{
+  background:transparent;color:var(--charcoal);
+  border:1px solid var(--border);
+}
+.nav-btn-outline:hover{border-color:var(--charcoal)}
+.nav-btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(217,48,37,.2)}
+.nav-btn-danger:hover{background:rgba(217,48,37,.15)}
 .install-banner{
   display:none;align-items:center;justify-content:space-between;
   padding:10px 20px;
@@ -416,13 +427,13 @@ body{
 <body>
 
 <nav class="nav">
-  <a href="/" class="nav-brand">Tender<span>Logix</span></a>
-  <div id="navCompanyName" style="font-size:12px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;display:none"></div>
-  <div class="nav-right">
-    <a href="#" id="profileLink" class="nav-link">Profile</a>
-    <a href="#" class="nav-link" onclick="handleLogout(event)" style="color:var(--red)">Sign Out</a>
-    <div class="vault-pill inactive" id="vaultPill" onclick="handleVaultPillClick()">Vault</div>
-    <div class="balance-pill" onclick="openBalanceModal()" id="balancePill">R— balance</div>
+  <div class="nav-row1">
+    <a href="/" class="nav-brand">Tender<span>Logix</span></a>
+    <div class="balance-pill" onclick="openBalanceModal()" id="balancePill" style="cursor:pointer">R0</div>
+  </div>
+  <div class="nav-row2">
+    <button class="nav-btn nav-btn-outline" id="profileLink" onclick="goToProfile()">Update Profile</button>
+    <button class="nav-btn nav-btn-danger" onclick="handleLogout(event)">Sign Out</button>
   </div>
 </nav>
 
@@ -1015,6 +1026,10 @@ async function submitUpload() {
     renderFileList();
     showToast(d.was_free_trial ? 'Tender uploaded — free trial used' : 'Tender uploaded — R'+d.charged+' charged', 'success');
     await loadDashboard();
+
+function goToProfile() {
+  window.location.href = '/profile-v2/' + companyId;
+}
 
 async function handleLogout(e) {
   e.preventDefault();
