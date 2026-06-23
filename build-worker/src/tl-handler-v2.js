@@ -535,8 +535,11 @@ export async function processTlV2QueueMessage(msg, env) {
   }
 
   if (!pdfDocs.length) {
-    console.error('TL v2 queue — no documents found for tender:', tenderId, 'run:', productRunId);
-    await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+    const reason = `No documents found in storage for tender ${tenderId}. Keys checked: ${docKeys.join(', ')}. Please re-upload the tender document.`;
+    console.error('TL v2 queue —', reason, 'run:', productRunId);
+    await env.TL_DB.prepare(
+      `UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+    ).bind(JSON.stringify({ error: reason }), productRunId).run();
     return;
   }
 
