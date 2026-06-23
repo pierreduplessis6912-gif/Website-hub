@@ -159,6 +159,7 @@ async function handleTlCreateCompany(request, env, tlJson) {
           terms_accepted, terms_accepted_at } = body;
 
   if (!name || !phone || !email) return tlJson({ error: 'name, phone and email required' }, 400);
+  if (!terms_accepted) return tlJson({ error: 'You must agree to the Terms of Service and Privacy Policy to register' }, 400);
 
   const normalisedPhone = (phone || '').replace(/\D/g, '');
   const normalisedEmail = (email || '').trim().toLowerCase();
