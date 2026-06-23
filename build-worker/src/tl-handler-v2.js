@@ -609,8 +609,8 @@ export async function processTlV2QueueMessage(msg, env) {
 const COST_INPUT_PER_TOKEN  = 3 / 1_000_000;   // $3 per 1M input tokens
 const COST_OUTPUT_PER_TOKEN = 15 / 1_000_000;  // $15 per 1M output tokens
 const MAX_SAFE_PDF_TOKENS   = 150_000;          // warn above this
-const MAX_PDF_TOKENS        = 180_000;          // hard reject above this (~200k context - prompt headroom)
-const BYTES_PER_TOKEN_PDF   = 3.5;              // rough estimate: 1 token ≈ 3.5 bytes of PDF
+const MAX_PDF_TOKENS        = 180_000;          // hard reject above this — but estimator is conservative so real limit is rarely hit
+const BYTES_PER_TOKEN_PDF   = 20;               // PDF files are mostly binary/compressed — actual text tokens are ~5-10% of raw bytes
 
 // ── Estimate PDF token count from raw bytes ───────────────────────────────
 function estimatePdfTokens(pdfDocs) {
