@@ -287,7 +287,7 @@ body{
     <div class="declare-section" id="declareSection">
       <!-- populated by JS -->
     </div>
-    <button class="btn-save" id="btnSaveDocs" onclick="saveSelfDeclared()" style="margin-top:16px">Save Document Declarations</button>
+    <button class="btn-save" id="btnSaveDocs" onclick="saveSelfDeclared()" style="margin-top:16px;width:100%;padding:14px;background:var(--charcoal);color:var(--white);border:none;font-family:var(--body);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.5px;text-transform:uppercase">Save Document Declarations</button>
   </div>
 
 </div>
@@ -354,7 +354,7 @@ async function saveCompanyDetails() {
       var val = document.getElementById(field).value.trim();
       if (val) body[field] = val;
     });
-    var res = await authFetch('/tl/v2/company/details', {
+    var res = await authFetch('/tl/company/update', {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
     });
     var d = await res.json();
@@ -537,20 +537,18 @@ function updateCompletionScore() {
   var score = 0;
 
   // Company details (30 points)
-  var fields30 = ['street_address','city','tax_reference_number','annual_turnover','employees','years_experience'];
+  var fields30 = ['street_address','city','tax_reference_number','vat_number','municipal_account_number'];
   var filled30 = 0;
   fields30.forEach(function(id) {
-    var el = document.getElementById(id) || document.querySelector('[name="'+id+'"]');
+    var el = document.getElementById(id);
     if (el && el.value && el.value.trim()) filled30++;
   });
   score += Math.round((filled30 / fields30.length) * 30);
 
   // Capacity fields (20 points)
-  var fields20 = ['industries_display','provinces_display'];
   var filled20 = 0;
-  // Check if industries/provinces are selected via the multiselect
-  if (window.selectedIndustries && window.selectedIndustries.length > 0) filled20++;
-  if (window.selectedProvinces && window.selectedProvinces.length > 0) filled20++;
+  if (document.querySelectorAll('.ind-chip').length > 0) filled20++;
+  if (document.querySelectorAll('.chip.selected').length > 0) filled20++;
   score += Math.round((filled20 / 2) * 20);
 
   // Directors (20 points) — any directors added
