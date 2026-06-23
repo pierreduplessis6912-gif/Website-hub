@@ -11,10 +11,10 @@
 html{-webkit-font-smoothing:antialiased}
 body{font-family:var(--body);background:var(--cream);color:var(--charcoal);min-height:100vh}
 nav{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);background:rgba(248,247,244,.95);position:sticky;top:0;z-index:10;backdrop-filter:blur(12px)}
-.nav-brand{font-family:var(--display);font-size:16px;letter-spacing:.5px;color:var(--white);text-decoration:none;text-transform:uppercase}
+.nav-brand{font-family:var(--display);font-size:16px;letter-spacing:.5px;color:var(--charcoal);text-decoration:none;text-transform:uppercase}
 .nav-brand span{color:var(--orange)}
 .nav-back{font-size:12px;color:var(--dim);text-decoration:none;letter-spacing:.5px;text-transform:uppercase;font-weight:500}
-.nav-back:hover{color:var(--white)}
+.nav-back:hover{color:var(--orange)}
 .page{max-width:600px;margin:0 auto;padding:48px 24px 80px}
 .page-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:16px}
 .page-title{font-family:var(--display);font-size:clamp(32px,7vw,52px);line-height:1.05;letter-spacing:-.5px;text-transform:uppercase;margin-bottom:12px}
@@ -22,9 +22,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 .form-section{margin-bottom:36px}
 .section-label{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim2);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .field{margin-bottom:20px}
-.label{font-size:12px;font-weight:600;color:var(--white);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+.label{font-size:12px;font-weight:600;color:var(--charcoal);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
 .label span{font-weight:400;color:var(--dim2);font-size:11px;margin-left:6px;text-transform:none;letter-spacing:0}
-.input{width:100%;padding:14px 16px;background:var(--white);border:1px solid var(--border);font-family:var(--body);font-size:14px;color:var(--white);outline:none;transition:border-color .2s;border-radius:0}
+.input{width:100%;padding:14px 16px;background:var(--cream2);border:1px solid var(--border);font-family:var(--body);font-size:14px;color:var(--charcoal);outline:none;transition:border-color .2s;border-radius:0}
 .input::placeholder{color:var(--dim2)}
 .input:focus{border-color:var(--orange)}
 .input.error{border-color:var(--red)}
@@ -49,7 +49,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 .chip-group{display:flex;flex-wrap:wrap;gap:8px}
 .chip{padding:9px 16px;border:1px solid var(--border);font-family:var(--body);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;background:var(--white);color:var(--dim);user-select:none;text-transform:uppercase;letter-spacing:.3px}
 .chip.selected{background:var(--orange-dim);color:var(--orange);border-color:var(--orange)}
-.chip:hover:not(.selected){border-color:var(--dim2);color:var(--white)}
+.chip:hover:not(.selected){border-color:var(--orange);color:var(--charcoal)}
 
 .divider{border:none;border-top:1px solid var(--border);margin:36px 0}
 
@@ -57,11 +57,11 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:20px 2
 .pricing-grid{display:grid;gap:2px;margin-bottom:28px}
 .pricing-row{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--white)}
 .pricing-row:first-child{border-top:2px solid var(--orange)}
-.pricing-label{font-size:13px;font-weight:500;color:var(--white)}
+.pricing-label{font-size:13px;font-weight:500;color:var(--charcoal)}
 .pricing-label small{display:block;font-size:11px;color:var(--dim2);font-weight:300;margin-top:3px}
 .pricing-amount{font-family:var(--mono);font-size:13px;color:var(--orange);text-align:right;white-space:nowrap}
 .pricing-amount small{display:block;font-size:10px;color:var(--dim2);font-weight:300}
-.free-badge{display:inline-block;background:var(--orange);color:var(--black);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;padding:3px 7px;text-transform:uppercase;margin-left:8px;vertical-align:middle}
+.free-badge{display:inline-block;background:var(--orange);color:var(--white);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;padding:3px 7px;text-transform:uppercase;margin-left:8px;vertical-align:middle}
 
 .btn-submit{width:100%;padding:18px;background:var(--orange);color:var(--black);font-family:var(--body);font-size:14px;font-weight:700;border:none;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:background .2s;margin-bottom:12px}
 .btn-submit:hover{background:var(--orange-light)}
