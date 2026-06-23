@@ -54,11 +54,7 @@ crons = ["0,15,30,45 * * * *"]
 binding = "BUILD_QUEUE"
 queue = "wh-build-queue"
 
-[[queues.consumers]]
-queue = "wh-build-queue"
-max_batch_size = 1
-max_batch_timeout = 30
-max_retries = 2
+
 
 # ── TENDER LOGIX ─────────────────────────────────────────────
 [[kv_namespaces]]
