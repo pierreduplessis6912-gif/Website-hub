@@ -381,6 +381,18 @@ body{
 }
 
 /* TOAST */
+.profile-nudge{
+  background:var(--orange-dim);border:1px solid rgba(255,107,26,.2);border-left:3px solid var(--orange);
+  padding:12px 16px;margin-bottom:20px;display:none;
+  justify-content:space-between;align-items:center;gap:12px;
+}
+.profile-nudge-text{font-size:13px;color:var(--charcoal);line-height:1.4}
+.profile-nudge-text strong{color:var(--orange)}
+.profile-nudge-btn{
+  background:var(--orange);color:var(--white);border:none;
+  padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;
+  font-family:var(--body);letter-spacing:.3px;flex-shrink:0;
+}
 .toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
   background:var(--charcoal);color:var(--white);
@@ -420,6 +432,12 @@ body{
 </div>
 
 <div class="page">
+  <div class="profile-nudge" id="profileNudge">
+    <div class="profile-nudge-text">
+      <strong>Complete your profile</strong> to unlock your free Go/No-Go analysis and free Bid Pack — and get more accurate results on every tender.
+    </div>
+    <button class="profile-nudge-btn" onclick="goToProfile()">Complete Profile →</button>
+  </div>
 
   <div id="dashGreeting" style="font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:24px;height:2px;background:var(--orange)"></span><span id="greetingText"></span></div>
 
@@ -633,6 +651,31 @@ var companyData = null;
 var freeTrials = {};
 var selectedFiles = [];
 var selectedAmount = 100;
+
+function goToProfile() {
+  window.location.href = '/profile-v2/' + companyId;
+}
+
+async function checkProfileCompletion() {
+  try {
+    var res = await authFetch('/tl/company?id=' + companyId);
+    var d = await res.json();
+    if (!d.company) return;
+    var c = d.company;
+    // Simple completion check — if key fields are empty, show nudge
+    var score = 0;
+    if (c.street_address) score += 15;
+    if (c.tax_reference_number) score += 15;
+    if (c.annual_turnover && c.annual_turnover > 0) score += 15;
+    if (c.employees && c.employees > 0) score += 15;
+    if (c.years_experience && c.years_experience > 0) score += 10;
+    if (c.industries && JSON.parse(c.industries||'[]').length > 0) score += 15;
+    if (c.provinces && JSON.parse(c.provinces||'[]').length > 0) score += 15;
+    // Show nudge if under 60%
+    var nudge = document.getElementById('profileNudge');
+    if (nudge && score < 60) nudge.style.display = 'flex';
+  } catch(e) {}
+}
 
 function authHeaders() {
   var token = localStorage.getItem('tl_session');
