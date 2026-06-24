@@ -730,11 +730,10 @@ async function loadDashboard() {
     if (d.error) { showToast('Session expired', 'error'); return; }
     companyData = d;
     document.getElementById('balancePill').textContent = 'R' + (d.balance || 0);
-      var greetEl = document.getElementById('greetingText');
-      if (greetEl) greetEl.textContent = d.name;
-      document.getElementById('dashGreeting').style.display = 'flex';
-      document.title = d.name + ' — TenderLogix';
-    }
+    var greetEl = document.getElementById('greetingText');
+    if (greetEl) greetEl.textContent = d.name;
+    document.getElementById('dashGreeting').style.display = 'flex';
+    document.title = d.name + ' — TenderLogix';
 
     var trialsRes = await authFetch('/tl/v2/free-trials?company_id=' + companyId);
     var trialsData = await trialsRes.json();
@@ -1566,5 +1565,6 @@ async function handleInstall() {
 </script>
 </body>
 </html>
+
 
 
