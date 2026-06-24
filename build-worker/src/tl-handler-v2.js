@@ -227,31 +227,40 @@ async function handleTenderUpload(request, env, tlJson) {
 
   const id = crypto.randomUUID();
   const docKeys = [];
-  for (let i = 0; i < pdfDocs.length; i++) {
-    const docKey = `tenders/${company_id}/${id}/doc-${i}-${pdfDocs[i].filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
-    await env.TL_DOCS.put(docKey, pdfDocs[i].buffer, { httpMetadata: { contentType: 'application/pdf' } });
-    docKeys.push(docKey);
+
+  try {
+    // ── Step 1: Upload to R2 ─────────────────────────────────────────────
+    for (let i = 0; i < pdfDocs.length; i++) {
+      const docKey = `tenders/${company_id}/${id}/doc-${i}-${pdfDocs[i].filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
+      await env.TL_DOCS.put(docKey, pdfDocs[i].buffer, { httpMetadata: { contentType: 'application/pdf' } });
+      docKeys.push(docKey);
+    }
+
+    // ── Step 2: Insert tender record to D1 BEFORE charging ───────────────
+    // If this fails, user is not charged and no orphaned R2 file creates confusion
+    await env.TL_DB.prepare(`
+      INSERT INTO tl_tenders (id, company_id, tender_ref, doc_r2_keys, document_count, amount_paid)
+      VALUES (?,?,?,?,?,?)
+    `).bind(id, company_id, tender_ref, JSON.stringify(docKeys), files.length, isFreeTrial ? 0 : price).run();
+
+    // ── Step 3: Charge only after D1 record confirmed ────────────────────
+    if (!isFreeTrial && price > 0) {
+      await env.TL_DB.prepare('UPDATE tl_companies SET balance=balance-? WHERE id=?').bind(price, company_id).run();
+      await env.TL_DB.prepare(`INSERT INTO tl_credits (id, company_id, amount, type) VALUES (?,?,?,'used')`)
+        .bind(crypto.randomUUID(), company_id, -price).run();
+    }
+
+    // ── Step 4: Mark free trial used ─────────────────────────────────────
+    if (isFreeTrial) {
+      await markFreeTrialUsed(env, company_id, 'upload', id);
+    }
+
+    return tlJson({ success: true, tender_id: id, document_count: files.length, charged: isFreeTrial ? 0 : price, was_free_trial: isFreeTrial });
+
+  } catch(uploadErr) {
+    console.error('TL upload error:', uploadErr.message, 'company:', company_id, 'tender:', id);
+    return tlJson({ error: 'Upload failed — ' + uploadErr.message + '. You have not been charged.' }, 500);
   }
-
-  // Charge AFTER successful storage (storage can't really "fail" the way
-  // analysis can, but staying consistent with the charge-after-success
-  // principle established throughout this build)
-  if (!isFreeTrial && price > 0) {
-    await env.TL_DB.prepare('UPDATE tl_companies SET balance=balance-? WHERE id=?').bind(price, company_id).run();
-    await env.TL_DB.prepare(`INSERT INTO tl_credits (id, company_id, amount, type) VALUES (?,?,?,'used')`)
-      .bind(crypto.randomUUID(), company_id, -price).run();
-  }
-
-  await env.TL_DB.prepare(`
-    INSERT INTO tl_tenders (id, company_id, tender_ref, doc_r2_keys, document_count, amount_paid)
-    VALUES (?,?,?,?,?,?)
-  `).bind(id, company_id, tender_ref, JSON.stringify(docKeys), files.length, isFreeTrial ? 0 : price).run();
-
-  if (isFreeTrial) {
-    await markFreeTrialUsed(env, company_id, 'upload', id);
-  }
-
-  return tlJson({ success: true, tender_id: id, document_count: files.length, charged: isFreeTrial ? 0 : price, was_free_trial: isFreeTrial });
 }
 
 // ── GET a single tender + all its product runs ───────────────────────────
