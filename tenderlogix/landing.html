@@ -246,6 +246,33 @@ footer{
   .products-grid{grid-template-columns:1fr 1fr 1fr}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* FAQ */
+.faq-section{padding:80px 32px;max-width:760px;margin:0 auto}
+.faq-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--orange);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.faq-eyebrow::before{content:'';width:24px;height:2px;background:var(--orange)}
+.faq-title{font-family:var(--display);font-size:clamp(28px,5vw,42px);text-transform:uppercase;color:var(--charcoal);margin-bottom:48px;line-height:1.1}
+.faq-title span{color:var(--orange)}
+.faq-item{border-bottom:1px solid var(--border);padding:0}
+.faq-q{
+  width:100%;text-align:left;background:none;border:none;cursor:pointer;
+  padding:20px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  font-family:var(--body);font-size:15px;font-weight:700;color:var(--charcoal);
+  transition:color .15s;
+}
+.faq-q:hover{color:var(--orange)}
+.faq-chevron{flex-shrink:0;width:20px;height:20px;fill:none;stroke:var(--mid);stroke-width:2;transition:transform .25s}
+.faq-item.open .faq-chevron{transform:rotate(180deg);stroke:var(--orange)}
+.faq-a{
+  max-height:0;overflow:hidden;transition:max-height .3s ease;
+  font-size:14px;color:var(--mid);line-height:1.7;
+}
+.faq-item.open .faq-a{max-height:300px}
+.faq-a-inner{padding:0 0 20px 0}
+.faq-a a{color:var(--orange);text-decoration:none}
+.faq-a strong{color:var(--charcoal)}
+
+
 </style>
 </head>
 <body>
@@ -401,32 +428,6 @@ footer{
     <p class="cta-note">NO SETUP FEE · FIRST ANALYSIS FREE · CANCEL ANYTIME</p>
   </div>
 </section>
-
-
-/* FAQ */
-.faq-section{padding:80px 32px;max-width:760px;margin:0 auto}
-.faq-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--orange);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:10px}
-.faq-eyebrow::before{content:'';width:24px;height:2px;background:var(--orange)}
-.faq-title{font-family:var(--display);font-size:clamp(28px,5vw,42px);text-transform:uppercase;color:var(--charcoal);margin-bottom:48px;line-height:1.1}
-.faq-title span{color:var(--orange)}
-.faq-item{border-bottom:1px solid var(--border);padding:0}
-.faq-q{
-  width:100%;text-align:left;background:none;border:none;cursor:pointer;
-  padding:20px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;
-  font-family:var(--body);font-size:15px;font-weight:700;color:var(--charcoal);
-  transition:color .15s;
-}
-.faq-q:hover{color:var(--orange)}
-.faq-chevron{flex-shrink:0;width:20px;height:20px;fill:none;stroke:var(--mid);stroke-width:2;transition:transform .25s}
-.faq-item.open .faq-chevron{transform:rotate(180deg);stroke:var(--orange)}
-.faq-a{
-  max-height:0;overflow:hidden;transition:max-height .3s ease;
-  font-size:14px;color:var(--mid);line-height:1.7;
-}
-.faq-item.open .faq-a{max-height:300px}
-.faq-a-inner{padding:0 0 20px 0}
-.faq-a a{color:var(--orange);text-decoration:none}
-.faq-a strong{color:var(--charcoal)}
 
 
 <!-- FAQ -->
