@@ -187,6 +187,8 @@ export const KV_KEYS = {
     'tl-icon':          'app:tl-icon',
     'tl-terms':         'app:tl-terms',  // terms of service
     'tl-privacy':       'app:tl-privacy',
+    'tl-faq':           'app:tl-faq',
+    'tl-sitemap':       'app:tl-sitemap',
   },
 
   // ── Built site content ─────────────────────────────────────────────────────
