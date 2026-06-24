@@ -69,6 +69,15 @@ export async function handleTenderLogix(request, env) {
 
   if (path === '/tl/company' && method === 'POST') return handleTlCreateCompany(request, env, tlJson);
   if (path === '/tl/company' && method === 'GET')  return handleTlGetCompany(url, env, tlJson);
+  if (path === '/tl/company/by-slug' && method === 'GET') {
+    const slug = url.searchParams.get('slug');
+    if (!slug) return tlJson({ error: 'slug required' }, 400);
+    const company = await env.TL_DB.prepare(
+      'SELECT id, name, slug FROM tl_companies WHERE slug=? LIMIT 1'
+    ).bind(slug).first();
+    if (!company) return tlJson({ error: 'Not found' }, 404);
+    return tlJson({ company_id: company.id, name: company.name, slug: company.slug });
+  }
   if (path === '/tl/company/update' && method === 'POST') return handleTlUpdateCompany(request, env, tlJson);
 
   if (path === '/tl/submission'  && method === 'GET')  return handleTlGetSubmission(url, env, tlJson);
@@ -160,6 +169,32 @@ export async function handleTenderLogix(request, env) {
 }
 
 // ── CREATE COMPANY PROFILE ──────────────────────────────────────
+// ── Generate URL-safe slug from company name ─────────────────────────────
+function generateSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')   // remove special chars
+    .trim()
+    .replace(/\s+/g, '-')            // spaces to hyphens
+    .replace(/-+/g, '-')             // collapse multiple hyphens
+    .slice(0, 60);                   // max 60 chars
+}
+
+// Ensure slug is unique — append short UUID suffix if collision
+async function uniqueSlug(env, baseSlug, excludeId = null) {
+  let slug = baseSlug;
+  let attempt = 0;
+  while (attempt < 5) {
+    const existing = await env.TL_DB.prepare(
+      'SELECT id FROM tl_companies WHERE slug=? AND id!=? LIMIT 1'
+    ).bind(slug, excludeId || '').first().catch(() => null);
+    if (!existing) return slug;
+    attempt++;
+    slug = baseSlug + '-' + Math.random().toString(36).slice(2, 6);
+  }
+  return baseSlug + '-' + Date.now().toString(36);
+}
+
 async function handleTlCreateCompany(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
   const { name, reg_number, tax_number, vat_number, csd_maaa, bee_level,
@@ -188,19 +223,20 @@ async function handleTlCreateCompany(request, env, tlJson) {
   const startingBalance = (free_credits && hasCompleteProfile) ? 100 : 0;
 
   const id = crypto.randomUUID();
+  const companySlug = await uniqueSlug(env, generateSlug(name), id);
   await env.TL_DB.prepare(`
     INSERT INTO tl_companies (id, name, reg_number, tax_number, vat_number, csd_maaa,
       bee_level, cidb_grade, cidb_number, industries, provinces, years_experience,
       annual_turnover, employees, phone, email, address, client_name, balance, credits,
-      utm_source, utm_medium, utm_campaign, terms_accepted_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?)
+      utm_source, utm_medium, utm_campaign, terms_accepted_at, slug)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?)
   `).bind(id, name, reg_number||null, tax_number||null, vat_number||null, csd_maaa||null,
     bee_level||null, cidb_grade||null, cidb_number||null,
     JSON.stringify(industries||[]), JSON.stringify(provinces||[]),
     years_experience||0, annual_turnover||0, employees||0,
     normalisedPhone, normalisedEmail, address||null, client_name||null, startingBalance,
     utm_source||null, utm_medium||null, utm_campaign||null,
-    terms_accepted_at||new Date().toISOString()
+    terms_accepted_at||new Date().toISOString(), companySlug
   ).run();
 
   const message = free_credits && !hasCompleteProfile
@@ -313,6 +349,7 @@ async function handleTlAnalyse(request, env, tlJson) {
   }
 
   const id = crypto.randomUUID();
+  const companySlug = await uniqueSlug(env, generateSlug(name), id);
   // Store the pasted text in R2 so the queue consumer can read it the same way
   // as PDF-based submissions — keeps queue messages small and the read path uniform.
   const docKey = `submissions/${company_id}/${id}/pasted-text.txt`;
@@ -480,6 +517,7 @@ async function handleTlUpload(request, env, tlJson) {
 
   // ── Gate passed — store documents in R2 (fast), create a QUEUED submission, hand off the actual analysis ──
   const id = crypto.randomUUID();
+  const companySlug = await uniqueSlug(env, generateSlug(name), id);
   const docKeys = [];
   for (let i = 0; i < pdfDocs.length; i++) {
     const docKey = `submissions/${company_id}/${id}/doc-${i}-${pdfDocs[i].filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
@@ -1258,6 +1296,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
   }
 
   const id = crypto.randomUUID();
+  const companySlug = await uniqueSlug(env, generateSlug(name), id);
   // Replace any existing document of this type for this company (re-upload on renewal)
   await env.TL_DB.prepare('DELETE FROM tl_compliance_documents WHERE company_id=? AND doc_type_id=?')
     .bind(company_id, doc_type_id).run();
