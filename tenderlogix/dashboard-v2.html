@@ -1469,7 +1469,7 @@ function buyBalance() {
   document.body.appendChild(form); form.submit();
 }
 
-loadDashboard();
+// loadDashboard() now called via resolveSlug().then()
 // ── Navigation guard — warn before leaving ──────────────────────────────
 // Fires on browser back, close tab, or any navigation away from this page.
 // Exceptions: internal TenderLogix links use location.replace() so they
@@ -1528,7 +1528,7 @@ async function handleInstall() {
 
 
 window.addEventListener('pageshow', function(event) {
-  if (event.persisted) { loadDashboard();
+  if (event.persisted) { resolveSlug().then(function(){ loadDashboard(); });
 // ── Navigation guard — warn before leaving ──────────────────────────────
 // Fires on browser back, close tab, or any navigation away from this page.
 // Exceptions: internal TenderLogix links use location.replace() so they
