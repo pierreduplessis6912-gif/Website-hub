@@ -691,52 +691,15 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
   // Only applies when schemaText is provided (not callClaudeSimple).
   // appendSchemaInstruction=true means caller already handled schema in prompt
   // (bidpack call2 prose) — skip tool_choice for those.
-  let toolDef = null;
-  if (schemaText && !appendSchemaInstruction) {
-    try {
-      // schemaText is our prose-style schema instruction string.
-      // Convert it to a minimal tool that forces JSON output.
-      // We use a generic "analysis_result" tool with additionalProperties: true
-      // so Claude fills in whatever fields the prompt describes.
-      // This is intentionally loose — we don't want the tool schema to
-      // conflict with the detailed field instructions in the prompt itself.
-      toolDef = {
-        name: 'analysis_result',
-        description: 'Return the complete structured analysis result as specified in the system prompt.',
-        input_schema: {
-          type: 'object',
-          properties: {
-            result: {
-              type: 'object',
-              description: 'The full analysis result matching the schema described in the prompt.',
-              additionalProperties: true
-            }
-          },
-          required: ['result']
-        }
-      };
-    } catch(e) {
-      console.warn('TL v2 callClaude — tool schema build failed, falling back to prompt-only:', e.message);
-      toolDef = null;
-    }
-  }
-
   try {
-    const requestBody = {
-      model: 'claude-sonnet-4-6',
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content: userContent }]
-    };
-
-    if (toolDef) {
-      requestBody.tools = [toolDef];
-      requestBody.tool_choice = { type: 'tool', name: 'analysis_result' };
-    }
-
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: maxTokens,
+        messages: [{ role: 'user', content: userContent }]
+      }),
     });
 
     if (!aiRes.ok) {
@@ -753,32 +716,21 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
     const outputTokens = aiData.usage?.output_tokens || 0;
     const costUsd      = (inputTokens * COST_INPUT_PER_TOKEN) + (outputTokens * COST_OUTPUT_PER_TOKEN);
 
-    let data;
+    const rawText = aiData.content?.[0]?.text || '';
+    if (!rawText) {
+      console.error('TL v2 callClaude — empty response. stop_reason:', stopReason);
+      return { success: false, reason: 'Empty response from analysis engine' };
+    }
 
-    if (toolDef) {
-      // tool_choice path: result is in content[0].input.result
-      const toolBlock = aiData.content?.find(b => b.type === 'tool_use' && b.name === 'analysis_result');
-      if (!toolBlock) {
-        console.error('TL v2 callClaude — no tool_use block in response. stop_reason:', stopReason);
-        return { success: false, reason: 'Analysis engine did not return a structured result' };
-      }
-      data = toolBlock.input?.result || toolBlock.input || {};
-    } else {
-      // Prose / fallback path: parse text as before
-      const rawText = aiData.content?.[0]?.text || '';
-      if (!rawText) {
-        console.error('TL v2 callClaude — empty text response. stop_reason:', stopReason);
-        return { success: false, reason: 'Empty response from analysis engine' };
-      }
-      try {
-        data = JSON.parse(rawText.replace(/```json|```/g, '').trim());
-      } catch(e) {
-        console.error('TL v2 callClaude — JSON parse failed. stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
-        const reason = stopReason === 'max_tokens'
-          ? 'The analysis exceeded the response size limit before completing. Please try again.'
-          : 'Could not parse analysis result';
-        return { success: false, reason };
-      }
+    let data;
+    try {
+      data = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+    } catch(e) {
+      console.error('TL v2 callClaude — JSON parse failed. stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
+      const reason = stopReason === 'max_tokens'
+        ? 'The analysis exceeded the response size limit before completing. Please try again.'
+        : 'Could not parse analysis result';
+      return { success: false, reason };
     }
 
     return { success: true, data, inputTokens, outputTokens, costUsd };
