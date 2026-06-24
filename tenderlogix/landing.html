@@ -402,11 +402,122 @@ footer{
   </div>
 </section>
 
+
+/* FAQ */
+.faq-section{padding:80px 32px;max-width:760px;margin:0 auto}
+.faq-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--orange);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.faq-eyebrow::before{content:'';width:24px;height:2px;background:var(--orange)}
+.faq-title{font-family:var(--display);font-size:clamp(28px,5vw,42px);text-transform:uppercase;color:var(--charcoal);margin-bottom:48px;line-height:1.1}
+.faq-title span{color:var(--orange)}
+.faq-item{border-bottom:1px solid var(--border);padding:0}
+.faq-q{
+  width:100%;text-align:left;background:none;border:none;cursor:pointer;
+  padding:20px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  font-family:var(--body);font-size:15px;font-weight:700;color:var(--charcoal);
+  transition:color .15s;
+}
+.faq-q:hover{color:var(--orange)}
+.faq-chevron{flex-shrink:0;width:20px;height:20px;fill:none;stroke:var(--mid);stroke-width:2;transition:transform .25s}
+.faq-item.open .faq-chevron{transform:rotate(180deg);stroke:var(--orange)}
+.faq-a{
+  max-height:0;overflow:hidden;transition:max-height .3s ease;
+  font-size:14px;color:var(--mid);line-height:1.7;
+}
+.faq-item.open .faq-a{max-height:300px}
+.faq-a-inner{padding:0 0 20px 0}
+.faq-a a{color:var(--orange);text-decoration:none}
+.faq-a strong{color:var(--charcoal)}
+
+
+<!-- FAQ -->
+<section style="border-top:1px solid var(--border)">
+<div class="faq-section">
+  <div class="faq-eyebrow">Common Questions</div>
+  <h2 class="faq-title">Everything You<br>Need To <span>Know.</span></h2>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Is my first analysis really free? No credit card?
+      <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="faq-a"><div class="faq-a-inner">Yes — completely free, no card needed. Your first Go/No-Go analysis, your first Bid Pack, and your first document upload are all free. You only pay when you run a second analysis. The free trials are per product — you get one free run of each.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      What is a Go/No-Go analysis?
+      <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="faq-a"><div class="faq-a-inner">It's a facts-based eligibility assessment. You upload the tender document and TenderLogix reads it against your company profile — checking mandatory registrations, compliance documents, B-BBEE requirements, evaluation criteria, and more. You get a <strong>GO, NO-GO, or CONDITIONAL GO</strong> recommendation with the specific reasons, risk flags, and a compliance checklist. It takes about 60 seconds.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      What is a Bid Pack?
+      <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="faq-a"><div class="faq-a-inner">A Bid Pack is a complete submission package generated from the tender document and your company profile. It includes a priced Bill of Quantities (BOQ) with line item rates, all required MBD forms (MBD 1, 4, 8, 9, 15) pre-filled with your company data, a submission checklist, and a Form C1 for references. Print it, sign it, submit it.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      How accurate is the BOQ pricing?
+      <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="faq-a"><div class="faq-a-inner">Pricing is based on the <strong>AECOM Africa Cost Guide 2025/26</strong> — the industry standard used by quantity surveyors across South Africa — adjusted using <strong>Stats SA CPAP escalation indices</strong>. Where the tender specifies gazetted rates, those are used exactly. Every line item has a confidence rating (HIGH/MEDIUM/LOW). <strong>Always verify LOW-confidence rates with local suppliers before submission.</strong> The BOQ is a professional starting point, not a final quote.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Why does a complete profile matter?
+      <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="faq-a"><div class="faq-a-inner">Your profile is the source of truth for every analysis. The more complete it is, the more accurate your Go/No-Go result and the better your Bid Pack pre-fills. A profile with no directors, no compliance documents, and no turnover data will produce an analysis full of unknowns. <strong>You need 60% profile completion to unlock your free trials.</strong> It takes about 5 minutes to complete.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      What is the Document Vault?
+      <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="faq-a"><div class="faq-a-inner">The Vault is an optional R99/month subscription that lets you securely store your compliance certificates — B-BBEE, CIDB, CSD, Tax Clearance, COIDA, and more. Vault documents get expiry tracking and instant retrieval. Without the Vault, you can still self-declare your documents in your profile and they carry the same weight in the analysis.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Is my data safe?
+      <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="faq-a"><div class="faq-a-inner">Yes. All data is encrypted in transit and at rest. Your tender documents are used only for the analysis you requested and are not shared with any third party. We comply with POPIA. Full details are in our <a href="/privacy">Privacy Policy</a>.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      What does it cost after the free trials?
+      <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="faq-a"><div class="faq-a-inner"><strong>R20/document</strong> for additional tender uploads · <strong>R100/run</strong> for Go/No-Go analysis · <strong>R750/run</strong> for a full Bid Pack · <strong>R99/month</strong> for Document Vault (optional). No subscription required for analysis — pay per run, only when you need it.</div></div>
+  </div>
+
+</div>
+</section>
+
+<script>
+function toggleFaq(btn) {
+  var item = btn.parentElement;
+  var isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(function(el) { el.classList.remove('open'); });
+  if (!isOpen) item.classList.add('open');
+}
+</script>
+
 <footer>
   <div class="footer-brand">Tender<span>Logix</span></div>
   <div class="footer-links">
     <a href="/terms" class="footer-link">Terms</a>
     <a href="/privacy" class="footer-link">Privacy</a>
+    <a href="/faq" class="footer-link">FAQ</a>
+    <a href="/sitemap" class="footer-link">Sitemap</a>
   </div>
   <div class="footer-copy">© 2026 TENDERLOGIX · ANALYSIS IS AI-ASSISTED AND INDICATIVE · VERIFY ALL PRICING BEFORE SUBMISSION</div>
 </footer>
