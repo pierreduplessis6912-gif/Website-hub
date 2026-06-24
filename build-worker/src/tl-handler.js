@@ -57,7 +57,9 @@ export async function handleTenderLogix(request, env) {
     path === '/tl-icon-512.svg' ||
     path === '/health' ||                               // health check
     path === '/terms' ||                                // legal
-    path === '/privacy'                                 // legal
+    path === '/privacy' ||                              // legal
+    path === '/faq' ||                                    // faq
+    path === '/sitemap'                                  // sitemap
   );
 
   if (!isPublicRoute) {
@@ -135,6 +137,14 @@ export async function handleTenderLogix(request, env) {
   if (path === '/privacy') {
     const privacy = await env.SITES.get('app:tl-privacy').catch(() => null);
     if (privacy) return new Response(privacy, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=86400' } });
+  }
+  if (path === '/faq') {
+    const page = await env.SITES.get('app:tl-faq').catch(() => null);
+    if (page) return new Response(page, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=86400' } });
+  }
+  if (path === '/sitemap') {
+    const page = await env.SITES.get('app:tl-sitemap').catch(() => null);
+    if (page) return new Response(page, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=86400' } });
   }
 
   if (path === '/login') {
