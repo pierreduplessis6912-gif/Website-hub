@@ -1201,10 +1201,11 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
   "pricing_disclaimer": "string"
 }`;
 
-      const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 5120);
+      const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 8192);
       if (!call1Result.success) {
         console.error('TL v2 — bidpack call 1 (BOQ+checklist) failed. run:', productRunId, 'reason:', call1Result.reason);
-        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+          .bind(JSON.stringify({ error: call1Result.reason, stage: 'call1' }), productRunId).run();
         return { success: false, reason: call1Result.reason };
       }
       if (!call1Result.data.boq || !Array.isArray(call1Result.data.boq)) {
