@@ -243,7 +243,7 @@ async function handleTlCreateCompany(request, env, tlJson) {
     ? 'Account created. Add your registration number and at least one industry + province to unlock R100 free balance.'
     : null;
 
-  return tlJson({ success: true, company_id: id, balance: startingBalance, message });
+  return tlJson({ success: true, company_id: id, slug: companySlug, balance: startingBalance, message });
 }
 
 // ── GET COMPANY PROFILE ──────────────────────────────────────────
