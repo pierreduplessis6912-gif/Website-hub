@@ -1208,9 +1208,12 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
           .bind(JSON.stringify({ error: call1Result.reason, stage: 'call1' }), productRunId).run();
         return { success: false, reason: call1Result.reason };
       }
-      if (!call1Result.data.boq || !Array.isArray(call1Result.data.boq)) {
-        console.error('TL v2 — bidpack call 1 missing BOQ. run:', productRunId, 'parsed:', JSON.stringify(call1Result.data).slice(0,500));
-        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+      // Handle both flat and nested result structures from tool_choice
+      const call1Data = call1Result.data?.boq ? call1Result.data : (call1Result.data?.result || call1Result.data);
+      if (!call1Data.boq || !Array.isArray(call1Data.boq)) {
+        console.error('TL v2 — bidpack call 1 missing BOQ. run:', productRunId, 'keys:', Object.keys(call1Result.data||{}).join(','), 'parsed:', JSON.stringify(call1Result.data).slice(0,500));
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+          .bind(JSON.stringify({ error: 'Missing BOQ data', keys: Object.keys(call1Result.data||{}), data_preview: JSON.stringify(call1Result.data).slice(0,300) }), productRunId).run();
         return { success: false, reason: 'Analysis did not produce pricing data' };
       }
 
@@ -1258,7 +1261,7 @@ Everything physically in the envelope: exact envelope endorsement wording, USB d
 COMPANY PROFILE (pre-fill every known field):
 ${companyContext}
 
-CONFIRMED BOQ TOTAL: R${call1Result.data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
+CONFIRMED BOQ TOTAL: R${call1Data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
 
 Write as complete well-formatted markdown. One disclaimer at the top. No repeated warnings. Form C1 must always be included if functionality criteria exist in this tender.`;
       const call2Result = await callClaudeSimple(env, pdfDocs, call2Prompt, 6144);
