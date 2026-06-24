@@ -1044,7 +1044,7 @@ async function submitUpload() {
     document.getElementById('tenderRef').value = '';
     renderFileList();
     showToast(d.was_free_trial ? 'Tender uploaded — free trial used' : 'Tender uploaded — R'+d.charged+' charged', 'success');
-    await // Resolve slug first if needed, then load dashboard
+    // Resolve slug first if needed, then load dashboard
 resolveSlug().then(function() { loadDashboard(); });
 
 function goToProfile() {
