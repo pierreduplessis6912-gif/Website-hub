@@ -299,7 +299,23 @@ body{
 <div class="toast" id="toast"></div>
 
 <script>
-var companyId = location.pathname.split('/profile/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
+var _pathSegment = location.pathname.split('/profile-v2/')[1]?.split('/')[0]
+  || location.pathname.split('/profile/')[1]?.split('/')[0]
+  || localStorage.getItem('tl_company_id') || '';
+var _isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(_pathSegment);
+var companyId = _isUuid ? _pathSegment : '';
+
+async function resolveSlug() {
+  if (_isUuid || !_pathSegment) return;
+  try {
+    var res = await fetch('/tl/company/by-slug?slug=' + _pathSegment);
+    var d = await res.json();
+    if (d.company_id) {
+      companyId = d.company_id;
+      localStorage.setItem('tl_company_id', companyId);
+    } else { window.location.href = '/login'; }
+  } catch(e) { window.location.href = '/login'; }
+}
 var directors = [];
 var editingDirectorId = null;
 
@@ -474,7 +490,7 @@ async function removeDirector(id) {
   } catch(e) { showToast(e.message||'Failed to remove', 'error'); }
 }
 
-loadProfile();
+resolveSlug().then(function() { loadProfile(); });
 
 // ── DOCUMENT TYPES FOR SELF-DECLARATION ─────────────────────────────────────
 var DECLARE_DOCS = [
