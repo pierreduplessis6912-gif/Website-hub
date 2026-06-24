@@ -142,7 +142,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
       body: JSON.stringify({ model: 'kimi-k2.5', max_tokens: 1024, messages: [{ role: 'user', content: userContent }] }),
     });
     const aiData = await aiRes.json();
-    const rawText = aiData.choices?.[0]?.message?.content || '{}';
+    const rawText = aiData.content?.[0]?.text || '{}';
     const result = JSON.parse(rawText.replace(/```json|```/g, '').trim());
 
     const mismatched = [];
@@ -692,13 +692,13 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
   // appendSchemaInstruction=true means caller already handled schema in prompt
   // (bidpack call2 prose) — skip tool_choice for those.
   try {
-    const aiRes = await fetch('https://api.moonshot.ai/v1/chat/completions', {
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.KIMI_KEY },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: 'kimi-k2.5',
+        model: 'claude-sonnet-4-6',
         max_tokens: maxTokens,
-        messages: [{ role: 'user', content: typeof userContent === 'string' ? userContent : JSON.stringify(userContent) }]
+        messages: [{ role: 'user', content: userContent }]
       }),
     });
 
@@ -709,14 +709,14 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
     }
 
     const aiData = await aiRes.json();
-    const stopReason = aiData.choices?.[0]?.finish_reason;
+    const stopReason = aiData.stop_reason;
 
     // ── TOKEN TRACKING ───────────────────────────────────────────────────
-    const inputTokens  = aiData.usage?.prompt_tokens  || 0;
-    const outputTokens = aiData.usage?.completion_tokens || 0;
+    const inputTokens  = aiData.usage?.input_tokens  || 0;
+    const outputTokens = aiData.usage?.output_tokens || 0;
     const costUsd      = (inputTokens * COST_INPUT_PER_TOKEN) + (outputTokens * COST_OUTPUT_PER_TOKEN);
 
-    const rawText = aiData.choices?.[0]?.message?.content || '';
+    const rawText = aiData.content?.[0]?.text || '';
     if (!rawText) {
       console.error('TL v2 callClaude — empty response. stop_reason:', stopReason);
       return { success: false, reason: 'Empty response from analysis engine' };
@@ -727,7 +727,7 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
       data = JSON.parse(rawText.replace(/```json|```/g, '').trim());
     } catch(e) {
       console.error('TL v2 callClaude — JSON parse failed. stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
-      const reason = stopReason === 'length'
+      const reason = stopReason === 'max_tokens'
         ? 'The analysis exceeded the response size limit before completing. Please try again.'
         : 'Could not parse analysis result';
       return { success: false, reason };
@@ -752,10 +752,10 @@ async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
     : promptText;
 
   try {
-    const aiRes = await fetch('https://api.moonshot.ai/v1/chat/completions', {
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.KIMI_KEY },
-      body: JSON.stringify({ model: 'kimi-k2.5', max_tokens: maxTokens, messages: [{ role: 'user', content: typeof userContent === 'string' ? userContent : JSON.stringify(userContent) }] }),
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content: userContent }] }),
     });
 
     if (!aiRes.ok) {
@@ -765,10 +765,10 @@ async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
     }
 
     const aiData = await aiRes.json();
-    const text = aiData.choices?.[0]?.message?.content || '';
+    const text = aiData.content?.[0]?.text || '';
 
     if (!text) {
-      console.error('TL v2 callClaudeSimple — empty response. stop_reason:', aiData.choices?.[0]?.finish_reason);
+      console.error('TL v2 callClaudeSimple — empty response. stop_reason:', aiData.stop_reason);
       return { success: false, reason: 'Empty response from analysis engine' };
     }
 
