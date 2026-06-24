@@ -136,10 +136,10 @@ Return ONLY valid JSON, no markdown, no explanation.`;
   ];
 
   try {
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const aiRes = await fetch('https://api.moonshot.ai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: userContent }] }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.KIMI_KEY },
+      body: JSON.stringify({ model: 'kimi-k2.5', max_tokens: 1024, messages: [{ role: 'user', content: userContent }] }),
     });
     const aiData = await aiRes.json();
     const rawText = aiData.choices?.[0]?.message?.content || '{}';
@@ -830,11 +830,11 @@ async function callClaudeTwoPass(env, pdfDocs, analysisPrompt, schemaText, maxTo
   }
 
   if (!skeleton) try {
-    const p1Res = await fetch('https://api.anthropic.com/v1/messages', {
+    const p1Res = await fetch('https://api.moonshot.ai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.KIMI_KEY },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'kimi-k2.5',
         max_tokens: 2048,
         tools: [skeletonTool],
         tool_choice: { type: 'tool', name: 'tender_skeleton' },
@@ -846,7 +846,7 @@ async function callClaudeTwoPass(env, pdfDocs, analysisPrompt, schemaText, maxTo
     });
     if (p1Res.ok) {
       const p1Data = await p1Res.json();
-      const block = p1Data.content?.find(b => b.type === 'tool_use' && b.name === 'tender_skeleton');
+      const block = p1Data.choices?.[0] && b.name === 'tender_skeleton');
       if (block) {
         const rawSkeleton = block.input;
 
@@ -860,8 +860,8 @@ async function callClaudeTwoPass(env, pdfDocs, analysisPrompt, schemaText, maxTo
           console.warn('TL two-pass — Pass 1 skeleton failed validation (empty/garbage). Falling back to single-pass.');
         } else {
           skeleton = rawSkeleton;
-          pass1Input  = p1Data.usage?.input_tokens  || 0;
-          pass1Output = p1Data.usage?.output_tokens || 0;
+          pass1Input  = p1Data.usage?.prompt_tokens  || 0;
+          pass1Output = p1Data.usage?.completion_tokens || 0;
           console.log('TL two-pass — pass 1 OK. tokens:', pass1Input, '+', pass1Output);
 
           // ── Cache skeleton in KV — skip pass 1 on re-upload of same PDF ──
@@ -893,11 +893,11 @@ async function callClaudeTwoPass(env, pdfDocs, analysisPrompt, schemaText, maxTo
   };
 
   try {
-    const p2Res = await fetch('https://api.anthropic.com/v1/messages', {
+    const p2Res = await fetch('https://api.moonshot.ai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.KIMI_KEY },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'kimi-k2.5',
         max_tokens: maxTokens,
         tools: [toolDef],
         tool_choice: { type: 'tool', name: 'analysis_result' },
@@ -907,8 +907,8 @@ async function callClaudeTwoPass(env, pdfDocs, analysisPrompt, schemaText, maxTo
     if (!p2Res.ok) return { success: false, reason: `Analysis engine returned ${p2Res.status}` };
 
     const p2Data = await p2Res.json();
-    const p2Input  = p2Data.usage?.input_tokens  || 0;
-    const p2Output = p2Data.usage?.output_tokens || 0;
+    const p2Input  = p2Data.usage?.prompt_tokens  || 0;
+    const p2Output = p2Data.usage?.completion_tokens || 0;
     const totalIn  = pass1Input  + p2Input;
     const totalOut = pass1Output + p2Output;
     const costUsd  = (totalIn * COST_INPUT_PER_TOKEN) + (totalOut * COST_OUTPUT_PER_TOKEN);
