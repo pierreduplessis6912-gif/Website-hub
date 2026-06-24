@@ -226,10 +226,16 @@ export default {
           return new Response(JSON.stringify({ error: `Unexpected error: ${e.message}. If this was a paid action, you have NOT been charged.`, retry_safe: true }), { status: 500, headers: { 'Content-Type': 'application/json' } });
         }
       }
-      if (url.pathname.startsWith('/dashboard-v2')) {
+      // ── Dashboard routes — both UUID and slug formats ──────────────────
+      // /dashboard-v2/{uuid}  — legacy, still works
+      // /dashboard/{slug}     — new clean URL
+      if (url.pathname.startsWith('/dashboard-v2') || url.pathname.startsWith('/dashboard/')) {
         const v2dash = await env.SITES.get('app:tl-dashboard-v2').catch(() => null);
         if (v2dash) return new Response(v2dash, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' } });
       }
+      // ── Profile routes — both UUID and slug formats ───────────────────
+      // /profile-v2/{uuid}    — legacy, still works
+      // /profile/{slug}       — new clean URL
       if (url.pathname.startsWith('/profile-v2') || url.pathname.startsWith('/profile/')) {
         const v2profile = await env.SITES.get('app:tl-profile-v2').catch(() => null);
         if (v2profile) return new Response(v2profile, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' } });
