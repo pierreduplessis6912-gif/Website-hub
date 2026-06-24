@@ -1264,10 +1264,11 @@ ${companyContext}
 CONFIRMED BOQ TOTAL: R${call1Data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
 
 Write as complete well-formatted markdown. One disclaimer at the top. No repeated warnings. Form C1 must always be included if functionality criteria exist in this tender.`;
-      const call2Result = await callClaudeSimple(env, pdfDocs, call2Prompt, 6144);
+      const call2Result = await callClaudeSimple(env, pdfDocs, call2Prompt, 10000);
       if (!call2Result.success) {
         console.error('TL v2 — bidpack call 2 (submission pack) failed. run:', productRunId, 'reason:', call2Result.reason);
-        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(productRunId).run();
+        await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+          .bind(JSON.stringify({ error: call2Result.reason, stage: 'call2', boq_succeeded: true }), productRunId).run();
         return { success: false, reason: call2Result.reason };
       }
 
