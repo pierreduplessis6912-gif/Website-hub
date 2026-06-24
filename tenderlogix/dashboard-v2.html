@@ -723,7 +723,7 @@ async function loadDashboard() {
   // ── Session check — redirect to login if no valid session ──
   var sessionToken = localStorage.getItem('tl_session');
   if (!sessionToken) { window.location.href = '/login'; return; }
-  document.getElementById('profileLink').href = '/profile/' + companyId;
+  // profileLink is a button with onclick goToProfile() — no href needed
   try {
     var res = await authFetch('/tl/company?id=' + companyId);
     var d = await res.json();
