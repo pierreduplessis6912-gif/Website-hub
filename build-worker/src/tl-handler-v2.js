@@ -692,13 +692,13 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
   // appendSchemaInstruction=true means caller already handled schema in prompt
   // (bidpack call2 prose) — skip tool_choice for those.
   try {
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const aiRes = await fetch('https://api.moonshot.ai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.KIMI_KEY },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'kimi-k2.5',
         max_tokens: maxTokens,
-        messages: [{ role: 'user', content: userContent }]
+        messages: [{ role: 'user', content: typeof userContent === 'string' ? userContent : JSON.stringify(userContent) }]
       }),
     });
 
@@ -752,10 +752,10 @@ async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
     : promptText;
 
   try {
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const aiRes = await fetch('https://api.moonshot.ai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content: userContent }] }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.KIMI_KEY },
+      body: JSON.stringify({ model: 'kimi-k2.5', max_tokens: maxTokens, messages: [{ role: 'user', content: typeof userContent === 'string' ? userContent : JSON.stringify(userContent) }] }),
     });
 
     if (!aiRes.ok) {
@@ -765,7 +765,7 @@ async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
     }
 
     const aiData = await aiRes.json();
-    const text = aiData.content?.[0]?.text || '';
+    const text = aiData.choices?.[0]?.message?.content || '';
 
     if (!text) {
       console.error('TL v2 callClaudeSimple — empty response. stop_reason:', aiData.stop_reason);
