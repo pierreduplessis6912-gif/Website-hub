@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAQ — TenderLogix</title>
+<meta name="description" content="Frequently asked questions about TenderLogix — South Africa's tender decision intelligence platform.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --cream:#f8f7f4;--cream2:#f0ede8;--white:#ffffff;
+  --charcoal:#0e0c09;--mid:#6b6560;--dim:#9e9890;
+  --border:rgba(14,12,9,.1);--border2:rgba(14,12,9,.06);
+  --orange:#ff6b1a;--orange-dim:rgba(255,107,26,.08);--orange-light:#ff8c4a;
+  --green:#1a9e5c;
+  --display:'Archivo Black',sans-serif;--body:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--cream);color:var(--charcoal)}
+nav{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid var(--border);background:rgba(248,247,244,.95);position:sticky;top:0;z-index:10;backdrop-filter:blur(16px)}
+.nav-brand{font-family:var(--display);font-size:18px;color:var(--charcoal);text-decoration:none;text-transform:uppercase}
+.nav-brand span{color:var(--orange)}
+.nav-cta{background:var(--orange);color:var(--white);padding:10px 22px;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:.3px;text-transform:uppercase}
+.page{max-width:720px;margin:0 auto;padding:60px 24px 100px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--orange);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';width:24px;height:2px;background:var(--orange)}
+h1{font-family:var(--display);font-size:clamp(36px,7vw,58px);text-transform:uppercase;color:var(--charcoal);margin-bottom:8px;line-height:1.02}
+h1 span{color:var(--orange)}
+.subtitle{font-size:15px;color:var(--mid);line-height:1.6;margin-bottom:48px}
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-q{width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:22px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;font-family:var(--body);font-size:15px;font-weight:700;color:var(--charcoal);transition:color .15s}
+.faq-q:hover{color:var(--orange)}
+.faq-chevron{flex-shrink:0;width:20px;height:20px;fill:none;stroke:var(--mid);stroke-width:2;transition:transform .25s}
+.faq-item.open .faq-chevron{transform:rotate(180deg);stroke:var(--orange)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.faq-item.open .faq-a{max-height:400px}
+.faq-a-inner{padding:0 0 22px 0;font-size:15px;color:var(--mid);line-height:1.75}
+.faq-a-inner a{color:var(--orange);text-decoration:none}
+.faq-a-inner a:hover{text-decoration:underline}
+.faq-a-inner strong{color:var(--charcoal)}
+.faq-a-inner ul{margin:12px 0 0 20px;display:flex;flex-direction:column;gap:6px}
+.cta-block{background:var(--charcoal);padding:40px 32px;margin-top:60px;text-align:center}
+.cta-block h2{font-family:var(--display);font-size:28px;text-transform:uppercase;color:var(--white);margin-bottom:8px}
+.cta-block h2 span{color:var(--orange)}
+.cta-block p{color:rgba(255,255,255,.5);font-size:14px;margin-bottom:24px}
+.cta-block a{background:var(--orange);color:var(--white);padding:14px 32px;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;display:inline-block}
+footer{border-top:1px solid var(--border);padding:32px;text-align:center}
+.footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:12px;flex-wrap:wrap}
+.footer-link{font-family:var(--mono);font-size:11px;color:var(--dim);text-decoration:none;letter-spacing:.5px;text-transform:uppercase}
+.footer-link:hover{color:var(--charcoal)}
+.footer-copy{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.5px;text-transform:uppercase}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-brand">Tender<span>Logix</span></a>
+  <a href="/register" class="nav-cta">Start Free</a>
+</nav>
+
+<div class="page">
+  <div class="eyebrow">Frequently Asked Questions</div>
+  <h1>Got <span>Questions?</span></h1>
+  <p class="subtitle">Everything you need to know about TenderLogix. Can't find your answer? <a href="mailto:support@tenderlogix.co.za" style="color:var(--orange)">Email us.</a></p>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">Is my first analysis really free? No credit card?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">Yes — completely free, no card needed. Your first Go/No-Go analysis, your first Bid Pack, and your first document upload are all free. You only pay when you run a second analysis. The free trials are per product type — you get one free run of each.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">Why do I need to complete my profile to get the free trial?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">Your profile is the source of truth for every analysis. Without a company profile — no directors, no compliance documents, no turnover data — the analysis has nothing to work with and will produce a report full of unknowns. A <strong>60% complete profile</strong> ensures the analysis is meaningful. It takes about 5 minutes to complete.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What is a Go/No-Go analysis?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">A facts-based eligibility assessment. Upload the tender document and TenderLogix reads it against your company profile — checking mandatory registrations, compliance documents, B-BBEE requirements, evaluation criteria, functionality scoring, and more. You get a <strong>GO, NO-GO, or CONDITIONAL GO</strong> recommendation with specific reasons, risk flags, and a compliance checklist. Takes about 60 seconds.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What is a Bid Pack?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">A complete submission package generated from the tender document and your company profile. It includes:<ul><li>Priced Bill of Quantities (BOQ) with line item rates</li><li>MBD 1, 4, 8, 9, and 15 forms pre-filled with your company data</li><li>Form C1 for project references</li><li>Full submission checklist</li></ul>Print it, sign it, submit it.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">How accurate is the BOQ pricing?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">Pricing is anchored to the <strong>AECOM Africa Cost Guide 2025/26</strong> — the industry standard used by quantity surveyors across South Africa — and adjusted using <strong>Stats SA CPAP escalation indices</strong>. Where a tender specifies gazetted rates, those are used exactly. Every line item carries a confidence rating: HIGH (from official tables), MEDIUM (interpolated), or LOW (estimated — verify with local suppliers). The BOQ is a professional starting point, not a final quote. <strong>Always verify LOW-confidence rates before submission.</strong></div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What documents should I declare in my profile?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">Declare every compliance document you hold — B-BBEE certificate, CIDB registration, CSD registration, Tax Clearance/TCS PIN, COIDA Letter of Good Standing, VAT registration, Public Liability Insurance, and any bank confirmation letters. Even without uploading to the Vault, declaring them here means the analysis treats them as confirmed on file — improving your Go/No-Go result significantly.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What is the Document Vault?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">An optional R99/month subscription for securely storing your compliance certificates. Vault documents get expiry tracking and verified status. Without the Vault, you can still self-declare your documents in your profile — both carry <strong>equal weight in the analysis</strong>. The Vault's value is expiry tracking, instant retrieval, and not having to re-upload documents for every tender.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What does it cost after the free trials?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner"><ul><li><strong>R20/document</strong> — tender document upload (first tender free)</li><li><strong>R100/run</strong> — Go/No-Go analysis (first run free)</li><li><strong>R750/run</strong> — full Bid Pack (first run free)</li><li><strong>R99/month</strong> — Document Vault (optional, cancel anytime)</li></ul>No subscription required for analysis. Pay per run, only when you need it.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">How do I add credit to my account?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">From your dashboard, tap your balance (top right). You can top up by card or EFT via PayFast — South Africa's leading payment gateway. Credit reflects immediately on card payments.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">Is my data safe?<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">Yes. All data is encrypted in transit and at rest. Your tender documents are used only for the analysis you requested and are not shared with any third party. We comply with POPIA. Your data is never used to train AI models. Full details in our <a href="/privacy">Privacy Policy</a>.</div></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">How do I log in? I don't have a password.<svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="faq-a"><div class="faq-a-inner">TenderLogix uses WhatsApp OTP authentication — no password needed. Go to <a href="/login">/login</a>, send <strong>LOGIN</strong> to the TenderLogix WhatsApp number, receive a 6-digit OTP on WhatsApp, and enter it on the login page. Your session lasts 30 days.</div></div>
+  </div>
+
+  <div class="cta-block">
+    <h2>Ready To <span>Start?</span></h2>
+    <p>First analysis free. No card needed. Takes 2 minutes to register.</p>
+    <a href="/register">Create Free Account →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="/" class="footer-link">Home</a>
+    <a href="/terms" class="footer-link">Terms</a>
+    <a href="/privacy" class="footer-link">Privacy</a>
+    <a href="/faq" class="footer-link">FAQ</a>
+    <a href="/sitemap" class="footer-link">Sitemap</a>
+  </div>
+  <div class="footer-copy">© 2026 TenderLogix · Website Hub (Pty) Ltd</div>
+</footer>
+
+<script>
+function toggleFaq(btn) {
+  var item = btn.parentElement;
+  var isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(function(el){el.classList.remove('open')});
+  if (!isOpen) item.classList.add('open');
+}
+</script>
+</body>
+</html>
