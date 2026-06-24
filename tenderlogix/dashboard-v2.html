@@ -657,8 +657,30 @@ body{
 <div class="toast" id="toast"></div>
 
 <script>
-var companyId = location.pathname.split('/dashboard-v2/')[1]?.split('/')[0] || location.pathname.split('/dashboard/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
+// Extract path segment — could be UUID or slug
+var _pathSegment = location.pathname.split('/dashboard-v2/')[1]?.split('/')[0]
+  || location.pathname.split('/dashboard/')[1]?.split('/')[0]
+  || localStorage.getItem('tl_company_id') || '';
+
+// If it looks like a slug (not a UUID), resolve it to a company ID
+var _isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(_pathSegment);
+var companyId = _isUuid ? _pathSegment : '';
 var companyData = null;
+
+// Resolve slug to UUID before loading dashboard
+async function resolveSlug() {
+  if (_isUuid || !_pathSegment) return;
+  try {
+    var res = await fetch('/tl/company/by-slug?slug=' + _pathSegment);
+    var d = await res.json();
+    if (d.company_id) {
+      companyId = d.company_id;
+      localStorage.setItem('tl_company_id', companyId);
+    } else {
+      window.location.href = '/login';
+    }
+  } catch(e) { window.location.href = '/login'; }
+}
 var freeTrials = {};
 var selectedFiles = [];
 var selectedAmount = 100;
@@ -1022,7 +1044,8 @@ async function submitUpload() {
     document.getElementById('tenderRef').value = '';
     renderFileList();
     showToast(d.was_free_trial ? 'Tender uploaded — free trial used' : 'Tender uploaded — R'+d.charged+' charged', 'success');
-    await loadDashboard();
+    await // Resolve slug first if needed, then load dashboard
+resolveSlug().then(function() { loadDashboard(); });
 
 function goToProfile() {
   window.location.href = '/profile-v2/' + companyId;
