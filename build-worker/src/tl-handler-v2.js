@@ -142,7 +142,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: userContent }] }),
     });
     const aiData = await aiRes.json();
-    const rawText = aiData.content?.[0]?.text || '{}';
+    const rawText = aiData.choices?.[0]?.message?.content || '{}';
     const result = JSON.parse(rawText.replace(/```json|```/g, '').trim());
 
     const mismatched = [];
@@ -709,14 +709,14 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
     }
 
     const aiData = await aiRes.json();
-    const stopReason = aiData.stop_reason;
+    const stopReason = aiData.choices?.[0]?.finish_reason;
 
     // ── TOKEN TRACKING ───────────────────────────────────────────────────
-    const inputTokens  = aiData.usage?.input_tokens  || 0;
-    const outputTokens = aiData.usage?.output_tokens || 0;
+    const inputTokens  = aiData.usage?.prompt_tokens  || 0;
+    const outputTokens = aiData.usage?.completion_tokens || 0;
     const costUsd      = (inputTokens * COST_INPUT_PER_TOKEN) + (outputTokens * COST_OUTPUT_PER_TOKEN);
 
-    const rawText = aiData.content?.[0]?.text || '';
+    const rawText = aiData.choices?.[0]?.message?.content || '';
     if (!rawText) {
       console.error('TL v2 callClaude — empty response. stop_reason:', stopReason);
       return { success: false, reason: 'Empty response from analysis engine' };
@@ -727,7 +727,7 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
       data = JSON.parse(rawText.replace(/```json|```/g, '').trim());
     } catch(e) {
       console.error('TL v2 callClaude — JSON parse failed. stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
-      const reason = stopReason === 'max_tokens'
+      const reason = stopReason === 'length'
         ? 'The analysis exceeded the response size limit before completing. Please try again.'
         : 'Could not parse analysis result';
       return { success: false, reason };
@@ -768,7 +768,7 @@ async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
     const text = aiData.choices?.[0]?.message?.content || '';
 
     if (!text) {
-      console.error('TL v2 callClaudeSimple — empty response. stop_reason:', aiData.stop_reason);
+      console.error('TL v2 callClaudeSimple — empty response. stop_reason:', aiData.choices?.[0]?.finish_reason);
       return { success: false, reason: 'Empty response from analysis engine' };
     }
 
