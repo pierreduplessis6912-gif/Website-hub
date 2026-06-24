@@ -705,7 +705,7 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
     if (!aiRes.ok) {
       const errBody = await aiRes.text();
       console.error('TL v2 callClaude — Anthropic API error:', aiRes.status, 'response:', errBody.slice(0,500));
-      return { success: false, reason: `Anthropic API returned ${aiRes.status}` };
+      return { success: false, reason: `Anthropic API returned ${aiRes.status}: ${errBody.slice(0,200)}` };
     }
 
     const aiData = await aiRes.json();
