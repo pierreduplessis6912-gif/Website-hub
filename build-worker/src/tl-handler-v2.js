@@ -644,81 +644,121 @@ function estimatePdfTokens(pdfDocs) {
   return { totalBytes, estimatedTokens: Math.ceil(totalBytes / BYTES_PER_TOKEN_PDF) };
 }
 
-async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appendSchemaInstruction) {
-  const fullPrompt = appendSchemaInstruction
-    ? promptText // promptText already has schema appended by caller for single-call products
-    : `${promptText}\n\nReturn ONLY this JSON structure:\n${schemaText}\n\nReturn ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
+async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appendSchemaInstruction = false) {
+  const finalPrompt = schemaText && appendSchemaInstruction
+    ? `${promptText}\n\nReturn ONLY this JSON structure:\n${schemaText}\n\nReturn ONLY valid JSON. No markdown, no explanation, no text outside the JSON object.`
+    : promptText;
 
-  // ── 2. PDF SIZE CHECK ────────────────────────────────────────────────────
-  // Strategy:
-  //   <100k tokens  → proceed normally
-  //   100k-180k     → proceed with "focus on key sections" instruction injected
-  //   >180k tokens  → hard reject with size_exceeded (not 'failed') + clear user message
-  //
-  // We never silently fail large tenders — the user must know why and what to do.
-  let pdfSizeWarning = null;
-  if (pdfDocs && pdfDocs.length) {
-    const { totalBytes, estimatedTokens } = estimatePdfTokens(pdfDocs);
-    if (estimatedTokens > MAX_PDF_TOKENS) {
-      console.warn('TL callClaude — PDF too large:', estimatedTokens, 'est. tokens,', pdfDocs.length, 'docs');
-      return {
-        success: false,
-        size_exceeded: true,
-        reason: `This tender document is too large for a single analysis run (estimated ${Math.round(estimatedTokens/1000)}k tokens across ${pdfDocs.length} document${pdfDocs.length>1?'s':''}). To proceed: upload only the key sections — the Scope of Work, Evaluation Criteria, Pricing Schedule, and Mandatory Requirements. Skip the General Conditions of Contract (MBD 16) and other standard boilerplate sections. You will not be charged for this run.`,
-        estimated_tokens: estimatedTokens,
-        total_bytes: totalBytes
-      };
-    }
-    if (estimatedTokens > MAX_SAFE_PDF_TOKENS) {
-      // Large but within limit — inject a focusing instruction
-      console.warn('TL callClaude — large tender warning:', estimatedTokens, 'est. tokens. Injecting focus instruction.');
-      pdfSizeWarning = `NOTE: This is a large tender document (estimated ${Math.round(estimatedTokens/1000)}k tokens). Focus your analysis on: (1) the Scope of Work and technical requirements, (2) the Evaluation Criteria and scoring, (3) the Pricing Schedule and mandatory rates, (4) the Special Conditions and mandatory compliance requirements. You may summarise or skip the standard General Conditions of Contract boilerplate (GCC/MBD 16) — these are standard across all SA government tenders and do not affect the eligibility assessment.`;
-    }
-  }
-
-  // ── Build user content — PDFs + prompt ─────────────────────────────────
-  const finalPrompt = pdfSizeWarning ? `${fullPrompt}\n\n${pdfSizeWarning}` : fullPrompt;
-  const userContent = pdfDocs && pdfDocs.length
-    ? [...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })), { type: 'text', text: finalPrompt }]
-    : finalPrompt;
-
-  // ── CUT 1: tool_choice forced schema ────────────────────────────────────
-  // Instead of appending schema to prompt and regex-parsing text output,
-  // pass schema as a tool with tool_choice: forced. Anthropic enforces the
-  // schema at the API level — response comes back in content[0].input as a
-  // parsed object. No JSON.parse, no markdown fence stripping, no regex.
-  //
-  // Only applies when schemaText is provided (not callClaudeSimple).
-  // appendSchemaInstruction=true means caller already handled schema in prompt
-  // (bidpack call2 prose) — skip tool_choice for those.
   try {
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    // ── Upload PDFs to Kimi and extract text ─────────────────────────────
+    const fileMessages = [];
+    for (const pdf of (pdfDocs || [])) {
+      // Build multipart form data for file upload
+      const boundary = '----KimiFormBoundary' + Math.random().toString(36).slice(2);
+      const pdfBytes = Uint8Array.from(atob(pdf.base64), c => c.charCodeAt(0));
+
+      const beforeFile = [
+        `--${boundary}`,
+        `Content-Disposition: form-data; name="file"; filename="${pdf.filename}"`,
+        `Content-Type: application/pdf`,
+        '',
+        ''
+      ].join('\r\n');
+      const afterFile = `\r\n--${boundary}--\r\n`;
+      const purposePart = [
+        `--${boundary}`,
+        `Content-Disposition: form-data; name="purpose"`,
+        '',
+        'file-extract',
+        ''
+      ].join('\r\n');
+
+      // Encode to bytes
+      const encoder = new TextEncoder();
+      const beforeBytes = encoder.encode(beforeFile);
+      const afterBytes = encoder.encode(afterFile);
+      const purposeBytes = encoder.encode(purposePart);
+
+      const body = new Uint8Array(purposeBytes.length + beforeBytes.length + pdfBytes.length + afterBytes.length);
+      body.set(purposeBytes, 0);
+      body.set(beforeBytes, purposeBytes.length);
+      body.set(pdfBytes, purposeBytes.length + beforeBytes.length);
+      body.set(afterBytes, purposeBytes.length + beforeBytes.length + pdfBytes.length);
+
+      const uploadRes = await fetch('https://api.moonshot.ai/v1/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + env.KIMI_KEY,
+          'Content-Type': `multipart/form-data; boundary=${boundary}`
+        },
+        body: body
+      });
+
+      if (!uploadRes.ok) {
+        const err = await uploadRes.text();
+        console.error('TL Kimi upload failed:', uploadRes.status, err.slice(0,200));
+        return { success: false, reason: `File upload failed: ${uploadRes.status}` };
+      }
+
+      const fileObj = await uploadRes.json();
+      const fileId = fileObj.id;
+
+      // Extract text content from uploaded file
+      const contentRes = await fetch(`https://api.moonshot.ai/v1/files/${fileId}/content`, {
+        headers: { 'Authorization': 'Bearer ' + env.KIMI_KEY }
+      });
+
+      if (!contentRes.ok) {
+        console.error('TL Kimi content extract failed:', contentRes.status);
+        return { success: false, reason: 'File content extraction failed' };
+      }
+
+      const extractedText = await contentRes.text();
+      fileMessages.push({ role: 'system', content: extractedText });
+
+      // Clean up — delete file after extraction (respect 1000 file limit)
+      fetch(`https://api.moonshot.ai/v1/files/${fileId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + env.KIMI_KEY }
+      }).catch(() => {});
+    }
+
+    // ── Call Kimi chat completion ─────────────────────────────────────────
+    const messages = [
+      ...fileMessages,
+      { role: 'user', content: finalPrompt }
+    ];
+
+    const aiRes = await fetch('https://api.moonshot.ai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + env.KIMI_KEY
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'kimi-k2.5',
         max_tokens: maxTokens,
-        messages: [{ role: 'user', content: userContent }]
-      }),
+        messages
+      })
     });
 
     if (!aiRes.ok) {
       const errBody = await aiRes.text();
-      console.error('TL v2 callClaude — Anthropic API error:', aiRes.status, 'response:', errBody.slice(0,500));
-      return { success: false, reason: `Anthropic API returned ${aiRes.status}: ${errBody.slice(0,200)}` };
+      console.error('TL Kimi API error:', aiRes.status, errBody.slice(0,500));
+      return { success: false, reason: `Kimi API returned ${aiRes.status}: ${errBody.slice(0,200)}` };
     }
 
     const aiData = await aiRes.json();
-    const stopReason = aiData.stop_reason;
+    const rawText = aiData.choices?.[0]?.message?.content || '';
+    const stopReason = aiData.choices?.[0]?.finish_reason || '';
 
-    // ── TOKEN TRACKING ───────────────────────────────────────────────────
-    const inputTokens  = aiData.usage?.input_tokens  || 0;
-    const outputTokens = aiData.usage?.output_tokens || 0;
-    const costUsd      = (inputTokens * COST_INPUT_PER_TOKEN) + (outputTokens * COST_OUTPUT_PER_TOKEN);
+    const inputTokens  = aiData.usage?.prompt_tokens    || 0;
+    const outputTokens = aiData.usage?.completion_tokens || 0;
+    // Kimi K2.5 pricing: $0.60/1M input, $3.00/1M output
+    const costUsd = (inputTokens * 0.0000006) + (outputTokens * 0.000003);
 
-    const rawText = aiData.content?.[0]?.text || '';
     if (!rawText) {
-      console.error('TL v2 callClaude — empty response. stop_reason:', stopReason);
+      console.error('TL Kimi — empty response. stop_reason:', stopReason);
       return { success: false, reason: 'Empty response from analysis engine' };
     }
 
@@ -726,66 +766,80 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
     try {
       data = JSON.parse(rawText.replace(/```json|```/g, '').trim());
     } catch(e) {
-      console.error('TL v2 callClaude — JSON parse failed. stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
-      const reason = stopReason === 'max_tokens'
-        ? 'The analysis exceeded the response size limit before completing. Please try again.'
+      console.error('TL Kimi — JSON parse failed. stop_reason:', stopReason, 'raw (800 chars):', rawText.slice(0,800));
+      const reason = stopReason === 'length'
+        ? 'The analysis exceeded the response size limit. Please try again.'
         : 'Could not parse analysis result';
       return { success: false, reason };
     }
 
     return { success: true, data, inputTokens, outputTokens, costUsd };
+
   } catch(e) {
-    console.error('TL v2 callClaude — exception:', e.message);
+    console.error('TL Kimi — exception:', e.message);
     return { success: false, reason: e.message };
   }
 }
 
-// ── SIMPLE CALL — plain text in, plain text out. No JSON schema, no
-// forced structure, no parse step that can fail. This is deliberately the
-// "what does a free chat interface do" version — the absolute minimum
-// distance between prompt and answer. Used for bidpack's submission
-// document specifically, since that step has no reason to be structured
-// JSON at all — it's just prose, and prose doesn't need to parse.
-async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
-  const userContent = pdfDocs.length
-    ? [...pdfDocs.map(d => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: d.base64 } })), { type: 'text', text: promptText }]
-    : promptText;
 
+async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
+  // Prose generation — same Kimi pipeline but no JSON parsing
   try {
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const fileMessages = [];
+    for (const pdf of (pdfDocs || [])) {
+      const boundary = '----KimiFormBoundary' + Math.random().toString(36).slice(2);
+      const pdfBytes = Uint8Array.from(atob(pdf.base64), c => c.charCodeAt(0));
+      const beforeFile = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${pdf.filename}"\r\nContent-Type: application/pdf\r\n\r\n`;
+      const afterFile = `\r\n--${boundary}--\r\n`;
+      const purposePart = `--${boundary}\r\nContent-Disposition: form-data; name="purpose"\r\n\r\nfile-extract\r\n`;
+      const encoder = new TextEncoder();
+      const beforeBytes = encoder.encode(beforeFile);
+      const afterBytes = encoder.encode(afterFile);
+      const purposeBytes = encoder.encode(purposePart);
+      const body = new Uint8Array(purposeBytes.length + beforeBytes.length + pdfBytes.length + afterBytes.length);
+      body.set(purposeBytes, 0);
+      body.set(beforeBytes, purposeBytes.length);
+      body.set(pdfBytes, purposeBytes.length + beforeBytes.length);
+      body.set(afterBytes, purposeBytes.length + beforeBytes.length + pdfBytes.length);
+
+      const uploadRes = await fetch('https://api.moonshot.ai/v1/files', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + env.KIMI_KEY, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+        body
+      });
+      if (!uploadRes.ok) return { success: false, reason: `File upload failed: ${uploadRes.status}` };
+      const fileObj = await uploadRes.json();
+      const contentRes = await fetch(`https://api.moonshot.ai/v1/files/${fileObj.id}/content`, {
+        headers: { 'Authorization': 'Bearer ' + env.KIMI_KEY }
+      });
+      if (!contentRes.ok) return { success: false, reason: 'File content extraction failed' };
+      fileMessages.push({ role: 'system', content: await contentRes.text() });
+      fetch(`https://api.moonshot.ai/v1/files/${fileObj.id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + env.KIMI_KEY } }).catch(() => {});
+    }
+
+    const aiRes = await fetch('https://api.moonshot.ai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content: userContent }] }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.KIMI_KEY },
+      body: JSON.stringify({ model: 'kimi-k2.5', max_tokens: maxTokens, messages: [...fileMessages, { role: 'user', content: promptText }] })
     });
 
     if (!aiRes.ok) {
       const errBody = await aiRes.text();
-      console.error('TL v2 callClaudeSimple — Anthropic API error:', aiRes.status, 'response:', errBody.slice(0,500));
-      return { success: false, reason: `Anthropic API returned ${aiRes.status}` };
+      return { success: false, reason: `Kimi API returned ${aiRes.status}: ${errBody.slice(0,200)}` };
     }
 
     const aiData = await aiRes.json();
-    const text = aiData.content?.[0]?.text || '';
-
-    if (!text) {
-      console.error('TL v2 callClaudeSimple — empty response. stop_reason:', aiData.stop_reason);
-      return { success: false, reason: 'Empty response from analysis engine' };
-    }
-
-    // No JSON.parse. No schema validation. The text IS the answer.
-    return { success: true, text, inputTokens, outputTokens, costUsd };
+    const text = aiData.choices?.[0]?.message?.content || '';
+    const inputTokens  = aiData.usage?.prompt_tokens    || 0;
+    const outputTokens = aiData.usage?.completion_tokens || 0;
+    const costUsd = (inputTokens * 0.0000006) + (outputTokens * 0.000003);
+    return { success: !!text, text, inputTokens, outputTokens, costUsd };
   } catch(e) {
-    console.error('TL v2 callClaudeSimple — exception:', e.message);
     return { success: false, reason: e.message };
   }
 }
 
-// ── ANALYSIS — one focused prompt per product, genuinely distinct ────────
 
-// ── TWO-PASS ANALYSIS FOR LARGE TENDERS ─────────────────────────────────────
-// Pass 1: PDFs attached, skeleton extraction (cheap, ~2k output tokens)
-// Pass 2: skeleton as text context, full analysis (no PDFs re-attached, ~20k input)
-// Net: ~80% input token reduction for 100k-180k tenders vs single-pass.
 async function callClaudeTwoPass(env, pdfDocs, promptText, schemaText, maxTokens) {
   // Kimi K2.5 has a 262k context window — no need for two-pass skeleton extraction.
   // Route directly to callClaude which handles the full PDF in one pass.
