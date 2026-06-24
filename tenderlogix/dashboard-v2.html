@@ -1365,9 +1365,13 @@ async function viewProductReport(runId) {
       // COMPLIANCE CHECKLIST (what to prepare)
       if (r.compliance_checklist) {
         html += section('Compliance Checklist', r.compliance_checklist.map(function(c){
-          var icon = c.risk_level==='HIGH' ? '✗' : c.risk_level==='MEDIUM' ? '!' : '·';
-          var color = c.risk_level==='HIGH' ? '#d93025' : c.risk_level==='MEDIUM' ? '#e07b00' : '#1a9e5c';
-          return '<div class="check-item"><div style="flex-shrink:0;font-weight:700;color:'+color+'">'+icon+'</div><div><div class="check-text">'+c.item+'</div>'+(c.notes?'<div class="check-notes">'+c.notes+'</div>':'')+'</div></div>';
+          var status = c.status || c.risk_level || '';
+          var isFail = status === 'MISSING_DOCUMENTS' || status === 'NEEDS_PARTNER' || status === 'HIGH' || status === 'FAIL';
+          var isWarn = status === 'CAN_COMPLETE_NOW' || status === 'MEDIUM' || status === 'WARN';
+          var icon = isFail ? '✗' : isWarn ? '!' : '·';
+          var color = isFail ? '#d93025' : isWarn ? '#e07b00' : '#1a9e5c';
+          var label = c.requirement || c.item || c.description || '';
+          return '<div class="check-item"><div style="flex-shrink:0;font-weight:700;color:'+color+'">'+icon+'</div><div><div class="check-text">'+label+'</div>'+(c.notes?'<div class="check-notes">'+c.notes+'</div>':'')+'</div></div>';
         }));
       }
 
@@ -1396,7 +1400,7 @@ async function viewProductReport(runId) {
       if (r.compliance_checklist) { html += section('Compliance', r.compliance_checklist.map(function(c){return checkRow(c.risk_level==='HIGH'?'✗':c.risk_level==='MEDIUM'?'!':'·',c.item,c.notes);})); }
       if (r.competitive_landscape) { html += section('Competitive Landscape',['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.competitive_landscape+'</p>']); }
       if (r.boq) {
-        var rows = r.boq.map(function(b){return '<tr><td>'+b.line_item+'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
+        var rows = r.boq.map(function(b){return '<tr><td>'+(b.line_item||b.description||b.item||'')+'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
         var totalRow = r.boq_totals ? '<tr class="boq-total"><td colspan="4">Recommended Bid</td><td colspan="2">R'+(r.boq_totals.recommended_bid||0).toLocaleString()+'</td></tr>' : '';
         html += '<div class="report-section"><div class="report-section-title">Bill Of Quantities</div><table class="boq-table"><thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th>Conf.</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
       }
