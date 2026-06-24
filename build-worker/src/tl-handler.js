@@ -59,7 +59,8 @@ export async function handleTenderLogix(request, env) {
     path === '/terms' ||                                // legal
     path === '/privacy' ||                              // legal
     path === '/faq' ||                                    // faq
-    path === '/sitemap'                                  // sitemap
+    path === '/sitemap' ||                              // sitemap
+    path === '/tl/company/by-slug'                       // slug lookup — public
   );
 
   if (!isPublicRoute) {
