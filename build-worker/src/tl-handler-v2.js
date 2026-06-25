@@ -627,7 +627,7 @@ SCHEMA RULES (mandatory — always populate all fields):
 - compliance_checklist: split into three groups using the 'status' field: 'CAN_COMPLETE_NOW', 'MISSING_DOCUMENTS', 'NEEDS_PARTNER'
 - pricing_disclaimer: use this field for eligibility assessment — state gaps, provide path forward (partner/JV/register/withdraw with timeline), estimate functionality score. Never a bare 'do not bid'.
 - Do NOT apply a 30% margin to gazetted professional service rates.
-- If quantities are unspecified, use best proxy and note it in the relevant boq item's source field.
+- If quantities are not explicitly stated in the tender document, set quantity to null and set source to 'QUANTITY NOT SPECIFIED IN TENDER — bidder must confirm with procuring entity before submission'. Do NOT invent or estimate quantities. A wrong quantity is worse than no quantity.
 
 
 PRICING AUTHORITY — MANDATORY FOR ALL BOQ LINE ITEMS:
