@@ -15,6 +15,7 @@
 import { generateProductRunDocx } from './tl-docx.js';
 import { checkVaultSubscription } from './tl-handler.js';
 import { requireTlAuth } from './tl-auth.js';
+import { getPricingContext, fetchPricingRates } from './tl-pricing-oracle.js';
 
 const V2_PRICES = { gonogo: 100, pricing: 750, bidpack: 750 };
 // NOTE: 'pricing' as a standalone purchasable product is being retired from
@@ -526,86 +527,10 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
   try {
     const companyContext = await buildCompanyContext(company, env);
 
-    // ── PRICING ORACLE ────────────────────────────────────────────────────────
-    let pricingContext = '';
-    try {
-      const industries = JSON.parse(company.industries || '[]');
-      const provinces = JSON.parse(company.provinces || '[]');
-      const tenderTitle = tender.title || '';
-      const titleLower = tenderTitle.toLowerCase();
-
-      const SECTOR_MAP = [
-        ['clean', 'cleaning'],
-        ['civil', 'civil_engineering'], ['construction', 'civil_engineering'], ['infrastructure', 'civil_engineering'],
-        ['electrical', 'electrical'], ['electric', 'electrical'],
-        ['security', 'security'],
-        ['metal', 'metal_engineering'], ['steel', 'metal_engineering'], ['engineering', 'metal_engineering'],
-        ['motor', 'motor'], ['automotive', 'motor'],
-        ['logistic', 'road_freight'], ['transport', 'road_freight'], ['freight', 'road_freight'],
-      ];
-
-      const detectedSectors = [];
-      const allText = (industries.join(' ') + ' ' + titleLower).toLowerCase();
-      for (const [keyword, sector] of SECTOR_MAP) {
-        if (allText.includes(keyword) && !detectedSectors.includes(sector)) {
-          detectedSectors.push(sector);
-        }
-      }
-
-      // Map province codes to oracle province keys
-      const PROVINCE_MAP = { 'GP': 'national', 'WC': 'Area_A_Metros', 'EC': 'national', 'KZN': 'KZN', 'LP': 'national', 'MP': 'national', 'NW': 'national', 'NC': 'national', 'FS': 'national' };
-      const rawProvince = provinces[0] || 'national';
-      const province = PROVINCE_MAP[rawProvince] || rawProvince;
-      const oracleBase = env.PRICING_ORACLE_URL || 'https://pricing-oracle.websitehub.co.za';
-      const oracleLines = [];
-      console.log('TL oracle — province:', rawProvince, '->', province, 'sectors:', detectedSectors.join(','));
-
-      for (const sector of detectedSectors.slice(0, 3)) {
-        try {
-          // Try province-specific first, then national
-          const provincesToTry = province !== 'national' ? [province, 'national'] : ['national'];
-          let oData = null;
-          for (const p of provincesToTry) {
-            const oRes = await fetch(oracleBase + '/pricing-oracle?sector=' + sector + '&province=' + p, {
-              headers: { 'Accept': 'application/json' }
-            });
-            if (oRes.ok) {
-              const data = await oRes.json();
-              if (data.found && data.rates && data.rates.length > 0) { oData = data; break; }
-            }
-          }
-          if (oData) {
-            const rt = oData.rates[0];
-            oracleLines.push('Sector: ' + sector + ' | Council: ' + rt.council_name + ' | Gazette: ' + (rt.gazette_ref || 'N/A') + ' | Effective: ' + rt.effective_date);
-            if (rt.base_rate) oracleLines.push('  Base rate: R' + rt.base_rate + '/' + (rt.rate_unit || 'hour'));
-            if (rt.oncost_pct) oracleLines.push('  On-costs: +' + rt.oncost_pct + '% (' + (rt.oncost_components || 'UIF, COIDA, leave, provident') + ')');
-            if (rt.total_rate) oracleLines.push('  Total cost (base + on-costs): R' + rt.total_rate + '/' + (rt.rate_unit || 'hour'));
-          }
-        } catch(oErr) {
-          console.warn('TL oracle fetch failed for sector', sector, oErr.message);
-        }
-      }
-
-      // Always include NMW floor
-      try {
-        const nmwRes = await fetch(oracleBase + '/pricing-oracle?sector=national_minimum_wage', { });
-        if (nmwRes.ok) {
-          const nmw = await nmwRes.json();
-          if (nmw.found && nmw.rates && nmw.rates[0]) {
-            oracleLines.push('NMW Floor: R' + nmw.rates[0].base_rate + '/hour effective ' + nmw.rates[0].effective_date + ' (' + nmw.rates[0].gazette_ref + ')');
-          }
-        }
-      } catch(nmwErr) {}
-
-      if (oracleLines.length > 0) {
-        pricingContext = '\nLIVE PRICING ORACLE DATA (fetched from statutory sources today):\n' + oracleLines.join('\n') + '\n';
-        console.log('TL oracle — injected rates for sectors:', detectedSectors.join(', '), 'lines:', oracleLines.length);
-      } else {
-        console.log('TL oracle — no rates found. Detected sectors:', detectedSectors.join(', '), 'province:', province);
-      }
-    } catch(oracleErr) {
-      console.warn('TL oracle — failed:', oracleErr.message);
-    }
+    // ── PRICING ORACLE — queries D1 tl_pricing_rates table ─────────────────
+    const industries = JSON.parse(company.industries || '[]');
+    const provinces = JSON.parse(company.provinces || '[]');
+    const pricingContext = await getPricingContext(env, industries, provinces, null);
 
         let prompt, schema, maxTokens;
 
