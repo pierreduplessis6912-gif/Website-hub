@@ -1605,3 +1605,41 @@ async function handleInstall() {
 
 
 
+        // Eligibility scorecard
+        if (r.scorecard) {
+          var sc = r.scorecard;
+          var total = sc.total || 0;
+          if (!total && sc.geographic_compliance) {
+            total = (sc.geographic_compliance.score||0) + (sc.experience_track_record.score||0) + (sc.registrations_certifications.score||0) + (sc.financial_capacity.score||0) + (sc.documentation_compliance.score||0);
+          }
+          var scoreColor = total >= 60 ? '#1a9e5c' : total >= 40 ? '#e07b00' : '#d93025';
+          var scorecardHtml = '<div style="background:var(--white);border:1px solid var(--border);border-top:3px solid '+scoreColor+';padding:16px;margin:16px 0">';
+          scorecardHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
+          scorecardHtml += '<div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--mid);text-transform:uppercase">Eligibility Score</div>';
+          scorecardHtml += '<div style="font-family:var(--display);font-size:28px;color:'+scoreColor+'">'+total+'<span style="font-size:14px;color:var(--dim)">/100</span></div>';
+          scorecardHtml += '</div>';
+          var cats = [
+            ['Geographic Compliance', sc.geographic_compliance],
+            ['Experience & Track Record', sc.experience_track_record],
+            ['Registrations & Certifications', sc.registrations_certifications],
+            ['Financial Capacity', sc.financial_capacity],
+            ['Documentation', sc.documentation_compliance]
+          ];
+          cats.forEach(function(cat) {
+            var name = cat[0], data = cat[1];
+            if (!data) return;
+            var pct = Math.round(((data.score||0) / (data.max||20)) * 100);
+            var barColor = pct >= 60 ? '#1a9e5c' : pct >= 40 ? '#e07b00' : '#d93025';
+            scorecardHtml += '<div style="margin-bottom:10px">';
+            scorecardHtml += '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">';
+            scorecardHtml += '<span style="color:var(--charcoal);font-weight:600">'+name+'</span>';
+            scorecardHtml += '<span style="color:var(--mid);font-family:var(--mono)">'+(data.score||0)+'/'+(data.max||20)+'</span>';
+            scorecardHtml += '</div><div style="height:4px;background:rgba(14,12,9,.08);border-radius:2px">';
+            scorecardHtml += '<div style="height:4px;width:'+pct+'%;background:'+barColor+';border-radius:2px"></div></div>';
+            if (data.notes) scorecardHtml += '<div style="font-size:11px;color:var(--dim);margin-top:3px">'+data.notes+'</div>';
+            scorecardHtml += '</div>';
+          });
+          scorecardHtml += '</div>';
+          html += scorecardHtml;
+        }
+
