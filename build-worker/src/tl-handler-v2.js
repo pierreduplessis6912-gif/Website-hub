@@ -527,82 +527,76 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
     const companyContext = await buildCompanyContext(company, env);
 
     // ── PRICING ORACLE ────────────────────────────────────────────────────────
-    // Detect industry from company profile and fetch live council rates
     let pricingContext = '';
     try {
       const industries = JSON.parse(company.industries || '[]');
       const provinces = JSON.parse(company.provinces || '[]');
-      
-      const SECTOR_MAP = {
-        'cleaning': 'cleaning', 'cleaning services': 'cleaning',
-        'civil engineering': 'civil_engineering', 'civil construction': 'civil_engineering',
-        'electrical': 'electrical', 'electrical services': 'electrical',
-        'security': 'security', 'security services': 'security',
-        'metal': 'metal_engineering', 'steel': 'metal_engineering', 'engineering': 'metal_engineering',
-        'motor': 'motor', 'automotive': 'motor',
-        'logistics': 'road_freight', 'transport': 'road_freight', 'road freight': 'road_freight',
-      };
-      
+      const tenderTitle = tender.title || '';
+      const titleLower = tenderTitle.toLowerCase();
+
+      const SECTOR_MAP = [
+        ['clean', 'cleaning'],
+        ['civil', 'civil_engineering'], ['construction', 'civil_engineering'], ['infrastructure', 'civil_engineering'],
+        ['electrical', 'electrical'], ['electric', 'electrical'],
+        ['security', 'security'],
+        ['metal', 'metal_engineering'], ['steel', 'metal_engineering'], ['engineering', 'metal_engineering'],
+        ['motor', 'motor'], ['automotive', 'motor'],
+        ['logistic', 'road_freight'], ['transport', 'road_freight'], ['freight', 'road_freight'],
+      ];
+
       const detectedSectors = [];
-      for (const ind of industries) {
-        const key = ind.toLowerCase().trim();
-        for (const [match, sector] of Object.entries(SECTOR_MAP)) {
-          if (key.includes(match) && !detectedSectors.includes(sector)) {
-            detectedSectors.push(sector);
-          }
+      const allText = (industries.join(' ') + ' ' + titleLower).toLowerCase();
+      for (const [keyword, sector] of SECTOR_MAP) {
+        if (allText.includes(keyword) && !detectedSectors.includes(sector)) {
+          detectedSectors.push(sector);
         }
       }
-      
-      // Also detect from tender title
-      const tenderTitle = (await env.TL_DB.prepare('SELECT title FROM tl_tenders WHERE id=?').bind(tender.id).first())?.title || '';
-      const titleLower = tenderTitle.toLowerCase();
-      if (titleLower.includes('clean') && !detectedSectors.includes('cleaning')) detectedSectors.push('cleaning');
-      if ((titleLower.includes('electrical') || titleLower.includes('electric')) && !detectedSectors.includes('electrical')) detectedSectors.push('electrical');
-      if (titleLower.includes('security') && !detectedSectors.includes('security')) detectedSectors.push('security');
-      if ((titleLower.includes('civil') || titleLower.includes('construction') || titleLower.includes('road') || titleLower.includes('infrastructure')) && !detectedSectors.includes('civil_engineering')) detectedSectors.push('civil_engineering');
-      
+
       const province = provinces[0] || 'national';
       const oracleBase = env.PRICING_ORACLE_URL || 'https://pricing-oracle.websitehub.co.za';
-      
       const oracleLines = [];
+
       for (const sector of detectedSectors.slice(0, 3)) {
         try {
-          const oRes = await fetch(\`\${oracleBase}/pricing-oracle?sector=\${sector}&province=\${province}\`, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(5000) });
+          const oRes = await fetch(oracleBase + '/pricing-oracle?sector=' + sector + '&province=' + province, {
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(5000)
+          });
           if (oRes.ok) {
             const oData = await oRes.json();
-            if (oData.found && oData.rates?.length > 0) {
-              const r = oData.rates[0];
-              oracleLines.push(\`Sector: \${sector} | Council: \${r.council_name} | Gazette: \${r.gazette_ref || 'N/A'} | Effective: \${r.effective_date}\`);
-              if (r.base_rate) oracleLines.push(\`  Base rate: R\${r.base_rate}/\${r.rate_unit || 'hour'}\`);
-              if (r.oncost_pct) oracleLines.push(\`  On-costs: +\${r.oncost_pct}% (\${r.oncost_components || 'UIF, COIDA, leave, provident'})\`);
-              if (r.total_rate) oracleLines.push(\`  Total cost (base + on-costs): R\${r.total_rate}/\${r.rate_unit || 'hour'}\`);
+            if (oData.found && oData.rates && oData.rates.length > 0) {
+              const rt = oData.rates[0];
+              oracleLines.push('Sector: ' + sector + ' | Council: ' + rt.council_name + ' | Gazette: ' + (rt.gazette_ref || 'N/A') + ' | Effective: ' + rt.effective_date);
+              if (rt.base_rate) oracleLines.push('  Base rate: R' + rt.base_rate + '/' + (rt.rate_unit || 'hour'));
+              if (rt.oncost_pct) oracleLines.push('  On-costs: +' + rt.oncost_pct + '% (' + (rt.oncost_components || 'UIF, COIDA, leave, provident') + ')');
+              if (rt.total_rate) oracleLines.push('  Total cost (base + on-costs): R' + rt.total_rate + '/' + (rt.rate_unit || 'hour'));
             }
           }
-        } catch(e) {
-          console.warn('TL oracle fetch failed for', sector, e.message);
+        } catch(oErr) {
+          console.warn('TL oracle fetch failed for sector', sector, oErr.message);
         }
       }
-      
+
       // Always include NMW floor
       try {
-        const nmwRes = await fetch(\`\${oracleBase}/pricing-oracle?sector=national_minimum_wage\`, { signal: AbortSignal.timeout(3000) });
+        const nmwRes = await fetch(oracleBase + '/pricing-oracle?sector=national_minimum_wage', { signal: AbortSignal.timeout(3000) });
         if (nmwRes.ok) {
           const nmw = await nmwRes.json();
-          if (nmw.found && nmw.rates?.[0]) {
-            oracleLines.push(\`NMW Floor: R\${nmw.rates[0].base_rate}/hour effective \${nmw.rates[0].effective_date} (\${nmw.rates[0].gazette_ref})\`);
+          if (nmw.found && nmw.rates && nmw.rates[0]) {
+            oracleLines.push('NMW Floor: R' + nmw.rates[0].base_rate + '/hour effective ' + nmw.rates[0].effective_date + ' (' + nmw.rates[0].gazette_ref + ')');
           }
         }
-      } catch(e) {}
-      
+      } catch(nmwErr) {}
+
       if (oracleLines.length > 0) {
-        pricingContext = \`\nLIVE PRICING ORACLE DATA (fetched from statutory sources today):\n\${oracleLines.join('\n')}\n\`;
-        console.log('TL oracle — injected rates for sectors:', detectedSectors);
+        pricingContext = '\nLIVE PRICING ORACLE DATA (fetched from statutory sources today):\n' + oracleLines.join('\n') + '\n';
+        console.log('TL oracle — injected rates for sectors:', detectedSectors.join(', '));
       }
-    } catch(e) {
-      console.warn('TL oracle — failed to build pricing context:', e.message);
+    } catch(oracleErr) {
+      console.warn('TL oracle — failed:', oracleErr.message);
     }
 
-    let prompt, schema, maxTokens;
+        let prompt, schema, maxTokens;
 
      if (product === 'gonogo') {
       maxTokens = 8192;
