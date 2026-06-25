@@ -397,6 +397,27 @@ async function handleTlAnalyse(request, env, tlJson) {
 
 // ── PDF UPLOAD ENDPOINT (native Claude PDF — Go/No-Go tier) ──────
 // Helper — convert an ArrayBuffer to base64 in chunks (avoids call-stack overflow on large files)
+async function compressPdfIfNeeded(buf, env) {
+  const SIZE_THRESHOLD = 2 * 1024 * 1024; // 2MB
+  if (!buf || buf.byteLength <= SIZE_THRESHOLD) return buf;
+  const compressUrl = env.PDF_COMPRESS_URL || 'https://pdf-compress.tenderlogix.co.za';
+  try {
+    console.log('[TL Upload] PDF size', buf.byteLength, '> 2MB — compressing via', compressUrl);
+    const res = await fetch(compressUrl + '/compress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/pdf' },
+      body: buf
+    });
+    if (!res.ok) throw new Error('Compress service returned ' + res.status);
+    const compressed = await res.arrayBuffer();
+    console.log('[TL Upload] Compressed:', buf.byteLength, '→', compressed.byteLength, 'bytes (' + Math.round((1 - compressed.byteLength/buf.byteLength)*100) + '% reduction)');
+    return compressed;
+  } catch(e) {
+    console.warn('[TL Upload] Compression failed, using original:', e.message);
+    return buf; // Fall back to original if compression fails
+  }
+}
+
 function arrayBufferToBase64(arrayBuffer) {
   const bytes = new Uint8Array(arrayBuffer);
   let binary = '';
@@ -524,7 +545,8 @@ async function handleTlUpload(request, env, tlJson) {
   // Read all files into base64 once — reused for both gate check and the queued analysis
   const pdfDocs = [];
   for (const f of files) {
-    const buf = await f.arrayBuffer();
+    const rawBuf = await f.arrayBuffer();
+    const buf = await compressPdfIfNeeded(rawBuf, env);
     pdfDocs.push({ base64: arrayBufferToBase64(buf), filename: f.name, buffer: buf });
   }
 
@@ -663,7 +685,8 @@ async function handleTlAddDocuments(request, env, tlJson) {
   // Read new files into base64
   const newDocs = [];
   for (const f of files) {
-    const buf = await f.arrayBuffer();
+    const rawBuf = await f.arrayBuffer();
+    const buf = await compressPdfIfNeeded(rawBuf, env);
     newDocs.push({ base64: arrayBufferToBase64(buf), filename: f.name, buffer: buf });
   }
 
