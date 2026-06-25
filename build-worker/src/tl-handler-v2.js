@@ -901,6 +901,9 @@ ${companyContext}
 CONFIRMED BOQ TOTAL: R${call1Data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
 BOQ LINE ITEMS: ${JSON.stringify(call1Data.boq || []).slice(0,2000)}
 
+PRICING BASIS (use this to build the Pricing Basis section):
+${call1Data.pricing_basis ? JSON.stringify(call1Data.pricing_basis, null, 2) : 'Not extracted — derive from tender document and applicable bargaining council rates'}
+
 Write complete well-formatted markdown. One disclaimer at top. No placeholders where actual data exists.`;
 
 
