@@ -1,0 +1,12 @@
+{
+  "apps": [{
+    "name": "pricing-oracle",
+    "script": "index.js",
+    "cwd": "/root/oracle",
+    "env": { "ORACLE_PORT": "3002", "NODE_ENV": "production" },
+    "restart_delay": 5000,
+    "max_restarts": 10,
+    "log_file": "/root/oracle/oracle.log",
+    "error_file": "/root/oracle/oracle-error.log"
+  }]
+}
