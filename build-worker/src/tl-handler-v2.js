@@ -560,8 +560,7 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
         try {
           const oRes = await fetch(oracleBase + '/pricing-oracle?sector=' + sector + '&province=' + province, {
             headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(5000)
-          });
+            });
           if (oRes.ok) {
             const oData = await oRes.json();
             if (oData.found && oData.rates && oData.rates.length > 0) {
@@ -579,7 +578,7 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
 
       // Always include NMW floor
       try {
-        const nmwRes = await fetch(oracleBase + '/pricing-oracle?sector=national_minimum_wage', { signal: AbortSignal.timeout(3000) });
+        const nmwRes = await fetch(oracleBase + '/pricing-oracle?sector=national_minimum_wage', { });
         if (nmwRes.ok) {
           const nmw = await nmwRes.json();
           if (nmw.found && nmw.rates && nmw.rates[0]) {
@@ -590,7 +589,9 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
 
       if (oracleLines.length > 0) {
         pricingContext = '\nLIVE PRICING ORACLE DATA (fetched from statutory sources today):\n' + oracleLines.join('\n') + '\n';
-        console.log('TL oracle — injected rates for sectors:', detectedSectors.join(', '));
+        console.log('TL oracle — injected rates for sectors:', detectedSectors.join(', '), 'lines:', oracleLines.length);
+      } else {
+        console.log('TL oracle — no rates found. Detected sectors:', detectedSectors.join(', '), 'province:', province);
       }
     } catch(oracleErr) {
       console.warn('TL oracle — failed:', oracleErr.message);
