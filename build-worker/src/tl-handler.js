@@ -264,7 +264,11 @@ async function handleTlUpdateCompany(request, env, tlJson) {
   const { company_id, name, reg_number, tax_number, vat_number, csd_maaa, bee_level,
           cidb_grade, cidb_number, industries, provinces, years_experience,
           annual_turnover, employees, phone, email, address, client_name,
-          street_address, city, postal_code, postal_address, municipal_account_number } = body;
+          street_address, city, postal_code, postal_address, municipal_account_number,
+          employees_management, employees_skilled, employees_unskilled, vehicles_owned,
+          uif_registered, paye_registered, working_capital, largest_contract_value,
+          banking_institution, contracts_completed, government_contracts,
+          active_contracts, client_references, professional_registrations, equipment_owned } = body;
 
   if (!company_id) return tlJson({ error: 'company_id required' }, 400);
 
@@ -293,6 +297,11 @@ async function handleTlUpdateCompany(request, env, tlJson) {
       cidb_grade=?, cidb_number=?, industries=?, provinces=?, years_experience=?,
       annual_turnover=?, employees=?, phone=?, email=?, address=?, client_name=?,
       municipal_account_number=?,
+      employees_management=?, employees_skilled=?, employees_unskilled=?,
+      vehicles_owned=?, uif_registered=?, paye_registered=?,
+      working_capital=?, largest_contract_value=?, banking_institution=?,
+      contracts_completed=?, government_contracts=?, active_contracts=?,
+      client_references=?, professional_registrations=?, equipment_owned=?,
       updated_at=CURRENT_TIMESTAMP
     WHERE id=?
   `).bind(
@@ -305,6 +314,21 @@ async function handleTlUpdateCompany(request, env, tlJson) {
     employees ?? existing.employees, normalisedPhone, normalisedEmail,
     compositeAddress, client_name ?? existing.client_name,
     municipal_account_number ?? existing.municipal_account_number ?? null,
+    employees_management ?? existing.employees_management ?? null,
+    employees_skilled ?? existing.employees_skilled ?? null,
+    employees_unskilled ?? existing.employees_unskilled ?? null,
+    vehicles_owned ?? existing.vehicles_owned ?? null,
+    uif_registered ?? existing.uif_registered ?? null,
+    paye_registered ?? existing.paye_registered ?? null,
+    working_capital ?? existing.working_capital ?? null,
+    largest_contract_value ?? existing.largest_contract_value ?? null,
+    banking_institution ?? existing.banking_institution ?? null,
+    contracts_completed ?? existing.contracts_completed ?? null,
+    government_contracts ?? existing.government_contracts ?? null,
+    active_contracts ?? existing.active_contracts ?? null,
+    client_references ?? existing.client_references ?? null,
+    professional_registrations ?? existing.professional_registrations ?? null,
+    equipment_owned ?? existing.equipment_owned ?? null,
     company_id
   ).run();
 
