@@ -1440,7 +1440,7 @@ async function viewProductReport(runId) {
           html += '<div style="font-size:12px;color:#6b6560;margin-top:2px">Quantities marked * are estimated — not extracted from tender. Verify with procuring entity before submitting. Rates based on AECOM 2025/26 and gazetted schedules.</div></div>';
           html += '</div>';
         }
-        var rows = r.boq.map(function(b){return '<tr><td>'+(b.line_item||b.description||b.item||'')++'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
+        var rows = r.boq.map(function(b){return '<tr><td>'+(b.line_item||b.description||b.item||'')+'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
         var totalRow = r.boq_totals ? '<tr class="boq-total"><td colspan="4">Recommended Bid</td><td colspan="2">R'+(r.boq_totals.recommended_bid||0).toLocaleString()+'</td></tr>' : '';
         html += '<div class="report-section"><div class="report-section-title">Bill Of Quantities</div><table class="boq-table"><thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th>Conf.</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
       }
