@@ -724,7 +724,12 @@ async function loadDashboard() {
 
   // ── Session check — redirect to login if no valid session ──
   var sessionToken = localStorage.getItem('tl_session');
-  if (!sessionToken) { window.location.href = '/login'; return; }
+  if (!sessionToken) {
+    var _slug = window.location.pathname.split('/dashboard/')[1] || window.location.pathname.split('/dashboard-v2/')[1] || '';
+    _slug = _slug.split('/')[0];
+    window.location.href = '/login' + (_slug ? '?return=dashboard/' + _slug : '');
+    return;
+  }
   // profileLink is a button with onclick goToProfile() — no href needed
   try {
     var res = await authFetch('/tl/company?id=' + companyId);
