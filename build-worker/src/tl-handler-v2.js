@@ -860,7 +860,7 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
   "pricing_disclaimer": "string"
 }`;
 
-      const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 8192);
+      const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 16000);
       if (!call1Result.success) {
         console.error('TL v2 — bidpack call 1 (BOQ+checklist) failed. run:', productRunId, 'reason:', call1Result.reason);
         await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
