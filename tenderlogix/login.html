@@ -294,7 +294,16 @@ async function verifyOtp() {
 
     showStatus('Verified! Redirecting...', 'success');
     setTimeout(function() {
-      window.location.replace('/dashboard-v2/' + d.company_id);
+      // Check for return URL (e.g. from session expiry redirect)
+      var params = new URLSearchParams(window.location.search);
+      var returnPath = params.get('return');
+      if (returnPath) {
+        window.location.replace('/' + returnPath);
+      } else if (d.slug) {
+        window.location.replace('/dashboard/' + d.slug);
+      } else {
+        window.location.replace('/dashboard-v2/' + d.company_id);
+      }
     }, 600);
 
   } catch(e) {
