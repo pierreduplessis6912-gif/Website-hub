@@ -1436,14 +1436,26 @@ function checkRow(icon, text, notes) {
 
 function closeReport() { document.getElementById('reportOverlay').classList.remove('open'); document.body.style.overflow=''; currentReportRunId=null; }
 
-function downloadCurrentReport() {
+async function downloadCurrentReport() {
   if (!currentReportRunId) return;
   var btn = document.getElementById('downloadBtn');
   btn.disabled = true; btn.textContent = 'Preparing...';
-  var a = document.createElement('a');
-  a.href = '/tl/v2/product-run/download?id='+currentReportRunId;
-  a.click();
-  setTimeout(function(){ btn.disabled=false; btn.textContent='Download .docx'; }, 1500);
+  try {
+    var res = await authFetch('/tl/v2/product-run/download?id=' + currentReportRunId);
+    if (!res.ok) throw new Error('Download failed — ' + res.status);
+    var blob = await res.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'TenderLogix-BidPack.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  } catch(e) {
+    showToast('Download failed — try again', 'error');
+  }
+  btn.disabled=false; btn.textContent='Download .docx';
 }
 
 function selectAmount(el) {
