@@ -48,7 +48,7 @@ migrations_dir = "../migrations"
 
 # Queue — build pipeline
 [triggers]
-crons = ["0,15,30,45 * * * *"]
+crons = ["0,15,30,45 * * * *", "0 2 1 * *"]
 
 [[queues.producers]]
 binding = "BUILD_QUEUE"
