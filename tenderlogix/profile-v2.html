@@ -256,6 +256,79 @@ body{
     <button class="btn-primary" id="btnSaveDetails" onclick="saveCompanyDetails()">Save Company Details</button>
   </div>
 
+
+  <!-- CAPACITY SECTION -->
+  <div class="section">
+    <div class="section-title">Capacity &amp; Workforce</div>
+    <div class="field-row">
+      <div class="field"><label>Total Employees</label><input type="number" id="employees" placeholder="e.g. 12" min="0"></div>
+      <div class="field"><label>Years in Operation</label><input type="number" id="years_experience" placeholder="e.g. 5" min="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Management Staff</label><input type="number" id="employees_management" placeholder="e.g. 2" min="0"></div>
+      <div class="field"><label>Skilled/Technical Staff</label><input type="number" id="employees_skilled" placeholder="e.g. 5" min="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Unskilled / General Labour</label><input type="number" id="employees_unskilled" placeholder="e.g. 5" min="0"></div>
+      <div class="field"><label>Company Vehicles</label><input type="number" id="vehicles_owned" placeholder="e.g. 3" min="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>UIF Registered</label>
+        <select id="uif_registered" style="width:100%;padding:12px 14px;background:var(--cream2);border:1px solid var(--border);color:var(--charcoal);font-family:var(--body);font-size:14px;outline:none">
+          <option value="">Select...</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+          <option value="not_applicable">Not Applicable</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>PAYE Registered</label>
+        <select id="paye_registered" style="width:100%;padding:12px 14px;background:var(--cream2);border:1px solid var(--border);color:var(--charcoal);font-family:var(--body);font-size:14px;outline:none">
+          <option value="">Select...</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+          <option value="not_applicable">Not Applicable</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveCapacity()">Save Capacity Details</button>
+  </div>
+
+  <!-- FINANCIAL SECTION -->
+  <div class="section">
+    <div class="section-title">Financial Standing</div>
+    <div class="field-row">
+      <div class="field"><label>Annual Turnover (R)</label><input type="number" id="annual_turnover" placeholder="e.g. 2500000" min="0"></div>
+      <div class="field"><label>Working Capital (R)</label><input type="number" id="working_capital" placeholder="Available cash/credit" min="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Largest Single Contract (R)</label><input type="number" id="largest_contract_value" placeholder="e.g. 500000" min="0"></div>
+      <div class="field"><label>Banking Institution</label><input type="text" id="banking_institution" placeholder="e.g. FNB, Standard Bank"></div>
+    </div>
+    <button class="btn-primary" onclick="saveFinancials()">Save Financial Details</button>
+  </div>
+
+  <!-- TRACK RECORD SECTION -->
+  <div class="section">
+    <div class="section-title">Track Record &amp; Experience</div>
+    <div class="field-row">
+      <div class="field"><label>Contracts Completed (Total)</label><input type="number" id="contracts_completed" placeholder="e.g. 15" min="0"></div>
+      <div class="field"><label>Government Contracts Completed</label><input type="number" id="government_contracts" placeholder="e.g. 8" min="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Current Active Contracts</label><input type="number" id="active_contracts" placeholder="e.g. 3" min="0"></div>
+      <div class="field"><label>Client References Available</label><input type="number" id="client_references" placeholder="e.g. 5" min="0"></div>
+    </div>
+    <div class="field"><label>Professional Registrations <span style="font-weight:400;text-transform:none;letter-spacing:0">(e.g. ECSA, SACPCMP, NHBRC, ITC-SA)</span></label>
+      <input type="text" id="professional_registrations" placeholder="e.g. CIDB Grade 5CE, NHBRC registered, ECSA member">
+    </div>
+    <div class="field"><label>Specialist Equipment Owned</label>
+      <input type="text" id="equipment_owned" placeholder="e.g. 2x tipper trucks, scaffolding, cleaning machines">
+    </div>
+    <button class="btn-primary" onclick="saveTrackRecord()">Save Track Record</button>
+  </div>
+
   <div class="section">
     <div class="section-title">Directors / Shareholders / Members</div>
     <p class="empty-note" id="directorsEmptyNote" style="display:none">No directors added yet. MBD 4, MBD 15, and MBD 7.2 need at least one director to sign.</p>
@@ -348,7 +421,7 @@ async function loadProfile() {
     var d = await res.json();
     if (d.error) { showToast('Could not load profile', 'error'); return; }
     // Populate split address fields
-    var fields = ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number'];
+    var fields = ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number','employees','years_experience','employees_management','employees_skilled','employees_unskilled','vehicles_owned','annual_turnover','working_capital','largest_contract_value','banking_institution','contracts_completed','government_contracts','active_contracts','client_references','professional_registrations','equipment_owned','uif_registered','paye_registered'];
     fields.forEach(function(field) {
       var el = document.getElementById(field);
       if (el && d[field]) el.value = d[field];
@@ -373,6 +446,65 @@ async function loadProfile() {
     updateCompletionScore();
 
   } catch(e) { showToast('Could not load profile', 'error'); }
+}
+
+
+async function saveCapacity() {
+  var btn = event.target; btn.disabled=true; btn.textContent='Saving...';
+  try {
+    var body = { company_id: companyId };
+    ['employees','years_experience','employees_management','employees_skilled','employees_unskilled','vehicles_owned'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.value !== '') body[id] = parseInt(el.value) || 0;
+    });
+    ['uif_registered','paye_registered'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.value) body[id] = el.value;
+    });
+    var res = await authFetch('/tl/company/update', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+    showToast('Capacity details saved', 'success'); updateCompletionScore();
+  } catch(e) { showToast(e.message||'Failed to save','error'); }
+  btn.disabled=false; btn.textContent='Save Capacity Details';
+}
+
+async function saveFinancials() {
+  var btn = event.target; btn.disabled=true; btn.textContent='Saving...';
+  try {
+    var body = { company_id: companyId };
+    ['annual_turnover','working_capital','largest_contract_value'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.value !== '') body[id] = parseInt(el.value) || 0;
+    });
+    var bank = document.getElementById('banking_institution');
+    if (bank && bank.value.trim()) body.banking_institution = bank.value.trim();
+    var res = await authFetch('/tl/company/update', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+    showToast('Financial details saved', 'success'); updateCompletionScore();
+  } catch(e) { showToast(e.message||'Failed to save','error'); }
+  btn.disabled=false; btn.textContent='Save Financial Details';
+}
+
+async function saveTrackRecord() {
+  var btn = event.target; btn.disabled=true; btn.textContent='Saving...';
+  try {
+    var body = { company_id: companyId };
+    ['contracts_completed','government_contracts','active_contracts','client_references'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.value !== '') body[id] = parseInt(el.value) || 0;
+    });
+    ['professional_registrations','equipment_owned'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.value.trim()) body[id] = el.value.trim();
+    });
+    var res = await authFetch('/tl/company/update', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+    showToast('Track record saved', 'success'); updateCompletionScore();
+  } catch(e) { showToast(e.message||'Failed to save','error'); }
+  btn.disabled=false; btn.textContent='Save Track Record';
 }
 
 async function saveCompanyDetails() {
@@ -567,7 +699,7 @@ function updateCompletionScore() {
   var score = 0;
 
   // Company details (30 points)
-  var fields30 = ['street_address','city','tax_reference_number','vat_number','municipal_account_number'];
+  var fields30 = ['street_address','city','tax_reference_number','employees','years_experience','annual_turnover'];
   var filled30 = 0;
   fields30.forEach(function(id) {
     var el = document.getElementById(id);
