@@ -944,18 +944,56 @@ async function buildCompanyContext(company, env) {
     return `${label}: Not on file.`;
   }
 
+  const employeeBreakdown = [
+    company.employees_management ? `${company.employees_management} management` : null,
+    company.employees_skilled ? `${company.employees_skilled} skilled/technical` : null,
+    company.employees_unskilled ? `${company.employees_unskilled} unskilled/general` : null,
+  ].filter(Boolean).join(', ');
+
   return `
+COMPANY PROFILE
+===============
 Company: ${company.name}
-Industries: ${company.industries}
-Provinces: ${company.provinces}
-Years experience: ${company.years_experience}
-Annual turnover: R${(company.annual_turnover||0).toLocaleString()}
-Employees: ${company.employees}
+Registration: ${company.reg_number || 'Not provided'}
+Industries: ${company.industries || 'Not specified'}
+Operating Provinces: ${company.provinces || 'Not specified'}
+
+CAPACITY & WORKFORCE
+====================
+Total Employees: ${company.employees || 0}${employeeBreakdown ? ` (${employeeBreakdown})` : ''}
+Years in Operation: ${company.years_experience || 0}
+Company Vehicles: ${company.vehicles_owned ?? 'Not specified'}
+UIF Registered: ${company.uif_registered || 'Not specified'}
+PAYE Registered: ${company.paye_registered || 'Not specified'}
+
+FINANCIAL STANDING
+==================
+Annual Turnover: R${(company.annual_turnover||0).toLocaleString()}
+Working Capital: ${company.working_capital ? 'R' + company.working_capital.toLocaleString() : 'Not specified'}
+Largest Single Contract: ${company.largest_contract_value ? 'R' + company.largest_contract_value.toLocaleString() : 'Not specified'}
+Banking Institution: ${company.banking_institution || 'Not specified'}
+
+TRACK RECORD
+============
+Total Contracts Completed: ${company.contracts_completed ?? 'Not specified'}
+Government Contracts Completed: ${company.government_contracts ?? 'Not specified'}
+Current Active Contracts: ${company.active_contracts ?? 'Not specified'}
+Client References Available: ${company.client_references ?? 'Not specified'}
+Professional Registrations: ${company.professional_registrations || 'None declared'}
+Specialist Equipment: ${company.equipment_owned || 'None declared'}
+
+COMPLIANCE DOCUMENTS
+====================
 ${complianceLine('cidb', 'CIDB Grade', company.cidb_grade, selfDeclaredDocs)}
 ${complianceLine('bee', 'B-BBEE Level', company.bee_level ? `Level ${company.bee_level}` : null, selfDeclaredDocs)}
 ${complianceLine('csd', 'CSD Registration', company.csd_maaa ? 'Registered' : null, selfDeclaredDocs)}
+${complianceLine('tax', 'Tax Clearance/TCS PIN', null, selfDeclaredDocs)}
+${complianceLine('coida', 'COIDA Letter of Good Standing', null, selfDeclaredDocs)}
+${complianceLine('liability', 'Public Liability Insurance', null, selfDeclaredDocs)}
+${complianceLine('vat', 'VAT Registration', company.vat_number ? 'Registered' : null, selfDeclaredDocs)}
+${complianceLine('bank', 'Bank Confirmation Letter', null, selfDeclaredDocs)}
 
-IMPORTANT: Lines marked VERIFIED come from an actual uploaded certificate — treat as fact. SELF-REPORTED/NOT VERIFIED lines have not been confirmed. EXPIRED lines are a current compliance gap.
+IMPORTANT: Lines marked VERIFIED come from an actual uploaded certificate — treat as fact. Lines marked "declared on file" are self-reported by the company. NOT ON FILE means the document is absent. EXPIRED lines are a current compliance gap that will likely cause disqualification.
 `;
 }
 
