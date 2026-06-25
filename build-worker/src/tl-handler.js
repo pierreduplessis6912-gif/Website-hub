@@ -60,7 +60,8 @@ export async function handleTenderLogix(request, env) {
     path === '/privacy' ||                              // legal
     path === '/faq' ||                                    // faq
     path === '/sitemap' ||                              // sitemap
-    path === '/tl/company/by-slug'                       // slug lookup — public
+    path === '/tl/company/by-slug' ||                    // slug lookup — public
+    path === '/tl/v2/product-run/download'                 // docx download — authenticated by run ID
   );
 
   if (!isPublicRoute) {
