@@ -777,44 +777,69 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
       // envelope endorsement wording, submission checklist. Re-attaches the
       // original PDF so this call has full access to the tender's specific
       // forms and requirements, not just a summary of call 1's output.
-      const call2Prompt = `You are producing a bid preparation toolkit for a South African government tender. Working reference document — not a legal opinion.
+      const       call2Prompt = `You are a South African government tender bid preparation specialist producing a complete, practical bid preparation toolkit. This is a working reference document — not a legal opinion.
 
-SINGLE DISCLAIMER (use exactly once at the very top, nowhere else): 'Reference document — transcribe to official forms in black ink. Do not submit this document as your bid.'
+SINGLE DISCLAIMER (top of document only, never repeated): 'Reference document — transcribe to official forms in black ink. Do not submit this document as your bid.'
 
-DOCUMENT STRUCTURE:
+QUALITY STANDARD: Match the depth of a professional bid consultant. Every section must contain actionable, specific information pulled directly from the tender document and company profile. No generic text. No vague statements. If data is missing, state exactly what is missing and where to obtain it.
 
 ## Eligibility Summary
-One paragraph only. If gaps exist: state them and the concrete options (JV partner, register with council, withdraw). Include a timeline reality check if the closing date is imminent. Do not repeat this anywhere else.
+
+Write 2-3 paragraphs:
+1. What this tender requires — specific registrations, experience, geographic presence, staff numbers, financial thresholds
+2. What the company has vs what it lacks — be specific with numbers (e.g. "tender requires 14 cleaning staff, company declares 0 employees")
+3. Concrete path forward with realistic timelines — JV requirements, registration timelines, or withdrawal recommendation
+
+If recommending JV: specify exactly which registrations the JV partner must hold, experience needed, and functionality score impact.
 
 ## Bill of Quantities
-Gazetted rates where specified. Add note: 'Gazetted rates are fixed benchmark figures from government policy — do not add a commercial margin. Bids at or near these rates are expected to be competitive for price scoring (80 points).'
+
+Use confirmed BOQ data. For each line item show description, unit, quantity, rate, total, confidence, rate source. Show totals.
+
+Note: *Gazetted rates are fixed benchmark figures from government policy — do not add a commercial margin.*
 
 ## Forms You Can Complete Now
-Pre-fill EVERY known field from the company profile. Mark unknown fields as 'UNKNOWN — verify in profile'. Never write 'TO COMPLETE' for a field you have data for.
-For director tables: if no directors are in the profile, write 'No director data in company profile — add via dashboard Profile page before completing this form.'
-Include: MBD 1, MBD 2, MBD 4 (directors table), MBD 6.1, MBD 8, MBD 9, MBD 15, MBD 7.2 Part 1.
+
+Pre-fill EVERY field from the company profile. Mark missing as 'UNKNOWN — verify in profile'. Include:
+
+**MBD 1** — company name, trading name, all addresses, contact person, all registration numbers, B-BBEE level
+**MBD 2** — tax reference, compliance status
+**MBD 4** — representative from directors, ID number, position, company details. Directors table with full name, ID, equity %.
+**MBD 6.1** — B-BBEE level, certificate number, points claimed
+**MBD 8** — company name, all available fields
+**MBD 9** — exact bid number and description from tender, company name
+**MBD 15** — company name, physical address, municipal account number, all director details. Note: Commissioner of Oaths required.
+**MBD 7.1 Part 1** — firm name, bid number, capacity
 
 ## Category Selection Table
-Show all categories with required registrations and gazetted rates. All boxes unchecked (bidder must tick their own). Add this note beneath the table: 'If bidding via JV or consortium, the JV partner's professional registration details must be entered here — the registered individual or entity, not the JV vehicle itself. Tick only categories for which the JV partner holds valid registration.'
+
+All categories with required registrations, gazetted rates, unchecked tick boxes.
 
 ## SBD 3.1 — Pricing Schedule
-Pre-fill the guideline/gazetted rate in the 'Your Tendered Rate' column as the default. Add note: 'If bidding as sole provider or JV at gazetted rates, transcribe these figures to the official form. If your JV partner has agreed a different rate, replace with the agreed figure. The municipality expects bids at or near gazetted rates for this tender type.'
+
+Gazetted rates pre-filled as tendered rates.
 
 ## Form C1 — Project References
-ALWAYS include Form C1 if the tender requires functionality evaluation. Show the form template with columns: Contract Name/Description, Nature of Work, Start Date, End Date, Client Name, Client Contact Details. If company has no qualifying projects: add a note 'No project history on file. Without client references on official letterheads, Criteria 1 score = 0/20 points. Minimum 30/40 required for responsiveness. JV partner must supply references per category.'
+
+Full form template with columns. If no projects: state exact impact on functionality score.
 
 ## Verified Compliance Documents
-For each compliance document on file: show extracted value, exact expiry date, number of days since expiry (or days until expiry if still valid), and a specific renewal action with estimated cost and lead time. If a document shows as expired with no extracted date, write: 'Expiry date not extracted — upload a new certificate to Vault for verification.' Never write just 'Expired / Invalid' with no further detail.
+
+For each document: name, status (VERIFIED/SELF-REPORTED/MISSING/EXPIRED), value, exact expiry, specific renewal action with cost and lead time.
 
 ## Submission Checklist
-Everything physically in the envelope: exact envelope endorsement wording, USB drive requirement, black ink rule, Commissioner of Oaths for MBD 15, closing time and physical address, validity period confirmation.
 
-COMPANY PROFILE (pre-fill every known field):
+Exact envelope wording, USB if required, black ink rule, Commissioner of Oaths, exact closing time and physical address, validity period.
+
+COMPANY PROFILE:
 ${companyContext}
 
 CONFIRMED BOQ TOTAL: R${call1Data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
+BOQ LINE ITEMS: ${JSON.stringify(call1Data.boq || []).slice(0,2000)}
 
-Write as complete well-formatted markdown. One disclaimer at the top. No repeated warnings. Form C1 must always be included if functionality criteria exist in this tender.`;
+Write complete well-formatted markdown. One disclaimer at top. No placeholders where actual data exists.`;
+
+
       const call2Result = await callClaudeSimple(env, pdfDocs, call2Prompt, 10000);
       if (!call2Result.success) {
         console.error('TL v2 — bidpack call 2 (submission pack) failed. run:', productRunId, 'reason:', call2Result.reason);
