@@ -1259,6 +1259,31 @@ async function viewProductReport(runId) {
     // ── GO/NO-GO: 3-LAYER REPORT ──
     if (d.product === 'gonogo') {
 
+      // ── BID SCORE OPENING CARD ──
+      if (r.scorecard || r.disqualification_probability) {
+        var sc = r.scorecard || {};
+        var total = sc.total || 0;
+        if (!total && sc.geographic_compliance) {
+          total = (sc.geographic_compliance.score||0) + (sc.experience_track_record.score||0) + (sc.registrations_certifications.score||0) + (sc.financial_capacity.score||0) + (sc.documentation_compliance.score||0);
+        }
+        var autoDisq = (r.facts||[]).filter(function(f){ return f.is_mandatory && f.company_status === 'UNMET'; }).length;
+        var highRisks = (r.risk_assessment||[]).filter(function(f){ return f.likelihood === 'HIGH'; }).length;
+        var winPct = total >= 80 ? 'HIGH' : total >= 60 ? 'MODERATE' : total >= 40 ? 'LOW' : 'VERY LOW';
+        var scoreColor = total >= 60 ? '#1a9e5c' : total >= 40 ? '#e07b00' : '#d93025';
+        var action = r.verdict === 'GO' ? 'BID' : r.verdict === 'CONDITIONAL_GO' ? 'BID WITH CONDITIONS' : 'DO NOT BID';
+        var actionColor = r.verdict === 'GO' ? '#1a9e5c' : r.verdict === 'CONDITIONAL_GO' ? '#e07b00' : '#d93025';
+        html += '<div style="background:var(--charcoal);padding:20px;margin-bottom:16px">';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px">';
+        html += '<div style="text-align:center"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Bid Score</div><div style="font-family:var(--display);font-size:32px;color:'+scoreColor+'">'+total+'<span style="font-size:14px;color:rgba(255,255,255,.3)">/100</span></div></div>';
+        html += '<div style="text-align:center"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Auto Disqualifiers</div><div style="font-family:var(--display);font-size:32px;color:'+(autoDisq>0?'#d93025':'#1a9e5c')+'">'+autoDisq+'</div></div>';
+        html += '<div style="text-align:center"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">High Risks</div><div style="font-family:var(--display);font-size:32px;color:'+(highRisks>2?'#d93025':highRisks>0?'#e07b00':'#1a9e5c')+'">'+highRisks+'</div></div>';
+        html += '<div style="text-align:center"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Win Probability</div><div style="font-family:var(--display);font-size:18px;color:'+scoreColor+';margin-top:6px">'+winPct+'</div></div>';
+        html += '</div>';
+        html += '<div style="background:'+actionColor+';padding:12px;text-align:center">';
+        html += '<div style="font-family:var(--display);font-size:16px;color:var(--white);text-transform:uppercase;letter-spacing:1px">'+action+'</div>';
+        html += '</div></div>';
+      }
+
       // VERDICT BANNER
       if (r.verdict) {
         var cls = r.verdict.toLowerCase();
@@ -1407,7 +1432,15 @@ async function viewProductReport(runId) {
         })); }
       if (r.competitive_landscape) { html += section('Competitive Landscape',['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.competitive_landscape+'</p>']); }
       if (r.boq) {
-        var rows = r.boq.map(function(b){return '<tr><td>'+(b.line_item||b.description||b.item||'')+'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
+        // Pricing disclaimer
+        if (d.product === 'bidpack') {
+          html += '<div style="background:#fff3f3;border:2px solid #d93025;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px">';
+          html += '<div style="font-size:18px">⚠️</div>';
+          html += '<div><div style="font-family:var(--mono);font-size:10px;font-weight:700;color:#d93025;letter-spacing:1px;text-transform:uppercase">Estimated Working Price — Not For Submission</div>';
+          html += '<div style="font-size:12px;color:#6b6560;margin-top:2px">Quantities marked * are estimated — not extracted from tender. Verify with procuring entity before submitting. Rates based on AECOM 2025/26 and gazetted schedules.</div></div>';
+          html += '</div>';
+        }
+        var rows = r.boq.map(function(b){return '<tr><td>'+(b.line_item||b.description||b.item||'')++'</td><td>'+b.unit+'</td><td>'+(b.quantity||'—')+'</td><td>R'+(b.unit_rate||0).toLocaleString()+'</td><td>R'+(b.total||0).toLocaleString()+'</td><td>'+b.confidence+'</td></tr>';}).join('');
         var totalRow = r.boq_totals ? '<tr class="boq-total"><td colspan="4">Recommended Bid</td><td colspan="2">R'+(r.boq_totals.recommended_bid||0).toLocaleString()+'</td></tr>' : '';
         html += '<div class="report-section"><div class="report-section-title">Bill Of Quantities</div><table class="boq-table"><thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th>Conf.</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
       }
