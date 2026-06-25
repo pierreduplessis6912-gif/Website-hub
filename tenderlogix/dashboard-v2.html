@@ -702,7 +702,8 @@ function authFetch(url, opts) {
   return fetch(url, opts).then(function(res) {
     if (res.status === 401) {
       localStorage.removeItem('tl_session');
-      window.location.href = '/login';
+      var returnSlug = window.location.pathname.split('/dashboard/')[1] || '';
+      window.location.href = '/login' + (returnSlug ? '?return=dashboard/' + returnSlug : '');
       throw new Error('Session expired');
     }
     return res;
@@ -727,7 +728,12 @@ async function loadDashboard() {
   try {
     var res = await authFetch('/tl/company?id=' + companyId);
     var d = await res.json();
-    if (d.error) { showToast('Session expired', 'error'); return; }
+    if (d.error) {
+      localStorage.removeItem('tl_session');
+      var returnSlug = window.location.pathname.split('/dashboard/')[1] || '';
+      window.location.href = '/login' + (returnSlug ? '?return=dashboard/' + returnSlug : '');
+      return;
+    }
     companyData = d;
     document.getElementById('balancePill').textContent = 'R' + (d.balance || 0);
     var greetEl = document.getElementById('greetingText');
