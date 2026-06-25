@@ -702,6 +702,7 @@ function authFetch(url, opts) {
   return fetch(url, opts).then(function(res) {
     if (res.status === 401) {
       localStorage.removeItem('tl_session');
+      _allowNavigation = true;
       var returnSlug = window.location.pathname.split('/dashboard/')[1] || '';
       window.location.href = '/login' + (returnSlug ? '?return=dashboard/' + returnSlug : '');
       throw new Error('Session expired');
@@ -730,6 +731,7 @@ async function loadDashboard() {
     var d = await res.json();
     if (d.error) {
       localStorage.removeItem('tl_session');
+      _allowNavigation = true;
       var returnSlug = window.location.pathname.split('/dashboard/')[1] || '';
       window.location.href = '/login' + (returnSlug ? '?return=dashboard/' + returnSlug : '');
       return;
@@ -1048,14 +1050,16 @@ async function handleLogout(e) {
   localStorage.removeItem('tl_session');
   localStorage.removeItem('tl_company_id');
   localStorage.removeItem('tl_company_name');
-  window.removeEventListener('beforeunload', arguments.callee);
+  _allowNavigation = true;
   window.location.replace('/login');
 }
 // ── Navigation guard — warn before leaving ──────────────────────────────
 // Fires on browser back, close tab, or any navigation away from this page.
 // Exceptions: internal TenderLogix links use location.replace() so they
 // bypass this intentionally.
+var _allowNavigation = false;
 window.addEventListener('beforeunload', function(e) {
+  if (_allowNavigation) return;
   e.preventDefault();
   e.returnValue = '';
 });
@@ -1185,7 +1189,9 @@ async function runProduct(tenderId, product) {
 // Fires on browser back, close tab, or any navigation away from this page.
 // Exceptions: internal TenderLogix links use location.replace() so they
 // bypass this intentionally.
+var _allowNavigation = false;
 window.addEventListener('beforeunload', function(e) {
+  if (_allowNavigation) return;
   e.preventDefault();
   e.returnValue = '';
 });
@@ -1460,7 +1466,9 @@ loadDashboard();
 // Fires on browser back, close tab, or any navigation away from this page.
 // Exceptions: internal TenderLogix links use location.replace() so they
 // bypass this intentionally.
+var _allowNavigation = false;
 window.addEventListener('beforeunload', function(e) {
+  if (_allowNavigation) return;
   e.preventDefault();
   e.returnValue = '';
 });
@@ -1519,7 +1527,9 @@ window.addEventListener('pageshow', function(event) {
 // Fires on browser back, close tab, or any navigation away from this page.
 // Exceptions: internal TenderLogix links use location.replace() so they
 // bypass this intentionally.
+var _allowNavigation = false;
 window.addEventListener('beforeunload', function(e) {
+  if (_allowNavigation) return;
   e.preventDefault();
   e.returnValue = '';
 });
