@@ -552,24 +552,34 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
         }
       }
 
-      const province = provinces[0] || 'national';
+      // Map province codes to oracle province keys
+      const PROVINCE_MAP = { 'GP': 'national', 'WC': 'Area_A_Metros', 'EC': 'national', 'KZN': 'KZN', 'LP': 'national', 'MP': 'national', 'NW': 'national', 'NC': 'national', 'FS': 'national' };
+      const rawProvince = provinces[0] || 'national';
+      const province = PROVINCE_MAP[rawProvince] || rawProvince;
       const oracleBase = env.PRICING_ORACLE_URL || 'https://pricing-oracle.websitehub.co.za';
       const oracleLines = [];
+      console.log('TL oracle — province:', rawProvince, '->', province, 'sectors:', detectedSectors.join(','));
 
       for (const sector of detectedSectors.slice(0, 3)) {
         try {
-          const oRes = await fetch(oracleBase + '/pricing-oracle?sector=' + sector + '&province=' + province, {
-            headers: { 'Accept': 'application/json' },
+          // Try province-specific first, then national
+          const provincesToTry = province !== 'national' ? [province, 'national'] : ['national'];
+          let oData = null;
+          for (const p of provincesToTry) {
+            const oRes = await fetch(oracleBase + '/pricing-oracle?sector=' + sector + '&province=' + p, {
+              headers: { 'Accept': 'application/json' }
             });
-          if (oRes.ok) {
-            const oData = await oRes.json();
-            if (oData.found && oData.rates && oData.rates.length > 0) {
-              const rt = oData.rates[0];
-              oracleLines.push('Sector: ' + sector + ' | Council: ' + rt.council_name + ' | Gazette: ' + (rt.gazette_ref || 'N/A') + ' | Effective: ' + rt.effective_date);
-              if (rt.base_rate) oracleLines.push('  Base rate: R' + rt.base_rate + '/' + (rt.rate_unit || 'hour'));
-              if (rt.oncost_pct) oracleLines.push('  On-costs: +' + rt.oncost_pct + '% (' + (rt.oncost_components || 'UIF, COIDA, leave, provident') + ')');
-              if (rt.total_rate) oracleLines.push('  Total cost (base + on-costs): R' + rt.total_rate + '/' + (rt.rate_unit || 'hour'));
+            if (oRes.ok) {
+              const data = await oRes.json();
+              if (data.found && data.rates && data.rates.length > 0) { oData = data; break; }
             }
+          }
+          if (oData) {
+            const rt = oData.rates[0];
+            oracleLines.push('Sector: ' + sector + ' | Council: ' + rt.council_name + ' | Gazette: ' + (rt.gazette_ref || 'N/A') + ' | Effective: ' + rt.effective_date);
+            if (rt.base_rate) oracleLines.push('  Base rate: R' + rt.base_rate + '/' + (rt.rate_unit || 'hour'));
+            if (rt.oncost_pct) oracleLines.push('  On-costs: +' + rt.oncost_pct + '% (' + (rt.oncost_components || 'UIF, COIDA, leave, provident') + ')');
+            if (rt.total_rate) oracleLines.push('  Total cost (base + on-costs): R' + rt.total_rate + '/' + (rt.rate_unit || 'hour'));
           }
         } catch(oErr) {
           console.warn('TL oracle fetch failed for sector', sector, oErr.message);
