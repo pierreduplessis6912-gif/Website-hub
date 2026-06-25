@@ -171,9 +171,8 @@ var WA_NUMBER = '27790128508';
 // Trap back button — push dummy history state so Android back button
 // stays on this page rather than navigating away mid-login
 history.pushState(null, '', window.location.href);
-window.addEventListener('popstate', function() {
-  history.pushState(null, '', window.location.href);
-});
+function _preventBack() { history.pushState(null, '', window.location.href); }
+window.addEventListener('popstate', _preventBack);
 var VERIFY_ENDPOINT = 'https://tenderlogix.co.za/tl/auth/verify-otp';
 var digits = ['d1','d2','d3','d4','d5','d6'];
 var codeSent = false;
@@ -293,18 +292,17 @@ async function verifyOtp() {
     }
 
     showStatus('Verified! Redirecting...', 'success');
+    // Remove back-prevention before redirecting
+    window.removeEventListener('popstate', _preventBack);
     setTimeout(function() {
-      // Check for return URL (e.g. from session expiry redirect)
       var params = new URLSearchParams(window.location.search);
       var returnPath = params.get('return');
       if (returnPath) {
-        window.location.replace('/' + returnPath);
-      } else if (d.slug) {
-        window.location.replace('/dashboard/' + d.slug);
+        window.location.href = '/' + returnPath;
       } else {
-        window.location.replace('/dashboard-v2/' + d.company_id);
+        window.location.href = '/dashboard-v2/' + d.company_id;
       }
-    }, 600);
+    }, 800);
 
   } catch(e) {
     showStatus('Something went wrong — please try again.', 'error');
