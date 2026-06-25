@@ -209,6 +209,7 @@ export async function getPricingContext(env, industries, provinces, tenderTitle)
       if (allText.includes(kw) && !detectedSectors.includes(sector)) detectedSectors.push(sector);
     }
 
+    console.log('[Pricing] getPricingContext — industries:', JSON.stringify(industries), 'detectedSectors:', detectedSectors.join(','), 'province:', provinces[0]);
     if (detectedSectors.length === 0) return '';
 
     const rawProvince = provinces[0] || 'national';
