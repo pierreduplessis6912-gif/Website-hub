@@ -377,6 +377,11 @@ export default {
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/tl-query'        && method === 'POST') return handleAdminTlQuery(request, env);
+      if (path === '/admin/tl-fetch-pricing' && method === 'POST' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
+        const { fetchPricingRates } = await import('./tl-pricing-oracle.js');
+        const results = await fetchPricingRates(env);
+        return new Response(JSON.stringify({ success: true, results }), { headers: { 'Content-Type': 'application/json' } });
+      }
       if (path === '/admin/tl-run-sync' && method === 'POST' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
         const steps = [];
         try {
