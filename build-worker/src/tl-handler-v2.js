@@ -800,11 +800,48 @@ Write 2-3 paragraphs:
 
 If recommending JV: specify exactly which registrations the JV partner must hold, experience needed, and functionality score impact.
 
+## Pricing Basis
+
+Before the BOQ, include a PRICING BASIS section that shows:
+1. The statutory minimum base rate for the dominant labour category in this tender (cite source: council name, gazette number, effective date)
+2. The on-cost factor applied (UIF, COIDA, leave, provident fund, council levies) — show the percentage and rand amount
+3. The overhead recovery applied (typically 15%)
+4. The profit margin applied (typically 10%)
+5. The final TRANSCRIBE THIS RATE clearly marked
+
+Format it exactly like this example:
+
+---
+**PRICING BASIS — [Labour Category]**
+
+**Transcribe this rate: R[X]/hour**
+
+How we got here:
+- Base wage ([Council name], effective [date]): R[X]/hour
+- Statutory on-costs +[X]% (UIF, COIDA, leave, provident, council levy): +R[X]
+- Overhead recovery [X]%: +R[X]
+- Profit margin [X]%: +R[X]
+- **Total: R[X]/hour**
+
+What this assumes:
+- You are registered and compliant with [relevant council/gazette]
+- You have a stable workforce with low absenteeism and turnover
+- Your overhead structure is lean and established
+- You are pricing to win competitively, not to maximise margin
+
+If you are a well-run, established company this rate is competitive and compliant. If you are newly established, still building systems, or managing multiple contracts simultaneously, your actual cost will be higher — adjust before submitting.
+
+*Source: [Council/Gazette name], [Gazette number], effective [date]*
+---
+
 ## Bill of Quantities
 
-Use confirmed BOQ data. For each line item show description, unit, quantity, rate, total, confidence, rate source. Show totals.
+Use the confirmed BOQ data. For each line item show: description, unit, quantity, the single transcribable rate (matching the pricing basis above), total, and confidence rating.
 
-Note: *Gazetted rates are fixed benchmark figures from government policy — do not add a commercial margin.*
+For quantities explicitly stated in the tender: use them exactly.
+For quantities NOT stated: write null for quantity and note "QUANTITY NOT SPECIFIED IN TENDER — confirm with procuring entity before submission."
+
+Do NOT add a blanket margin to gazetted professional service rates (ECSA, SACPCMP, etc.) — those are all-inclusive fee guidelines. The margin structure above applies to labour-intensive service contracts only.
 
 ## Forms You Can Complete Now
 
