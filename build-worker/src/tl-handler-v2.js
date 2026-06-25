@@ -579,8 +579,16 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached — treat as one combined
         disqualification_probability_reasoning: "string",
         recommendation: "string — directional, not DO/DO NOT",
         conditional_actions: [{ action: 'string', deadline: 'string or null', impact_if_done: 'string' }],
-        compliance_checklist: [{ item: 'string', risk_level: 'HIGH or MEDIUM or LOW', notes: 'string' }],
-        future_readiness: "string or null"
+        compliance_checklist: [{ item: 'string', status: 'CAN_COMPLETE_NOW or MISSING_DOCUMENTS or NEEDS_PARTNER', notes: 'string' }],
+        future_readiness: "string or null",
+        scorecard: {
+          total: 0,
+          geographic_compliance: { score: 0, max: 20, notes: "string" },
+          experience_track_record: { score: 0, max: 20, notes: "string" },
+          registrations_certifications: { score: 0, max: 20, notes: "string" },
+          financial_capacity: { score: 0, max: 20, notes: "string" },
+          documentation_compliance: { score: 0, max: 20, notes: "string" }
+        }
       });
 
     } else if (product === 'pricing') {
