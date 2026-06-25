@@ -712,7 +712,9 @@ Produce a priced BOQ. If the tender specifies government-prescribed/gazetted rat
       const call1Prompt = `You are a South African tender bid preparation specialist. Return ONLY valid JSON matching the schema below. No markdown, no explanation outside the JSON.
 
 SCHEMA RULES (mandatory — always populate all fields):
-- boq: always include, even if company is ineligible. Use gazetted rates where specified. Never empty.
+- boq: always include, even if company is ineligible. Never empty.
+- CRITICAL PRICING RULE: The COMPANY PROFILE section contains LIVE PRICING ORACLE DATA fetched today from statutory sources. You MUST use these exact rates for BOQ unit_rate calculations. Do not use NMW or other rates from your training data — the oracle rates supersede them. Always cite the gazette reference from the oracle data in the source field.
+- pricing_basis: MANDATORY field — always populate using the oracle rates. Use base_rate, oncost_pct, and total_rate from the oracle data.
 - compliance_checklist: split into three groups using the 'status' field: 'CAN_COMPLETE_NOW', 'MISSING_DOCUMENTS', 'NEEDS_PARTNER'
 - pricing_disclaimer: use this field for eligibility assessment — state gaps, provide path forward (partner/JV/register/withdraw with timeline), estimate functionality score. Never a bare 'do not bid'.
 - Do NOT apply a 30% margin to gazetted professional service rates.
