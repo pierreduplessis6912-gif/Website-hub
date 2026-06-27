@@ -202,6 +202,18 @@ async function handleTenderUpload(request, env, tlJson) {
   const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
   if (!company) return tlJson({ error: 'Company not found' }, 404);
 
+  // ── Upload rate limit — max 20 uploads per company per hour ──────────
+  const uploadWindowKey = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
+  const uploadRateRow = await env.TL_DB.prepare(
+    'SELECT count FROM tl_otp_rate WHERE phone=? AND window_key=?'
+  ).bind('upload:' + company_id, uploadWindowKey).first().catch(() => null);
+  if (uploadRateRow && uploadRateRow.count >= 20) {
+    return tlJson({ error: 'Upload limit reached — maximum 20 uploads per hour. Try again later.' }, 429);
+  }
+  await env.TL_DB.prepare(
+    'INSERT INTO tl_otp_rate (phone, window_key, count) VALUES (?,?,1) ON CONFLICT(phone,window_key) DO UPDATE SET count=count+1'
+  ).bind('upload:' + company_id, uploadWindowKey).run().catch(() => null);
+
   // ── Determine pricing: free trial vs paid ──
   const uploadTrialUsed = await hasUsedFreeTrial(env, company_id, 'upload');
   let isFreeTrial = false;
@@ -1459,6 +1471,7 @@ async function callClaudeTwoPass(env, pdfDocs, promptText, schemaText, maxTokens
   console.log('TL callClaudeTwoPass — routing to single-pass (Kimi 262k context)');
   return callClaude(env, pdfDocs, promptText, schemaText, maxTokens, false);
 }
+
 
 
 
