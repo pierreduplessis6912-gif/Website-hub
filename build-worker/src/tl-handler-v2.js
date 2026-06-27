@@ -663,9 +663,19 @@ Produce a priced BOQ. If the tender specifies government-prescribed/gazetted rat
       // proven-working call, just without the verdict-free pricing framing).
       const call1Prompt = `You are a South African tender bid preparation specialist. Return ONLY valid JSON matching the schema below. No markdown, no explanation outside the JSON.
 
+${pricingContext ? `LIVE STATUTORY PRICING ORACLE (fetched today — use these rates, they supersede your training data):
+${pricingContext}
+LABOUR BOQ CALCULATION METHOD (mandatory for service tenders):
+- Monthly lump sum = number_of_staff × hours_per_day × working_days_per_month × total_hourly_rate
+- Use total_rate from oracle (base + on-costs already included). Add overhead 15% + margin 10%.
+- Night shift premium: +25% on base rate for hours between 18h00-06h00 (BCEA Section 17).
+- Sunday/PH premium: +100% on base rate (BCEA Section 16 & 18).
+- If quantity is not stated, calculate from staff deployment figures in the tender (e.g. "max 8 staff" = 8 staff).
+- Never return unit_rate: 0. If uncertain, calculate with LOW confidence and show your working in source field.
+` : ''}
 SCHEMA RULES (mandatory — always populate all fields):
 - boq: always include, even if company is ineligible. Never empty.
-- CRITICAL PRICING RULE: The COMPANY PROFILE section contains LIVE PRICING ORACLE DATA fetched today from statutory sources. You MUST use these exact rates for BOQ unit_rate calculations. Do not use NMW or other rates from your training data — the oracle rates supersede them. Always cite the gazette reference from the oracle data in the source field.
+- CRITICAL PRICING RULE: Oracle rates above are your primary source. Use them for all labour line items.
 - pricing_basis: MANDATORY field — always populate using the oracle rates. Use base_rate, oncost_pct, and total_rate from the oracle data.
 - compliance_checklist: split into three groups using the 'status' field: 'CAN_COMPLETE_NOW', 'MISSING_DOCUMENTS', 'NEEDS_PARTNER'
 - pricing_disclaimer: use this field for eligibility assessment — state gaps, provide path forward (partner/JV/register/withdraw with timeline), estimate functionality score. Never a bare 'do not bid'.
