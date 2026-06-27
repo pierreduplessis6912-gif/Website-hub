@@ -173,7 +173,8 @@ export async function handleTlAuthCheck(request, env) {
   const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
   const session = await getSession(request, env);
   if (!session) return new Response(JSON.stringify({ valid: false }), { headers: cors });
-  return new Response(JSON.stringify({ valid: true, company_id: session.company_id }), { headers: cors });
+  const company = await env.TL_DB.prepare('SELECT slug FROM tl_companies WHERE id=?').bind(session.company_id).first();
+  return new Response(JSON.stringify({ valid: true, company_id: session.company_id, slug: company?.slug || null }), { headers: cors });
 }
 
 // ── POST /tl/auth/logout ─────────────────────────────────────────────────
