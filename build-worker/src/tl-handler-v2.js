@@ -940,7 +940,7 @@ Pre-fill EVERY field from the company profile. Mark missing as 'UNKNOWN — veri
 
 ## Category Selection Table
 
-All categories with required registrations, gazetted rates, unchecked tick boxes.
+CRITICAL: Only include categories that are explicitly referenced in THIS tender document. Do not include categories from other industries or tenders. For a cleaning tender include only cleaning-related categories. For a construction tender include only construction categories. If a category (e.g. engineering, surveying, health & safety) is not mentioned in this tender's scope of work, exclude it entirely. List only: category name, required registration/accreditation, gazetted rate reference if applicable, and a checkbox.
 
 ## SBD 3.1 — Pricing Schedule
 
