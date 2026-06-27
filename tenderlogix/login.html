@@ -311,11 +311,19 @@ async function verifyOtp() {
 var existingSession = localStorage.getItem('tl_session');
 var existingCompany = localStorage.getItem('tl_company_id');
 if (existingSession && existingCompany) {
-  // Quick check if session is still valid
+  var returnPath = new URLSearchParams(window.location.search).get('return');
   fetch('https://tenderlogix.co.za/tl/auth/check', {
     headers: { 'Authorization': 'Bearer ' + existingSession }
   }).then(function(r){ return r.json(); }).then(function(d) {
-    if (d.valid) window.location.replace('/dashboard-v2/' + existingCompany);
+    if (d.valid) {
+      if (returnPath) {
+        window.location.replace('/' + returnPath);
+      } else if (d.slug) {
+        window.location.replace('/dashboard/' + d.slug);
+      } else {
+        window.location.replace('/dashboard-v2/' + existingCompany);
+      }
+    }
   }).catch(function(){});
 }
 </script>
