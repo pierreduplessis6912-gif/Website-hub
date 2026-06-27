@@ -452,6 +452,28 @@ async function handleRunProduct(request, env, tlJson) {
   const isFreeTrial = !trialUsed;
   const price = isFreeTrial ? 0 : V2_PRICES[product];
 
+  // ── PROFILE COMPLETION GATE — minimum 60% before any analysis ────────
+  // A low-completion profile produces low-quality output that reflects
+  // badly on the product. Gate at 60% for paid runs; free trials pass through.
+  if (!isFreeTrial) {
+    const c = company;
+    let score = 0;
+    if (c.street_address) score += 15;
+    if (c.tax_reference_number) score += 15;
+    if (c.annual_turnover && c.annual_turnover > 0) score += 15;
+    if (c.employees && c.employees > 0) score += 15;
+    if (c.years_experience && c.years_experience > 0) score += 10;
+    if (c.industries && (() => { try { return JSON.parse(c.industries).length > 0; } catch(e) { return false; } })()) score += 15;
+    if (c.provinces && (() => { try { return JSON.parse(c.provinces).length > 0; } catch(e) { return false; } })()) score += 15;
+    if (score < 60) {
+      return tlJson({
+        error: 'Your profile is ' + score + '% complete. Reach 60% to unlock paid analysis — this ensures accurate, high-quality results.',
+        profile_score: score,
+        profile_incomplete: true,
+      }, 402);
+    }
+  }
+
   if (!isFreeTrial && (company.balance || 0) < price) {
     const shortfall = price - (company.balance || 0);
     return tlJson({ error: `${product} costs R${price} — you have R${company.balance||0}. Top up R${shortfall} to continue.`, shortfall }, 402);
