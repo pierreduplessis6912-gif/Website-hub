@@ -679,6 +679,17 @@ var freeTrials = {};
 var selectedFiles = [];
 var selectedAmount = 100;
 
+// Sanitize user-supplied strings before inserting into innerHTML
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function goToProfile() {
   var slug = (companyData && companyData.slug) ? companyData.slug : companyId;
   window.location.href = '/profile/' + slug;
@@ -761,7 +772,7 @@ async function loadDashboard() {
     companyData = d;
     document.getElementById('balancePill').textContent = 'R' + (d.balance || 0);
     var greetEl = document.getElementById('greetingText');
-    if (greetEl) greetEl.textContent = d.name;
+    if (greetEl) greetEl.textContent = d.name || '';
     document.getElementById('dashGreeting').style.display = 'flex';
     document.title = d.name + ' — TenderLogix';
 
@@ -845,7 +856,7 @@ async function renderVaultSection() {
 
       return '<div class="vault-doc-row" onclick="openVaultUploadModal(\''+r.doc_type_id+'\')">'+
         '<div class="vault-doc-status '+dotCls+'"></div>'+
-        '<div class="vault-doc-info"><div class="vault-doc-name">'+r.name+'</div><div class="vault-doc-meta '+metaCls+'">'+meta+'</div></div>'+
+        '<div class="vault-doc-info"><div class="vault-doc-name">'+esc(r.name)+'</div><div class="vault-doc-meta '+metaCls+'">'+esc(meta)+'</div></div>'+
         '<div class="vault-doc-actions">'+viewBtn+uploadBtn+'</div>'+
       '</div>';
     }).join('');
@@ -1151,7 +1162,7 @@ async function loadTenders() {
     if (!tenders.length) { document.getElementById('tendersList').innerHTML = '<div class="empty-state">No tenders uploaded yet.</div>'; return; }
 
     document.getElementById('tendersList').innerHTML = tenders.map(function(t) {
-      var title = t.tender_title || 'Tender — '+new Date(t.created_at).toLocaleDateString('en-ZA');
+      var title = esc(t.tender_title) || 'Tender — '+new Date(t.created_at).toLocaleDateString('en-ZA');
       var runsByProduct = {};
       (t.product_runs||[]).forEach(function(r){ if (!runsByProduct[r.product]) runsByProduct[r.product]=r; });
 
@@ -1698,6 +1709,7 @@ window.addEventListener('beforeunload', function(e) {
 </script>
 </body>
 </html>
+
 
 
 
