@@ -553,7 +553,11 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
     // ── PRICING ORACLE — queries D1 tl_pricing_rates table ─────────────────
     const industries = JSON.parse(company.industries || '[]');
     const provinces = JSON.parse(company.provinces || '[]');
-    const pricingContext = await getPricingContext(env, industries, provinces, tender.tender_title || null);
+    // Fetch tender title for sector detection — tender not in scope here, look it up via run
+    const _tenderRow = await env.TL_DB.prepare(
+      'SELECT t.tender_title FROM tl_tenders t JOIN tl_product_runs r ON r.tender_id=t.id WHERE r.id=? LIMIT 1'
+    ).bind(productRunId).first().catch(() => null);
+    const pricingContext = await getPricingContext(env, industries, provinces, _tenderRow?.tender_title || null);
 
         let prompt, schema, maxTokens;
 
