@@ -684,6 +684,12 @@ LABOUR BOQ CALCULATION METHOD (mandatory for service tenders):
 - Sunday/PH premium: +100% on base rate (BCEA Section 16 & 18).
 - If quantity is not stated, calculate from staff deployment figures in the tender (e.g. "max 8 staff" = 8 staff).
 - Never return unit_rate: 0. If uncertain, calculate with LOW confidence and show your working in source field.
+
+CONFIDENCE RATING RULES (mandatory — apply to every BOQ line):
+- HIGH: rate calculated directly from oracle statutory data above (gazetted bargaining council rates, NMW). Use HIGH whenever oracle rates were used.
+- MEDIUM: rate estimated from AECOM/industry benchmarks without a statutory source.
+- LOW: rate estimated from first principles, genuinely unknown, or requires supplier verification.
+- NEVER mark a line MEDIUM if you used the oracle rates above — that is HIGH by definition.
 ` : ''}
 SCHEMA RULES (mandatory — always populate all fields):
 - boq: always include, even if company is ineligible. Never empty.
