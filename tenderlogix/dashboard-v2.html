@@ -1225,6 +1225,11 @@ async function runProduct(tenderId, product) {
       body: JSON.stringify({ tender_id:tenderId, product:product })
     });
     var d = await res.json();
+    if (res.status===402 && d.profile_incomplete) {
+      showToast('Complete your profile to ' + Math.ceil((60 - (d.profile_score||0))) + '% more to unlock this analysis', 'warn');
+      setTimeout(function(){ goToProfile(); }, 1500);
+      return;
+    }
     if (res.status===402) { showToast(d.error, 'warn'); openBalanceModal(); return; }
     if (d.error) throw new Error(d.error);
     showToast(d.is_free_trial ? 'Queued — free trial!' : 'Queued — R'+d.price+' charged on success', 'success');
