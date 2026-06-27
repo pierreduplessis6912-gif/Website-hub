@@ -1444,10 +1444,10 @@ async function viewProductReport(runId) {
           var status = c.status || c.risk_level || '';
           var isFail = status === 'MISSING_DOCUMENTS' || status === 'NEEDS_PARTNER' || status === 'HIGH' || status === 'FAIL';
           var isWarn = status === 'CAN_COMPLETE_NOW' || status === 'MEDIUM' || status === 'WARN';
-          var icon = isFail ? '✗' : isWarn ? '!' : '·';
+          var icon = isFail ? '✗' : isWarn ? '!' : '✓';
           var color = isFail ? '#d93025' : isWarn ? '#e07b00' : '#1a9e5c';
-          var label = c.requirement || c.item || c.description || '';
-          return '<div class="check-item"><div style="flex-shrink:0;font-weight:700;color:'+color+'">'+icon+'</div><div><div class="check-text">'+label+'</div>'+(c.notes?'<div class="check-notes">'+c.notes+'</div>':'')+'</div></div>';
+          var label = c.requirement || c.item || c.description || c.name || '';
+          return '<div class="check-item"><div style="flex-shrink:0;font-weight:700;font-size:14px;color:'+color+';min-width:16px">'+icon+'</div><div><div class="check-text">'+esc(label)+'</div>'+(c.notes?'<div class="check-notes">'+esc(c.notes)+'</div>':'')+'</div></div>';
         }));
       }
 
