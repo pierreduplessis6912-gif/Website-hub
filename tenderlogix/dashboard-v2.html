@@ -680,15 +680,16 @@ var selectedFiles = [];
 var selectedAmount = 100;
 
 function goToProfile() {
-  window.location.href = '/profile-v2/' + companyId;
+  var slug = (companyData && companyData.slug) ? companyData.slug : companyId;
+  window.location.href = '/profile/' + slug;
 }
 
 async function checkProfileCompletion() {
   try {
     var res = await authFetch('/tl/company?id=' + companyId);
     var d = await res.json();
-    if (!d.company) return;
-    var c = d.company;
+    if (d.error || !d.id) return;
+    var c = d;
     // Simple completion check — if key fields are empty, show nudge
     var score = 0;
     if (c.street_address) score += 15;
@@ -773,6 +774,7 @@ async function loadDashboard() {
       ? 'Your first tender (up to 5 documents) is free.'
       : 'R20 per document.';
 
+    checkProfileCompletion();
     await loadVaultStatus();
     await loadTenders();
   } catch(e) { showToast('Could not load dashboard', 'error'); }
@@ -1053,7 +1055,8 @@ async function submitUpload() {
     await loadDashboard();
 
 function goToProfile() {
-  window.location.href = '/profile-v2/' + companyId;
+  var slug = (companyData && companyData.slug) ? companyData.slug : companyId;
+  window.location.href = '/profile/' + slug;
 }
 
 async function handleLogout(e) {
@@ -1681,6 +1684,7 @@ window.addEventListener('beforeunload', function(e) {
 </script>
 </body>
 </html>
+
 
 
 
