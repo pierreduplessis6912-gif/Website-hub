@@ -566,7 +566,7 @@ async function handleDownloadProductRun(url, env) {
   try {
     const arrayBuffer = await generateProductRunDocx(run, report, company, complianceDocuments, directors, hasVaultAccess);
     const safeTitle = (report.tender_title || 'TenderLogix-Report').replace(/[^a-zA-Z0-9 \-]/g, '').slice(0, 60).trim() || 'TenderLogix-Report';
-    const productLabel = run.product === 'gonogo' ? 'GoNoGo' : run.product === 'pricing' ? 'Pricing' : 'BidPack';
+    const productLabel = run.product === 'gonogo' ? 'Go-No-Go Analysis' : run.product === 'pricing' ? 'Pricing Report' : run.product === 'bidpack' ? 'Bid Pack' : 'Report';
 
     return new Response(arrayBuffer, {
       headers: {
