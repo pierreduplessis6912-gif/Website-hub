@@ -668,11 +668,12 @@ body{
       localStorage.setItem('tl_company_id', c);
       localStorage.setItem('tl_company_name', n || '');
     } catch(e) {}
+    window._urlCompanyId = c;
     p.delete('token'); p.delete('cid'); p.delete('cname');
     history.replaceState(null, '', window.location.pathname + (p.toString() ? '?' + p.toString() : ''));
   }
 })();
-var companyId = location.pathname.split('/dashboard-v2/')[1]?.split('/')[0] || location.pathname.split('/dashboard/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
+var companyId = window._urlCompanyId || location.pathname.split('/dashboard-v2/')[1]?.split('/')[0] || location.pathname.split('/dashboard/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
 var companyData = null;
 var freeTrials = {};
 var selectedFiles = [];
