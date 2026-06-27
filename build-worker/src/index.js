@@ -169,6 +169,14 @@ const DEFAULT_CONFIG = {
 
 const SYSTEM_SUBDOMAINS = new Set(['evolution','preview','www','mail','smtp','imap','ftp','cpanel','whm','webmail','admin','api','places-proxy']);
 
+const TL_SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://tenderlogix.co.za https://preview.websitehub.co.za; frame-ancestors 'none'",
+};
+
 export default {
   async fetch(request, env, ctx) {
     const url      = new URL(request.url);
@@ -231,14 +239,14 @@ export default {
       // /dashboard/{slug}     — new clean URL
       if (url.pathname.startsWith('/dashboard-v2') || url.pathname.startsWith('/dashboard/')) {
         const v2dash = await env.SITES.get('app:tl-dashboard-v2').catch(() => null);
-        if (v2dash) return new Response(v2dash, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' } });
+        if (v2dash) return new Response(v2dash, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', ...TL_SECURITY_HEADERS } });
       }
       // ── Profile routes — both UUID and slug formats ───────────────────
       // /profile-v2/{uuid}    — legacy, still works
       // /profile/{slug}       — new clean URL
       if (url.pathname.startsWith('/profile-v2') || url.pathname.startsWith('/profile/')) {
         const v2profile = await env.SITES.get('app:tl-profile-v2').catch(() => null);
-        if (v2profile) return new Response(v2profile, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' } });
+        if (v2profile) return new Response(v2profile, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', ...TL_SECURITY_HEADERS } });
       }
       return handleTenderLogix(request, env);
     }
@@ -5131,3 +5139,4 @@ function siteNotFound(slug) {
 }
 
 // queue fix Thu Jun 18 14:30:07 SAST 2026
+
