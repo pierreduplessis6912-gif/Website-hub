@@ -292,17 +292,14 @@ async function verifyOtp() {
     }
 
     showStatus('Verified! Redirecting...', 'success');
-    // Remove back-prevention before redirecting
     window.removeEventListener('popstate', _preventBack);
     setTimeout(function() {
       var params = new URLSearchParams(window.location.search);
       var returnPath = params.get('return');
-      if (returnPath) {
-        window.location.href = '/' + returnPath;
-      } else {
-        window.location.href = '/dashboard-v2/' + d.company_id;
-      }
-    }, 800);
+      var base = returnPath ? '/' + returnPath : '/dashboard-v2/' + d.company_id;
+      var sep = base.includes('?') ? '&' : '?';
+      window.location.href = base + sep + 'token=' + encodeURIComponent(d.session_token) + '&cid=' + encodeURIComponent(d.company_id) + '&cname=' + encodeURIComponent(d.company_name || '');
+    }, 300);
 
   } catch(e) {
     showStatus('Something went wrong — please try again.', 'error');
