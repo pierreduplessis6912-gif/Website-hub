@@ -378,11 +378,15 @@ async function handleDeleteDirector(request, env, tlJson) {
 // v2 can evolve its own profile fields independently.
 async function handleUpdateCompanyDetails(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
-  const { company_id, street_address, postal_address, city, postal_code, tax_reference_number, vat_number, municipal_account_number } = body;
+  const { company_id, street_address, postal_address, city, postal_code, tax_reference_number, vat_number, municipal_account_number, industries, provinces, bee_level, cidb_grade, cidb_number, reg_number } = body;
   if (!company_id) return tlJson({ error: 'company_id required' }, 400);
 
   const existing = await env.TL_DB.prepare('SELECT id FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
   if (!existing) return tlJson({ error: 'Company not found' }, 404);
+
+  // Serialize array fields if provided
+  const industriesJson = Array.isArray(industries) ? JSON.stringify(industries) : null;
+  const provincesJson = Array.isArray(provinces) ? JSON.stringify(provinces) : null;
 
   await env.TL_DB.prepare(`
     UPDATE tl_companies SET
@@ -392,9 +396,15 @@ async function handleUpdateCompanyDetails(request, env, tlJson) {
       postal_code=COALESCE(?, postal_code),
       tax_reference_number=COALESCE(?, tax_reference_number),
       vat_number=COALESCE(?, vat_number),
-      municipal_account_number=COALESCE(?, municipal_account_number)
+      municipal_account_number=COALESCE(?, municipal_account_number),
+      industries=COALESCE(?, industries),
+      provinces=COALESCE(?, provinces),
+      bee_level=COALESCE(?, bee_level),
+      cidb_grade=COALESCE(?, cidb_grade),
+      cidb_number=COALESCE(?, cidb_number),
+      reg_number=COALESCE(?, reg_number)
     WHERE id=?
-  `).bind(street_address, postal_address, city, postal_code, tax_reference_number, vat_number, municipal_account_number, company_id).run();
+  `).bind(street_address, postal_address, city, postal_code, tax_reference_number, vat_number, municipal_account_number, industriesJson, provincesJson, bee_level, cidb_grade, cidb_number, reg_number, company_id).run();
 
   return tlJson({ success: true, company_id });
 }
@@ -530,7 +540,7 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
     // ── PRICING ORACLE — queries D1 tl_pricing_rates table ─────────────────
     const industries = JSON.parse(company.industries || '[]');
     const provinces = JSON.parse(company.provinces || '[]');
-    const pricingContext = await getPricingContext(env, industries, provinces, null);
+    const pricingContext = await getPricingContext(env, industries, provinces, tender.tender_title || null);
 
         let prompt, schema, maxTokens;
 
@@ -1422,5 +1432,6 @@ async function callClaudeTwoPass(env, pdfDocs, promptText, schemaText, maxTokens
   console.log('TL callClaudeTwoPass — routing to single-pass (Kimi 262k context)');
   return callClaude(env, pdfDocs, promptText, schemaText, maxTokens, false);
 }
+
 
 
