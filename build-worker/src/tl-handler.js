@@ -252,7 +252,11 @@ async function handleTlCreateCompany(request, env, tlJson) {
 async function handleTlGetCompany(url, env, tlJson) {
   const id = url.searchParams.get('id');
   if (!id) return tlJson({ error: 'id required' }, 400);
-  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(id).first();
+  // Accept both UUID and slug
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const company = isUuid
+    ? await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(id).first()
+    : await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE slug=? LIMIT 1').bind(id).first();
   if (!company) return tlJson({ error: 'Company not found' }, 404);
   return tlJson(company);
 }
