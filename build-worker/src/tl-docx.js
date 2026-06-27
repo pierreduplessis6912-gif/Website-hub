@@ -179,7 +179,7 @@ function buildChecklistSection(title, items, statusKey, labelKey, notesKey) {
       new Paragraph({
         children: [
           new TextRun({ text: statusIcon(item[statusKey]) + '  ', bold: true }),
-          new TextRun({ text: item[labelKey] || '', bold: true }),
+          new TextRun({ text: item[labelKey] || item['requirement'] || item['item'] || item['description'] || item['name'] || '', bold: true }),
         ],
       }),
       ...(item[notesKey] ? [new Paragraph({ children: [new TextRun({ text: item[notesKey], italics: true, size: 18, color: '666666' })], indent: { left: 360 } })] : []),
@@ -715,7 +715,7 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
       new Paragraph({ children: [new TextRun({ text: report.verdict_summary || '' })] }),
       new Paragraph({ text: '' }),
       ...buildChecklistSection('Eligibility', report.eligibility, 'status', 'requirement', 'notes'),
-      ...buildChecklistSection('Compliance', report.compliance_checklist, 'risk_level', 'item', 'notes'),
+      ...buildChecklistSection('Compliance', report.compliance_checklist, 'risk_level', 'requirement', 'notes'),
       ...buildChecklistSection('Risk Flags', report.risk_flags, 'severity', 'flag', 'mitigation'),
       ...buildChecklistSection('How To Gain An Edge', report.edge_recommendations, null, 'action', 'impact'),
     );
@@ -747,7 +747,7 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
   }
 
   if (product === 'bidpack') {
-    advisoryChildren.push(...buildChecklistSection('Compliance Checklist', report.compliance_checklist, 'status', 'item', 'notes'));
+    advisoryChildren.push(...buildChecklistSection('Compliance Checklist', report.compliance_checklist, 'status', 'requirement', 'notes'));
     advisoryChildren.push(...buildComplianceDocumentsSection(complianceDocuments, hasVaultAccess));
   }
 
@@ -869,3 +869,4 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
 
   return await Packer.toArrayBuffer(doc);
 }
+
