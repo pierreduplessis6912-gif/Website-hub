@@ -376,23 +376,25 @@ var _pathSegment = location.pathname.split('/profile-v2/')[1]?.split('/')[0]
   || location.pathname.split('/profile/')[1]?.split('/')[0]
   || localStorage.getItem('tl_company_id') || '';
 var _isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(_pathSegment);
-var companyId = _isUuid ? _pathSegment : '';
+// If UUID, use directly. If slug, use as companyId — /tl/company accepts both.
+var companyId = _pathSegment || localStorage.getItem('tl_company_id') || '';
+// Track the slug for back-link construction
+var _profileSlug = _isUuid ? null : _pathSegment;
 
 async function resolveSlug() {
-  if (_isUuid || !_pathSegment) return;
-  try {
-    var res = await fetch('/tl/company/by-slug?slug=' + _pathSegment);
-    var d = await res.json();
-    if (d.company_id) {
-      companyId = d.company_id;
-      localStorage.setItem('tl_company_id', companyId);
-    } else { window.location.href = '/login'; }
-  } catch(e) { window.location.href = '/login'; }
+  // /tl/company?id= accepts both UUID and slug — no pre-resolution needed.
+  // We only need to resolve slug→UUID if something downstream strictly needs a UUID.
+  // For now, companyId works as slug directly.
+  if (!_pathSegment) { window.location.href = '/login'; }
 }
 var directors = [];
 var editingDirectorId = null;
 
-document.getElementById('backLink').href = '/dashboard-v2/' + companyId;
+// Set back link — use slug if available, else UUID
+(function() {
+  var backSlug = _profileSlug || companyId;
+  document.getElementById('backLink').href = '/dashboard/' + backSlug;
+})();
 
 function showToast(msg, type) {
   var t = document.getElementById('toast');
@@ -774,4 +776,5 @@ window.addEventListener('beforeunload', function(e) {
 </script>
 </body>
 </html>
+
 
