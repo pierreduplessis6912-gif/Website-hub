@@ -203,19 +203,20 @@ export async function getPricingContext(env, industries, provinces, tenderTitle)
       'NW': 'national', 'NC': 'national', 'FS': 'national'
     };
 
+    // Detect sectors from industries array + tender title (both sources)
     const allText = (industries.join(' ') + ' ' + (tenderTitle||'')).toLowerCase();
     const detectedSectors = [];
     for (const [kw, sector] of SECTOR_MAP) {
       if (allText.includes(kw) && !detectedSectors.includes(sector)) detectedSectors.push(sector);
     }
 
-    console.log('[Pricing] getPricingContext — industries:', JSON.stringify(industries), 'detectedSectors:', detectedSectors.join(','), 'province:', provinces[0]);
-    if (detectedSectors.length === 0) return '';
+    console.log('[Pricing] getPricingContext — industries:', JSON.stringify(industries), 'tenderTitle:', tenderTitle, 'detectedSectors:', detectedSectors.join(',') || 'none', 'province:', provinces[0] || 'none');
 
     const rawProvince = provinces[0] || 'national';
     const province = PROVINCE_MAP[rawProvince] || rawProvince;
     const lines = [];
 
+    // Sector-specific rates (skip if none detected — NMW still injected below)
     for (const sector of detectedSectors.slice(0, 3)) {
       // Try province-specific first, then national
       let row = null;
@@ -237,17 +238,21 @@ export async function getPricingContext(env, industries, provinces, tenderTitle)
       }
     }
 
-    // Always add NMW floor
+    // Always inject NMW floor regardless of sector detection
     const nmw = await env.TL_DB.prepare(
       'SELECT * FROM tl_pricing_rates WHERE sector=? ORDER BY effective_date DESC LIMIT 1'
     ).bind('national_minimum_wage').first();
     if (nmw) lines.push('NMW Floor: R' + nmw.base_rate + '/hour effective ' + nmw.effective_date + ' (' + nmw.gazette_ref + ')');
 
-    if (lines.length === 0) return '';
-    console.log('[Pricing] Oracle context built for sectors:', detectedSectors.join(','));
+    if (lines.length === 0) {
+      console.log('[Pricing] No rates found in D1 — table may be empty. Run /admin/tl-fetch-pricing.');
+      return '';
+    }
+    console.log('[Pricing] Oracle context built — sectors:', detectedSectors.join(',') || 'none (NMW only)', 'lines:', lines.length);
     return '\nLIVE PRICING ORACLE DATA (fetched from statutory sources, stored in system):\n' + lines.join('\n') + '\n';
   } catch(e) {
     console.warn('[Pricing] getPricingContext failed:', e.message);
     return '';
   }
 }
+
