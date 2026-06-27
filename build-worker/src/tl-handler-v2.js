@@ -26,6 +26,15 @@ const V2_PRICES = { gonogo: 100, pricing: 750, bidpack: 750 };
 const UPLOAD_PRICE_PER_DOC = 20;
 const FREE_UPLOAD_MAX_DOCS = 5;
 
+// Accepts either a UUID or a slug — always returns the UUID or null
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+async function resolveCompanyId(env, idOrSlug) {
+  if (!idOrSlug) return null;
+  if (UUID_RE.test(idOrSlug)) return idOrSlug;
+  const row = await env.TL_DB.prepare('SELECT id FROM tl_companies WHERE slug=? LIMIT 1').bind(idOrSlug).first();
+  return row ? row.id : null;
+}
+
 export async function handleTlV2(request, env) {
   const url    = new URL(request.url);
   const path   = url.pathname;
@@ -51,7 +60,7 @@ export async function handleTlV2(request, env) {
 
   // ── Self-declared documents ──────────────────────────────────────────
   if (path === '/tl/v2/company/self-declared' && method === 'GET') {
-    const companyId = url.searchParams.get('company_id');
+    const companyId = await resolveCompanyId(env, url.searchParams.get('company_id'));
     if (!companyId) return tlJson({ error: 'company_id required' }, 400);
     const row = await env.TL_DB.prepare('SELECT self_declared_docs FROM tl_companies WHERE id=? LIMIT 1').bind(companyId).first();
     const selfDeclared = row?.self_declared_docs ? JSON.parse(row.self_declared_docs) : {};
@@ -59,7 +68,8 @@ export async function handleTlV2(request, env) {
   }
   if (path === '/tl/v2/company/self-declared' && method === 'POST') {
     const body = await request.json();
-    const { company_id, self_declared } = body;
+    const { self_declared } = body;
+    const company_id = await resolveCompanyId(env, body.company_id);
     if (!company_id) return tlJson({ error: 'company_id required' }, 400);
     await env.TL_DB.prepare('UPDATE tl_companies SET self_declared_docs=? WHERE id=?')
       .bind(JSON.stringify(self_declared || {}), company_id).run();
@@ -281,7 +291,7 @@ async function handleGetTender(url, env, tlJson) {
 
 // ── LIST all tenders for a company, each with their product run summary ──
 async function handleListTenders(url, env, tlJson) {
-  const company_id = url.searchParams.get('company_id');
+  const company_id = await resolveCompanyId(env, url.searchParams.get('company_id'));
   if (!company_id) return tlJson({ error: 'company_id required' }, 400);
 
   const tenders = await env.TL_DB.prepare(
@@ -301,7 +311,7 @@ async function handleListTenders(url, env, tlJson) {
 
 // ── GET free trial availability for a company — drives dashboard button states ──
 async function handleGetFreeTrials(url, env, tlJson) {
-  const company_id = url.searchParams.get('company_id');
+  const company_id = await resolveCompanyId(env, url.searchParams.get('company_id'));
   if (!company_id) return tlJson({ error: 'company_id required' }, 400);
 
   const used = await env.TL_DB.prepare(
@@ -320,7 +330,7 @@ async function handleGetFreeTrials(url, env, tlJson) {
 // Closes the real gap that left MBD 4, MBD 15, and MBD 7.2 mostly blank:
 // director name, ID number, tax number, residential address.
 async function handleListDirectors(url, env, tlJson) {
-  const company_id = url.searchParams.get('company_id');
+  const company_id = await resolveCompanyId(env, url.searchParams.get('company_id'));
   if (!company_id) return tlJson({ error: 'company_id required' }, 400);
 
   const directors = await env.TL_DB.prepare(
@@ -332,7 +342,8 @@ async function handleListDirectors(url, env, tlJson) {
 
 async function handleSaveDirector(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
-  const { company_id, id, full_name, id_number, tax_number, residential_address, is_state_employee } = body;
+  const { id, full_name, id_number, tax_number, residential_address, is_state_employee } = body;
+  const company_id = await resolveCompanyId(env, body.company_id);
 
   if (!company_id || !full_name) return tlJson({ error: 'company_id and full_name required' }, 400);
 
@@ -363,7 +374,8 @@ async function handleSaveDirector(request, env, tlJson) {
 
 async function handleDeleteDirector(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
-  const { company_id, id } = body;
+  const { id } = body;
+  const company_id = await resolveCompanyId(env, body.company_id);
   if (!company_id || !id) return tlJson({ error: 'company_id and id required' }, 400);
 
   const existing = await env.TL_DB.prepare('SELECT id FROM tl_company_directors WHERE id=? AND company_id=? LIMIT 1').bind(id, company_id).first();
@@ -378,7 +390,8 @@ async function handleDeleteDirector(request, env, tlJson) {
 // v2 can evolve its own profile fields independently.
 async function handleUpdateCompanyDetails(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
-  const { company_id, street_address, postal_address, city, postal_code, tax_reference_number, vat_number, municipal_account_number, industries, provinces, bee_level, cidb_grade, cidb_number, reg_number } = body;
+  const { street_address, postal_address, city, postal_code, tax_reference_number, vat_number, municipal_account_number, industries, provinces, bee_level, cidb_grade, cidb_number, reg_number } = body;
+  const company_id = await resolveCompanyId(env, body.company_id);
   if (!company_id) return tlJson({ error: 'company_id required' }, 400);
 
   const existing = await env.TL_DB.prepare('SELECT id FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
