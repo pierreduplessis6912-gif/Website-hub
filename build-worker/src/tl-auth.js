@@ -121,17 +121,22 @@ export async function handleTlVerifyOtp(request, env) {
 
     // Find all unexpired, unused OTPs — check against each
     const rows = await env.TL_DB.prepare(
-      `SELECT id, company_id, phone, otp_hash, salt FROM tl_otp
+      `SELECT id, company_id, phone, otp_hash, salt, attempts FROM tl_otp
        WHERE used=0 AND expires_at > datetime('now')
        ORDER BY created_at DESC LIMIT 10`
     ).all();
 
     let matchedOtp = null;
     for (const row of (rows.results || [])) {
+      // Lock out after 5 failed attempts — prevents brute force of 6-digit OTP
+      if ((row.attempts || 0) >= 5) continue;
       const hash = await hashOtp(otp, row.salt);
       if (hash === row.otp_hash) {
         matchedOtp = row;
         break;
+      } else {
+        // Increment attempt counter on each miss
+        await env.TL_DB.prepare(`UPDATE tl_otp SET attempts=COALESCE(attempts,0)+1 WHERE id=?`).bind(row.id).run();
       }
     }
 
@@ -233,3 +238,4 @@ export async function requireTlAuth(request, env) {
   }
   return null; // null = auth passed, continue
 }
+
