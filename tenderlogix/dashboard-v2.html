@@ -1456,6 +1456,36 @@ async function viewProductReport(runId) {
         }));
       }
 
+      // LOCAL ADVANTAGE
+      if (r.local_advantage) {
+        var la = r.local_advantage;
+        var laItems = [];
+        if (la.cost_advantage_pct) laItems.push('<div class="check-item"><div style="color:#1a9e5c;font-weight:700;min-width:16px">+</div><div><div class="check-text">Cost advantage vs national bidders: ~'+la.cost_advantage_pct+'%</div>'+(la.cost_advantage_reasoning?'<div class="check-notes">'+esc(la.cost_advantage_reasoning)+'</div>':'')+'</div></div>');
+        if (la.local_labour_preference) laItems.push('<div class="check-item"><div style="color:#1a9e5c;font-weight:700;min-width:16px">+</div><div><div class="check-text">Local labour preference</div><div class="check-notes">'+esc(la.local_labour_preference)+'</div></div></div>');
+        (la.other_advantages||[]).forEach(function(a){ laItems.push('<div class="check-item"><div style="color:#1a9e5c;font-weight:700;min-width:16px">+</div><div><div class="check-text">'+esc(a)+'</div></div></div>'); });
+        if (laItems.length) html += section('Local Bidder Advantages', laItems);
+      }
+
+      // PREFERENCE POINTS ANALYSIS
+      if (r.preference_points_analysis) {
+        var ppa = r.preference_points_analysis;
+        var ppaItems = [];
+        if (ppa.scenario) ppaItems.push('<div style="font-size:13px;color:rgba(255,255,255,.7);line-height:1.6;margin-bottom:8px">'+esc(ppa.scenario)+'</div>');
+        if (ppa.break_even_price) ppaItems.push('<div class="check-item"><div style="color:#e07b00;font-weight:700;min-width:16px">R</div><div><div class="check-text">Break-even vs Level 1 competitor: R'+Number(ppa.break_even_price).toLocaleString()+'</div></div></div>');
+        if (ppa.recommendation) ppaItems.push('<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:8px;font-style:italic">'+esc(ppa.recommendation)+'</div>');
+        if (ppaItems.length) html += section('Preference Points Strategy (80/20)', ppaItems);
+      }
+
+      // PRIORITY ACTIONS
+      if (r.priority_actions && r.priority_actions.length) {
+        var paItems = r.priority_actions.map(function(a){
+          var isToday = a.deadline && a.deadline.toUpperCase().includes('TODAY');
+          var color = isToday ? '#d93025' : '#e07b00';
+          return '<div class="check-item"><div style="flex-shrink:0;font-family:var(--mono);font-size:11px;color:'+color+';min-width:20px;font-weight:700">'+(a.priority||'')+'</div><div><div class="check-text">'+esc(a.action||'')+'</div><div class="check-notes" style="color:'+color+'">'+esc(a.deadline||'')+'</div>'+(a.impact_if_done?'<div class="check-notes">✓ '+esc(a.impact_if_done)+'</div>':'')+(a.risk_if_skipped?'<div class="check-notes" style="color:#d93025">✗ Risk: '+esc(a.risk_if_skipped)+'</div>':'')+'</div></div>';
+        });
+        html += section('Priority Actions', paItems);
+      }
+
       // FUTURE READINESS
       if (r.future_readiness) {
         html += section('Path To Future Tenders', ['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.future_readiness+'</p>']);
