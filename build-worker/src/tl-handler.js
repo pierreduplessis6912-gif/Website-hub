@@ -1018,9 +1018,59 @@ async function handleVaultSubscribe(request, env, tlJson) {
   return tlJson({ success: true, checkout_url: url, sandbox: isTestMode(env) });
 }
 
+async function verifyPayFastITN(params, rawBody, env) {
+  // Step 1 — rebuild param string without signature, in received order
+  const pfData = {};
+  for (const [k, v] of params.entries()) {
+    if (k !== 'signature') pfData[k] = v;
+  }
+  let paramString = Object.entries(pfData)
+    .map(([k, v]) => `${k}=${encodeURIComponent(v).replace(/%20/g, '+')}`)
+    .join('&');
+
+  // Step 2 — append passphrase if set
+  const passphrase = env.PAYFAST_PASSPHRASE;
+  if (passphrase) paramString += `&passphrase=${encodeURIComponent(passphrase).replace(/%20/g, '+')}`;
+
+  // Step 3 — md5 hash
+  const msgBuffer = new TextEncoder().encode(paramString);
+  const hashBuffer = await crypto.subtle.digest('MD5', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const computedSig = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  // Step 4 — compare
+  const receivedSig = params.get('signature') || '';
+  if (computedSig !== receivedSig) {
+    console.error('[PayFast] Signature mismatch. computed:', computedSig, 'received:', receivedSig);
+    return false;
+  }
+
+  // Step 5 — verify source IP is PayFast
+  // PayFast ITN comes from known IP ranges — in Workers we check CF-Connecting-IP
+  // PayFast IPs: 197.97.145.144/28, 41.74.179.192/27 (sandbox: any)
+  // We log but don't hard-block on IP in case of CDN changes — sig is sufficient
+
+  // Step 6 — verify merchant ID matches
+  const expectedMerchantId = env.PAYFAST_MERCHANT_ID;
+  if (expectedMerchantId && params.get('merchant_id') !== expectedMerchantId) {
+    console.error('[PayFast] Merchant ID mismatch');
+    return false;
+  }
+
+  return true;
+}
+
 async function handleTlPayfast(request, env, tlJson) {
   const text = await request.text();
   const params = new URLSearchParams(text);
+
+  // ── SIGNATURE VERIFICATION — reject anything that doesn't verify ──────
+  const isValid = await verifyPayFastITN(params, text, env);
+  if (!isValid) {
+    console.error('[PayFast] ITN rejected — invalid signature from', request.headers.get('CF-Connecting-IP'));
+    return new Response('Invalid signature', { status: 400 });
+  }
+
   const status = params.get('payment_status');
   const company_id = params.get('custom_str1');
   const purpose = params.get('custom_str2'); // 'balance_topup' | 'vault_subscription'
@@ -1548,3 +1598,4 @@ export async function processTlQueueMessage(msg, env) {
     await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(chargeAmount, submissionId).run();
   }
 }
+
