@@ -657,6 +657,21 @@ body{
 <div class="toast" id="toast"></div>
 
 <script>
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  var t = p.get('token');
+  var c = p.get('cid');
+  var n = p.get('cname');
+  if (t && c) {
+    try {
+      localStorage.setItem('tl_session', t);
+      localStorage.setItem('tl_company_id', c);
+      localStorage.setItem('tl_company_name', n || '');
+    } catch(e) {}
+    p.delete('token'); p.delete('cid'); p.delete('cname');
+    history.replaceState(null, '', window.location.pathname + (p.toString() ? '?' + p.toString() : ''));
+  }
+})();
 var companyId = location.pathname.split('/dashboard-v2/')[1]?.split('/')[0] || location.pathname.split('/dashboard/')[1]?.split('/')[0] || localStorage.getItem('tl_company_id') || '';
 var companyData = null;
 var freeTrials = {};
