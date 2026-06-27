@@ -597,57 +597,101 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
 
      if (product === 'gonogo') {
       maxTokens = 8192;
-      prompt = `You are a South African tender bid decision intelligence system. Your job is not to tell the client what to do — it is to make the hidden cost of each option visible before they commit. Think like a GPS: precise about what you know, honest about uncertainty, directional without being authoritarian.
+      prompt = `You are a South African tender pre-bid eligibility analyst. You produce a Pre-Bid Eligibility & Readiness Scan — a decision-layer tool that tells a company whether to commit resources to a bid, and exactly what to fix before they do.
 
-YOUR OUTPUT HAS THREE DISTINCT LAYERS — keep them completely separate, never blend them:
+YOUR JOB: Surface hidden disqualifiers, quantify competitive position, and give a prioritised action list. Think like a senior bid consultant reviewing on behalf of a client. Be specific, be honest, be directional.
 
-LAYER 1 — FACTS (what exists in the document and verified company data only)
-Extract requirements directly from the tender document and cross-reference against the company profile. Mark each item: VERIFIED (from uploaded certificate), SELF_REPORTED (stated in profile but not confirmed), MISSING (not in profile at all), or EXPIRED (certificate on file is expired). No interpretation — only what is demonstrably true.
+VERDICT VALUES:
+- GO: Company is well-positioned. No hard blockers. Proceed.
+- CONDITIONAL_GO: Company is eligible but has gaps that must close before submission. Specify exactly what and by when.
+- NO_GO: Hard disqualifier exists that cannot be resolved in time, OR risk/effort ratio is unfavourable. Always state what would change this.
 
-LAYER 2 — RISK ASSESSMENT (probability + reasoning + confidence)
-Score each risk with a likelihood AND your reasoning. Be explicit about uncertainty. A 35% complete company profile means LOW confidence — state this. Estimate disqualification probability and functionality scores where possible. Distinguish hard disqualifiers (missing mandatory cert) from soft risks (pricing outside typical range).
+Never write "DO NOT SUBMIT" or "AUTOMATIC DISQUALIFICATION" — instead write "Not recommended in current state — disqualification risk HIGH due to X."
 
-LAYER 3 — RECOMMENDATION (directional, not declarative)
-Never write DO NOT SUBMIT or AUTOMATIC DISQUALIFICATION. Write: Not recommended in current state — high disqualification risk due to X. Or: Recommended if Y is resolved before closing date. Always include what would change the recommendation.
+LAYER 1 — MANDATORY GATE CHECKS (facts only, no interpretation)
+Extract every mandatory requirement from the tender document. Cross-reference against the company profile. Mark each:
+- MET: Company demonstrably meets this requirement (verified certificate or confirmed profile data)
+- UNMET: Company does not meet this — hard blocker
+- UNKNOWN: Cannot confirm from available data — flag for company to verify
+- EXPIRED: Certificate exists but expired
+For each item state: the exact requirement, the company's status, and the impact (disqualifier / points risk / pass).
 
-VERDICT VALUES: GO (well-positioned, no hard blockers), CONDITIONAL_GO (viable but actions required), NO_GO (hard blocker or unfavourable risk/effort — always explain what would change this).
+LAYER 2 — LOCAL BIDDER ADVANTAGE ANALYSIS
+Determine if this company has geographic, operational, or cost advantages over likely competitors. If local:
+- Quantify the cost advantage (e.g. no accommodation/travel costs = ±12-18% cheaper than national bidders)
+- Identify Section 1.1.6 or equivalent local labour preference and how to leverage it
+- Note any site familiarity advantages
+If not local or JV required, quantify what it costs to close the gap.
 
-PROFILE COMPLETENESS: Estimate what percentage of meaningful profile fields are populated. State this explicitly. Low completeness means low confidence.
+LAYER 3 — COMPETITIVE POSITION & PREFERENCE POINTS MATH
+Calculate the 80/20 preference points scenario:
+- Company's B-BBEE level → points
+- If they are not Level 1: calculate the maximum price premium they can absorb vs a Level 1 competitor at an estimated market price
+- Formula: (Company Price / Competitor Price) × 80 + Company BEE Points vs Competitor × 80 / Competitor Price + Competitor BEE Points
+- Give a plain-English answer: "At R2.97m, you beat a Level 1 bidder only if they price above R[X]."
+
+LAYER 4 — PRIORITY ACTION LIST
+Maximum 5 actions, numbered, with deadlines. Only actions that change the outcome. Format:
+1. [TODAY/BY DATE]: Action → Impact if done / Risk if not done
+
+PROFILE COMPLETENESS: State the % of meaningful fields populated. Low completeness = LOW confidence assessment.
+
+${pricingContext ? `LIVE PRICING ORACLE DATA (use for competitive price benchmarking):
+${pricingContext}` : ''}
 
 COMPANY PROFILE:
-${companyContext}${pricingContext}
+${companyContext}
 
 TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached — treat as one combined tender pack.`;
 
       schema = JSON.stringify({
         tender_title: "string — actual title of this tender",
         tender_reference: "string or null",
+        closing_date: "string or null — exact date and time from tender",
+        compulsory_briefing: "string or null — date, time, venue if applicable",
         verdict: "GO or NO_GO or CONDITIONAL_GO",
-        verdict_summary: "string — 2-3 sentences, directional not declarative",
+        verdict_summary: "string — 2-3 sentences. Most important thing this company must know right now.",
         assessment_confidence: "HIGH or MEDIUM or LOW",
-        assessment_confidence_reason: "string — why this confidence level",
+        assessment_confidence_reason: "string — reference profile completeness explicitly",
         profile_completeness_pct: 0,
         facts: [{
-          requirement: "string — exact requirement from tender",
-          source: "string — where in tender found",
+          requirement: "string — exact requirement from tender document",
+          source: "string — section/clause reference",
           company_status: "MET or UNMET or UNKNOWN or EXPIRED",
-          company_data: "string or null",
+          company_data: "string or null — what the company has",
           verification: "VERIFIED or SELF_REPORTED or MISSING",
-          is_mandatory: true
+          is_mandatory: true,
+          impact: "DISQUALIFIER or POINTS_RISK or PASS"
         }],
-        risk_assessment: [{
-          risk: "string — specific risk",
-          likelihood: "HIGH or MEDIUM or LOW",
-          impact: "HIGH or MEDIUM or LOW",
-          reasoning: "string — why this rating",
-          what_changes_it: "string — action that reduces this risk"
-        }],
+        local_advantage: {
+          is_local: true,
+          cost_advantage_pct: 0,
+          cost_advantage_reasoning: "string — quantify travel/accommodation/logistics savings vs national bidders",
+          local_labour_preference: "string or null — relevant tender clause and how to leverage it",
+          other_advantages: ["string"]
+        },
+        preference_points_analysis: {
+          company_bee_level: "string or null",
+          company_bee_points: 0,
+          scenario: "string — plain English: at price X you beat a Level Y bidder only if they price above R[Z]",
+          break_even_price: 0,
+          recommendation: "string — specific pricing guidance"
+        },
         disqualification_probability: "HIGH or MEDIUM or LOW",
         disqualification_probability_reasoning: "string",
-        recommendation: "string — directional, not DO/DO NOT",
-        conditional_actions: [{ action: 'string', deadline: 'string or null', impact_if_done: 'string' }],
-        compliance_checklist: [{ item: 'string', status: 'CAN_COMPLETE_NOW or MISSING_DOCUMENTS or NEEDS_PARTNER', notes: 'string' }],
-        future_readiness: "string or null",
+        recommendation: "string — directional, specific, honest. What should this company do next.",
+        priority_actions: [{
+          priority: 1,
+          deadline: "TODAY or BY DATE or BEFORE CLOSING",
+          action: "string — specific and actionable",
+          impact_if_done: "string",
+          risk_if_skipped: "string"
+        }],
+        compliance_checklist: [{
+          requirement: "string — document or requirement name",
+          status: "CAN_COMPLETE_NOW or MISSING_DOCUMENTS or NEEDS_PARTNER",
+          notes: "string — specific action, cost, lead time where known"
+        }],
         scorecard: {
           total: 0,
           geographic_compliance: { score: 0, max: 20, notes: "string" },
@@ -839,7 +883,7 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
       const call1Schema = `{
   "tender_title": "string — actual title/name of this tender",
   "tender_reference": "string or null",
-  "compliance_checklist": [ { "item": "string", "status": "string", "notes": "string" } ],
+  "compliance_checklist": [ { "requirement": "string — document or requirement name", "status": "CAN_COMPLETE_NOW or MISSING_DOCUMENTS or NEEDS_PARTNER", "notes": "string — action, cost, lead time" } ],
   "pricing_basis": {
     "dominant_labour_category": "string — main labour type in this tender",
     "applicable_council": "string — bargaining council or gazette name",
@@ -889,107 +933,132 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
       // envelope endorsement wording, submission checklist. Re-attaches the
       // original PDF so this call has full access to the tender's specific
       // forms and requirements, not just a summary of call 1's output.
-      const       call2Prompt = `You are a South African government tender bid preparation specialist producing a complete, practical bid preparation toolkit. This is a working reference document — not a legal opinion.
+      const       call2Prompt = `You are a South African government tender bid preparation specialist producing a Tender Intelligence & Response Guide — NOT a form-filler. You produce the strategy, pricing intelligence, technical narrative, and operational content that surrounds the official forms. The official forms are just 2% of the win probability.
 
-SINGLE DISCLAIMER (top of document only, never repeated): 'Reference document — transcribe to official forms in black ink. Do not submit this document as your bid.'
+SINGLE DISCLAIMER (top only, never repeated): "Reference document — complete official WCBD/SBD/MBD forms in black ink on originals downloaded from ePS. Attach this Guide as your technical proposal."
 
-QUALITY STANDARD: Match the depth of a professional bid consultant. Every section must contain actionable, specific information pulled directly from the tender document and company profile. No generic text. No vague statements. If data is missing, state exactly what is missing and where to obtain it.
+QUALITY STANDARD: Every section must contain specific, actionable intelligence pulled directly from this tender document and the company profile. No generic text. No vague statements. No empty tables. If data is missing, state exactly what is missing and how to obtain it.
 
-## Eligibility Summary
-
-Write 2-3 paragraphs:
-1. What this tender requires — specific registrations, experience, geographic presence, staff numbers, financial thresholds
-2. What the company has vs what it lacks — be specific with numbers (e.g. "tender requires 14 cleaning staff, company declares 0 employees")
-3. Concrete path forward with realistic timelines — JV requirements, registration timelines, or withdrawal recommendation
-
-If recommending JV: specify exactly which registrations the JV partner must hold, experience needed, and functionality score impact.
-
-## Pricing Basis
-
-Before the BOQ, include a PRICING BASIS section that shows:
-1. The statutory minimum base rate for the dominant labour category in this tender (cite source: council name, gazette number, effective date)
-2. The on-cost factor applied (UIF, COIDA, leave, provident fund, council levies) — show the percentage and rand amount
-3. The overhead recovery applied (typically 15%)
-4. The profit margin applied (typically 10%)
-5. The final TRANSCRIBE THIS RATE clearly marked
-
-Format it exactly like this example:
+BOQ DATA FROM ANALYSIS: Use this pre-calculated pricing data:
+- Tender title: ${call1Data.tender_title || 'See tender document'}
+- Reference: ${call1Data.tender_reference || 'N/A'}
+- Pricing basis: ${call1Data.pricing_basis ? JSON.stringify(call1Data.pricing_basis) : 'See pricing section'}
+- BOQ: ${JSON.stringify(call1Data.boq || [])}
+- BOQ Totals: ${JSON.stringify(call1Data.boq_totals || {})}
+- Compliance checklist: ${JSON.stringify(call1Data.compliance_checklist || [])}
 
 ---
-**PRICING BASIS — [Labour Category]**
 
-**Transcribe this rate: R[X]/hour**
+## Eligibility & Win Probability Summary
 
-How we got here:
-- Base wage ([Council name], effective [date]): R[X]/hour
-- Statutory on-costs +[X]% (UIF, COIDA, leave, provident, council levy): +R[X]
-- Overhead recovery [X]%: +R[X]
-- Profit margin [X]%: +R[X]
-- **Total: R[X]/hour**
+Write 2 concise paragraphs:
+1. What this tender requires — mandatory registrations, geographic requirements, staff numbers, financial thresholds, experience requirements. Be specific with numbers and section references.
+2. This company's competitive position — what they have, what they lack, what their realistic win probability is. If they are local/eligible, quantify their cost advantage vs national bidders. If they need a JV, specify exactly what the partner must contribute and the timeline.
 
-What this assumes:
-- You are registered and compliant with [relevant council/gazette]
-- You have a stable workforce with low absenteeism and turnover
-- Your overhead structure is lean and established
-- You are pricing to win competitively, not to maximise margin
-
-If you are a well-run, established company this rate is competitive and compliant. If you are newly established, still building systems, or managing multiple contracts simultaneously, your actual cost will be higher — adjust before submitting.
-
-*Source: [Council/Gazette name], [Gazette number], effective [date]*
 ---
 
-## Bill of Quantities
+## Compliance Roadmap
 
-Use the confirmed BOQ data. For each line item show: description, unit, quantity, the single transcribable rate (matching the pricing basis above), total, and confidence rating.
+A project management table — not a checklist of empty boxes. For each outstanding compliance action:
+| Deadline | Action | Evidence Required | Where to Get It |
+Include only items that need action. Green items need no row.
 
-For quantities explicitly stated in the tender: use them exactly.
-For quantities NOT stated: write null for quantity and note "QUANTITY NOT SPECIFIED IN TENDER — confirm with procuring entity before submission."
+---
 
-Do NOT add a blanket margin to gazetted professional service rates (ECSA, SACPCMP, etc.) — those are all-inclusive fee guidelines. The margin structure above applies to labour-intensive service contracts only.
+## Pricing Intelligence & Cost Model
 
-## Forms You Can Complete Now
+### Labour Cost Build-Up (Per Worker, Per Month)
+Show the arithmetic clearly:
+| Component | Calculation | Amount |
+| Base wage (statutory source + date) | Rate × hours | R |
+| UIF (1%) | | R |
+| COIDA (0.95%) | | R |
+| PAYE provision | | R |
+| PPE/uniform amortization | | R |
+| Total cost per worker | | R |
 
-Pre-fill EVERY field from the company profile. Mark missing as 'UNKNOWN — verify in profile'. Include:
+### Bill of Quantities — Cost Recovery Model
+Use the pre-calculated BOQ data. Show how the monthly rate was built:
+| Item | Facility | Staff | Monthly Labour | Consumables | Equipment | Mgmt 8% | Margin | Total/Month | 12-Month Total |
+Show all working. No unexplained numbers.
 
-**MBD 1** — company name, trading name, all addresses, contact person, all registration numbers, B-BBEE level
-**MBD 2** — tax reference, compliance status
-**MBD 4** — representative from directors, ID number, position, company details. Directors table with full name, ID, equity %.
-**MBD 6.1** — B-BBEE level, certificate number, points claimed
-**MBD 8** — company name, all available fields
-**MBD 9** — exact bid number and description from tender, company name
-**MBD 15** — company name, physical address, municipal account number, all director details. Note: Commissioner of Oaths required.
-**MBD 7.1 Part 1** — firm name, bid number, capacity
+### Total Offer Price
+- Subtotal (excl. VAT): R[X]
+- VAT 15%: R[X]
+- Total (incl. VAT): R[X]
+- Confirm: All prices firm for full contract duration
 
-## Category Selection Table
+### Competitive Intelligence
+- Estimate what national bidders must price (add accommodation, travel, remote management overhead — quantify each)
+- Calculate the B-BBEE preference points scenario using 80/20 formula:
+  Price score = 80 × (Lowest Price / This Company's Price)
+  Total score = Price score + B-BBEE points
+  Plain English: "At R[X], you beat a Level 1 bidder only if they price above R[Y]. To guarantee beating a Level 1 at R[Z], you need to price at or below R[W]."
 
-CRITICAL: Only include categories that are explicitly referenced in THIS tender document. Do not include categories from other industries or tenders. For a cleaning tender include only cleaning-related categories. For a construction tender include only construction categories. If a category (e.g. engineering, surveying, health & safety) is not mentioned in this tender's scope of work, exclude it entirely. List only: category name, required registration/accreditation, gazetted rate reference if applicable, and a checkbox.
+---
 
-## SBD 3.1 — Pricing Schedule
+## Technical Proposal — Submit This as Your Attachment
 
-Gazetted rates pre-filled as tendered rates.
+This is the document the evaluator reads. Write it as a first-person company statement.
 
-## Form C1 — Project References
+### Section 1: Executive Summary & Bid Statement
+One page. Company name, offer price, why we will win (specific advantages, not boilerplate). Local office address and distance to site. Key differentiators.
 
-Full form template with columns. If no projects: state exact impact on functionality score.
+### Section 2: Staff Deployment Plan
+Full shift roster showing how staff cover all service areas. Format:
+| Area | Item Code | Staff Count | Shift | Days | Duties Summary |
+Include supervisor allocation. Include backup/reserve protocol.
 
-## Verified Compliance Documents
+### Section 3: Method Statement
+Cleaning frequencies per Annexure (reference actual annexure from tender). Colour-coding protocol per tender spec. Spill response times (bodily fluid vs non-hazardous — use actual tender penalty thresholds). Medical waste handling. Floor maintenance schedule.
 
-For each document: name, status (VERIFIED/SELF-REPORTED/MISSING/EXPIRED), value, exact expiry, specific renewal action with cost and lead time.
+### Section 4: Equipment & Consumables
+Full equipment list with quantities. Consumables with monthly consumption estimate. Replacement cycles. Storage arrangements at local office.
+
+### Section 5: Health & Safety Plan
+Hep B vaccination protocol. OHS Act compliance. Incident reporting timeline (use actual requirement from tender). Smoking policy. PPE issuance and replacement.
+
+### Section 6: Quality Assurance & Penalty Avoidance
+Reference each specific penalty clause from the tender. For each: what triggers it, how to avoid it, what the monitoring protocol is.
+
+### Section 7: Local Content & B-BBEE Commitment
+Local staff recruitment commitment (reference Section 1.1.6 or equivalent). B-BBEE certificate summary. Local office ownership/lease details.
+
+---
+
+## Official Forms Cheat Sheet (One Page Only)
+
+Do NOT reproduce empty form tables. One concise table:
+| Form | What to Write | Source |
+| WCBD 1 / MBD 1 | Company name, address, VAT, CSD number, B-BBEE level | Company records |
+| MBD 2 | TCS PIN | SARS eFiling |
+| MBD 4 | Director names, ID numbers, mark all "NO" boxes | CIPC records |
+| MBD 6.1 | B-BBEE level and points claimed | B-BBEE certificate |
+| MBD 8 | All "NO" | Declaration |
+| MBD 9 | Bid number and description, tick all 4 boxes | Tender document |
+| Pricing Schedule | Rates per line item from Section 3 of this Guide | This document |
+Fill in actual values from the company profile where available. Mark UNKNOWN where not.
+
+---
 
 ## Submission Checklist
 
-Exact envelope wording, USB if required, black ink rule, Commissioner of Oaths, exact closing time and physical address, validity period.
+Exact envelope endorsement wording (copied from tender document). ePS upload requirements. Compulsory briefing details. Closing date and time. Validity period.
+
+---
+
+CRITICAL RULES:
+- Use pre-calculated BOQ figures from the data above — do not recalculate
+- Fill every company field from the profile — no "[INSERT]" where actual data exists
+- Never reproduce MBD/SBD/WCBD form templates as empty tables
+- Technical Proposal sections must be written as first-person company statements, ready to attach
+- Every penalty, requirement, and deadline must reference the actual tender clause
+- Pricing intelligence must include actual arithmetic, not placeholders
 
 COMPANY PROFILE:
 ${companyContext}
 
-CONFIRMED BOQ TOTAL: R${call1Data.boq_totals?.recommended_bid?.toLocaleString() || 'see BOQ'}.
-BOQ LINE ITEMS: ${JSON.stringify(call1Data.boq || []).slice(0,2000)}
-
-PRICING BASIS (use this to build the Pricing Basis section):
-${call1Data.pricing_basis ? JSON.stringify(call1Data.pricing_basis, null, 2) : 'Not extracted — derive from tender document and applicable bargaining council rates'}
-
-Write complete well-formatted markdown. One disclaimer at top. No placeholders where actual data exists.`;
+TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
 
 
       const call2Result = await callClaudeSimple(env, pdfDocs, call2Prompt, 10000);
