@@ -1466,7 +1466,7 @@ async function viewProductReport(runId) {
           var isWarn = status === 'CAN_COMPLETE_NOW' || status === 'MEDIUM' || status === 'WARN';
           var icon = isFail ? '✗' : isWarn ? '!' : '✓';
           var color = isFail ? '#d93025' : isWarn ? '#e07b00' : '#1a9e5c';
-          var label = c.requirement || c.item || c.description || c.name || '';
+          var label = c.requirement || c.document_name || c.item || c.description || c.name || '';
           return '<div class="check-item"><div style="flex-shrink:0;font-weight:700;font-size:14px;color:'+color+';min-width:16px">'+icon+'</div><div><div class="check-text">'+esc(label)+'</div>'+(c.notes?'<div class="check-notes">'+esc(c.notes)+'</div>':'')+'</div></div>';
         }));
       }
@@ -1529,7 +1529,7 @@ async function viewProductReport(runId) {
           var isWarn = st==='MEDIUM'||st==='CAN_COMPLETE_NOW'||st==='WARN'||st==='UNKNOWN';
           var icon = isFail ? '✗' : isWarn ? '!' : '✓';
           var color = isFail ? '#d93025' : isWarn ? '#e07b00' : '#1a9e5c';
-          var label = c.requirement||c.item||c.description||c.name||'';
+          var label = c.requirement||c.document_name||c.item||c.description||c.name||'';
           return '<div class="check-item"><div style="flex-shrink:0;font-weight:700;font-size:14px;color:'+color+';min-width:16px">'+icon+'</div><div><div class="check-text">'+esc(label)+'</div>'+(c.notes?'<div class="check-notes">'+esc(c.notes)+'</div>':'')+'</div></div>';
         })); }
       if (r.competitive_landscape) { html += section('Competitive Landscape',['<p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.7">'+r.competitive_landscape+'</p>']); }
