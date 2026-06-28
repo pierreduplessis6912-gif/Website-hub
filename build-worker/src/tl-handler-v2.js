@@ -608,6 +608,8 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
     const pricingContext = await getPricingContext(env, industries, provinces, _tenderRow?.tender_title || null);
 
         let prompt, schema, maxTokens;
+        let goodsPricing = null;
+        let submissionDoc = null;
 
      if (product === 'gonogo') {
       maxTokens = 8192;
@@ -924,8 +926,6 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
   "pricing_disclaimer": "string"
 }`;
 
-      let goodsPricing = null; // declared here so call2Prompt template can reference it
-      let submissionDoc = null;  // declared here so UPDATE query can reference it
       const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 16000);
       if (!call1Result.success) {
         console.error('TL v2 — bidpack call 1 (BOQ+checklist) failed. run:', productRunId, 'reason:', call1Result.reason);
