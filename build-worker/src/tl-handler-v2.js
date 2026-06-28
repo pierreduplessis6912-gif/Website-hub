@@ -518,7 +518,20 @@ async function handleGetProductRun(url, env, tlJson) {
 
   const run = await env.TL_DB.prepare('SELECT * FROM tl_product_runs WHERE id=? LIMIT 1').bind(id).first();
   if (!run) return tlJson({ error: 'Product run not found' }, 404);
-  if (run.report_json) run.report = JSON.parse(run.report_json);
+  if (run.report_json) {
+    try {
+      run.report = JSON.parse(run.report_json);
+      // Re-attach submission_document from report_text column
+      if (run.report && run.report_text) {
+        run.report.submission_document = run.report_text;
+      } else if (run.report && run.report_json) {
+        run.report.submission_document = run.report_text || null;
+      }
+    } catch(e) {
+      console.error('Failed to parse report_json for run', run.id, e.message);
+      run.report = null;
+    }
+  }
 
   return tlJson(run);
 }
@@ -1129,10 +1142,11 @@ Return this exact JSON structure:
         return { success: false, reason: call2Result.reason };
       }
 
+      const submissionDoc = call2Result.text || null;
       report = {
         ...call1Result.data,
         ...(goodsPricing || {}),
-        submission_document: call2Result.text || null
+        // submission_document stored separately in report_text column — not in report_json
       };
 
     } else {
@@ -1184,15 +1198,20 @@ Return this exact JSON structure:
     const totalCostUsd      = (_c1?.costUsd || 0) + (_c2?.costUsd || 0) + (_sr?.costUsd || 0);
     const pdfSizeInfo       = pdfDocs?.length ? estimatePdfTokens(pdfDocs) : { totalBytes: 0, estimatedTokens: 0 };
 
+    const reportJsonStr = JSON.stringify(report);
+    const reportTextStr = typeof submissionDoc !== 'undefined' ? (submissionDoc || null) : null;
+
     await env.TL_DB.prepare(`
       UPDATE tl_product_runs
       SET status='complete', verdict=?, report_r2_key=?, report_json=?,
+          report_text=?,
           input_tokens=?, output_tokens=?, estimated_cost_usd=?,
           pdf_total_bytes=?, pdf_estimated_tokens=?,
           updated_at=CURRENT_TIMESTAMP
       WHERE id=?
     `).bind(
-      report.verdict || null, reportKey, JSON.stringify(report),
+      report.verdict || null, reportKey, reportJsonStr,
+      reportTextStr,
       totalInputTokens, totalOutputTokens, totalCostUsd,
       pdfSizeInfo.totalBytes, pdfSizeInfo.estimatedTokens,
       productRunId
