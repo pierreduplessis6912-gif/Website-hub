@@ -246,7 +246,7 @@ body{
 }
 .vault-nudge:hover{border-color:var(--orange)}
 .vault-nudge-indicator{width:3px;height:40px;background:var(--orange);flex-shrink:0;border-radius:2px}
-.vault-nudge-text{flex:1;font-size:12px;color:var(--charcoal);line-height:1.55}
+.vault-nudge-text{flex:1;font-size:12px;color:rgba(255,255,255,.75);line-height:1.55}
 .vault-nudge-text strong{color:var(--orange)}
 .vault-nudge-cta{font-family:var(--mono);font-size:10px;color:var(--orange);font-weight:700;letter-spacing:.3px;flex-shrink:0;white-space:nowrap}
 
@@ -1303,6 +1303,7 @@ async function handleInstall() {
 }
 
 var currentReportRunId = null;
+var currentReportProduct = '';
 
 async function viewProductReport(runId) {
   showToast('Loading report...');
@@ -1311,11 +1312,13 @@ async function viewProductReport(runId) {
     var d = await res.json();
     if (!d.report) { showToast('Report not ready', 'warn'); return; }
     currentReportRunId = runId;
+    currentReportProduct = product || '';
     var r = d.report;
     var html = '';
 
     // ── HEADING ──
-    html += '<div class="report-heading"><h1>'+(r.tender_title||'Decision Analysis')+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
+    var reportTypeLabel = (currentReportProduct === 'bidpack') ? 'BID PACK' : (currentReportProduct === 'pricing') ? 'PRICING ANALYSIS' : 'DECISION ANALYSIS';
+    html += '<div class="report-heading"><div style="font-family:var(--mono);font-size:10px;color:var(--orange);letter-spacing:2px;margin-bottom:6px">'+reportTypeLabel+'</div><h1>'+(r.tender_title||reportTypeLabel)+'</h1>'+(r.tender_reference?'<div class="report-heading-ref">Ref: '+r.tender_reference+'</div>':'')+'</div>';
 
     // ── VAULT NUDGE (bidpack) ──
     if (d.product==='bidpack' && !vaultActive) {
