@@ -8,7 +8,7 @@
 // Each tier upgrade charges (tier_price - amount_paid) on that SAME submission.
 // Balance is rand sitting on the account, drawn down first; PayFast covers the shortfall.
 
-import { buildPayFastLink, isTestMode } from './shared-services.js';
+import { buildPayFastLink, isTestMode, sendWhatsApp } from './shared-services.js';
 import { handleTlVerifyOtp, handleTlAuthCheck, handleTlLogout, requireTlAuth } from './tl-auth.js';
 
 const TIER_PRICES = { gonogo: 20, pricing: 750, bidpack: 2500 };
@@ -244,6 +244,37 @@ async function handleTlCreateCompany(request, env, tlJson) {
   const message = free_credits && !hasCompleteProfile
     ? 'Account created. Add your registration number and at least one industry + province to unlock R100 free balance.'
     : null;
+
+  // ── WELCOME WHATSAPP ─────────────────────────────────────────────────────
+  // Send onboarding message to the registered number
+  try {
+    const welcomeMsg = `Welcome to TenderLogix, ${businessName}! 🎉
+
+Your account is live. Here's how to get started:
+
+1️⃣ *Complete your profile* — the more detail you add, the better your reports
+   👉 https://tenderlogix.co.za/profile/${companySlug}
+
+2️⃣ *Upload a tender* — any government tender PDF you're considering
+   👉 https://tenderlogix.co.za/dashboard/${companySlug}
+
+3️⃣ *Run a Decision Analysis* (free trial) — know in minutes if you should bid
+
+*Sign in anytime:*
+👉 https://tenderlogix.co.za/login
+Tap "Send me a code on WhatsApp" → you'll receive a 6-digit code here → enter it to sign in. No password needed.
+
+Need help? Reply to this message or email support@tenderlogix.co.za`;
+
+    const normPhone = (phone || '').replace(/\D/g, '');
+    if (normPhone) {
+      await sendWhatsApp(normPhone, welcomeMsg, env).catch(e =>
+        console.warn('[TL] Welcome WhatsApp failed:', e.message)
+      );
+    }
+  } catch(e) {
+    console.warn('[TL] Welcome WhatsApp error:', e.message);
+  }
 
   return tlJson({ success: true, company_id: id, slug: companySlug, balance: startingBalance, message });
 }
