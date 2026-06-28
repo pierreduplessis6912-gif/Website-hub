@@ -925,6 +925,7 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
 }`;
 
       let goodsPricing = null; // declared here so call2Prompt template can reference it
+      let submissionDoc = null;  // declared here so UPDATE query can reference it
       const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 16000);
       if (!call1Result.success) {
         console.error('TL v2 — bidpack call 1 (BOQ+checklist) failed. run:', productRunId, 'reason:', call1Result.reason);
@@ -1143,7 +1144,7 @@ Return this JSON:
         return { success: false, reason: call2Result.reason };
       }
 
-      const submissionDoc = call2Result.text || null;
+      submissionDoc = call2Result.text || null;
       report = {
         ...call1Result.data,
         ...(goodsPricing || {}),
@@ -1200,7 +1201,7 @@ Return this JSON:
     const pdfSizeInfo       = pdfDocs?.length ? estimatePdfTokens(pdfDocs) : { totalBytes: 0, estimatedTokens: 0 };
 
     const reportJsonStr = JSON.stringify(report);
-    const reportTextStr = typeof submissionDoc !== 'undefined' ? (submissionDoc || null) : null;
+    const reportTextStr = submissionDoc || null;
 
     await env.TL_DB.prepare(`
       UPDATE tl_product_runs
