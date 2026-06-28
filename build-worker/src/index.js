@@ -227,6 +227,52 @@ export default {
       // ── MAIN DOMAIN — websitehub.co.za ──────────────────────
       // ── TENDER LOGIX ─────────────────────────────────────────
     if (hostname === 'tenderlogix.co.za' || hostname === 'www.tenderlogix.co.za') {
+
+      // ── PWA manifest ─────────────────────────────────────────────────────
+      if (url.pathname === '/manifest.json') {
+        return new Response(JSON.stringify({
+          name: 'TenderLogix',
+          short_name: 'TenderLogix',
+          description: 'AI-powered government tender intelligence. Know before you bid.',
+          start_url: '/',
+          scope: '/',
+          display: 'standalone',
+          background_color: '#0d0d0d',
+          theme_color: '#ff6b1a',
+          orientation: 'portrait-primary',
+          icons: [
+            { src: '/tl-icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+            { src: '/tl-icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+          ],
+          categories: ['business', 'productivity'],
+          lang: 'en-ZA',
+          shortcuts: [
+            { name: 'Dashboard', url: '/login', description: 'Go to your tender dashboard' }
+          ]
+        }, null, 2), {
+          headers: { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'max-age=3600', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+
+      // ── Service worker ───────────────────────────────────────────────────
+      if (url.pathname === '/sw.js') {
+        return new Response(`
+const CACHE_NAME = 'tl-v2';
+self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  if (e.request.url.includes('/tl/') || e.request.url.includes('/api/') || e.request.url.includes('/admin/')) return;
+  e.respondWith(fetch(e.request).catch(() => new Response('Offline — please reconnect to use TenderLogix', { status: 503 })));
+});
+`, { headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'no-cache' } });
+      }
+
       if (url.pathname.startsWith('/tl/v2/')) {
         try { return await handleTlV2(request, env); }
         catch(e) {
