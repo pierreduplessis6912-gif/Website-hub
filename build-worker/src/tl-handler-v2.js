@@ -549,6 +549,8 @@ async function handleDownloadProductRun(url, env) {
 
   const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(run.company_id).first();
   const report = JSON.parse(run.report_json);
+  // Reattach submission_document from report_text column (stored separately to avoid report_json truncation)
+  if (run.report_text) report.submission_document = run.report_text;
 
   // Phase 2 — real verified compliance documents, only relevant for the
   // bidpack tier's submission pack (others don't show this section at all).
