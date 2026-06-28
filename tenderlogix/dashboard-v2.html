@@ -181,7 +181,7 @@ body{
 }
 .vault-badge.locked{background:var(--cream2);color:var(--dim);border:1px solid var(--border)}
 .proc-bar-wrap{height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:8px;overflow:hidden;width:100%}
-.proc-bar{height:3px;background:var(--orange);border-radius:2px;width:0%;transition:width .5s ease}
+.proc-bar{height:3px;background:var(--orange);border-radius:2px;width:3%;transition:width 1s ease}
 .vault-badge.active{background:var(--green-dim);color:var(--green);border:1px solid var(--green-border)}
 .vault-section-sub{font-size:12px;color:var(--mid);margin-bottom:20px}
 
@@ -814,6 +814,7 @@ async function loadVaultStatus() {
 }
 
 var vaultRequirements = [];
+var runStartTimes = {}; // tracks when each run started processing
 
 async function renderVaultSection() {
   var badge = document.getElementById('vaultBadge');
@@ -1204,22 +1205,21 @@ async function loadTenders() {
     var anyProcessing = tenders.some(function(t){ return (t.product_runs||[]).some(function(r){ return r.status==='queued'||r.status==='processing'; }); });
     var anyComplete = tenders.some(function(t){ return (t.product_runs||[]).some(function(r){ return r.status==='complete'||r.status==='failed'; }); });
     if (anyProcessing) {
-      // Animate all active progress bars
+      // Animate all active progress bars — use runStartTimes to survive DOM re-renders
       document.querySelectorAll('.proc-bar').forEach(function(bar) {
-        if (!bar.dataset.started) {
-          bar.dataset.started = Date.now();
-          bar.dataset.duration = 240000; // 4 min expected
-        }
-        var elapsed = Date.now() - parseInt(bar.dataset.started);
-        var pct = Math.min(95, (elapsed / parseInt(bar.dataset.duration)) * 100);
+        var runId = bar.id.replace('proc-bar-','');
+        if (!runStartTimes[runId]) runStartTimes[runId] = Date.now();
+        var elapsed = Date.now() - runStartTimes[runId];
+        var duration = 240000; // 4 min expected
+        var pct = Math.min(95, (elapsed / duration) * 100);
         bar.style.width = pct + '%';
-        // Update sub text
         var secs = Math.floor(elapsed / 1000);
         var mins = Math.floor(secs / 60);
-        var sub = document.getElementById(bar.id.replace('proc-bar-','proc-sub-'));
+        var sub = document.getElementById('proc-sub-' + runId);
         if (sub) {
           var msgs = ['Analysing document...','Extracting requirements...','Checking eligibility...','Calculating preference points...','Building report...'];
-          sub.textContent = msgs[Math.min(Math.floor(pct/20), msgs.length-1)] + ' (' + (mins > 0 ? mins+'m ' : '') + (secs%60)+'s)';
+          var msgIdx = Math.min(Math.floor(pct / 20), msgs.length - 1);
+          sub.textContent = msgs[msgIdx] + ' (' + (mins > 0 ? mins + 'm ' : '') + (secs % 60) + 's)';
         }
       });
       setTimeout(function() {
