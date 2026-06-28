@@ -277,7 +277,13 @@ async function handleTlUpdateCompany(request, env, tlJson) {
 
   if (!company_id) return tlJson({ error: 'company_id required' }, 400);
 
-  const existing = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  // Accept slug or UUID
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const resolvedId = UUID_RE.test(company_id) ? company_id
+    : (await env.TL_DB.prepare('SELECT id FROM tl_companies WHERE slug=? LIMIT 1').bind(company_id).first().catch(()=>null))?.id;
+  if (!resolvedId) return tlJson({ error: 'Company not found' }, 404);
+
+  const existing = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(resolvedId).first();
   if (!existing) return tlJson({ error: 'Company not found' }, 404);
 
   const normalisedPhone = phone ? phone.replace(/\D/g, '') : existing.phone;
@@ -334,10 +340,10 @@ async function handleTlUpdateCompany(request, env, tlJson) {
     client_references ?? existing.client_references ?? null,
     professional_registrations ?? existing.professional_registrations ?? null,
     equipment_owned ?? existing.equipment_owned ?? null,
-    company_id
+    resolvedId
   ).run();
 
-  return tlJson({ success: true, company_id });
+  return tlJson({ success: true, company_id: resolvedId });
 }
 
 // ── GET BALANCE ──────────────────────────────────────────────────
@@ -1598,4 +1604,5 @@ export async function processTlQueueMessage(msg, env) {
     await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(chargeAmount, submissionId).run();
   }
 }
+
 
