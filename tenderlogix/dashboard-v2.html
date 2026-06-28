@@ -435,6 +435,7 @@ body{
   </div>
   <div class="nav-row2">
     <button class="nav-btn nav-btn-outline" id="profileLink" onclick="goToProfile()">Update Profile</button>
+    <button class="nav-btn nav-btn-outline" id="installPwaBtn" style="display:none" onclick="installPwa()">Add to Home Screen</button>
     <button class="nav-btn nav-btn-danger" onclick="handleLogout(event)">Sign Out</button>
   </div>
 </nav>
@@ -695,6 +696,17 @@ function esc(str) {
 function goToProfile() {
   var slug = (companyData && companyData.slug) ? companyData.slug : companyId;
   window.location.href = '/profile/' + slug;
+}
+
+function installPwa() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(function(result) {
+    if (result.outcome === 'accepted') {
+      document.getElementById('installPwaBtn').style.display = 'none';
+    }
+    deferredInstallPrompt = null;
+  });
 }
 
 async function checkProfileCompletion() {
@@ -1074,6 +1086,17 @@ function goToProfile() {
   window.location.href = '/profile/' + slug;
 }
 
+function installPwa() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(function(result) {
+    if (result.outcome === 'accepted') {
+      document.getElementById('installPwaBtn').style.display = 'none';
+    }
+    deferredInstallPrompt = null;
+  });
+}
+
 async function handleLogout(e) {
   e.preventDefault();
   if (!confirm('Sign out of TenderLogix?')) return;
@@ -1100,6 +1123,20 @@ async function handleLogout(e) {
 
 // ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
 var deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show install button
+  var installBtn = document.getElementById('installPwaBtn');
+  if (installBtn) installBtn.style.display = 'block';
+});
+
+window.addEventListener('appinstalled', function() {
+  var installBtn = document.getElementById('installPwaBtn');
+  if (installBtn) installBtn.style.display = 'none';
+  deferredInstallPrompt = null;
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(function(e) {
@@ -1280,6 +1317,20 @@ async function runProduct(tenderId, product) {
 
 // ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
 var deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show install button
+  var installBtn = document.getElementById('installPwaBtn');
+  if (installBtn) installBtn.style.display = 'block';
+});
+
+window.addEventListener('appinstalled', function() {
+  var installBtn = document.getElementById('installPwaBtn');
+  if (installBtn) installBtn.style.display = 'none';
+  deferredInstallPrompt = null;
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(function(e) {
@@ -1697,6 +1748,20 @@ loadDashboard();
 // ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
 var deferredInstallPrompt = null;
 
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show install button
+  var installBtn = document.getElementById('installPwaBtn');
+  if (installBtn) installBtn.style.display = 'block';
+});
+
+window.addEventListener('appinstalled', function() {
+  var installBtn = document.getElementById('installPwaBtn');
+  if (installBtn) installBtn.style.display = 'none';
+  deferredInstallPrompt = null;
+});
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(function(e) {
     console.warn('SW registration failed:', e);
@@ -1752,6 +1817,20 @@ window.addEventListener('pageshow', function(event) {
 
 // ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
 var deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show install button
+  var installBtn = document.getElementById('installPwaBtn');
+  if (installBtn) installBtn.style.display = 'block';
+});
+
+window.addEventListener('appinstalled', function() {
+  var installBtn = document.getElementById('installPwaBtn');
+  if (installBtn) installBtn.style.display = 'none';
+  deferredInstallPrompt = null;
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(function(e) {
