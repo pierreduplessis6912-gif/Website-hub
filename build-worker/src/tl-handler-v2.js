@@ -1083,54 +1083,55 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
       // ── GOODS PRICING ORACLE — web search pricing for goods tenders ──────
       if ((call1Data.tender_type === 'goods' || call1Data.tender_type === 'mixed') &&
           call1Data.goods_items && call1Data.goods_items.length > 0) {
-        console.log('[GoodsOracle] Detected goods tender —', call1Data.goods_items.length, 'items. Running web search pricing...');
-        const goodsSystemPrompt = `You are a South African government procurement pricing specialist. You research current market prices for goods using web search and build competitive bid pricing models. Return ONLY valid JSON. No markdown, no explanation.`;
-        const goodsUserPrompt = `Research current South African market prices for these tender items and return a JSON pricing analysis.
+        // Cap at 5 items and set a 90 second timeout to protect call2
+        const itemsToPrice = call1Data.goods_items.slice(0, 5);
+        console.log('[GoodsOracle] Detected goods tender —', call1Data.goods_items.length, 'items, pricing', itemsToPrice.length);
+
+        const goodsSystemPrompt = `You are a South African government procurement pricing specialist. Research current market prices for goods using web search. Return ONLY valid JSON. No markdown, no explanation.`;
+        const goodsUserPrompt = `Research current South African market prices for these tender items.
 
 TENDER: ${call1Data.tender_title}
 COMPANY: ${company.name} | Province: ${JSON.parse(company.provinces || '[]').join(', ') || 'National'}
 
-ITEMS TO PRICE:
-${JSON.stringify(call1Data.goods_items, null, 2)}
+ITEMS TO PRICE (search for each, find SA supplier prices, check SITA transversal contracts):
+${JSON.stringify(itemsToPrice, null, 2)}
 
-For each item:
-1. Search for current SA supplier prices (use specific search terms like "[item name] price South Africa supplier 2026")
-2. Check if item is on SITA transversal contract
-3. Average 3+ price sources
-4. Apply markup model: 15-25% margin + delivery cost estimate
-
-Return this exact JSON structure:
+Return this JSON:
 {
-  "goods_pricing": [
-    {
-      "item_code": "string or null",
-      "item_name": "string",
-      "quantity": number,
-      "unit": "string",
-      "market_price_low": number,
-      "market_price_high": number,
-      "market_price_avg": number,
-      "price_sources": ["source 1 with price", "source 2 with price", "source 3 with price"],
-      "sita_transversal": "string or null — SITA contract number and price if found",
-      "recommended_margin_pct": number,
-      "delivery_per_unit": number,
-      "recommended_unit_price": number,
-      "total_line_value": number,
-      "confidence": "HIGH or MEDIUM or LOW",
-      "pricing_notes": "string — key assumptions and risks"
-    }
-  ],
+  "goods_pricing": [{
+    "item_code": "string or null",
+    "item_name": "string",
+    "quantity": number,
+    "unit": "string",
+    "market_price_low": number,
+    "market_price_high": number,
+    "market_price_avg": number,
+    "price_sources": ["source with price"],
+    "sita_transversal": "string or null",
+    "recommended_margin_pct": number,
+    "delivery_per_unit": number,
+    "recommended_unit_price": number,
+    "total_line_value": number,
+    "confidence": "HIGH or MEDIUM or LOW",
+    "pricing_notes": "string"
+  }],
   "total_bid_value": number,
-  "pricing_strategy": "string — overall competitive positioning advice",
-  "market_intelligence": "string — key findings about this market segment"
+  "pricing_strategy": "string",
+  "market_intelligence": "string"
 }`;
 
-        const goodsResult = await callKimiWithSearch(env, goodsSystemPrompt, goodsUserPrompt, 8000);
+        // Race against 90 second timeout to ensure call2 still runs
+        const goodsTimeout = new Promise(resolve => setTimeout(() => resolve({ success: false, reason: 'timeout' }), 90000));
+        const goodsResult = await Promise.race([
+          callKimiWithSearch(env, goodsSystemPrompt, goodsUserPrompt, 6000),
+          goodsTimeout
+        ]);
+
         if (goodsResult.success) {
           goodsPricing = goodsResult.data;
-          console.log('[GoodsOracle] Pricing complete — total bid value: R', goodsPricing.total_bid_value);
+          console.log('[GoodsOracle] Pricing complete — total bid value: R', goodsPricing?.total_bid_value);
         } else {
-          console.warn('[GoodsOracle] Pricing failed:', goodsResult.reason);
+          console.warn('[GoodsOracle] Pricing skipped/failed:', goodsResult.reason);
         }
       }
 
