@@ -128,11 +128,11 @@ function buildBoqTable(boq, boqTotals) {
     }),
     ...boq.map(item => new TableRow({
       children: [
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.line_item || '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.line_item || item.description || item.item || '', size: 18 })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.unit || '', size: 18 })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(item.quantity ?? ''), size: 18 })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.unit_rate ? 'R' + item.unit_rate.toLocaleString() : '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.total ? 'R' + item.total.toLocaleString() : '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: (item.total||item.total_amount||0) ? 'R' + (item.total||item.total_amount||0).toLocaleString() : '', size: 18 })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.confidence || '', size: 18 })] })] }),
       ],
     })),
@@ -613,7 +613,7 @@ function buildSbd31PricingSchedule(boq) {
         children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 16 })] })],
       })) }),
       ...priceableLines.map(item => new TableRow({ children: [
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.line_item || '', size: 16 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.line_item || item.description || item.item || '', size: 16 })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: item.unit || '', size: 16 })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'R' + item.unit_rate.toLocaleString(), size: 16 })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'R __________', size: 16 })] })] }),
@@ -786,11 +786,7 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
         spacing: { after: 300 },
         children: [new TextRun({ text: 'TENDER INTELLIGENCE & RESPONSE GUIDE', size: 20, color: '999999', characterSpacing: 20 })],
       }),
-      new Paragraph({
-        spacing: { after: 160 },
-        children: [new TextRun({ text: 'Reference document — complete official WCBD/SBD/MBD forms in black ink on originals downloaded from the issuing authority. Attach this Guide as your technical proposal document.', italics: true, size: 17, color: '888888' })],
-      }),
-      // Render the call2 markdown narrative
+      // Render the call2 markdown narrative — disclaimer is included by Kimi in the markdown
       ...(submissionDoc
         ? markdownToDocxElements(submissionDoc)
         : [new Paragraph({ children: [new TextRun({ text: 'Response guide not available — re-run Bid Pack to generate.', color: '888888', italics: true })] })]
