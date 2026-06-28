@@ -25,6 +25,19 @@ const LIGHT_GRAY = 'F2F2F2';
 function markdownToDocxElements(markdown) {
   if (!markdown) return [new Paragraph({ text: '(No content)' })];
 
+  // Highlight [Insert...] and [UNKNOWN...] placeholders in orange
+  const makePlaceholderRuns = (text) => {
+    const pattern = /(\[(?:Insert|INSERT|UNKNOWN|insert)[^\]]*\])/g;
+    if (!pattern.test(text)) return null;
+    pattern.lastIndex = 0;
+    const parts = text.split(pattern);
+    return parts.map(part =>
+      /^\[(?:Insert|INSERT|UNKNOWN|insert)/.test(part)
+        ? new TextRun({ text: part, color: BRAND_ORANGE, bold: true })
+        : new TextRun({ text: part })
+    );
+  };
+
   const lines = markdown.split('\n');
   const elements = [];
   let i = 0;
@@ -105,7 +118,8 @@ function markdownToDocxElements(markdown) {
       i++;
       continue;
     } else {
-      elements.push(new Paragraph({ children: parseBoldRuns(trimmed) }));
+      const phRuns = makePlaceholderRuns(trimmed);
+      elements.push(new Paragraph({ children: phRuns || parseBoldRuns(trimmed) }));
     }
     i++;
   }
@@ -699,6 +713,13 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
       children: [new TextRun({ text: 'TENDERLOGIX', bold: true, size: 20, color: BRAND_ORANGE, characterSpacing: 40 })],
     }),
     new Paragraph({ text: '' }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({
+        text: product === 'gonogo' ? 'DECISION ANALYSIS' : product === 'bidpack' ? 'BID PACK' : 'PRICING ANALYSIS',
+        bold: true, size: 20, color: BRAND_ORANGE, characterSpacing: 30
+      })]
+    }),
     new Paragraph({ text: title, heading: HeadingLevel.TITLE }),
     ...(ref ? [new Paragraph({ children: [new TextRun({ text: 'Ref: ' + ref, italics: true, color: '666666' })] })] : []),
     new Paragraph({ children: [new TextRun({ text: 'Prepared for: ' + (companyName || ''), color: '666666' })] }),
