@@ -759,7 +759,7 @@ Produce a priced BOQ. If the tender specifies government-prescribed/gazetted rat
       // proven-working call, just without the verdict-free pricing framing).
       const call1Prompt = `You are a South African tender bid preparation specialist. Return ONLY valid JSON matching the schema below. No markdown, no explanation outside the JSON.
 
-${pricingContext ? `LIVE STATUTORY PRICING ORACLE (fetched today — use these rates, they supersede your training data):
+${pricingContext && call1Data.tender_type !== 'goods' ? `LIVE STATUTORY PRICING ORACLE (fetched today — use these rates, they supersede your training data):
 ${pricingContext}
 LABOUR BOQ CALCULATION METHOD (mandatory for service tenders):
 - Monthly lump sum = number_of_staff × hours_per_day × working_days_per_month × total_hourly_rate
@@ -779,6 +779,9 @@ SCHEMA RULES (mandatory — always populate all fields):
 - boq: always include, even if company is ineligible. Never empty.
 - CRITICAL PRICING RULE: Oracle rates above are your primary source. Use them for all labour line items.
 - pricing_basis: MANDATORY field — always populate using the oracle rates. Use base_rate, oncost_pct, and total_rate from the oracle data.
+- CRITICAL COMPLIANCE RULE: NEVER dismiss or qualify a mandatory requirement listed in the tender. If the tender lists CIDB registration as mandatory, it is mandatory — do not add notes like "scope applies to building work only" unless the tender document itself explicitly says so. When in doubt, mark the requirement as mandatory and flag for client verification.
+- CRITICAL DATA INTEGRITY: If company profile data appears contradictory (e.g. annual turnover R250,000 but largest contract R50,000,000), flag this as a DATA INTEGRITY ISSUE in the compliance checklist and recommend immediate client verification before submission. Contradictory data could trigger fraud investigations.
+- GEOGRAPHIC ACCURACY: Use the company's registered province/region from their profile data for geographic claims. Never infer location from company name.
 - compliance_checklist: split into three groups using the 'status' field: 'CAN_COMPLETE_NOW', 'MISSING_DOCUMENTS', 'NEEDS_PARTNER'
 - pricing_disclaimer: use this field for eligibility assessment — state gaps, provide path forward (partner/JV/register/withdraw with timeline), estimate functionality score. Never a bare 'do not bid'.
 - Do NOT apply a 30% margin to gazetted professional service rates.
@@ -956,6 +959,11 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
       const       call2Prompt = `You are a South African government tender bid preparation specialist producing a Tender Intelligence & Response Guide — NOT a form-filler. You produce the strategy, pricing intelligence, technical narrative, and operational content that surrounds the official forms. The official forms are just 2% of the win probability.
 
 SINGLE DISCLAIMER (top only, never repeated): "Reference document — complete official WCBD/SBD/MBD forms in black ink on originals downloaded from ePS. Attach this Guide as your technical proposal."
+
+CRITICAL RULES FOR JV RECOMMENDATIONS:
+- Never prescribe specific shareholding percentages (e.g. 51/49) — JV structure is commercially negotiable and depends on each party's contribution
+- Always note that the partner who contributes the most critical resources (licences, stock, capital) will typically demand majority control or equal share
+- Recommend the client seek legal advice on JV agreement structure
 
 QUALITY STANDARD: Every section must contain specific, actionable intelligence pulled directly from this tender document and the company profile. No generic text. No vague statements. No empty tables. If data is missing, state exactly what is missing and how to obtain it.
 
