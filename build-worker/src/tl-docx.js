@@ -193,7 +193,7 @@ function buildChecklistSection(title, items, statusKey, labelKey, notesKey) {
       new Paragraph({
         children: [
           new TextRun({ text: statusIcon(item[statusKey]) + '  ', bold: true }),
-          new TextRun({ text: item[labelKey] || item['requirement'] || item['item'] || item['description'] || item['name'] || '', bold: true }),
+          new TextRun({ text: item[labelKey] || item['requirement'] || item['document_name'] || item['item'] || item['description'] || item['name'] || '', bold: true }),
         ],
       }),
       ...(item[notesKey] ? [new Paragraph({ children: [new TextRun({ text: item[notesKey], italics: true, size: 18, color: '666666' })], indent: { left: 360 } })] : []),
