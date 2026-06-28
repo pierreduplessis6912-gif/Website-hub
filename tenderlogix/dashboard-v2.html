@@ -1230,6 +1230,32 @@ async function loadTenders() {
 }
 
 async function runProduct(tenderId, product) {
+  // Show profile completeness nudge before paid runs
+  if (companyData) {
+    var c = companyData;
+    var score = 0;
+    if (c.street_address) score += 15;
+    if (c.tax_reference_number) score += 15;
+    if (c.annual_turnover && c.annual_turnover > 0) score += 15;
+    if (c.employees && c.employees > 0) score += 15;
+    if (c.years_experience && c.years_experience > 0) score += 10;
+    try { if (JSON.parse(c.industries||'[]').length > 0) score += 15; } catch(e) {}
+    try { if (JSON.parse(c.provinces||'[]').length > 0) score += 15; } catch(e) {}
+
+    // Show nudge if profile under 80% — always allow proceeding
+    if (score < 80) {
+      var missing = [];
+      if (!c.street_address) missing.push('Physical address');
+      if (!c.tax_reference_number) missing.push('Tax reference number');
+      if (!c.vat_number) missing.push('VAT number');
+      if (!c.annual_turnover) missing.push('Annual turnover');
+      if (!c.employees) missing.push('Employee count');
+
+      var proceed = await showProfileNudge(score, missing, product);
+      if (!proceed) return;
+    }
+  }
+
   showToast('Queueing '+productLabel(product)+'...');
   try {
     var res = await authFetch('/tl/v2/product/run', {
@@ -1583,6 +1609,46 @@ function checkRow(icon, text, notes) {
 }
 
 function closeReport() { document.getElementById('reportOverlay').classList.remove('open'); document.body.style.overflow=''; currentReportRunId=null; }
+
+function showProfileNudge(score, missing, product) {
+  return new Promise(function(resolve) {
+    var productName = product === 'gonogo' ? 'Decision Analysis (R100)' : 'Bid Pack (R750)';
+    var missingHtml = missing.length
+      ? '<ul style="margin:10px 0 0 0;padding-left:18px;color:rgba(255,255,255,.6);font-size:13px">' + missing.slice(0,5).map(function(m){ return '<li>'+m+'</li>'; }).join('') + '</ul>'
+      : '';
+
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.innerHTML = '<div style="background:#1a1a1a;border:1px solid rgba(255,107,26,.3);max-width:420px;width:100%;padding:28px;border-radius:2px">'
+      + '<div style="font-family:var(--mono);font-size:10px;color:var(--orange);letter-spacing:2px;margin-bottom:12px">PROFILE INCOMPLETE</div>'
+      + '<div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">Your profile is '+score+'% complete</div>'
+      + '<div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:4px">A complete profile means more pre-filled fields and more accurate analysis in your <strong style="color:#fff">'+productName+'</strong>.</div>'
+      + (missingHtml ? '<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:4px">Missing details:</div>' + missingHtml : '')
+      + '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:12px;font-style:italic">Fields marked [Insert...] in your report indicate missing profile data. You can complete your profile and re-download the report at any time — no need to re-run.</div>'
+      + '<div style="display:flex;gap:12px;margin-top:20px">'
+      + '<button onclick="this.closest('div[style*=fixed]').remove();window.goToProfile()" style="flex:1;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.2);color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase">Complete Profile</button>'
+      + '<button onclick="this.closest('div[style*=fixed]').dataset.proceed='1'" style="flex:1;padding:12px;background:var(--orange);border:none;color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase">Continue Anyway →</button>'
+      + '</div></div>';
+
+    document.body.appendChild(overlay);
+
+    // Watch for continue click
+    var observer = new MutationObserver(function() {
+      if (overlay.dataset.proceed === '1') {
+        observer.disconnect();
+        overlay.remove();
+        resolve(true);
+      }
+    });
+    observer.observe(overlay, { attributes: true });
+
+    // Watch for profile click (resolves false — cancel the run)
+    overlay.querySelector('button:first-child').addEventListener('click', function() {
+      observer.disconnect();
+      resolve(false);
+    });
+  });
+}
 
 async function downloadCurrentReport() {
   if (!currentReportRunId) return;
