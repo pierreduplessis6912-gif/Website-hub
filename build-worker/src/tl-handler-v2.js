@@ -903,7 +903,7 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
   "tender_reference": "string or null",
   "tender_type": "service or goods or mixed",
   "goods_items": [ { "item_name": "string — exact item description", "spec": "string — specification details from tender", "quantity": number, "unit": "string — each/box/set/m2 etc", "item_code": "string or null" } ],
-  "compliance_checklist": [ { "requirement": "string — document or requirement name", "status": "CAN_COMPLETE_NOW or MISSING_DOCUMENTS or NEEDS_PARTNER", "notes": "string — action, cost, lead time" } ],
+  "compliance_checklist": [ { "requirement": "string — ALWAYS use this exact field name, never document_name or item. Document or requirement name.", "status": "CAN_COMPLETE_NOW or MISSING_DOCUMENTS or NEEDS_PARTNER", "notes": "string — action, cost, lead time" } ],
   "pricing_basis": {
     "dominant_labour_category": "string — main labour type in this tender",
     "applicable_council": "string — bargaining council or gazette name",
