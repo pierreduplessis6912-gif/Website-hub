@@ -1081,10 +1081,6 @@ async function submitUpload() {
     showToast(d.was_free_trial ? 'Tender uploaded — free trial used' : 'Tender uploaded — R'+d.charged+' charged', 'success');
     await loadDashboard();
 
-function goToProfile() {
-  var slug = (companyData && companyData.slug) ? companyData.slug : companyId;
-  window.location.href = '/profile/' + slug;
-}
 
 
 
