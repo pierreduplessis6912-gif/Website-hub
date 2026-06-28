@@ -184,12 +184,12 @@ async function handleTenderUpload(request, env, tlJson) {
   }
 
   const form = await request.formData();
-  const company_id = form.get('company_id');
+  const raw_company_id = form.get('company_id');
   const tender_ref  = form.get('tender_ref') || null;
   const overrideGate = form.get('override_gate') === 'true';
   const files = form.getAll('files');
 
-  if (!company_id || !files.length) return tlJson({ error: 'company_id and at least one file required' }, 400);
+  if (!raw_company_id || !files.length) return tlJson({ error: 'company_id and at least one file required' }, 400);
   if (files.length > 1 && !tender_ref) {
     return tlJson({ error: 'Tender reference is required when uploading more than one document' }, 400);
   }
@@ -199,7 +199,8 @@ async function handleTenderUpload(request, env, tlJson) {
     if (f.size > 32 * 1024 * 1024) return tlJson({ error: `"${f.name}" is over 32MB.` }, 400);
   }
 
-  const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
+  const company_id = await resolveCompanyId(env, raw_company_id);
+  const company = company_id ? await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first() : null;
   if (!company) return tlJson({ error: 'Company not found' }, 404);
 
   // ── Upload rate limit — max 20 uploads per company per hour ──────────
@@ -1568,6 +1569,7 @@ async function callClaudeTwoPass(env, pdfDocs, promptText, schemaText, maxTokens
   console.log('TL callClaudeTwoPass — routing to single-pass (Kimi 262k context)');
   return callClaude(env, pdfDocs, promptText, schemaText, maxTokens, false);
 }
+
 
 
 
