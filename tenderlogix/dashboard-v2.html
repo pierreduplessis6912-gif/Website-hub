@@ -1086,16 +1086,7 @@ function goToProfile() {
   window.location.href = '/profile/' + slug;
 }
 
-function installPwa() {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  deferredInstallPrompt.userChoice.then(function(result) {
-    if (result.outcome === 'accepted') {
-      document.getElementById('installPwaBtn').style.display = 'none';
-    }
-    deferredInstallPrompt = null;
-  });
-}
+
 
 async function handleLogout(e) {
   e.preventDefault();
@@ -1121,66 +1112,8 @@ async function handleLogout(e) {
 // bypass this intentionally.
 
 
-// ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
-var deferredInstallPrompt = null;
+// ── PWA INSTALL PROMPT ─────────────────────────────────────────────────
 
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  // Show install button
-  var installBtn = document.getElementById('installPwaBtn');
-  if (installBtn) installBtn.style.display = 'block';
-});
-
-window.addEventListener('appinstalled', function() {
-  var installBtn = document.getElementById('installPwaBtn');
-  if (installBtn) installBtn.style.display = 'none';
-  deferredInstallPrompt = null;
-});
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(function(e) {
-    console.warn('SW registration failed:', e);
-  });
-}
-
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  // Show banner unless user has dismissed it in last 7 days
-  var dismissed = localStorage.getItem('tl_install_dismissed');
-  if (!dismissed || Date.now() - parseInt(dismissed) > 7*24*60*60*1000) {
-    var banner = document.getElementById('installBanner');
-    if (banner) banner.style.display = 'flex';
-  }
-});
-
-window.addEventListener('appinstalled', function() {
-  var banner = document.getElementById('installBanner');
-  if (banner) banner.style.display = 'none';
-  deferredInstallPrompt = null;
-  localStorage.setItem('tl_install_dismissed', Date.now());
-});
-
-function dismissInstallBanner() {
-  var banner = document.getElementById('installBanner');
-  if (banner) banner.style.display = 'none';
-  localStorage.setItem('tl_install_dismissed', Date.now());
-}
-
-async function handleInstall() {
-  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (window.matchMedia('(display-mode: standalone)').matches) { showToast('Already installed'); return; }
-  if (isIos) { showToast('Tap Share then "Add to Home Screen"'); return; }
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    var result = await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    if (result.outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
-  } else {
-    showToast('Open in Chrome to install as an app');
-  }
-}
 
   } catch(e) { showToast(e.message||'Upload failed', 'error'); }
   btn.disabled = false;
@@ -1315,66 +1248,8 @@ async function runProduct(tenderId, product) {
 // bypass this intentionally.
 
 
-// ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
-var deferredInstallPrompt = null;
+// ── PWA INSTALL PROMPT ─────────────────────────────────────────────────
 
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  // Show install button
-  var installBtn = document.getElementById('installPwaBtn');
-  if (installBtn) installBtn.style.display = 'block';
-});
-
-window.addEventListener('appinstalled', function() {
-  var installBtn = document.getElementById('installPwaBtn');
-  if (installBtn) installBtn.style.display = 'none';
-  deferredInstallPrompt = null;
-});
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(function(e) {
-    console.warn('SW registration failed:', e);
-  });
-}
-
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  // Show banner unless user has dismissed it in last 7 days
-  var dismissed = localStorage.getItem('tl_install_dismissed');
-  if (!dismissed || Date.now() - parseInt(dismissed) > 7*24*60*60*1000) {
-    var banner = document.getElementById('installBanner');
-    if (banner) banner.style.display = 'flex';
-  }
-});
-
-window.addEventListener('appinstalled', function() {
-  var banner = document.getElementById('installBanner');
-  if (banner) banner.style.display = 'none';
-  deferredInstallPrompt = null;
-  localStorage.setItem('tl_install_dismissed', Date.now());
-});
-
-function dismissInstallBanner() {
-  var banner = document.getElementById('installBanner');
-  if (banner) banner.style.display = 'none';
-  localStorage.setItem('tl_install_dismissed', Date.now());
-}
-
-async function handleInstall() {
-  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (window.matchMedia('(display-mode: standalone)').matches) { showToast('Already installed'); return; }
-  if (isIos) { showToast('Tap Share then "Add to Home Screen"'); return; }
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    var result = await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    if (result.outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
-  } else {
-    showToast('Open in Chrome to install as an app');
-  }
-}
 
   } catch(e) { showToast(e.message||'Failed to queue', 'error'); }
 }
@@ -1745,66 +1620,8 @@ loadDashboard();
 // bypass this intentionally.
 
 
-// ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
-var deferredInstallPrompt = null;
+// ── PWA INSTALL PROMPT ─────────────────────────────────────────────────
 
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  // Show install button
-  var installBtn = document.getElementById('installPwaBtn');
-  if (installBtn) installBtn.style.display = 'block';
-});
-
-window.addEventListener('appinstalled', function() {
-  var installBtn = document.getElementById('installPwaBtn');
-  if (installBtn) installBtn.style.display = 'none';
-  deferredInstallPrompt = null;
-});
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(function(e) {
-    console.warn('SW registration failed:', e);
-  });
-}
-
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  // Show banner unless user has dismissed it in last 7 days
-  var dismissed = localStorage.getItem('tl_install_dismissed');
-  if (!dismissed || Date.now() - parseInt(dismissed) > 7*24*60*60*1000) {
-    var banner = document.getElementById('installBanner');
-    if (banner) banner.style.display = 'flex';
-  }
-});
-
-window.addEventListener('appinstalled', function() {
-  var banner = document.getElementById('installBanner');
-  if (banner) banner.style.display = 'none';
-  deferredInstallPrompt = null;
-  localStorage.setItem('tl_install_dismissed', Date.now());
-});
-
-function dismissInstallBanner() {
-  var banner = document.getElementById('installBanner');
-  if (banner) banner.style.display = 'none';
-  localStorage.setItem('tl_install_dismissed', Date.now());
-}
-
-async function handleInstall() {
-  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (window.matchMedia('(display-mode: standalone)').matches) { showToast('Already installed'); return; }
-  if (isIos) { showToast('Tap Share then "Add to Home Screen"'); return; }
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    var result = await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    if (result.outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
-  } else {
-    showToast('Open in Chrome to install as an app');
-  }
-}
 
 
 window.addEventListener('pageshow', function(event) {
@@ -1815,22 +1632,7 @@ window.addEventListener('pageshow', function(event) {
 // bypass this intentionally.
 
 
-// ── PWA INSTALL PROMPT ───────────────────────────────────────────────────
-var deferredInstallPrompt = null;
-
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  // Show install button
-  var installBtn = document.getElementById('installPwaBtn');
-  if (installBtn) installBtn.style.display = 'block';
-});
-
-window.addEventListener('appinstalled', function() {
-  var installBtn = document.getElementById('installPwaBtn');
-  if (installBtn) installBtn.style.display = 'none';
-  deferredInstallPrompt = null;
-});
+// ── PWA INSTALL PROMPT ─────────────────────────────────────────────────
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(function(e) {
@@ -1925,6 +1727,7 @@ window.addEventListener('beforeunload', function(e) {
 </script>
 </body>
 </html>
+
 
 
 
