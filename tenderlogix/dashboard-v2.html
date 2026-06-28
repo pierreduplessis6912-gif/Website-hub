@@ -1312,7 +1312,7 @@ async function viewProductReport(runId) {
     var d = await res.json();
     if (!d.report) { showToast('Report not ready', 'warn'); return; }
     currentReportRunId = runId;
-    currentReportProduct = product || '';
+    currentReportProduct = d.product || '';
     var r = d.report;
     var html = '';
 
