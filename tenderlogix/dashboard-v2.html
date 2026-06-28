@@ -799,12 +799,9 @@ async function loadVaultStatus() {
     var d = await res.json();
     vaultActive = !!d.vault_active;
     var pill = document.getElementById('vaultPill');
-    if (vaultActive) {
-      pill.className = 'vault-pill active';
-      pill.textContent = 'Vault Active';
-    } else {
-      pill.className = 'vault-pill inactive';
-      pill.textContent = 'Vault';
+    if (pill) {
+      pill.className = vaultActive ? 'vault-pill active' : 'vault-pill inactive';
+      pill.textContent = vaultActive ? 'Vault Active' : 'Vault';
     }
     await renderVaultSection();
   } catch(e) { console.warn('loadVaultStatus error:', e); }
