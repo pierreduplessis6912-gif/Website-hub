@@ -306,6 +306,13 @@ body{
       <div class="field"><label>Largest Single Contract (R)</label><input type="number" id="largest_contract_value" placeholder="e.g. 500000" min="0"></div>
       <div class="field"><label>Banking Institution</label><input type="text" id="banking_institution" placeholder="e.g. FNB, Standard Bank"></div>
     </div>
+    <div class="field-row">
+      <div class="field"><label>B-BBEE Level (1-8)</label><input type="number" id="bee_level" placeholder="e.g. 1" min="1" max="8"></div>
+      <div class="field"><label>CIDB Grade</label><input type="text" id="cidb_grade" placeholder="e.g. 3GB, 5CE"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>CIDB Registration Number</label><input type="text" id="cidb_number" placeholder="e.g. 123456"></div>
+    </div>
     <button class="btn-primary" onclick="saveFinancials()">Save Financial Details</button>
   </div>
 
@@ -423,7 +430,7 @@ async function loadProfile() {
     var d = await res.json();
     if (d.error) { showToast('Could not load profile', 'error'); return; }
     // Populate split address fields
-    var fields = ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number','employees','years_experience','employees_management','employees_skilled','employees_unskilled','vehicles_owned','annual_turnover','working_capital','largest_contract_value','banking_institution','contracts_completed','government_contracts','active_contracts','client_references','professional_registrations','equipment_owned','uif_registered','paye_registered'];
+    var fields = ['street_address','postal_address','city','postal_code','tax_reference_number','vat_number','municipal_account_number','employees','years_experience','employees_management','employees_skilled','employees_unskilled','vehicles_owned','annual_turnover','working_capital','largest_contract_value','banking_institution','bee_level','cidb_grade','cidb_number','contracts_completed','government_contracts','active_contracts','client_references','professional_registrations','equipment_owned','uif_registered','paye_registered'];
     fields.forEach(function(field) {
       var el = document.getElementById(field);
       if (el && d[field]) el.value = d[field];
@@ -481,6 +488,12 @@ async function saveFinancials() {
     });
     var bank = document.getElementById('banking_institution');
     if (bank && bank.value.trim()) body.banking_institution = bank.value.trim();
+    var bee = document.getElementById('bee_level');
+    if (bee && bee.value !== '') body.bee_level = parseInt(bee.value) || null;
+    var cidbGrade = document.getElementById('cidb_grade');
+    if (cidbGrade && cidbGrade.value.trim()) body.cidb_grade = cidbGrade.value.trim();
+    var cidbNum = document.getElementById('cidb_number');
+    if (cidbNum && cidbNum.value.trim()) body.cidb_number = cidbNum.value.trim();
     var res = await authFetch('/tl/company/update', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     var d = await res.json();
     if (d.error) throw new Error(d.error);
@@ -776,5 +789,6 @@ window.addEventListener('beforeunload', function(e) {
 </script>
 </body>
 </html>
+
 
 
