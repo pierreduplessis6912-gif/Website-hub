@@ -770,50 +770,31 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
     children: advisoryChildren,
   }];
 
-  // ── OFFICIAL FORMS — Phase 1, completely UNBRANDED ────────────────────
-  // A new, separate docx section with NO header/footer at all. These are
-  // genuine MBD form layouts intended for actual submission — a third-party
-  // logo or "Prepared by TenderLogix" on a government tender form would be
-  // inappropriate and could raise questions with the evaluator. This
-  // section starts on its own page (new section = automatic page break).
-  //
-  // CRITICAL: tender documents explicitly require bids to be completed on
-  // OFFICIAL forms, in BLACK INK, and state "do not retype" — submitting a
-  // retyped/printed version of these reference tables would itself be a
-  // disqualifying error. This section is a TRANSCRIPTION GUIDE, never a
-  // print-and-submit form set, reinforced via a persistent page header
-  // (true Word watermarks need a third-party library not available in this
-  // environment — a repeated header marker is the practical equivalent).
+  // ── TENDER INTELLIGENCE & RESPONSE GUIDE — call2 narrative output ───────
+  // The new Bid Pack format: strategy, pricing model, technical proposal,
+  // and a one-page forms cheat sheet. The old MBD form builders are retired.
   if (product === 'bidpack') {
+    const submissionDoc = report.submission_document || null;
     const formsChildren = [
       new Paragraph({
         alignment: AlignmentType.CENTER,
+        spacing: { after: 80 },
         children: [new TextRun({ text: 'TENDERLOGIX', bold: true, size: 24, color: BRAND_ORANGE, characterSpacing: 40 })],
       }),
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: 200 },
-        children: [new TextRun({ text: 'BID PREPARATION TOOLKIT', size: 18, color: '999999', characterSpacing: 20 })],
+        spacing: { after: 300 },
+        children: [new TextRun({ text: 'TENDER INTELLIGENCE & RESPONSE GUIDE', size: 20, color: '999999', characterSpacing: 20 })],
       }),
-      new Paragraph({ children: [new TextRun({ text: 'FORM COMPLETION GUIDE — TRANSCRIBE TO OFFICIAL FORMS', bold: true, size: 32, color: BRAND_ORANGE })] }),
       new Paragraph({
-        children: [new TextRun({ text: '⚠ DO NOT SUBMIT THIS DOCUMENT AS YOUR BID FORMS. ', bold: true, color: 'FF4757', size: 18 }), new TextRun({ text: 'This tender requires bids completed in BLACK INK on the OFFICIAL forms downloaded from the issuing authority\'s website — retyped or substitute forms can result in automatic disqualification. Use the data below to fill in the real official forms by hand or in a fillable PDF.', bold: true, color: 'FF4757', size: 18 })],
+        spacing: { after: 160 },
+        children: [new TextRun({ text: 'Reference document — complete official WCBD/SBD/MBD forms in black ink on originals downloaded from the issuing authority. Attach this Guide as your technical proposal document.', italics: true, size: 17, color: '888888' })],
       }),
-      new Paragraph({ children: [new TextRun({ text: 'Fields marked in orange require manual completion — this system does not yet hold this data. Verify every pre-filled field is current before transcribing.', italics: true, size: 18, color: '888888' })] }),
-      new Paragraph({ children: [new TextRun({ text: 'IMPORTANT: National Treasury periodically revises SBD/MBD form layouts (e.g. the 2022 SBD 4 consolidation). These are reference templates reflecting the standard structure — always cross-check against the actual SBD/MBD forms included in this specific tender pack.', bold: true, color: 'FF4757', size: 16 })] }),
-      ...buildMbd1(company, report, directors),
-      ...buildMbd2(company),
-      ...buildMbd4(company, directors),
-      ...buildMbd61(company),
-      ...buildMbd8(company),
-      ...buildMbd9(company, report),
-      ...buildMbd15(company, directors),
-      ...buildMbd16(),
-      ...buildMbd72(company, report, directors),
-      ...buildSbd62LocalContent(company),
-      ...buildCategorySelection(),
-      ...buildSbd31PricingSchedule(report.boq),
-      ...buildSubmissionPackaging(report, company),
+      // Render the call2 markdown narrative
+      ...(submissionDoc
+        ? markdownToDocxElements(submissionDoc)
+        : [new Paragraph({ children: [new TextRun({ text: 'Response guide not available — re-run Bid Pack to generate.', color: '888888', italics: true })] })]
+      ),
     ];
 
     // Two-tier header: safety warning stays visually dominant (red, bold,
