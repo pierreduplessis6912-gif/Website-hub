@@ -180,6 +180,8 @@ body{
   padding:3px 8px;text-transform:uppercase;border-radius:2px;
 }
 .vault-badge.locked{background:var(--cream2);color:var(--dim);border:1px solid var(--border)}
+.proc-bar-wrap{height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:8px;overflow:hidden;width:100%}
+.proc-bar{height:3px;background:var(--orange);border-radius:2px;width:0%;transition:width .5s ease}
 .vault-badge.active{background:var(--green-dim);color:var(--green);border:1px solid var(--green-border)}
 .vault-section-sub{font-size:12px;color:var(--mid);margin-bottom:20px}
 
@@ -788,6 +790,10 @@ async function loadDashboard() {
     checkProfileCompletion();
     await loadVaultStatus();
     await loadTenders();
+    // Refresh balance once on load — not during processing poll
+    authFetch('/tl/company?id=' + companyId).then(function(r){ return r.json(); }).then(function(d){
+      if (d.balance !== undefined) document.getElementById('balancePill').textContent = 'R' + (d.balance||0);
+    }).catch(function(){});
   } catch(e) { showToast('Could not load dashboard', 'error'); }
 }
 
@@ -1188,7 +1194,7 @@ async function loadTenders() {
             '<div class="product-right"><span class="product-status status-failed">FAILED</span></div></div>';
         }
         return '<div class="product-card done">'+
-          '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub">Processing — this can take a few minutes</div></div>'+
+          '<div class="product-left"><div class="product-name">'+productLabel(p)+'</div><div class="product-sub" id="proc-sub-'+run.id+'">Analysing document...</div><div class="proc-bar-wrap"><div class="proc-bar" id="proc-bar-'+run.id+'"></div></div></div>'+
           '<div class="product-right"><span class="product-status status-proc">'+run.status.toUpperCase()+'</span></div></div>';
       }).join('');
 
@@ -1198,17 +1204,26 @@ async function loadTenders() {
     var anyProcessing = tenders.some(function(t){ return (t.product_runs||[]).some(function(r){ return r.status==='queued'||r.status==='processing'; }); });
     var anyComplete = tenders.some(function(t){ return (t.product_runs||[]).some(function(r){ return r.status==='complete'||r.status==='failed'; }); });
     if (anyProcessing) {
+      // Animate all active progress bars
+      document.querySelectorAll('.proc-bar').forEach(function(bar) {
+        if (!bar.dataset.started) {
+          bar.dataset.started = Date.now();
+          bar.dataset.duration = 240000; // 4 min expected
+        }
+        var elapsed = Date.now() - parseInt(bar.dataset.started);
+        var pct = Math.min(95, (elapsed / parseInt(bar.dataset.duration)) * 100);
+        bar.style.width = pct + '%';
+        // Update sub text
+        var secs = Math.floor(elapsed / 1000);
+        var mins = Math.floor(secs / 60);
+        var sub = document.getElementById(bar.id.replace('proc-bar-','proc-sub-'));
+        if (sub) {
+          var msgs = ['Analysing document...','Extracting requirements...','Checking eligibility...','Calculating preference points...','Building report...'];
+          sub.textContent = msgs[Math.min(Math.floor(pct/20), msgs.length-1)] + ' (' + (mins > 0 ? mins+'m ' : '') + (secs%60)+'s)';
+        }
+      });
       setTimeout(function() {
-        loadTenders().then(function() {
-          // If something just completed, refresh full dashboard to update balance
-          loadTenders().then(function(newTenders) {});
-          document.getElementById('balancePill').textContent = 'checking...';
-          authFetch('/tl/company?id=' + companyId).then(function(res) {
-            return res.json();
-          }).then(function(d) {
-            if (d.balance !== undefined) document.getElementById('balancePill').textContent = 'R' + (d.balance||0);
-          }).catch(function(){});
-        });
+        loadTenders();
       }, 3000);
     }
   } catch(e) { console.warn('loadTenders error:', e); }
