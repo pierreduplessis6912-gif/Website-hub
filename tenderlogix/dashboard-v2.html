@@ -1208,8 +1208,9 @@ async function runProduct(tenderId, product) {
     try { if (JSON.parse(c.industries||'[]').length > 0) score += 15; } catch(e) {}
     try { if (JSON.parse(c.provinces||'[]').length > 0) score += 15; } catch(e) {}
 
-    // Show nudge if profile under 80% — always allow proceeding
-    if (score < 80) {
+    // Show nudge if profile under 80% and not a free trial
+    var isFree = !freeTrials || !freeTrials[product];
+    if (score < 80 && !isFree) {
       var missing = [];
       if (!c.street_address) missing.push('Physical address');
       if (!c.tax_reference_number) missing.push('Tax reference number');
@@ -1540,6 +1541,7 @@ function showProfileNudge(score, missing, product) {
       : '';
 
     var overlay = document.createElement('div');
+    overlay.id = 'profileNudgeOverlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
     overlay.innerHTML = '<div style="background:#1a1a1a;border:1px solid rgba(255,107,26,.3);max-width:420px;width:100%;padding:28px;border-radius:2px">'
       + '<div style="font-family:var(--mono);font-size:10px;color:var(--orange);letter-spacing:2px;margin-bottom:12px">PROFILE INCOMPLETE</div>'
@@ -1548,26 +1550,21 @@ function showProfileNudge(score, missing, product) {
       + (missingHtml ? '<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:4px">Missing details:</div>' + missingHtml : '')
       + '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:12px;font-style:italic">Fields marked [Insert...] in your report indicate missing profile data. You can complete your profile and re-download the report at any time — no need to re-run.</div>'
       + '<div style="display:flex;gap:12px;margin-top:20px">'
-      + '<button onclick="this.closest('div[style*=fixed]').remove();window.goToProfile()" style="flex:1;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.2);color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase">Complete Profile</button>'
-      + '<button onclick="this.closest('div[style*=fixed]').dataset.proceed='1'" style="flex:1;padding:12px;background:var(--orange);border:none;color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase">Continue Anyway →</button>'
+      + '<button id="nudgeProfileBtn" style="flex:1;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.2);color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase">Complete Profile</button>'
+      + '<button id="nudgeContinueBtn" style="flex:1;padding:12px;background:var(--orange);border:none;color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase">Continue Anyway →</button>'
       + '</div></div>';
 
     document.body.appendChild(overlay);
 
-    // Watch for continue click
-    var observer = new MutationObserver(function() {
-      if (overlay.dataset.proceed === '1') {
-        observer.disconnect();
-        overlay.remove();
-        resolve(true);
-      }
+    document.getElementById('nudgeContinueBtn').addEventListener('click', function() {
+      overlay.remove();
+      resolve(true);
     });
-    observer.observe(overlay, { attributes: true });
 
-    // Watch for profile click (resolves false — cancel the run)
-    overlay.querySelector('button:first-child').addEventListener('click', function() {
-      observer.disconnect();
+    document.getElementById('nudgeProfileBtn').addEventListener('click', function() {
+      overlay.remove();
       resolve(false);
+      goToProfile();
     });
   });
 }
@@ -1723,6 +1720,7 @@ window.addEventListener('beforeunload', function(e) {
 </script>
 </body>
 </html>
+
 
 
 
