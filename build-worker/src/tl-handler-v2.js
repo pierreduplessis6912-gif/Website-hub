@@ -884,6 +884,8 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
       const call1Schema = `{
   "tender_title": "string — actual title/name of this tender",
   "tender_reference": "string or null",
+  "tender_type": "service or goods or mixed",
+  "goods_items": [ { "item_name": "string — exact item description", "spec": "string — specification details from tender", "quantity": number, "unit": "string — each/box/set/m2 etc", "item_code": "string or null" } ],
   "compliance_checklist": [ { "requirement": "string — document or requirement name", "status": "CAN_COMPLETE_NOW or MISSING_DOCUMENTS or NEEDS_PARTNER", "notes": "string — action, cost, lead time" } ],
   "pricing_basis": {
     "dominant_labour_category": "string — main labour type in this tender",
@@ -947,6 +949,8 @@ BOQ DATA FROM ANALYSIS: Use this pre-calculated pricing data:
 - BOQ: ${JSON.stringify(call1Data.boq || [])}
 - BOQ Totals: ${JSON.stringify(call1Data.boq_totals || {})}
 - Compliance checklist: ${JSON.stringify(call1Data.compliance_checklist || [])}
+- Tender type: ${call1Data.tender_type || 'service'}
+- Goods pricing (if applicable): ${goodsPricing ? JSON.stringify(goodsPricing.goods_pricing || []) : 'N/A — service tender'}
 
 ---
 
@@ -1062,6 +1066,61 @@ ${companyContext}
 TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
 
 
+      // ── GOODS PRICING ORACLE — web search pricing for goods tenders ──────
+      let goodsPricing = null;
+      if ((call1Data.tender_type === 'goods' || call1Data.tender_type === 'mixed') &&
+          call1Data.goods_items && call1Data.goods_items.length > 0) {
+        console.log('[GoodsOracle] Detected goods tender —', call1Data.goods_items.length, 'items. Running web search pricing...');
+        const goodsSystemPrompt = `You are a South African government procurement pricing specialist. You research current market prices for goods using web search and build competitive bid pricing models. Return ONLY valid JSON. No markdown, no explanation.`;
+        const goodsUserPrompt = `Research current South African market prices for these tender items and return a JSON pricing analysis.
+
+TENDER: ${call1Data.tender_title}
+COMPANY: ${company.name} | Province: ${JSON.parse(company.provinces || '[]').join(', ') || 'National'}
+
+ITEMS TO PRICE:
+${JSON.stringify(call1Data.goods_items, null, 2)}
+
+For each item:
+1. Search for current SA supplier prices (use specific search terms like "[item name] price South Africa supplier 2026")
+2. Check if item is on SITA transversal contract
+3. Average 3+ price sources
+4. Apply markup model: 15-25% margin + delivery cost estimate
+
+Return this exact JSON structure:
+{
+  "goods_pricing": [
+    {
+      "item_code": "string or null",
+      "item_name": "string",
+      "quantity": number,
+      "unit": "string",
+      "market_price_low": number,
+      "market_price_high": number,
+      "market_price_avg": number,
+      "price_sources": ["source 1 with price", "source 2 with price", "source 3 with price"],
+      "sita_transversal": "string or null — SITA contract number and price if found",
+      "recommended_margin_pct": number,
+      "delivery_per_unit": number,
+      "recommended_unit_price": number,
+      "total_line_value": number,
+      "confidence": "HIGH or MEDIUM or LOW",
+      "pricing_notes": "string — key assumptions and risks"
+    }
+  ],
+  "total_bid_value": number,
+  "pricing_strategy": "string — overall competitive positioning advice",
+  "market_intelligence": "string — key findings about this market segment"
+}`;
+
+        const goodsResult = await callKimiWithSearch(env, goodsSystemPrompt, goodsUserPrompt, 8000);
+        if (goodsResult.success) {
+          goodsPricing = goodsResult.data;
+          console.log('[GoodsOracle] Pricing complete — total bid value: R', goodsPricing.total_bid_value);
+        } else {
+          console.warn('[GoodsOracle] Pricing failed:', goodsResult.reason);
+        }
+      }
+
       const call2Result = await callClaudeSimple(env, pdfDocs, call2Prompt, 10000);
       if (!call2Result.success) {
         console.error('TL v2 — bidpack call 2 (submission pack) failed. run:', productRunId, 'reason:', call2Result.reason);
@@ -1070,7 +1129,11 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
         return { success: false, reason: call2Result.reason };
       }
 
-      report = { ...call1Result.data, submission_document: call2Result.text || null };
+      report = {
+        ...call1Result.data,
+        ...(goodsPricing || {}),
+        submission_document: call2Result.text || null
+      };
 
     } else {
       const fullPrompt = `${prompt}\n\nReturn ONLY this JSON structure:\n${schema}\n\nReturn ONLY valid JSON. No markdown fencing. No explanation outside the JSON.`;
@@ -1504,6 +1567,85 @@ async function callClaude(env, pdfDocs, promptText, schemaText, maxTokens, appen
   }
 }
 
+
+// ── KIMI WEB SEARCH — agentic pricing research for goods tenders ─────────
+// Handles the full tool-call loop: Kimi searches, gets results, continues
+// until finish_reason=stop. Each $web_search call costs $0.005.
+async function callKimiWithSearch(env, systemPrompt, userPrompt, maxTokens = 8000) {
+  try {
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+    const tools = [{ type: 'builtin_function', function: { name: '$web_search' } }];
+    let totalSearchCalls = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+
+    // Tool call loop — Kimi may search multiple times
+    for (let i = 0; i < 10; i++) { // max 10 iterations
+      const res = await fetch('https://api.moonshot.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.KIMI_KEY },
+        body: JSON.stringify({ model: 'kimi-k2.5', max_tokens: maxTokens, messages, tools })
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        return { success: false, reason: `Kimi search API error: ${res.status}` };
+      }
+
+      const data = await res.json();
+      const choice = data.choices?.[0];
+      totalInputTokens += data.usage?.prompt_tokens || 0;
+      totalOutputTokens += data.usage?.completion_tokens || 0;
+
+      if (choice?.finish_reason === 'stop') {
+        // Done — parse the final JSON response
+        const rawText = choice.message?.content || '';
+        let parsed;
+        try {
+          parsed = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+        } catch(e) {
+          return { success: false, reason: 'Could not parse goods pricing result' };
+        }
+        const costUsd = (totalInputTokens * 0.0000006) + (totalOutputTokens * 0.000003) + (totalSearchCalls * 0.005);
+        console.log('[GoodsOracle] Done — searches:', totalSearchCalls, 'cost: $' + costUsd.toFixed(4));
+        return { success: true, data: parsed, inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd };
+      }
+
+      if (choice?.finish_reason === 'tool_calls') {
+        // Kimi wants to search — add its message and the tool results to messages
+        const assistantMsg = choice.message;
+        messages.push(assistantMsg);
+
+        const toolResults = [];
+        for (const toolCall of (assistantMsg.tool_calls || [])) {
+          if (toolCall.function?.name === '$web_search') {
+            totalSearchCalls++;
+            // Kimi handles the actual search internally — we just acknowledge
+            toolResults.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              name: '$web_search',
+              content: 'Search executed. Results incorporated above.'
+            });
+          }
+        }
+        messages.push(...toolResults);
+        continue;
+      }
+
+      // Unexpected finish reason
+      break;
+    }
+
+    return { success: false, reason: 'Goods pricing search loop did not complete' };
+  } catch(e) {
+    console.error('[GoodsOracle] exception:', e.message);
+    return { success: false, reason: e.message };
+  }
+}
 
 async function callClaudeSimple(env, pdfDocs, promptText, maxTokens) {
   // Prose generation — same Kimi pipeline but no JSON parsing
