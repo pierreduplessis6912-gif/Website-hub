@@ -911,6 +911,7 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
   "pricing_disclaimer": "string"
 }`;
 
+      let goodsPricing = null; // declared here so call2Prompt template can reference it
       const call1Result = await callClaude(env, pdfDocs, call1Prompt, call1Schema, 16000);
       if (!call1Result.success) {
         console.error('TL v2 — bidpack call 1 (BOQ+checklist) failed. run:', productRunId, 'reason:', call1Result.reason);
@@ -1067,7 +1068,6 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
 
 
       // ── GOODS PRICING ORACLE — web search pricing for goods tenders ──────
-      let goodsPricing = null;
       if ((call1Data.tender_type === 'goods' || call1Data.tender_type === 'mixed') &&
           call1Data.goods_items && call1Data.goods_items.length > 0) {
         console.log('[GoodsOracle] Detected goods tender —', call1Data.goods_items.length, 'items. Running web search pricing...');
