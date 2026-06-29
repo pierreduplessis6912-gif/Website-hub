@@ -272,6 +272,23 @@ Need help? Reply to this message or email support@tenderlogix.co.za`;
         console.warn('[TL] Welcome WhatsApp failed:', e.message)
       );
     }
+
+    // ── OWNER NOTIFICATION ───────────────────────────────────────────────
+    const ownerPhone = env.WH_PHONE;
+    if (ownerPhone) {
+      const ownerMsg = `🆕 *New TenderLogix Registration*
+
+*Company:* ${businessName}
+*Phone:* ${phone || 'N/A'}
+*Industries:* ${(industries||[]).join(', ') || 'Not set'}
+*Province:* ${(provinces||[]).join(', ') || 'Not set'}
+*Profile:* ${hasCompleteProfile ? 'Complete' : 'Incomplete'}
+
+https://tenderlogix.co.za/dashboard/${companySlug}`;
+      await sendWhatsApp(ownerPhone, ownerMsg, env).catch(e =>
+        console.warn('[TL] Owner notification failed:', e.message)
+      );
+    }
   } catch(e) {
     console.warn('[TL] Welcome WhatsApp error:', e.message);
   }
@@ -1635,5 +1652,6 @@ export async function processTlQueueMessage(msg, env) {
     await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(chargeAmount, submissionId).run();
   }
 }
+
 
 
