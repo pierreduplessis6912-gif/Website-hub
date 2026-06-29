@@ -188,7 +188,7 @@ export default {
     // Any subdomain that isn't a system subdomain gets served from KV
     // IMPORTANT: preview.websitehub.co.za must fall through to platform routing
     // ── EXTERNAL CUSTOM DOMAINS — classictouchsalon.co.za etc ──
-    if (!hostname.endsWith('.websitehub.co.za') && hostname !== 'websitehub.co.za' && hostname !== 'www.websitehub.co.za') {
+    if (!hostname.endsWith('.websitehub.co.za') && hostname !== 'websitehub.co.za' && hostname !== 'www.websitehub.co.za' && hostname !== 'tenderlogix.co.za' && hostname !== 'www.tenderlogix.co.za') {
       try {
         if (path === '/health') return new Response(JSON.stringify({ status: 'ok', hostname }), { headers: { 'Content-Type': 'application/json' } });
         const page    = path.replace(/^\//, '').replace(/\/$/, '') || 'index';
@@ -5185,4 +5185,5 @@ function siteNotFound(slug) {
 }
 
 // queue fix Thu Jun 18 14:30:07 SAST 2026
+
 
