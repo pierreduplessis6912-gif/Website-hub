@@ -536,6 +536,16 @@ body{
     <div class="price-line" id="uploadPriceLine"></div>
   </div>
 
+  <!-- BIDMATCH -->
+  <div class="vault-section" id="bidmatchSection" style="display:none">
+    <div class="vault-section-head">
+      <div class="vault-section-title">Matched <span>Tenders</span></div>
+      <div class="vault-badge" id="bidmatchBadge" style="background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,107,26,.3)">0</div>
+    </div>
+    <p class="vault-section-sub">Open tenders matching your industry and province, sourced from National Treasury.</p>
+    <div id="bidmatchList"></div>
+  </div>
+
   <!-- VAULT -->
   <div class="vault-section" id="vaultSection">
     <div class="vault-section-head">
@@ -801,6 +811,7 @@ async function loadDashboard() {
 
     checkProfileCompletion();
     await loadVaultStatus();
+    await loadBidMatches();
     await loadTenders();
     // Refresh balance once on load — not during processing poll
     authFetch('/tl/company?id=' + companyId).then(function(r){ return r.json(); }).then(function(d){
@@ -810,6 +821,31 @@ async function loadDashboard() {
 }
 
 var vaultActive = false;
+
+async function loadBidMatches() {
+  try {
+    var res = await authFetch('/tl/v2/bidmatch?company_id=' + companyId);
+    var d = await res.json();
+    var matches = d.matches || [];
+    var section = document.getElementById('bidmatchSection');
+    var list = document.getElementById('bidmatchList');
+    var badge = document.getElementById('bidmatchBadge');
+    if (!matches.length) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    badge.textContent = matches.length;
+    list.innerHTML = matches.map(function(m) {
+      var closing = m.closing_date ? new Date(m.closing_date).toLocaleDateString('en-ZA', {day:'numeric',month:'short',year:'numeric'}) : 'Not specified';
+      var briefing = m.briefing_compulsory ? '<div class="check-notes" style="color:#e07b00">⚠️ Compulsory briefing'+(m.briefing_date ? ': '+new Date(m.briefing_date).toLocaleDateString('en-ZA') : '')+'</div>' : '';
+      return '<div class="vault-doc" style="margin-bottom:10px;padding:14px;border:1px solid var(--border);border-radius:2px">'
+        + '<div style="font-weight:600;font-size:13px;color:var(--charcoal);margin-bottom:4px">'+esc(m.tender_title||'')+'</div>'
+        + '<div style="font-size:11px;color:var(--mid);margin-bottom:6px">'+esc(m.category||'')+' — '+esc(m.province||'National')+' · '+esc(m.buyer_name||'')+'</div>'
+        + '<div style="font-size:11px;color:var(--mid)">Closes: '+closing+'</div>'
+        + briefing
+        + (m.detail_url ? '<a href="'+m.detail_url+'" target="_blank" style="display:inline-block;margin-top:8px;font-size:11px;color:var(--orange);font-family:var(--mono)">View on eTenders →</a>' : '')
+        + '</div>';
+    }).join('');
+  } catch(e) { console.warn('loadBidMatches failed:', e); }
+}
 
 async function loadVaultStatus() {
   try {
@@ -1720,6 +1756,7 @@ window.addEventListener('beforeunload', function(e) {
 </script>
 </body>
 </html>
+
 
 
 
