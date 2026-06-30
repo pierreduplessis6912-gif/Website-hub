@@ -436,6 +436,21 @@ self.addEventListener('fetch', e => {
         const results = await fetchPricingRates(env);
         return new Response(JSON.stringify({ success: true, results }), { headers: { 'Content-Type': 'application/json' } });
       }
+      if (path === '/admin/tl-mine-awards' && method === 'POST' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
+        const { mineAwards } = await import('./tl-award-miner.js');
+        const body = await request.json().catch(() => ({}));
+        const dateFrom = body.dateFrom || '2025-01-01';
+        const dateTo = body.dateTo || new Date().toISOString().slice(0,10);
+        const pageSize = body.pageSize || 200;
+        const result = await mineAwards(env, dateFrom, dateTo, pageSize);
+        return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+      }
+      if (path === '/admin/tl-buyer-intel' && method === 'GET' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
+        const { getBuyerIntelligence } = await import('./tl-award-miner.js');
+        const buyerName = url.searchParams.get('buyer');
+        const result = await getBuyerIntelligence(env, buyerName);
+        return new Response(JSON.stringify(result || { error: 'Buyer not found' }), { headers: { 'Content-Type': 'application/json' } });
+      }
       if (path === '/admin/tl-run-sync' && method === 'POST' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
         const steps = [];
         try {
