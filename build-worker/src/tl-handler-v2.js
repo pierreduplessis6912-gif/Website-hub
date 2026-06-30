@@ -347,13 +347,20 @@ async function handleGetBidMatches(url, env, tlJson) {
 
   const results = await env.TL_DB.prepare(`
     SELECT id, ocid, tender_title, category, province, buyer_name, closing_date,
-           briefing_compulsory, briefing_date, document_url, detail_url, matched_at
+           briefing_compulsory, briefing_date, document_url, detail_url, matched_at,
+           confidence_score, matched_industry
     FROM tl_bidmatch_results
     WHERE company_id=? AND (closing_date IS NULL OR closing_date > datetime('now'))
-    ORDER BY matched_at DESC LIMIT 20
+    ORDER BY confidence_score DESC, matched_at DESC LIMIT 5
   `).bind(company_id).all().catch(() => ({ results: [] }));
 
-  return tlJson({ matches: results.results || [] });
+  // Total count for "X more matches" context
+  const totalCount = await env.TL_DB.prepare(`
+    SELECT COUNT(*) as cnt FROM tl_bidmatch_results
+    WHERE company_id=? AND (closing_date IS NULL OR closing_date > datetime('now'))
+  `).bind(company_id).first().catch(() => ({ cnt: 0 }));
+
+  return tlJson({ matches: results.results || [], total_matches: totalCount?.cnt || 0 });
 }
 
 // ── DIRECTORS — list/add/edit/delete ──────────────────────────────────────
@@ -1759,6 +1766,7 @@ async function callClaudeTwoPass(env, pdfDocs, promptText, schemaText, maxTokens
   console.log('TL callClaudeTwoPass — routing to single-pass (Kimi 262k context)');
   return callClaude(env, pdfDocs, promptText, schemaText, maxTokens, false);
 }
+
 
 
 
