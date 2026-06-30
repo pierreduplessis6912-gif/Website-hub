@@ -220,9 +220,15 @@ async function handleTlCreateCompany(request, env, tlJson) {
     return tlJson({ error: 'An account already exists for this phone, email or registration number.', existing_company_id: existing.id }, 409);
   }
 
+  // ── BETA OUTREACH BONUS — numbers we personally reached out to get R1000 ──
+  const BETA_OUTREACH_NUMBERS = new Set([
+    '27767741934','27711889939','27717015925','27632468951','27734377736','27798916569'
+  ]);
+  const isBetaOutreach = BETA_OUTREACH_NUMBERS.has(normalisedPhone);
+
   // ── Complete-profile gate — R100 free balance, prevents freebie farming ──
   const hasCompleteProfile = !!(reg_number && industries?.length && provinces?.length);
-  const startingBalance = (free_credits && hasCompleteProfile) ? 100 : 0;
+  const startingBalance = isBetaOutreach ? 1000 : ((free_credits && hasCompleteProfile) ? 100 : 0);
 
   const id = crypto.randomUUID();
   const companySlug = await uniqueSlug(env, generateSlug(name), id);
@@ -248,7 +254,25 @@ async function handleTlCreateCompany(request, env, tlJson) {
   // ── WELCOME WHATSAPP ─────────────────────────────────────────────────────
   // Send onboarding message to the registered number
   try {
-    const welcomeMsg = `Welcome to TenderLogix, ${businessName}! 🎉
+    const welcomeMsg = isBetaOutreach
+      ? `Welcome to TenderLogix, ${businessName}! 🎉
+
+Your R1000 early access credit is loaded and ready to use.
+
+1️⃣ *Complete your profile* — the more detail you add, the better your reports
+   👉 https://tenderlogix.co.za/profile/${companySlug}
+
+2️⃣ *Upload a tender* — any government tender PDF you're considering
+   👉 https://tenderlogix.co.za/dashboard/${companySlug}
+
+3️⃣ *Run a Decision Analysis or Bid Pack* — your R1000 credit covers both with credit to spare
+
+*Sign in anytime:*
+👉 https://tenderlogix.co.za/login
+Tap "Send me a code on WhatsApp" → you'll receive a 6-digit code here → enter it to sign in. No password needed.
+
+Need help? Reply to this message or email support@tenderlogix.co.za`
+      : `Welcome to TenderLogix, ${businessName}! 🎉
 
 Your account is live. Here's how to get started:
 
