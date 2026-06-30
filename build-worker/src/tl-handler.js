@@ -1071,8 +1071,13 @@ async function handleTlListSubmissions(url, env, tlJson) {
 // switching via isTestMode(env), no need to hand-roll signature logic.
 async function handleVaultSubscribe(request, env, tlJson) {
   const body = await request.json().catch(() => ({}));
-  const { company_id } = body;
-  if (!company_id) return tlJson({ error: 'company_id required' }, 400);
+  const raw_company_id = body.company_id;
+  if (!raw_company_id) return tlJson({ error: 'company_id required' }, 400);
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const company_id = UUID_RE.test(raw_company_id) ? raw_company_id
+    : (await env.TL_DB.prepare('SELECT id FROM tl_companies WHERE slug=? LIMIT 1').bind(raw_company_id).first().catch(()=>null))?.id;
+  if (!company_id) return tlJson({ error: 'Company not found' }, 404);
 
   const company = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(company_id).first();
   if (!company) return tlJson({ error: 'Company not found' }, 404);
