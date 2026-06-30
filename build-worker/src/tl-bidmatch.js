@@ -25,35 +25,70 @@ const INDUSTRY_CATEGORY_MAP = {
   'medical': ['medical', 'health', 'pharmaceutical'],
 };
 
-function matchesIndustry(companyIndustries, tenderCategory) {
-  if (!tenderCategory) return false;
-  const catLower = tenderCategory.toLowerCase();
-  for (const industry of companyIndustries) {
+const PROVINCE_ALIASES = {
+  'GP': 'gauteng', 'KZN': 'kwazulu-natal', 'WC': 'western cape', 'EC': 'eastern cape',
+  'LP': 'limpopo', 'MP': 'mpumalanga', 'NW': 'north west', 'FS': 'free state', 'NC': 'northern cape'
+};
+
+// ── Confidence scoring — returns 0-100, or null if no match at all ────────
+function scoreMatch(company, release) {
+  const tender = release.tender || {};
+  const category = (tender.category || '').toLowerCase();
+  const province = (tender.province || '').toLowerCase();
+  if (!category) return null;
+
+  let industryScore = 0;
+  let bestIndustryMatch = null;
+  for (const industry of company.industries) {
     const industryLower = industry.toLowerCase();
-    // Direct substring match
-    if (catLower.includes(industryLower) || industryLower.includes(catLower)) return true;
-    // Keyword map match
+    // Exact phrase match — strongest signal
+    if (category === industryLower) { industryScore = 40; bestIndustryMatch = industry; break; }
+    if (category.includes(industryLower) || industryLower.includes(category)) {
+      industryScore = Math.max(industryScore, 30);
+      bestIndustryMatch = industry;
+      continue;
+    }
+    // Keyword map match — weaker signal
     for (const [key, patterns] of Object.entries(INDUSTRY_CATEGORY_MAP)) {
-      if (industryLower.includes(key)) {
-        if (patterns.some(p => catLower.includes(p))) return true;
+      if (industryLower.includes(key) && patterns.some(p => category.includes(p))) {
+        industryScore = Math.max(industryScore, 20);
+        bestIndustryMatch = bestIndustryMatch || industry;
       }
     }
   }
-  return false;
-}
+  if (industryScore === 0) return null; // no industry relevance at all — exclude
 
-function matchesProvince(companyProvinces, tenderProvince) {
-  if (!tenderProvince) return true; // national/unspecified tenders match everyone
-  if (!companyProvinces.length) return false;
-  const PROVINCE_ALIASES = {
-    'GP': 'gauteng', 'KZN': 'kwazulu-natal', 'WC': 'western cape', 'EC': 'eastern cape',
-    'LP': 'limpopo', 'MP': 'mpumalanga', 'NW': 'north west', 'FS': 'free state', 'NC': 'northern cape'
-  };
-  const tenderProvLower = tenderProvince.toLowerCase();
-  return companyProvinces.some(p => {
-    const expanded = PROVINCE_ALIASES[p] || p.toLowerCase();
-    return tenderProvLower.includes(expanded) || expanded.includes(tenderProvLower);
-  });
+  let provinceScore = 0;
+  if (!province) {
+    provinceScore = 15; // national/unspecified — neutral, still relevant
+  } else if (company.provinces.length) {
+    const exactMatch = company.provinces.some(p => {
+      const expanded = PROVINCE_ALIASES[p] || p.toLowerCase();
+      return province === expanded;
+    });
+    const looseMatch = company.provinces.some(p => {
+      const expanded = PROVINCE_ALIASES[p] || p.toLowerCase();
+      return province.includes(expanded) || expanded.includes(province);
+    });
+    if (exactMatch) provinceScore = 30;
+    else if (looseMatch) provinceScore = 20;
+    else return null; // wrong province entirely — exclude
+  } else {
+    return null; // company has no provinces set, tender has a specific province — can't confirm relevance
+  }
+
+  // Closing date proximity — sweet spot 10-30 days gives full marks
+  let timingScore = 10;
+  if (tender.tenderPeriod?.endDate) {
+    const daysLeft = Math.round((new Date(tender.tenderPeriod.endDate) - new Date()) / (1000*60*60*24));
+    if (daysLeft < 3) timingScore = 0;        // too soon to realistically prepare
+    else if (daysLeft <= 9) timingScore = 5;
+    else if (daysLeft <= 30) timingScore = 20; // sweet spot
+    else timingScore = 12;                     // far out, still useful but less urgent
+  }
+
+  const total = Math.min(100, industryScore + provinceScore + timingScore);
+  return { score: total, matchedIndustry: bestIndustryMatch };
 }
 
 // ── Main BidMatch run — pulls + matches + STORES (no WhatsApp send yet) ──
@@ -100,9 +135,8 @@ export async function runBidMatch(env, dateFrom, dateTo) {
       if (!ocid || !tender.title) continue;
 
       for (const company of companyList) {
-        const industryMatch = matchesIndustry(company.industries, tender.category);
-        const provinceMatch = matchesProvince(company.provinces, tender.province);
-        if (!industryMatch || !provinceMatch) continue;
+        const match = scoreMatch(company, release);
+        if (!match || match.score < 50) continue; // only store meaningful matches
 
         const matchId = `${company.id}-${ocid}`;
         const closingDate = tender.tenderPeriod?.endDate || null;
@@ -111,15 +145,17 @@ export async function runBidMatch(env, dateFrom, dateTo) {
         await env.TL_DB.prepare(`
           INSERT INTO tl_bidmatch_results
             (id, company_id, ocid, tender_title, category, province, buyer_name,
-             closing_date, briefing_compulsory, briefing_date, document_url, detail_url, matched_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-          ON CONFLICT(id) DO NOTHING
+             closing_date, briefing_compulsory, briefing_date, document_url, detail_url,
+             confidence_score, matched_industry, matched_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(id) DO UPDATE SET confidence_score=excluded.confidence_score
         `).bind(
           matchId, company.id, ocid, tender.title, tender.category || null,
           tender.province || null, release.buyer?.name || null,
           closingDate, tender.briefingSession?.compulsory ? 1 : 0, briefingDate,
           tender.documents?.[0]?.url || null,
-          `https://www.etenders.gov.za/Home/opportunities?id=${ocid}`
+          `https://www.etenders.gov.za/Home/opportunities?id=${ocid}`,
+          match.score, match.matchedIndustry
         ).run().then(r => { if (r.meta?.changes) matchesStored++; }).catch(e =>
           console.warn('[BidMatch] store failed:', e.message)
         );
@@ -134,12 +170,13 @@ export async function runBidMatch(env, dateFrom, dateTo) {
   }
 }
 
-// ── Get matches for a company's dashboard ──────────────────────────────────
-export async function getCompanyMatches(env, companyId, limit = 20) {
+// ── Get matches for a company's dashboard — top 5 by confidence ───────────
+export async function getCompanyMatches(env, companyId, limit = 5) {
   const results = await env.TL_DB.prepare(`
     SELECT * FROM tl_bidmatch_results
-    WHERE company_id=? AND closing_date > datetime('now')
-    ORDER BY matched_at DESC LIMIT ?
+    WHERE company_id=? AND (closing_date IS NULL OR closing_date > datetime('now'))
+    ORDER BY confidence_score DESC, matched_at DESC LIMIT ?
   `).bind(companyId, limit).all();
   return results.results || [];
 }
+
