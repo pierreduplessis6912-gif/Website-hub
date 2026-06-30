@@ -451,6 +451,15 @@ self.addEventListener('fetch', e => {
         const result = await getBuyerIntelligence(env, buyerName);
         return new Response(JSON.stringify(result || { error: 'Buyer not found' }), { headers: { 'Content-Type': 'application/json' } });
       }
+      if (path === '/admin/tl-run-bidmatch' && method === 'POST' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
+        const { runBidMatch } = await import('./tl-bidmatch.js');
+        const body = await request.json().catch(() => ({}));
+        const today = new Date().toISOString().slice(0,10);
+        const dateFrom = body.dateFrom || today;
+        const dateTo = body.dateTo || today;
+        const result = await runBidMatch(env, dateFrom, dateTo);
+        return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+      }
       if (path === '/admin/tl-run-sync' && method === 'POST' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
         const steps = [];
         try {
