@@ -4880,6 +4880,32 @@ async function fetchHeroPhoto(brief, brandBrief, env) {
 // ── CRON — OUTBOUND PROSPECTING ───────────────────────────────
 
 async function handleCron(env) {
+  // ── BIDMATCH DAILY MINING — independent of Website Hub test mode ────────
+  // Runs once per day (between 06:00-06:15 SAST) to keep matched tenders fresh.
+  try {
+    const nowSast = new Date(Date.now() + 2 * 60 * 60 * 1000); // UTC+2
+    if (nowSast.getUTCHours() === 6 && nowSast.getUTCMinutes() < 15) {
+      await env.TL_DB.prepare(
+        `CREATE TABLE IF NOT EXISTS tl_config (key TEXT PRIMARY KEY, value TEXT)`
+      ).run().catch(() => {});
+      const lastRun = await env.TL_DB.prepare(
+        `SELECT value FROM tl_config WHERE key='bidmatch_last_run_date' LIMIT 1`
+      ).first().catch(() => null);
+      const today = nowSast.toISOString().slice(0, 10);
+      if (lastRun?.value !== today) {
+        const { runBidMatch } = await import('./tl-bidmatch.js');
+        const yesterday = new Date(nowSast.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const result = await runBidMatch(env, yesterday, today);
+        await env.TL_DB.prepare(
+          `INSERT INTO tl_config (key, value) VALUES ('bidmatch_last_run_date', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`
+        ).bind(today).run().catch(() => {});
+        console.log('[Cron] BidMatch daily run:', JSON.stringify(result));
+      }
+    }
+  } catch(e) {
+    console.warn('[Cron] BidMatch mining failed:', e.message);
+  }
+
   if (isTestMode(env)) return;
 
   const scrapeEnabled = await env.DB.prepare(`SELECT value FROM config WHERE key='scrape_enabled' LIMIT 1`).first().catch(() => null);
@@ -5219,5 +5245,6 @@ function siteNotFound(slug) {
 }
 
 // queue fix Thu Jun 18 14:30:07 SAST 2026
+
 
 
