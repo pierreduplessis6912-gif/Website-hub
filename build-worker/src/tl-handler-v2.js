@@ -85,6 +85,7 @@ export async function handleTlV2(request, env) {
   if (path === '/tl/v2/product-run/download' && method === 'GET') return handleDownloadProductRun(url, env);
 
   if (path === '/tl/v2/free-trials' && method === 'GET') return handleGetFreeTrials(url, env, tlJson);
+  if (path === '/tl/v2/bidmatch' && method === 'GET') return handleGetBidMatches(url, env, tlJson);
 
   if (path === '/tl/v2/directors' && method === 'GET') return handleListDirectors(url, env, tlJson);
   if (path === '/tl/v2/directors' && method === 'POST') return handleSaveDirector(request, env, tlJson);
@@ -337,6 +338,22 @@ async function handleGetFreeTrials(url, env, tlJson) {
   allProducts.forEach(p => { availability[p] = !usedSet.has(p); });
 
   return tlJson({ company_id, free_trials_available: availability });
+}
+
+// ── BIDMATCH — fetch matched tenders for company dashboard ────────────────
+async function handleGetBidMatches(url, env, tlJson) {
+  const company_id = await resolveCompanyId(env, url.searchParams.get('company_id'));
+  if (!company_id) return tlJson({ error: 'company_id required' }, 400);
+
+  const results = await env.TL_DB.prepare(`
+    SELECT id, ocid, tender_title, category, province, buyer_name, closing_date,
+           briefing_compulsory, briefing_date, document_url, detail_url, matched_at
+    FROM tl_bidmatch_results
+    WHERE company_id=? AND (closing_date IS NULL OR closing_date > datetime('now'))
+    ORDER BY matched_at DESC LIMIT 20
+  `).bind(company_id).all().catch(() => ({ results: [] }));
+
+  return tlJson({ matches: results.results || [] });
 }
 
 // ── DIRECTORS — list/add/edit/delete ──────────────────────────────────────
@@ -1742,6 +1759,7 @@ async function callClaudeTwoPass(env, pdfDocs, promptText, schemaText, maxTokens
   console.log('TL callClaudeTwoPass — routing to single-pass (Kimi 262k context)');
   return callClaude(env, pdfDocs, promptText, schemaText, maxTokens, false);
 }
+
 
 
 
