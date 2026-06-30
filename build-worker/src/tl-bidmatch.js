@@ -56,31 +56,31 @@ function matchesProvince(companyProvinces, tenderProvince) {
   });
 }
 
-// ── Main BidMatch run — call from cron ─────────────────────────────────────
+// ── Main BidMatch run — pulls + matches + STORES (no WhatsApp send yet) ──
+// Stores matches in tl_bidmatch_results for dashboard display. WhatsApp
+// alerting is deferred until matching quality is validated against real
+// companies.
 export async function runBidMatch(env, dateFrom, dateTo) {
   const runId = crypto.randomUUID();
   let tendersChecked = 0;
-  let alertsSent = 0;
+  let matchesStored = 0;
 
   try {
-    // Pull today's (or specified range) tender notices
     const url = `${OCDS_BASE}?PageNumber=1&PageSize=200&dateFrom=${dateFrom}&dateTo=${dateTo}`;
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
     if (!res.ok) return { success: false, error: `OCDS API error ${res.status}` };
     const data = await res.json();
     const releases = data.releases || [];
 
-    // Only consider active/new tenders (not already closed/awarded)
     const activeTenders = releases.filter(r => {
       const status = r.tender?.status;
       return status === 'active' || status === 'planning';
     });
 
     if (activeTenders.length === 0) {
-      return { success: true, tendersChecked: 0, alertsSent: 0, message: 'No active tenders in range' };
+      return { success: true, tendersChecked: 0, matchesStored: 0, message: 'No active tenders in range' };
     }
 
-    // Get all companies with industries + provinces set, plus their phone
     const companies = await env.TL_DB.prepare(`
       SELECT id, name, phone, industries, provinces FROM tl_companies
       WHERE industries IS NOT NULL AND industries != '[]'
@@ -104,39 +104,42 @@ export async function runBidMatch(env, dateFrom, dateTo) {
         const provinceMatch = matchesProvince(company.provinces, tender.province);
         if (!industryMatch || !provinceMatch) continue;
 
-        // Check if already alerted — dedup
-        const alertKey = `bidmatch:${company.id}:${ocid}`;
-        const alreadyAlerted = await env.SITES.get(alertKey).catch(() => null);
-        if (alreadyAlerted) continue;
+        const matchId = `${company.id}-${ocid}`;
+        const closingDate = tender.tenderPeriod?.endDate || null;
+        const briefingDate = tender.briefingSession?.date || null;
 
-        // Send WhatsApp alert
-        if (company.phone) {
-          const closingDate = tender.tenderPeriod?.endDate
-            ? new Date(tender.tenderPeriod.endDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
-            : 'Not specified';
-          const briefingNote = tender.briefingSession?.compulsory
-            ? `\n⚠️ Compulsory briefing: ${tender.briefingSession.date ? new Date(tender.briefingSession.date).toLocaleDateString('en-ZA') : 'See tender doc'}`
-            : '';
-
-          const alertMsg = `🎯 *New tender match*\n\n*${tender.title}*\n${tender.category || ''} — ${tender.province || 'National'}\n\nBuyer: ${release.buyer?.name || 'N/A'}\nCloses: ${closingDate}${briefingNote}\n\nCheck if you should bid → https://tenderlogix.co.za/login`;
-
-          try {
-            const { sendWhatsApp } = await import('./shared-services.js');
-            await sendWhatsApp(company.phone, alertMsg, env);
-            alertsSent++;
-            // Mark as alerted — 60 day TTL (tenders close within that window typically)
-            await env.SITES.put(alertKey, '1', { expirationTtl: 60 * 24 * 60 * 60 }).catch(() => {});
-          } catch(e) {
-            console.warn('[BidMatch] Alert send failed for', company.name, e.message);
-          }
-        }
+        await env.TL_DB.prepare(`
+          INSERT INTO tl_bidmatch_results
+            (id, company_id, ocid, tender_title, category, province, buyer_name,
+             closing_date, briefing_compulsory, briefing_date, document_url, detail_url, matched_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(id) DO NOTHING
+        `).bind(
+          matchId, company.id, ocid, tender.title, tender.category || null,
+          tender.province || null, release.buyer?.name || null,
+          closingDate, tender.briefingSession?.compulsory ? 1 : 0, briefingDate,
+          tender.documents?.[0]?.url || null,
+          `https://www.etenders.gov.za/Home/opportunities?id=${ocid}`
+        ).run().then(r => { if (r.meta?.changes) matchesStored++; }).catch(e =>
+          console.warn('[BidMatch] store failed:', e.message)
+        );
       }
     }
 
-    return { success: true, tendersChecked, alertsSent, runId };
+    return { success: true, tendersChecked, matchesStored, runId };
 
   } catch(e) {
     console.error('[BidMatch] Failed:', e.message);
-    return { success: false, error: e.message, tendersChecked, alertsSent };
+    return { success: false, error: e.message, tendersChecked, matchesStored };
   }
+}
+
+// ── Get matches for a company's dashboard ──────────────────────────────────
+export async function getCompanyMatches(env, companyId, limit = 20) {
+  const results = await env.TL_DB.prepare(`
+    SELECT * FROM tl_bidmatch_results
+    WHERE company_id=? AND closing_date > datetime('now')
+    ORDER BY matched_at DESC LIMIT ?
+  `).bind(companyId, limit).all();
+  return results.results || [];
 }
