@@ -2097,6 +2097,16 @@ async function handleWhatsAppIncoming(request, env, ctx) {
     const stateRaw = await env.SITES.get(stateKey).catch(() => null);
     const state = stateRaw ? JSON.parse(stateRaw) : null;
 
+    // ── TENDERLOGIX BETA OUTREACH REPLY FORWARDING ──────────────────────
+    // Forward any reply from outreach contacts to Pierre's number for visibility
+    const OUTREACH_FORWARD_TO = '27790128508';
+    const OUTREACH_NUMBERS = new Set(['27767741934','27711889939','27717015925','27632468951','27734377736','27798916569']);
+    if (OUTREACH_NUMBERS.has(phone) && text) {
+      try {
+        await sendWhatsApp(OUTREACH_FORWARD_TO, `📩 Reply from +${phone}${pushName ? ' (' + pushName + ')' : ''}:\n\n"${text}"`, env, { skipTestRedirect: true });
+      } catch(e) { console.warn('Outreach forward failed:', e.message); }
+    }
+
     // ── TENDERLOGIX LOGIN trigger ─────────────────────────────────────────
     if (text.trim().toUpperCase() === 'LOGIN') {
       const result = await handleTlLoginRequest(phone, env);
