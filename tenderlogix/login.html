@@ -284,6 +284,7 @@ async function handleRegister() {
         name: company,
         client_name: company,
         phone: phone,
+        email: phone.replace(/\D/g,'').replace(/^0/,'27') + '@tenderlogix.user',
         industries: [],
         provinces: [],
         free_credits: true,
