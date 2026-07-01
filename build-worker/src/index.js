@@ -283,6 +283,12 @@ self.addEventListener('fetch', e => {
       // ── Dashboard routes — both UUID and slug formats ──────────────────
       // /dashboard-v2/{uuid}  — legacy, still works
       // /dashboard/{slug}     — new clean URL
+      // ── Register/Login shortcuts ─────────────────────────────────────────
+      if (url.pathname === '/register' || url.pathname === '/login') {
+        const loginHtml = await env.SITES.get('app:tl-login').catch(() => null);
+        if (loginHtml) return new Response(loginHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', ...TL_SECURITY_HEADERS } });
+      }
+
       if (url.pathname.startsWith('/dashboard-v2') || url.pathname.startsWith('/dashboard/')) {
         const v2dash = await env.SITES.get('app:tl-dashboard-v2').catch(() => null);
         if (v2dash) return new Response(v2dash, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', ...TL_SECURITY_HEADERS } });
@@ -5245,6 +5251,7 @@ function siteNotFound(slug) {
 }
 
 // queue fix Thu Jun 18 14:30:07 SAST 2026
+
 
 
 
