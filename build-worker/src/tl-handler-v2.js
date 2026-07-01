@@ -611,13 +611,14 @@ async function handleDownloadProductRun(url, env) {
 
   try {
     const arrayBuffer = await generateProductRunDocx(run, report, company, complianceDocuments, directors, hasVaultAccess);
-    const safeTitle = (report.tender_title || 'TenderLogix-Report').replace(/[^a-zA-Z0-9 \-]/g, '').slice(0, 60).trim() || 'TenderLogix-Report';
-    const productLabel = run.product === 'gonogo' ? 'Go-No-Go Analysis' : run.product === 'pricing' ? 'Pricing Report' : run.product === 'bidpack' ? 'Bid Pack' : 'Report';
+    const productLabel = run.product === 'gonogo' ? 'Decision Analysis' : run.product === 'pricing' ? 'Pricing Report' : run.product === 'bidpack' ? 'Bid Pack' : 'Report';
+    const tenderRef = (report.tender_reference || '').replace(/[^a-zA-Z0-9\-\/]/g, '').slice(0, 30).trim();
+    const safeTitle = tenderRef ? tenderRef + ' - ' + productLabel : (report.tender_title || 'TenderLogix Report').replace(/[^a-zA-Z0-9 \-]/g, '').slice(0, 50).trim() + ' - ' + productLabel;
 
     return new Response(arrayBuffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'Content-Disposition': `attachment; filename="${safeTitle} - ${productLabel}.docx"`,
+        'Content-Disposition': `attachment; filename="${safeTitle}.docx"`,
       },
     });
   } catch(e) {
