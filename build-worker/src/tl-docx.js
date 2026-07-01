@@ -723,6 +723,7 @@ export async function generateProductRunDocx(run, report, company, complianceDoc
     new Paragraph({ text: title, heading: HeadingLevel.TITLE }),
     ...(ref ? [new Paragraph({ children: [new TextRun({ text: 'Ref: ' + ref, italics: true, color: '666666' })] })] : []),
     new Paragraph({ children: [new TextRun({ text: 'Prepared for: ' + (companyName || ''), color: '666666' })] }),
+    new Paragraph({ children: [new TextRun({ text: 'Decision support tool only — not legal or financial advice. Verify all compliance requirements with relevant authorities before submission. TenderLogix accepts no liability for decisions made in reliance on this report.', italics: true, size: 16, color: '999999' })] }),
     new Paragraph({ text: '' }),
   ];
 
