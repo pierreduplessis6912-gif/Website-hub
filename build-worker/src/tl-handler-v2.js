@@ -643,6 +643,7 @@ async function runV2Product(productRunId, company, pdfDocs, product, env, useTwo
         let prompt, schema, maxTokens;
         let goodsPricing = null;
         let submissionDoc = null;
+        let call1Data = {};
 
      if (product === 'gonogo') {
       maxTokens = 8192;
@@ -970,7 +971,7 @@ TENDER DOCUMENT(S): ${pdfDocs.length} file(s) attached.`;
         return { success: false, reason: call1Result.reason };
       }
       // Handle both flat and nested result structures from tool_choice
-      const call1Data = call1Result.data?.boq ? call1Result.data : (call1Result.data?.result || call1Result.data);
+      call1Data = call1Result.data?.boq ? call1Result.data : (call1Result.data?.result || call1Result.data);
       if (!call1Data.boq || !Array.isArray(call1Data.boq)) {
         console.error('TL v2 — bidpack call 1 missing BOQ. run:', productRunId, 'keys:', Object.keys(call1Result.data||{}).join(','), 'parsed:', JSON.stringify(call1Result.data).slice(0,500));
         await env.TL_DB.prepare(`UPDATE tl_product_runs SET status='failed', report_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
