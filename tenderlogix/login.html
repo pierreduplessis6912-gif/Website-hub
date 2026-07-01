@@ -290,6 +290,12 @@ async function handleRegister() {
       })
     });
     var d = await res.json();
+    if (res.status === 401 || res.status === 409 || d.error?.toLowerCase().includes('already') || d.error?.toLowerCase().includes('exist')) {
+      errEl.textContent = 'This number already has an account.';
+      errEl.style.display = 'block';
+      setTimeout(function() { switchTab('login'); }, 1500);
+      return;
+    }
     if (d.success || d.company_id) {
       // Registration successful — now trigger OTP
       var normPhone = phone.replace(/^0/, '27').replace(/\D/g,'');
