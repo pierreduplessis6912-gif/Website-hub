@@ -317,7 +317,13 @@ https://tenderlogix.co.za/dashboard/${companySlug}`;
     console.warn('[TL] Welcome WhatsApp error:', e.message);
   }
 
-  return tlJson({ success: true, company_id: id, slug: companySlug, balance: startingBalance, message });
+  // ── CREATE SESSION — so new registrations can redirect straight to dashboard ──
+  const sessionToken = crypto.randomUUID().replace(/-/g, '');
+  await env.TL_DB.prepare(
+    `INSERT INTO tl_sessions (id, company_id, expires_at) VALUES (?, ?, datetime('now', '+30 days'))`
+  ).bind(sessionToken, id).run().catch(e => console.warn('[TL] Session create failed:', e.message));
+
+  return tlJson({ success: true, company_id: id, slug: companySlug, balance: startingBalance, message, session_token: sessionToken });
 }
 
 // ── GET COMPANY PROFILE ──────────────────────────────────────────
@@ -1681,6 +1687,7 @@ export async function processTlQueueMessage(msg, env) {
     await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(chargeAmount, submissionId).run();
   }
 }
+
 
 
 
