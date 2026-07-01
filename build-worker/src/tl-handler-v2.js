@@ -504,6 +504,12 @@ async function handleRunProduct(request, env, tlJson) {
     return tlJson({ error: `${product} costs R${price} — you have R${company.balance||0}. Top up R${shortfall} to continue.`, shortfall }, 402);
   }
 
+  // ── CLEAR FAILED RUN — delete any previous failed run for same tender+product
+  // so the user can retry without manual intervention
+  await env.TL_DB.prepare(
+    `DELETE FROM tl_product_runs WHERE tender_id=? AND product=? AND status='failed'`
+  ).bind(tender_id, product).run().catch(() => {});
+
   const id = crypto.randomUUID();
   // ── 4. QUEUE SERIALISATION — check BEFORE insert ────────────────────
   const activeRun = await env.TL_DB.prepare(
@@ -1766,6 +1772,7 @@ async function callClaudeTwoPass(env, pdfDocs, promptText, schemaText, maxTokens
   console.log('TL callClaudeTwoPass — routing to single-pass (Kimi 262k context)');
   return callClaude(env, pdfDocs, promptText, schemaText, maxTokens, false);
 }
+
 
 
 
