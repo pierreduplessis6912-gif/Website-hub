@@ -325,6 +325,8 @@ async function handleRegister() {
       switchTab('login');
       document.getElementById('statusMsg').textContent = 'Account created! Now send "LOGIN" on WhatsApp to get your sign-in code.';
       document.getElementById('statusMsg').style.color = '#1a9e5c';
+      // Meta Pixel — track successful registration
+      if (typeof fbq !== 'undefined') fbq('track', 'CompleteRegistration');
     } else {
       errEl.textContent = d.error || 'Registration failed. Please try again.';
       errEl.style.display = 'block';
