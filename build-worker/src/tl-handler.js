@@ -44,6 +44,7 @@ export async function handleTenderLogix(request, env) {
   // Public: register (POST /tl/company), auth endpoints, payfast webhook
   const isPublicRoute = (
     (path === '/tl/company' && method === 'POST') ||   // registration
+    (path === '/tl/register' && method === 'POST') ||   // registration alias
     path === '/tl/payfast-webhook' ||                   // PayFast server callback
     path === '/tl/auth/check' ||
     path === '/tl/auth/verify-otp' ||
@@ -320,8 +321,8 @@ https://tenderlogix.co.za/dashboard/${companySlug}`;
   // ── CREATE SESSION — so new registrations can redirect straight to dashboard ──
   const sessionToken = crypto.randomUUID().replace(/-/g, '');
   await env.TL_DB.prepare(
-    `INSERT INTO tl_sessions (id, company_id, expires_at) VALUES (?, ?, datetime('now', '+30 days'))`
-  ).bind(sessionToken, id).run().catch(e => console.warn('[TL] Session create failed:', e.message));
+    `INSERT INTO tl_sessions (id, company_id, phone, expires_at) VALUES (?, ?, ?, datetime('now', '+30 days'))`
+  ).bind(sessionToken, id, normalisedPhone).run().catch(e => console.warn('[TL] Session create failed:', e.message));
 
   return tlJson({ success: true, company_id: id, slug: companySlug, balance: startingBalance, message, session_token: sessionToken });
 }
@@ -1687,6 +1688,7 @@ export async function processTlQueueMessage(msg, env) {
     await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(chargeAmount, submissionId).run();
   }
 }
+
 
 
 
