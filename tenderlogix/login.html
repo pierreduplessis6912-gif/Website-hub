@@ -277,7 +277,7 @@ async function handleRegister() {
   errEl.style.display = 'none';
 
   try {
-    var res = await fetch('/tl/register', {
+    var res = await fetch('/tl/company', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
