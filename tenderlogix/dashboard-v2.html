@@ -1151,22 +1151,19 @@ async function submitUpload() {
 
 
 async function handleLogout(e) {
-  e.preventDefault();
-  if (!confirm('Sign out of TenderLogix?')) return;
+  if (e) e.preventDefault();
   try {
     var token = localStorage.getItem('tl_session');
     if (token) {
-      await authFetch('/tl/auth/logout', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
+      await authFetch('/tl/auth/logout', { method: 'POST' }).catch(function(){});
     }
-  } catch(e) {}
+  } catch(err) {}
   localStorage.removeItem('tl_session');
   localStorage.removeItem('tl_company_id');
   localStorage.removeItem('tl_company_name');
+  localStorage.removeItem('tl_pending_phone');
   _allowNavigation = true;
-  window.location.replace('/login');
+  window.location.href = '/login';
 }
 // ── Navigation guard — warn before leaving ──────────────────────────────
 // Fires on browser back, close tab, or any navigation away from this page.
@@ -1786,6 +1783,7 @@ window.addEventListener('beforeunload', function(e) {
 </script>
 </body>
 </html>
+
 
 
 
