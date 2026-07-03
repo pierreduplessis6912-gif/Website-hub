@@ -437,6 +437,7 @@ self.addEventListener('fetch', e => {
       if (path === '/admin/force-live'         && method === 'POST') return handleAdminForceLive(request, env);
       if (path === '/admin/query'              && method === 'POST') return handleAdminQuery(request, env);
       if (path === '/admin/tl-query'        && method === 'POST') return handleAdminTlQuery(request, env);
+      if (path === '/admin/tl-delete-company' && method === 'POST') return handleAdminTlDeleteCompany(request, env);
       if (path === '/admin/tl-fetch-pricing' && method === 'POST' && request.headers.get('x-admin-key') === env.ADMIN_KEY) {
         const { fetchPricingRates } = await import('./tl-pricing-oracle.js');
         const results = await fetchPricingRates(env);
@@ -1493,6 +1494,84 @@ async function handleAdminTlQuery(request, env) {
     const result = params?.length ? await stmt.bind(...params).all() : await stmt.all();
     return jsonResponse({ results: result.results || [] });
   } catch(e) { return jsonResponse({ error: e.message }, 400); }
+}
+
+// ── DELETE A COMPANY — full cascade across every table with a company_id FK ──
+// Accepts either the company UUID or slug. Also removes any R2 documents
+// (tender uploads, compliance certs) so nothing orphaned is left in storage.
+// Runs children-before-parent to respect FK constraints, and keeps going
+// even if one step errors, so a partial run doesn't leave things half-deleted
+// without visibility — every step's outcome is reported back.
+async function handleAdminTlDeleteCompany(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const idOrSlug = body.company_id;
+  if (!idOrSlug) return jsonResponse({ error: 'company_id required' }, 400);
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const companyId = UUID_RE.test(idOrSlug)
+    ? idOrSlug
+    : (await env.TL_DB.prepare('SELECT id FROM tl_companies WHERE slug=? LIMIT 1').bind(idOrSlug).first().catch(() => null))?.id;
+
+  if (!companyId) return jsonResponse({ error: 'Company not found' }, 404);
+
+  const company = await env.TL_DB.prepare('SELECT id, name, phone, slug FROM tl_companies WHERE id=? LIMIT 1').bind(companyId).first();
+  if (!company) return jsonResponse({ error: 'Company not found' }, 404);
+
+  const steps = [];
+
+  // ── Collect R2 keys before the DB rows referencing them are gone ──────
+  let r2Keys = [];
+  try {
+    const tenders = await env.TL_DB.prepare('SELECT doc_r2_keys FROM tl_tenders WHERE company_id=?').bind(companyId).all();
+    for (const row of (tenders.results || [])) {
+      try { r2Keys.push(...JSON.parse(row.doc_r2_keys || '[]')); } catch(e) {}
+    }
+    const docs = await env.TL_DB.prepare('SELECT r2_key FROM tl_compliance_documents WHERE company_id=? AND r2_key IS NOT NULL').bind(companyId).all();
+    for (const row of (docs.results || [])) {
+      if (row.r2_key) r2Keys.push(row.r2_key);
+    }
+    steps.push({ step: 'collect_r2_keys', found: r2Keys.length });
+  } catch(e) { steps.push({ step: 'collect_r2_keys', error: e.message }); }
+
+  // ── Delete R2 objects ──────────────────────────────────────────────────
+  for (const key of r2Keys) {
+    try { await env.TL_DOCS.delete(key); }
+    catch(e) { steps.push({ step: `r2_delete:${key}`, error: e.message }); }
+  }
+  if (r2Keys.length) steps.push({ step: 'r2_delete', deleted: r2Keys.length });
+
+  // ── Delete DB rows — children first, parent last ───────────────────────
+  const tables = [
+    'tl_otp', 'tl_sessions', 'tl_compliance_documents', 'tl_company_directors',
+    'tl_product_runs', 'tl_tenders', 'tl_free_trials_used', 'tl_submissions',
+    'tl_references', 'tl_credits', 'tl_vault_subscriptions',
+  ];
+  for (const table of tables) {
+    try {
+      const result = await env.TL_DB.prepare(`DELETE FROM ${table} WHERE company_id=?`).bind(companyId).run();
+      steps.push({ step: table, deleted: result.meta?.changes ?? 0 });
+    } catch(e) { steps.push({ step: table, error: e.message }); }
+  }
+
+  // ── OTP rate limit — keyed by phone, not company_id ─────────────────────
+  try {
+    const result = await env.TL_DB.prepare('DELETE FROM tl_otp_rate WHERE phone=?').bind(company.phone).run();
+    steps.push({ step: 'tl_otp_rate', deleted: result.meta?.changes ?? 0 });
+  } catch(e) { steps.push({ step: 'tl_otp_rate', error: e.message }); }
+
+  // ── The company itself — last ───────────────────────────────────────────
+  try {
+    await env.TL_DB.prepare('DELETE FROM tl_companies WHERE id=?').bind(companyId).run();
+    steps.push({ step: 'tl_companies', deleted: 1 });
+  } catch(e) { steps.push({ step: 'tl_companies', error: e.message }); }
+
+  const failed = steps.filter(s => s.error);
+  return jsonResponse({
+    success: failed.length === 0,
+    company: { id: company.id, name: company.name, slug: company.slug },
+    steps,
+    ...(failed.length ? { warning: `${failed.length} step(s) had errors — see steps` } : {}),
+  });
 }
 
 // ── PARTNER HANDLERS ─────────────────────────────────────────────────────────
