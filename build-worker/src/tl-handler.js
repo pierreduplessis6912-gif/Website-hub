@@ -8,7 +8,7 @@
 // Each tier upgrade charges (tier_price - amount_paid) on that SAME submission.
 // Balance is rand sitting on the account, drawn down first; PayFast covers the shortfall.
 
-import { buildPayFastLink, isTestMode, sendWhatsApp } from './shared-services.js';
+import { buildPayFastLink, isTestMode, sendWhatsApp, normaliseSaPhone } from './shared-services.js';
 import { handleTlVerifyOtp, handleTlAuthCheck, handleTlLogout, requireTlAuth } from './tl-auth.js';
 
 const TIER_PRICES = { gonogo: 20, pricing: 750, bidpack: 2500 };
@@ -209,7 +209,7 @@ async function handleTlCreateCompany(request, env, tlJson) {
   if (!name || !phone || !email) return tlJson({ error: 'name, phone and email required' }, 400);
   if (!terms_accepted) return tlJson({ error: 'You must agree to the Terms of Service and Privacy Policy to register' }, 400);
 
-  const normalisedPhone = (phone || '').replace(/\D/g, '');
+  const normalisedPhone = normaliseSaPhone(phone);
   const normalisedEmail = (email || '').trim().toLowerCase();
 
   // ── Duplicate prevention — one company per phone/email/reg_number ──────
@@ -365,7 +365,7 @@ async function handleTlUpdateCompany(request, env, tlJson) {
   const existing = await env.TL_DB.prepare('SELECT * FROM tl_companies WHERE id=? LIMIT 1').bind(resolvedId).first();
   if (!existing) return tlJson({ error: 'Company not found' }, 404);
 
-  const normalisedPhone = phone ? phone.replace(/\D/g, '') : existing.phone;
+  const normalisedPhone = phone ? normaliseSaPhone(phone) : existing.phone;
   const normalisedEmail = email ? email.trim().toLowerCase() : existing.email;
 
   // If phone or email is changing, make sure it doesn't collide with a DIFFERENT company
