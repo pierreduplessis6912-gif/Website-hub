@@ -291,7 +291,7 @@ Tap "Send me a code on WhatsApp" → you'll receive a 6-digit code here → ente
 
 Need help? Reply to this message or email support@tenderlogix.co.za`;
 
-    const normPhone = (phone || '').replace(/\D/g, '');
+    const normPhone = (phone || '').replace(/\D/g, '').replace(/^0/, '27');
     if (normPhone) {
       await sendWhatsApp(normPhone, welcomeMsg, env).catch(e =>
         console.warn('[TL] Welcome WhatsApp failed:', e.message)
@@ -1688,6 +1688,7 @@ export async function processTlQueueMessage(msg, env) {
     await env.TL_DB.prepare(`UPDATE tl_submissions SET amount_paid=? WHERE id=?`).bind(chargeAmount, submissionId).run();
   }
 }
+
 
 
 
